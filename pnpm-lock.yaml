@@ -481,8 +481,8 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3(ethers@5.7.2)(hardhat@2.18.3)
       '@nomiclabs/hardhat-waffle':
-        specifier: ^2.0.1
-        version: 2.0.1(@nomiclabs/hardhat-ethers@2.2.3)(ethereum-waffle@4.0.10)(ethers@5.7.2)(hardhat@2.18.3)
+        specifier: ^2.0.6
+        version: 2.0.6(@nomiclabs/hardhat-ethers@2.2.3)(@types/sinon-chai@3.2.5)(ethereum-waffle@4.0.10)(ethers@5.7.2)(hardhat@2.18.3)
       '@types/chai':
         specifier: ^4.3.8
         version: 4.3.8
@@ -2979,22 +2979,6 @@ packages:
       hardhat: 2.18.3(ts-node@10.9.1)(typescript@5.2.2)
     dev: true
 
-  /@nomiclabs/hardhat-waffle@2.0.1(@nomiclabs/hardhat-ethers@2.2.3)(ethereum-waffle@4.0.10)(ethers@5.7.2)(hardhat@2.18.3):
-    resolution: {integrity: sha512-2YR2V5zTiztSH9n8BYWgtv3Q+EL0N5Ltm1PAr5z20uAY4SkkfylJ98CIqt18XFvxTD5x4K2wKBzddjV9ViDAZQ==}
-    peerDependencies:
-      '@nomiclabs/hardhat-ethers': ^2.0.0
-      ethereum-waffle: ^3.2.0
-      ethers: ^5.0.0
-      hardhat: ^2.0.0
-    dependencies:
-      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@5.7.2)(hardhat@2.18.3)
-      '@types/sinon-chai': 3.2.5
-      '@types/web3': 1.0.19
-      ethereum-waffle: 4.0.10(@ensdomains/ens@0.4.5)(@ensdomains/resolver@0.2.4)(@ethersproject/abi@5.7.0)(@ethersproject/providers@5.7.2)(ethers@5.7.2)(typescript@5.2.2)
-      ethers: 5.7.2
-      hardhat: 2.18.3(ts-node@10.9.1)(typescript@5.2.2)
-    dev: true
-
   /@nomiclabs/hardhat-waffle@2.0.6(@nomiclabs/hardhat-ethers@2.2.3)(@types/sinon-chai@3.2.5)(ethereum-waffle@4.0.10)(ethers@5.7.2)(hardhat@2.18.3):
     resolution: {integrity: sha512-+Wz0hwmJGSI17B+BhU/qFRZ1l6/xMW82QGXE/Gi+WTmwgJrQefuBs1lIf7hzQ1hLk6hpkvb/zwcNkpVKRYTQYg==}
     peerDependencies:
@@ -4197,19 +4181,8 @@ packages:
   /@types/trusted-types@2.0.3:
     resolution: {integrity: sha512-NfQ4gyz38SL8sDNrSixxU2Os1a5xcdFxipAFxYEuLUlvU2uDwS4NUpsImcf1//SlWItCVMMLiylsxbmNMToV/g==}
 
-  /@types/underscore@1.11.3:
-    resolution: {integrity: sha512-Fl1TX1dapfXyDqFg2ic9M+vlXRktcPJrc4PR7sRc7sdVrjavg/JHlbUXBt8qWWqhJrmSqg3RNAkAPRiOYw6Ahw==}
-    dev: true
-
   /@types/unist@2.0.6:
     resolution: {integrity: sha512-PBjIUxZHOuj0R15/xuwJYjFi+KZdNFrehocChv4g5hu6aFroHue8m0lBP0POdK2nKzbw0cgV1mws8+V/JAcEkQ==}
-    dev: true
-
-  /@types/web3@1.0.19:
-    resolution: {integrity: sha512-fhZ9DyvDYDwHZUp5/STa9XW2re0E8GxoioYJ4pEUZ13YHpApSagixj7IAdoYH5uAK+UalGq6Ml8LYzmgRA/q+A==}
-    dependencies:
-      '@types/bn.js': 5.1.0
-      '@types/underscore': 1.11.3
     dev: true
 
   /@types/ws@7.4.7:
