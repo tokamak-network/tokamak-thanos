@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:bullseye-slim as rust-build
+FROM debian:bullseye-slim as rust-build
 
 SHELL ["/bin/bash", "-c"]
 
@@ -32,17 +32,18 @@ RUN source $HOME/.profile && \
   strip /opt/foundry/target/release/cast && \
   strip /opt/foundry/target/release/anvil
 
-FROM --platform=linux/amd64 ghcr.io/crytic/echidna/echidna:v2.0.4 as echidna-test
+FROM ghcr.io/crytic/echidna/echidna:v2.0.4 as echidna-test
 
-FROM --platform=linux/amd64 debian:bullseye-slim as go-build
+FROM debian:bullseye-slim as go-build
 
 RUN apt-get update && apt-get install -y curl ca-certificates
 
 ENV GO_VERSION=1.21.1
 
+ARG TARGETARCH
 # Fetch go manually, rather than using a Go base image, so we can copy the installation into the final stage
-RUN curl -sL https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz -o go$GO_VERSION.linux-amd64.tar.gz && \
-  tar -C /usr/local/ -xzvf go$GO_VERSION.linux-amd64.tar.gz
+RUN curl -sL https://go.dev/dl/go$GO_VERSION.linux-$TARGETARCH.tar.gz -o go$GO_VERSION.linux-$TARGETARCH.tar.gz && \
+  tar -C /usr/local/ -xzvf go$GO_VERSION.linux-$TARGETARCH.tar.gz
 
 ENV GOPATH=/go
 ENV PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
@@ -58,7 +59,7 @@ RUN go install gotest.tools/gotestsum@latest
 RUN go install github.com/vektra/mockery/v2@v2.28.1
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
 
-FROM --platform=linux/amd64 python:3.11.4-slim-bullseye
+FROM python:3.11.4-slim-bullseye
 
 ENV GOPATH=/go
 ENV PATH=/usr/local/go/bin:$GOPATH/bin:$PATH

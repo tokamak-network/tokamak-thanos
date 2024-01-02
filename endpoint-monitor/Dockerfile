@@ -1,4 +1,4 @@
-FROM golang:1.21.1-alpine3.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.1-alpine3.18 as builder
 
 RUN apk --no-cache add make jq bash git alpine-sdk
 
@@ -17,7 +17,8 @@ COPY ./.git /app/.git
 
 WORKDIR /app/endpoint-monitor
 
-RUN make build
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH make build
 
 FROM alpine:3.18
 RUN apk --no-cache add ca-certificates

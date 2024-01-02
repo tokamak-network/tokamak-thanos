@@ -1,11 +1,13 @@
-FROM golang:1.20.7-alpine3.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.20.7-alpine3.18 as builder
 
 # build from root of repo
 COPY ./op-exporter /app
 
 WORKDIR /app/
 RUN apk --no-cache add make bash jq git
-RUN make build
+
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH make build
 
 FROM alpine:3.18
 RUN apk --no-cache add ca-certificates
