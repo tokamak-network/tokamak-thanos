@@ -17,7 +17,8 @@ COPY ./op-node /app/op-node
 
 WORKDIR /app/indexer
 
-RUN make indexer
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH make indexer
 
 FROM alpine:3.18
 
