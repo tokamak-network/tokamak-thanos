@@ -1,4 +1,4 @@
-FROM golang:1.21.3-alpine3.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.3-alpine3.18 as builder
 
 ARG GITCOMMIT=docker
 ARG GITDATE=docker
@@ -10,7 +10,8 @@ COPY ./proxyd /app
 
 WORKDIR /app
 
-RUN make proxyd
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH make proxyd
 
 FROM alpine:3.18
 
@@ -19,8 +20,8 @@ RUN apk add bind-tools jq curl bash git redis
 COPY ./proxyd/entrypoint.sh /bin/entrypoint.sh
 
 RUN apk update && \
-    apk add ca-certificates && \
-    chmod +x /bin/entrypoint.sh
+  apk add ca-certificates && \
+  chmod +x /bin/entrypoint.sh
 
 EXPOSE 8080
 
