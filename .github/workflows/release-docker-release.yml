@@ -1,0 +1,281 @@
+name: Publish Docker images (release)
+
+on:
+  push:
+    tags:
+      - 'release-*'
+
+jobs:
+  version:
+    name: Publish Packages (release)
+    runs-on: ubuntu-latest
+    # map the step outputs to job outputs
+    outputs:
+      release-docker-tag: ${{ steps.docker-image-name.outputs.release-docker-tag }}
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v4
+        with:
+          # This makes Actions fetch all Git history so that Changesets can generate changelogs with the correct commits
+          fetch-depth: 0
+
+      - name: Docker Image Name
+        id: docker-image-name
+        run: |
+          echo "release-docker-tag=${GITHUB_REF#refs/*/}" >> "$GITHUB_OUTPUT"
+
+  op-stack-go:
+    name: Publish op-stack-go
+    needs: [version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
+
+      - name: Set build args
+        id: build_args
+        run: |
+          echo ::set-output name=GITDATE::"$(date +%d-%m-%Y)"
+          echo ::set-output name=GITCOMMIT::"$GITHUB_SHA"
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: .
+          file: ./ops/docker/op-stack-go/Dockerfile
+          push: true
+          tags: onthertech/titan-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
+          build-args: |
+            GITDATE=${{ steps.build_args.outputs.GITDATE }}
+            GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
+
+  op-packages:
+    name: Publish ${{ matrix.target }}
+    needs: [op-stack-go, version]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          [
+            op-node,
+            op-batcher,
+            op-proposer,
+            op-challenger,
+            op-heartbeat,
+            op-program,
+          ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: .
+          file: ./${{ matrix.target }}/Dockerfile
+          push: true
+          tags: onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          build-args: |
+            OP_STACK_GO_BUILDER=onthertech/titan-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
+
+  etc:
+    name: Publish ${{ matrix.target }}
+    needs: [version]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [endpoint-monitor, indexer, op-exporter, proxyd]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
+
+      - name: Set build args
+        id: build_args
+        run: |
+          echo ::set-output name=GITDATE::"$(date +%d-%m-%Y)"
+          echo ::set-output name=GITVERSION::$(jq -r .version ./${{ matrix.target }}/package.json)
+          echo ::set-output name=GITCOMMIT::"$GITHUB_SHA"
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: .
+          file: ./${{ matrix.target }}/Dockerfile
+          push: true
+          tags: onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          build-args: |
+            GITDATE=${{ steps.build_args.outputs.GITDATE }}
+            GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
+            GITVERSION=${{ steps.build_args.outputs.GITVERSION }}
+
+  start-runners:
+    strategy:
+      matrix:
+        number: [0, 1, 2, 3, 4]
+    name: Start EC2 Runner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.ACCESS_TOKEN }}
+          ec2-image-id: ami-01bd9dc38789ab007
+          ec2-instance-type: t4g.2xlarge
+          subnet-id: subnet-4aa53021
+          security-group-id: sg-03165a21a3ba6e8b3
+
+      - name: Runner status
+        id: status
+        run: |
+          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
+          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+
+      - uses: cloudposse/github-action-matrix-outputs-write@main
+        id: out
+        with:
+          matrix-step-name: ${{ github.job }}
+          matrix-key: ${{ matrix.number }}
+          outputs: |-
+            label: ${{ steps.start-ec2-runner.outputs.label }}
+            ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+
+  chain-mon:
+    name: Publish ${{ matrix.target }}
+    needs: [start-runners, version]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ARM64]
+        target: [fault-mon, balance-mon, drippie-mon, wd-mon, replica-mon]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
+
+      - name: Docker Image Name
+        id: docker-image-name
+        run: |
+          ARCHITECTURE=$(uname -m)
+          if [ "$ARCHITECTURE" = "x86_64" ]; then
+            ARCHITECTURE="amd64"
+          fi
+          if [ "$ARCHITECTURE" = "aarch64" ]; then
+            ARCHITECTURE="arm64"
+          fi
+          echo "docker-image-name=onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./ops/docker/Dockerfile.packages
+          target: ${{ matrix.target }}
+          push: true
+          provenance: false
+          tags: ${{ steps.docker-image-name.outputs.docker-image-name }}
+
+  stop-runners:
+    name: Stop self-hosted EC2 runners
+    strategy:
+      matrix:
+        number: [0, 1, 2, 3, 4]
+    needs: [start-runners, chain-mon]
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@main
+        id: read
+        with:
+          matrix-step-name: start-runners
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.ACCESS_TOKEN }}
+          label: ${{ fromJson(steps.read.outputs.result).label[format('{0}', matrix.number)] }}
+          ec2-instance-id: ${{ fromJson(steps.read.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
+
+  merge:
+    name: Build multi-arch images
+    needs: [version, chain-mon]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [fault-mon, balance-mon, drippie-mon, wd-mon, replica-mon]
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
+
+      - name: Create and push manifest
+        uses: Noelware/docker-manifest-action@master
+        with:
+          inputs: onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          images: onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-amd64,onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-arm64
+          push: true
