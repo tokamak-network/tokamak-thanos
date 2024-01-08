@@ -218,6 +218,56 @@ contract Deploy is Deployer {
         require(address(bridge.otherBridge()) == Predeploys.L2_STANDARD_BRIDGE);
     }
 
+    function upgradeL1CrossDomainMessenger(address safeOwner) public {
+        console.log("upgradeL1CrossDomainMessenger");
+        insert("SystemOwnerSafe", safeOwner);
+        deployL1CrossDomainMessenger();
+        upgradeL1CrossDomainMessengerLogic();
+        sync();
+    }
+
+    function upgradeL1CrossDomainMessengerLogic() public {
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+
+        uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
+        if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
+            _callViaSafe({
+                _target: address(proxyAdmin),
+                _data: abi.encodeCall(ProxyAdmin.setProxyType, (l1CrossDomainMessengerProxy, ProxyAdmin.ProxyType.RESOLVED))
+            });
+        }
+        require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
+
+        string memory contractName = "OVM_L1CrossDomainMessenger";
+        string memory implName = proxyAdmin.implementationName(l1CrossDomainMessenger);
+        if (keccak256(bytes(contractName)) != keccak256(bytes(implName))) {
+            _callViaSafe({
+                _target: address(proxyAdmin),
+                _data: abi.encodeCall(ProxyAdmin.setImplementationName, (l1CrossDomainMessengerProxy, contractName))
+            });
+        }
+        require(
+            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
+                == keccak256(bytes(contractName))
+        );
+
+        _upgradeViaSafe({
+            _proxy: payable(l1CrossDomainMessengerProxy),
+            _implementation: l1CrossDomainMessenger
+        });
+
+        L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
+        string memory version = messenger.version();
+        console.log("L1CrossDomainMessenger version: %s", version);
+
+        require(address(messenger.PORTAL()) == optimismPortalProxy);
+        require(address(messenger.portal()) == optimismPortalProxy);
+        bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
+        require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
+    }
 
     /// @notice Deploy the Safe
     function deploySafe() public broadcast returns (address addr_) {
