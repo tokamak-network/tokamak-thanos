@@ -54,4 +54,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(PORTAL);
     }
+
+    function test() external pure returns (uint256) {
+        return 256;
+    }
 }
