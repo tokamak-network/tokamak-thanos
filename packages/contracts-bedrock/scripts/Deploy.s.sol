@@ -179,6 +179,46 @@ contract Deploy is Deployer {
         save("SafeSingleton", address(safeSingleton_));
     }
 
+    function upgradeL1StandardBridge(address safeOwner) public {
+        console.log("upgradeL1StandardBridge");
+        insert("SystemOwnerSafe", safeOwner);
+        deployL1StandardBridge();
+        upgradeL1StandardBridgeLogic();
+        sync();
+    }
+
+    /// @notice Upgrade the L1StandardBridge
+    function upgradeL1StandardBridgeLogic() public broadcast {
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
+        address l1StandardBridge = mustGetAddress("L1StandardBridge");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+
+        uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
+        if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
+            _callViaSafe({
+                _target: address(proxyAdmin),
+                _data: abi.encodeCall(ProxyAdmin.setProxyType, (l1StandardBridgeProxy, ProxyAdmin.ProxyType.CHUGSPLASH))
+            });
+        }
+        require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
+
+        _upgradeViaSafe({
+            _proxy: payable(l1StandardBridgeProxy),
+            _implementation: l1StandardBridge
+        });
+
+        string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
+        console.log("L1StandardBridge version: %s", version);
+
+        L1StandardBridge bridge = L1StandardBridge(payable(l1StandardBridgeProxy));
+        require(address(bridge.MESSENGER()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.messenger()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_STANDARD_BRIDGE);
+        require(address(bridge.otherBridge()) == Predeploys.L2_STANDARD_BRIDGE);
+    }
+
+
     /// @notice Deploy the Safe
     function deploySafe() public broadcast returns (address addr_) {
         (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
@@ -252,6 +292,7 @@ contract Deploy is Deployer {
         console.log("L2OutputOracleProxy deployed at %s", address(proxy));
         addr_ = address(proxy);
     }
+
 
     /// @notice Deploy the L1CrossDomainMessengerProxy
     function deployL1CrossDomainMessengerProxy() public broadcast returns (address addr_) {
@@ -579,6 +620,16 @@ contract Deploy is Deployer {
         });
     }
 
+     /// @notice Call from the Safe contract to the Proxy Admin's upgrade
+    function _upgradeViaSafe(address _proxy, address _implementation) internal {
+        address proxyAdmin = mustGetAddress("ProxyAdmin");
+
+        bytes memory data =
+            abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
+
+        _callViaSafe({ _target: proxyAdmin, _data: data });
+    }
+
     /// @notice Call from the Safe contract to the Proxy Admin's upgrade and call method
     function _upgradeAndCallViaSafe(address _proxy, address _implementation, bytes memory _innerCallData) internal {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
@@ -692,7 +743,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
-                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy))
+                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.l1Token())
                 )
         });
 
