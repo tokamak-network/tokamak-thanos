@@ -51,4 +51,4 @@ __pycache__
 
 # Ignore echidna artifacts
 crytic-export
-packages/contracts-bedrock/upgrade*.
+packages/contracts-bedrock/upgrade*
