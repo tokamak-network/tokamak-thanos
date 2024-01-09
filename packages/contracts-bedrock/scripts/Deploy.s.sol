@@ -180,7 +180,6 @@ contract Deploy is Deployer {
     }
 
     function upgradeL1StandardBridge(address safeOwner) public {
-        console.log("upgradeL1StandardBridge");
         insert("SystemOwnerSafe", safeOwner);
         deployL1StandardBridge();
         upgradeL1StandardBridgeLogic();
@@ -193,14 +192,6 @@ contract Deploy is Deployer {
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
         address l1StandardBridge = mustGetAddress("L1StandardBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-
-        uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
-        if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
-            _callViaSafe({
-                _target: address(proxyAdmin),
-                _data: abi.encodeCall(ProxyAdmin.setProxyType, (l1StandardBridgeProxy, ProxyAdmin.ProxyType.CHUGSPLASH))
-            });
-        }
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
 
         _upgradeViaSafe({
@@ -219,41 +210,21 @@ contract Deploy is Deployer {
     }
 
     function upgradeL1CrossDomainMessenger(address safeOwner) public {
-        console.log("upgradeL1CrossDomainMessenger");
         insert("SystemOwnerSafe", safeOwner);
         deployL1CrossDomainMessenger();
         upgradeL1CrossDomainMessengerLogic();
         sync();
     }
 
-    function upgradeL1CrossDomainMessengerLogic() public {
+    function upgradeL1CrossDomainMessengerLogic() public broadcast {
         ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
 
-        uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
-        if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
-            _callViaSafe({
-                _target: address(proxyAdmin),
-                _data: abi.encodeCall(ProxyAdmin.setProxyType, (l1CrossDomainMessengerProxy, ProxyAdmin.ProxyType.RESOLVED))
-            });
-        }
         require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
-
         string memory contractName = "OVM_L1CrossDomainMessenger";
-        string memory implName = proxyAdmin.implementationName(l1CrossDomainMessenger);
-        if (keccak256(bytes(contractName)) != keccak256(bytes(implName))) {
-            _callViaSafe({
-                _target: address(proxyAdmin),
-                _data: abi.encodeCall(ProxyAdmin.setImplementationName, (l1CrossDomainMessengerProxy, contractName))
-            });
-        }
-        require(
-            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
-                == keccak256(bytes(contractName))
-        );
-
+        require(keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) == keccak256(bytes(contractName)));
         _upgradeViaSafe({
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger
@@ -342,7 +313,6 @@ contract Deploy is Deployer {
         console.log("L2OutputOracleProxy deployed at %s", address(proxy));
         addr_ = address(proxy);
     }
-
 
     /// @notice Deploy the L1CrossDomainMessengerProxy
     function deployL1CrossDomainMessengerProxy() public broadcast returns (address addr_) {
