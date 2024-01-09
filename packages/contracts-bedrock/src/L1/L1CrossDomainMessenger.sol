@@ -55,7 +55,4 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         return _target == address(this) || _target == address(PORTAL);
     }
 
-    function test() external pure returns (uint256) {
-        return 256;
-    }
 }
