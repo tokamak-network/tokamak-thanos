@@ -26,7 +26,10 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		FundDevAccounts(db)
 	}
 
-	SetPrecompileBalances(db)
+	if config.SetPrecompileBalances {
+		log.Info("Setting precompile balances in L2 genesis")
+		SetPrecompileBalances(db)
+	}
 
 	storage, err := NewL2StorageConfig(config, l1StartBlock)
 	if err != nil {
