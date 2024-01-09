@@ -53,3 +53,5 @@ __pycache__
 crytic-export
 packages/contracts-bedrock/upgrade*
 packages/contracts-bedrock/deploy.sh
+packages/tokamak/contracts-bedrock/upgrade*
+packages/tokamak/contracts-bedrock/deploy.sh
