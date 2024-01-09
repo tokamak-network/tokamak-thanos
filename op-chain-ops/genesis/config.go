@@ -211,6 +211,9 @@ type DeployConfig struct {
 	// FundDevAccounts configures whether or not to fund the dev accounts. Should only be used
 	// during devnet deployments.
 	FundDevAccounts bool `json:"fundDevAccounts"`
+	// SetPrecompileBalances configures whether or not to set balance of precompile accounts.
+	// Should only be used during devnet deployments
+	SetPrecompileBalances bool `json:"setPrecompileBalances"`
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are required to adopt, to stay in sync with the network.
 	RequiredProtocolVersion params.ProtocolVersion `json:"requiredProtocolVersion"`
