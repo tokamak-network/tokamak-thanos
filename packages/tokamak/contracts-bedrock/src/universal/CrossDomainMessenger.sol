@@ -383,8 +383,8 @@ abstract contract CrossDomainMessenger is
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
     }
 
-    function _sendDepositTonMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal virtual {
-
+    function _sendDepositTonMessage(address , uint64 , uint256 , bytes memory ) internal virtual {
+        revert("Cannot call on Layer 2");
     }
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
