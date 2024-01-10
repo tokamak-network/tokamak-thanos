@@ -18,6 +18,9 @@ import { Constants } from "src/libraries/Constants.sol";
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
 contract L1StandardBridge is StandardBridge, ISemver {
+
+    address public l1TokenAddress;
+
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
     /// @param from      Address of the depositor.
@@ -74,42 +77,29 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
-        initialize({ _messenger: CrossDomainMessenger(address(0)) });
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _l1TokenAddress: address(0) });
     }
 
     /// @notice Initializer
-    function initialize(CrossDomainMessenger _messenger) public reinitializer(Constants.INITIALIZER) {
+    function initialize(CrossDomainMessenger _messenger, address _l1TokenAddress) public reinitializer(Constants.INITIALIZER) {
         __StandardBridge_init({ _messenger: _messenger });
+        l1TokenAddress = _l1TokenAddress;
     }
 
-    /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
-    receive() external payable override onlyEOA {
-        _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+    /// @notice Dont allows to bridge ETH by sending directly to the bridge.
+    receive() external payable override {
+        revert("does not receive ETH");
+        // _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
-    /// @custom:legacy
-    /// @notice Deposits some amount of ETH into the sender's account on L2.
-    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
-    /// @param _extraData   Optional data to forward to L2.
-    ///                     Data supplied here will not be used to execute any code on L2 and is
-    ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositETH(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
-        _initiateETHDeposit(msg.sender, msg.sender, _minGasLimit, _extraData);
+    event UpgradeL1StandardBridge();
+
+    function upgrade() public {
+        emit UpgradeL1StandardBridge();
     }
 
-    /// @custom:legacy
-    /// @notice Deposits some amount of ETH into a target account on L2.
-    ///         Note that if ETH is sent to a contract on L2 and the call fails, then that ETH will
-    ///         be locked in the L2StandardBridge. ETH may be recoverable if the call can be
-    ///         successfully replayed by increasing the amount of gas supplied to the call. If the
-    ///         call will fail for any amount of gas, then the ETH will be locked permanently.
-    /// @param _to          Address of the recipient on L2.
-    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
-    /// @param _extraData   Optional data to forward to L2.
-    ///                     Data supplied here will not be used to execute any code on L2 and is
-    ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
-        _initiateETHDeposit(msg.sender, _to, _minGasLimit, _extraData);
+    function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
+       _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
     }
 
     /// @custom:legacy
@@ -160,7 +150,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     }
 
     /// @custom:legacy
-    /// @notice Finalizes a withdrawal of ETH from L2.
+    /// @notice Finalizes a withdrawal of ETH from L2 => receive TON in L1
     /// @param _from      Address of the withdrawer on L2.
     /// @param _to        Address of the recipient on L1.
     /// @param _amount    Amount of ETH to withdraw.
@@ -174,12 +164,13 @@ contract L1StandardBridge is StandardBridge, ISemver {
         external
         payable
     {
-        finalizeBridgeETH(_from, _to, _amount, _extraData);
+        //
+        // finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
     /// @custom:legacy
     /// @notice Finalizes a withdrawal of ERC20 tokens from L2.
-    /// @param _l1Token   Address of the token on L1.
+    /// @param _l1Token   Address of the token on L1. L1 must be different than l1TokenAddress
     /// @param _l2Token   Address of the corresponding token on L2.
     /// @param _from      Address of the withdrawer on L2.
     /// @param _to        Address of the recipient on L1.
@@ -205,15 +196,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
         return address(OTHER_BRIDGE);
     }
 
-    /// @notice Internal function for initiating an ETH deposit.
-    /// @param _from        Address of the sender on L1.
-    /// @param _to          Address of the recipient on L2.
-    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
-    /// @param _extraData   Optional data to forward to L2.
-    function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
-        _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
-    }
-
     /// @notice Internal function for initiating an ERC20 deposit.
     /// @param _l1Token     Address of the L1 token being deposited.
     /// @param _l2Token     Address of the corresponding token on L2.
@@ -234,6 +216,39 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
     {
         _initiateBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Override create finalized mesasge on other chain
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the ERC20 on the remote chain.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of the ERC20 sent.
+    /// @param _extraData   Extra data sent with the transaction.
+    function _sendERC20BridgeFinalizedMessage(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        if (l1TokenAddress == _localToken) {
+            _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+            messenger.sendDepositTonMessage(
+                address(OTHER_BRIDGE),
+                _amount,
+                abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
+                _minGasLimit
+            );
+
+        } else {
+            super._sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+        }
     }
 
     /// @inheritdoc StandardBridge
