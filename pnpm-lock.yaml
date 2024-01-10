@@ -540,6 +540,9 @@ importers:
 
   packages/tokamak/contracts-bedrock:
     devDependencies:
+      '@eth-optimism/contracts-bedrock':
+        specifier: workspace:*
+        version: link:../../contracts-bedrock
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.9.0
         version: 6.9.0(@typescript-eslint/parser@6.9.0)(eslint@8.52.0)(typescript@5.2.2)
