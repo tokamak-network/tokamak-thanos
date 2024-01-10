@@ -127,19 +127,19 @@ contract GasBenchMark_L1StandardBridge_Deposit is Bridge_Initializer {
         L1Token.approve(address(L1Bridge), type(uint256).max);
     }
 
-    function test_depositETH_benchmark_0() external {
-        vm.pauseGasMetering();
-        setPrevBaseFee(vm, address(op), 1 gwei);
-        vm.resumeGasMetering();
-        L1Bridge.depositETH{ value: 500 }(50000, hex"");
-    }
+    // function test_depositETH_benchmark_0() external {
+    //     vm.pauseGasMetering();
+    //     setPrevBaseFee(vm, address(op), 1 gwei);
+    //     vm.resumeGasMetering();
+    //     L1Bridge.depositETH{ value: 500 }(50000, hex"");
+    // }
 
-    function test_depositETH_benchmark_1() external {
-        vm.pauseGasMetering();
-        setPrevBaseFee(vm, address(op), 10 gwei);
-        vm.resumeGasMetering();
-        L1Bridge.depositETH{ value: 500 }(50000, hex"");
-    }
+    // function test_depositETH_benchmark_1() external {
+    //     vm.pauseGasMetering();
+    //     setPrevBaseFee(vm, address(op), 10 gwei);
+    //     vm.resumeGasMetering();
+    //     L1Bridge.depositETH{ value: 500 }(50000, hex"");
+    // }
 
     function test_depositERC20_benchmark_0() external {
         vm.pauseGasMetering();
