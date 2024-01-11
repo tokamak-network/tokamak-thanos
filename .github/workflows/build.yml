@@ -1,0 +1,55 @@
+name: build
+
+on:
+  push:
+    paths:
+      - 'op-chain-ops/**'
+      - 'packages/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check changed
+        run: |
+          # Add the check-changed script here
+          # For simplicity, let's assume it's a shell script
+          ./check-changed.sh
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Fetch dependencies
+        run: pnpm fetch --frozen-lockfile --prefer-offline
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --offline
+
+      - name: Print forge version
+        run: forge --version
+
+      - name: Build monorepo
+        run: pnpm build
+
+      - name: Persist to workspace
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist-artifacts
+          path: |
+            packages/**/dist
+            packages/contracts-bedrock/forge-artifacts
