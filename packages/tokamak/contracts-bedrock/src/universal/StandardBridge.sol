@@ -151,7 +151,7 @@ abstract contract StandardBridge is Initializable {
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeETH(uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
+    function bridgeETH(uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA virtual {
         _initiateBridgeETH(msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
     }
 
@@ -167,7 +167,7 @@ abstract contract StandardBridge is Initializable {
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) public payable {
+    function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) public payable virtual {
         _initiateBridgeETH(msg.sender, _to, msg.value, _minGasLimit, _extraData);
     }
 
