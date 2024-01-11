@@ -384,7 +384,7 @@ abstract contract CrossDomainMessenger is
     }
 
     function _sendDepositTonMessage(address , uint64 , uint256 , bytes memory ) internal virtual {
-        revert("Cannot call on Layer 2");
+        revert("Cannot call this function except it is overrided");
     }
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
