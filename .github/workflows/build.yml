@@ -2,9 +2,8 @@ name: build
 
 on:
   push:
-    paths:
-      - 'op-chain-ops/**'
-      - 'packages/**'
+    branches:
+      - main
 
 jobs:
   build:
