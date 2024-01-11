@@ -179,6 +179,67 @@ contract Deploy is Deployer {
         save("SafeSingleton", address(safeSingleton_));
     }
 
+    function upgradeL1StandardBridge(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployL1StandardBridge();
+        upgradeL1StandardBridgeLogic();
+        sync();
+    }
+
+    /// @notice Upgrade the L1StandardBridge
+    function upgradeL1StandardBridgeLogic() public broadcast {
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
+        address l1StandardBridge = mustGetAddress("L1StandardBridge");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
+
+        _upgradeViaSafe({
+            _proxy: payable(l1StandardBridgeProxy),
+            _implementation: l1StandardBridge
+        });
+
+        string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
+        console.log("L1StandardBridge version: %s", version);
+
+        L1StandardBridge bridge = L1StandardBridge(payable(l1StandardBridgeProxy));
+        require(address(bridge.MESSENGER()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.messenger()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_STANDARD_BRIDGE);
+        require(address(bridge.otherBridge()) == Predeploys.L2_STANDARD_BRIDGE);
+    }
+
+    function upgradeL1CrossDomainMessenger(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployL1CrossDomainMessenger();
+        upgradeL1CrossDomainMessengerLogic();
+        sync();
+    }
+
+    function upgradeL1CrossDomainMessengerLogic() public broadcast {
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+
+        require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
+        string memory contractName = "OVM_L1CrossDomainMessenger";
+        require(keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) == keccak256(bytes(contractName)));
+        _upgradeViaSafe({
+            _proxy: payable(l1CrossDomainMessengerProxy),
+            _implementation: l1CrossDomainMessenger
+        });
+
+        L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
+        string memory version = messenger.version();
+        console.log("L1CrossDomainMessenger version: %s", version);
+
+        require(address(messenger.PORTAL()) == optimismPortalProxy);
+        require(address(messenger.portal()) == optimismPortalProxy);
+        bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
+        require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
+    }
+
     /// @notice Deploy the Safe
     function deploySafe() public broadcast returns (address addr_) {
         (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
@@ -577,6 +638,16 @@ contract Deploy is Deployer {
             refundReceiver: payable(address(0)),
             signatures: signature
         });
+    }
+
+     /// @notice Call from the Safe contract to the Proxy Admin's upgrade
+    function _upgradeViaSafe(address _proxy, address _implementation) internal {
+        address proxyAdmin = mustGetAddress("ProxyAdmin");
+
+        bytes memory data =
+            abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
+
+        _callViaSafe({ _target: proxyAdmin, _data: data });
     }
 
     /// @notice Call from the Safe contract to the Proxy Admin's upgrade and call method
