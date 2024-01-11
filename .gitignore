@@ -55,3 +55,11 @@ crytic-export
 # Ignore local script testing files
 packages/tokamak/contracts-bedrock/upgrade*
 packages/tokamak/contracts-bedrock/deploy.sh
+
+op-batcher/start.sh
+op-node/genesis.json
+op-node/jwt.txt
+op-node/makeL2Files.sh
+op-node/rollup.json
+op-node/start.sh
+op-proposer/start.sh
