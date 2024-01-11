@@ -157,10 +157,9 @@ abstract contract Deployer is Script {
             vm.writeJson({ json: json, path: artifactPath });
         }
 
-        // console.log("Synced temp deploy files, deleting %s", tempDeploymentsPath);
-        // vm.removeFile(tempDeploymentsPath);
+        console.log("Synced temp deploy files, deleting %s", tempDeploymentsPath);
+        vm.removeFile(tempDeploymentsPath);
     }
-
 
     /// @notice Returns the name of the deployment script. Children contracts
     ///         must implement this to ensure that the deploy artifacts can be found.
@@ -231,25 +230,11 @@ abstract contract Deployer is Script {
         if (bytes(_namedDeployments[_name].name).length > 0) {
             revert InvalidDeployment("AlreadyExists");
         }
+
         Deployment memory deployment = Deployment({ name: _name, addr: payable(_deployed) });
         _namedDeployments[_name] = deployment;
         _newDeployments.push(deployment);
         _writeTemp(_name, _deployed);
-    }
-
-    /// @notice Insert a deployment.
-    /// @param _name The name of the deployment.
-    /// @param _deployed The address of the deployment.
-    function insert(string memory _name, address _deployed) public {
-        if (bytes(_name).length == 0) {
-            revert InvalidDeployment("EmptyName");
-        }
-        if (bytes(_namedDeployments[_name].name).length > 0) {
-            revert InvalidDeployment("AlreadyExists");
-        }
-        Deployment memory deployment = Deployment({ name: _name, addr: payable(_deployed) });
-        _namedDeployments[_name] = deployment;
-        _newDeployments.push(deployment);
     }
 
     /// @notice Reads the temp deployments from disk that were generated
@@ -332,8 +317,8 @@ abstract contract Deployer is Script {
         cmd[1] = "-c";
         cmd[2] = string.concat(Executables.jq, " -r '.arguments' <<< '", _transaction, "'");
         bytes memory res = vm.ffi(cmd);
-        string[] memory args = new string[](0);
 
+        string[] memory args = new string[](0);
         if (keccak256(bytes("null")) != keccak256(res)) {
             args = stdJson.readStringArray(string(res), "");
         }
