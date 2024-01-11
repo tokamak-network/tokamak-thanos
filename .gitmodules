@@ -17,7 +17,6 @@
 	path = packages/contracts-bedrock/lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
 	branch = v1.4.0
-
 [submodule "packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts-upgradeable"]
 	path = packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
