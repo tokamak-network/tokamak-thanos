@@ -92,12 +92,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
         // _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
-    event UpgradeL1StandardBridge();
-
-    function upgrade() public {
-        emit UpgradeL1StandardBridge();
-    }
-
     function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
        _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
     }
@@ -164,8 +158,8 @@ contract L1StandardBridge is StandardBridge, ISemver {
         external
         payable
     {
-        //
-        // finalizeBridgeETH(_from, _to, _amount, _extraData);
+        // TODO
+        //// finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
     /// @custom:legacy
@@ -238,34 +232,33 @@ contract L1StandardBridge is StandardBridge, ISemver {
         override
     {
         if (l1TokenAddress == _localToken) {
-            _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+            // _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
             messenger.sendDepositTonMessage(
                 address(OTHER_BRIDGE),
                 _amount,
                 abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
                 _minGasLimit
             );
-
         } else {
             super._sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
         }
     }
 
-    /// @inheritdoc StandardBridge
-    /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
-    ///         This is necessary for backwards compatibility with the legacy bridge.
-    function _emitETHBridgeInitiated(
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes memory _extraData
-    )
-        internal
-        override
-    {
-        emit ETHDepositInitiated(_from, _to, _amount, _extraData);
-        super._emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-    }
+    // /// @inheritdoc StandardBridge
+    // /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
+    // ///         This is necessary for backwards compatibility with the legacy bridge.
+    // function _emitETHBridgeInitiated(
+    //     address _from,
+    //     address _to,
+    //     uint256 _amount,
+    //     bytes memory _extraData
+    // )
+    //     internal
+    //     override
+    // {
+    //     emit ETHDepositInitiated(_from, _to, _amount, _extraData);
+    //     super._emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+    // }
 
     /// @inheritdoc StandardBridge
     /// @notice Emits the legacy ERC20DepositInitiated event followed by the ERC20BridgeInitiated
