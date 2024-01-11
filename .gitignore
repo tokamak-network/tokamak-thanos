@@ -51,7 +51,7 @@ __pycache__
 
 # Ignore echidna artifacts
 crytic-export
-packages/contracts-bedrock/upgrade*
-packages/contracts-bedrock/deploy.sh
+
+# Ignore local script testing files
 packages/tokamak/contracts-bedrock/upgrade*
 packages/tokamak/contracts-bedrock/deploy.sh
