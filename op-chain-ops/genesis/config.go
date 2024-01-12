@@ -716,6 +716,14 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
+	immutable["OptimismMintableERC721Factory"] = immutables.ImmutableValues{
+		"bridge":        predeploys.L2ERC721BridgeAddr,
+		"remoteChainId": new(big.Int).SetUint64(config.L1ChainID),
+	}
+	immutable["WETH"] = immutables.ImmutableValues{
+		"bridge":        predeploys.L2ERC721BridgeAddr,
+		"remoteChainId": new(big.Int).SetUint64(config.L1ChainID),
+	}
 
 	return immutable, nil
 }
@@ -760,9 +768,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_name":   "Ether",
 		"_symbol": "ETH",
 	}
-	storage["WETH9"] = state.StorageValues{
-		"name":     "Wrapped Ether",
-		"symbol":   "WETH",
+	storage["WTON"] = state.StorageValues{
+		"name":     "Wrapped TON",
+		"symbol":   "WTON",
 		"decimals": 18,
 	}
 	if config.EnableGovernance {
@@ -784,6 +792,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"bridge":        predeploys.L2StandardBridgeAddr,
 		"_initialized":  initializedValue,
 		"_initializing": false,
+	}
+	storage["WETH"] = state.StorageValues{
+		"bridge": predeploys.L2StandardBridgeAddr,
 	}
 	return storage, nil
 }
