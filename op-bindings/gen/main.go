@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -51,8 +50,6 @@ func main() {
 	log.Printf("Using monorepo base %s\n", f.MonorepoBase)
 
 	contractData, err := os.ReadFile(f.Contracts)
-	wd, _ := os.Getwd()
-	fmt.Println("Contracts: ", f.Contracts, " Dir:", wd)
 	if err != nil {
 		log.Fatal("error reading contract list: %w\n", err)
 	}
