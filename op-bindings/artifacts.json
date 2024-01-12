@@ -23,7 +23,7 @@
   "ProxyAdmin",
   "LegacyMessagePasser",
   "ERC20",
-  "WETH9",
+  "WTON",
   "DeployerWhitelist",
   "L1BlockNumber",
   "DisputeGameFactory",
