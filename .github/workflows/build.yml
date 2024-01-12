@@ -1,10 +1,10 @@
-name: build
+name: 'Build monorepo'
 
 on:
   push:
-    branches:
-      - main
-
+    paths:
+      - 'op-chain-ops/**'
+      - 'packages/**'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +23,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: node_modules
-          key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Fetch dependencies
         run: pnpm fetch --frozen-lockfile --prefer-offline
@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: node_modules
-          key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --offline
