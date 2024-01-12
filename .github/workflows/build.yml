@@ -15,12 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Check changed
-        run: |
-          # Add the check-changed script here
-          # For simplicity, let's assume it's a shell script
-          ./check-changed.sh
-
       - name: Restore PNPM Package Cache
         uses: actions/cache@v2
         with:
