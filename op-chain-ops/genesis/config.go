@@ -720,10 +720,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"bridge":        predeploys.L2ERC721BridgeAddr,
 		"remoteChainId": new(big.Int).SetUint64(config.L1ChainID),
 	}
-	immutable["WETH"] = immutables.ImmutableValues{
-		"bridge":        predeploys.L2ERC721BridgeAddr,
-		"remoteChainId": new(big.Int).SetUint64(config.L1ChainID),
-	}
+	immutable["WETH"] = immutables.ImmutableValues{}
 
 	return immutable, nil
 }
@@ -794,7 +791,8 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_initializing": false,
 	}
 	storage["WETH"] = state.StorageValues{
-		"bridge": predeploys.L2StandardBridgeAddr,
+		"_name":   "Wrapped ETH",
+		"_symbol": "WETH",
 	}
 	return storage, nil
 }

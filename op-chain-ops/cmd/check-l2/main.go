@@ -215,8 +215,8 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 				return err
 			}
 
-		case predeploys.WETH9Addr:
-			if err := checkWETH9(p, client); err != nil {
+		case predeploys.WTONAddr:
+			if err := checkWTON(p, client); err != nil {
 				return err
 			}
 
@@ -477,8 +477,8 @@ func checkGovernanceToken(addr common.Address, client *ethclient.Client) error {
 	return nil
 }
 
-func checkWETH9(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWETH9(addr, client)
+func checkWTON(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewWTON(addr, client)
 	if err != nil {
 		return err
 	}
@@ -486,8 +486,8 @@ func checkWETH9(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "name", name)
-	if name != "Wrapped Ether" {
+	log.Info("WTON", "name", name)
+	if name != "Wrapped TON" {
 		return fmt.Errorf("WETH9 name should be 'Wrapped Ether', got %s", name)
 	}
 
@@ -495,7 +495,7 @@ func checkWETH9(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "symbol", symbol)
+	log.Info("WTON", "symbol", symbol)
 	if symbol != "WETH" {
 		return fmt.Errorf("WETH9 symbol should be 'WETH', got %s", symbol)
 	}
@@ -504,7 +504,7 @@ func checkWETH9(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "decimals", decimals)
+	log.Info("WTON", "decimals", decimals)
 	if decimals != 18 {
 		return fmt.Errorf("WETH9 decimals should be 18, got %d", decimals)
 	}
