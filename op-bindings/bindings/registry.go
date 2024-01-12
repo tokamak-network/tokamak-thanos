@@ -26,7 +26,6 @@ func GetStorageLayout(name string) (*solc.StorageLayout, error) {
 
 // GetDeployedBytecode returns the deployed bytecode of a contract by name.
 func GetDeployedBytecode(name string) ([]byte, error) {
-	fmt.Println(" [GetDeployedBytecode] ", name)
 	bc := deployedBytecodes[name]
 	if bc == "" {
 		return nil, fmt.Errorf("%s: deployed bytecode not found", name)
