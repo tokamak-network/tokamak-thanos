@@ -68,6 +68,7 @@ jobs:
           FOUNDRY_PROFILE: ci
 
   contracts-bedrock-checks:
+    needs: ['build']
     runs-on: ubuntu-latest
     container:
       image: onthertech/titan-ci-builder:latest
@@ -180,6 +181,7 @@ jobs:
           slither --version && pnpm slither || echo "Slither failed"
 
   contracts-bedrock-validate-spaces:
+    needs: ['build']
     runs-on: ubuntu-latest
     container:
       image: onthertech/titan-ci-builder:latest
