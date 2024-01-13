@@ -1,0 +1,201 @@
+name: 'Test contract bedrock'
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  contracts-bedrock-coverage:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    env:
+      FOUNDRY_PROFILE: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check changed
+        run: |
+          cd contracts-bedrock
+          pip3 install -r requirements.txt
+          python3 main.py "contracts-bedrock,op-node"
+
+      - name: Print forge version
+        run: forge --version
+        working-directory: contracts-bedrock
+
+      - name: Test and generate coverage
+        run: pnpm coverage:lcov
+        working-directory: contracts-bedrock
+
+      - name: Upload coverage
+        run: codecov --verbose --clean --flags contracts-bedrock-tests
+
+  contracts-bedrock-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    env:
+      FOUNDRY_PROFILE: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check changed
+        run: |
+          cd contracts-bedrock
+          pip3 install -r requirements.txt
+          python3 main.py "contracts-bedrock,op-node"
+
+      - name: Print forge version
+        run: forge --version
+        working-directory: contracts-bedrock
+
+      - name: Run tests
+        run: pnpm test
+        working-directory: contracts-bedrock
+
+  contracts-bedrock-checks:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    env:
+      FOUNDRY_PROFILE: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Check changed
+        run: |
+          cd contracts-bedrock
+          pip3 install -r requirements.txt
+          python3 main.py "contracts-bedrock,op-node"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build contracts
+        run: pnpm build
+        working-directory: contracts-bedrock
+
+      - name: Lint
+        run: |
+          pnpm lint:check || echo "export LINT_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Gas snapshot
+        run: |
+          forge --version
+          pnpm gas-snapshot --check || echo "export GAS_SNAPSHOT_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Storage snapshot
+        run: |
+          pnpm storage-snapshot
+          git diff --exit-code .storage-layout || echo "export STORAGE_SNAPSHOT_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Semver lock
+        run: |
+          pnpm semver-lock
+          git diff --exit-code semver-lock.json || echo "export SEMVER_LOCK_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Invariant docs
+        run: |
+          pnpm autogen:invariant-docs
+          git diff --exit-code ./invariant-docs/*.md || echo "export INVARIANT_DOCS_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Check deploy configs
+        run: pnpm validate-deploy-configs || echo "export DEPLOY_CONFIGS_STATUS=1" >> "$BASH_ENV"
+        working-directory: contracts-bedrock
+
+      - name: Check statuses
+        run: |
+          if [[ "$LINT_STATUS" -ne 0 ]]; then
+            echo "Linting failed, see job output for details."
+            exit 1
+          fi
+          if [[ "$GAS_SNAPSHOT_STATUS" -ne 0 ]]; then
+            echo "Gas snapshot failed, see job output for details."
+            exit 1
+          fi
+          if [[ "$STORAGE_SNAPSHOT_STATUS" -ne 0 ]]; then
+            echo "Storage snapshot failed, see job output for details."
+            exit 1
+          fi
+          if [[ "$SEMVER_LOCK_STATUS" -ne 0 ]]; then
+            echo "Semver lock failed, see job output for details."
+            exit 1
+          fi
+          if [[ "$INVARIANT_DOCS_STATUS" -ne 0 ]]; then
+            echo "Invariant docs failed, see job output for details."
+            exit 1
+          fi
+          if [[ "$DEPLOY_CONFIGS_STATUS" -ne 0 ]]; then
+            echo "Deploy config check failed, see job output for details."
+            exit 1
+          fi
+
+  contracts-bedrock-slither:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check changed
+        run: |
+          cd contracts-bedrock
+          pip3 install -r requirements.txt
+          python3 main.py "contracts-bedrock"
+
+      - name: Slither
+        run: |
+          slither --version && pnpm slither || echo "Slither failed"
+
+  contracts-bedrock-validate-spaces:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Check changed
+        run: |
+          cd contracts-bedrock
+          pip3 install -r requirements.txt
+          python3 main.py "contracts-bedrock"
+
+      - name: Validate spacers
+        run: pnpm validate-spacers
+        working-directory: contracts-bedrock
