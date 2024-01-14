@@ -1,0 +1,46 @@
+name: 'test'
+on:
+  push:
+jobs:
+  contracts-bedrock-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    steps:
+    - uses: actions/checkout@v4.1.0
+    - name: 'Check changed'
+      run: |
+        cd ops/check-changed
+        pip3 install -r requirements.txt
+        python3 main.py "contracts-bedrock,op-node"
+    - name: print forge version
+      run: forge --version
+      working-directory: packages/contracts-bedrock
+    - name: run tests
+      run: pnpm test
+      working-directory: packages/contracts-bedrock
+      env:
+        FOUNDRY_PROFILE: ci
+  contracts-bedrock-coverage:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    steps:
+    - uses: actions/checkout@v4.1.0
+    - name: 'Check changed'
+      run: |
+        cd ops/check-changed
+        pip3 install -r requirements.txt
+        python3 main.py "contracts-bedrock,op-node"
+    - name: print forge version
+      run: forge --version
+      working-directory: packages/contracts-bedrock
+    - name: test and generate coverage
+      run: pnpm coverage:lcov
+      working-directory: packages/contracts-bedrock
+      env:
+        FOUNDRY_PROFILE: ci
+    - name: upload coverage
+      run: codecov --verbose --clean --flags contracts-bedrock-tests
+      env:
+        FOUNDRY_PROFILE: ci

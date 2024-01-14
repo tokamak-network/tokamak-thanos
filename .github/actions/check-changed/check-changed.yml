@@ -1,0 +1,13 @@
+name: check-changed
+inputs:
+  patterns:
+    required: false
+runs:
+  using: composite
+  steps:
+  - name: Check for changes
+    run: |-
+      cd ops/check-changed
+      pip3 install -r requirements.txt
+      python3 main.py "${{ inputs.patterns }}"
+    shell: bash
