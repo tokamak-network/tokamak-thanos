@@ -60,6 +60,19 @@ jobs:
         cd ops/check-changed
         pip3 install -r requirements.txt
         python3 main.py "contracts-bedrock,op-node"
+     # Declares the repository safe and not under dubious ownership.
+    - name: Add repository to git safe directories
+      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+    - name: restore_cache
+      uses: actions/cache@v3.3.2
+      with:
+       key: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
+       path: node_modules
+       restore-keys: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
+    - name: Fetch dependencies
+      run: pnpm fetch --frozen-lockfile --prefer-offline
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --offline
     - name: print forge version
       run: forge --version
       working-directory: packages/contracts-bedrock
