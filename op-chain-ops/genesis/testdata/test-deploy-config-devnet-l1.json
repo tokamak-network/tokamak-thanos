@@ -39,6 +39,7 @@
   "fundDevAccounts": true,
 
   "enableGovernance": true,
+  "setPrecompileBalances": false,
   "governanceTokenSymbol": "OP",
   "governanceTokenName": "Optimism",
   "governanceTokenOwner": "0x0000000000000000000000000000000000000333"
