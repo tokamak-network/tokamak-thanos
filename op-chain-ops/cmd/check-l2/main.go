@@ -220,11 +220,6 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 				return err
 			}
 
-		case predeploys.WETHAddr:
-			if err := checkWETH(p, client); err != nil {
-				return err
-			}
-
 		case predeploys.GovernanceTokenAddr:
 			if err := checkGovernanceToken(p, client); err != nil {
 				return err
@@ -512,40 +507,6 @@ func checkWTON(addr common.Address, client *ethclient.Client) error {
 	log.Info("WTON", "decimals", decimals)
 	if decimals != 18 {
 		return fmt.Errorf("WTON decimals should be 18, got %d", decimals)
-	}
-	return nil
-}
-
-func checkWETH(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWETH(addr, client)
-	if err != nil {
-		return err
-	}
-	name, err := contract.Name(&bind.CallOpts{})
-	if err != nil {
-		return err
-	}
-	log.Info("WETH", "name", name)
-	if name != "Wrapped Ether" {
-		return fmt.Errorf("WETH name should be 'Wrapped Ether', got %s", name)
-	}
-
-	symbol, err := contract.Symbol(&bind.CallOpts{})
-	if err != nil {
-		return err
-	}
-	log.Info("WETH", "symbol", symbol)
-	if symbol != "WETH" {
-		return fmt.Errorf("WETH symbol should be 'WETH', got %s", symbol)
-	}
-
-	decimals, err := contract.Decimals(&bind.CallOpts{})
-	if err != nil {
-		return err
-	}
-	log.Info("WETH", "decimals", decimals)
-	if decimals != 18 {
-		return fmt.Errorf("WETH decimals should be 18, got %d", decimals)
 	}
 	return nil
 }
