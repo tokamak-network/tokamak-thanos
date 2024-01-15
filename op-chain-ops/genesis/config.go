@@ -766,8 +766,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_symbol": "ETH",
 	}
 	storage["WTON"] = state.StorageValues{
-		"name":   "Wrapped TON",
-		"symbol": "WTON",
+		"name":     "Wrapped TON",
+		"symbol":   "WTON",
+		"decimals": 18,
 	}
 	if config.EnableGovernance {
 		storage["GovernanceToken"] = state.StorageValues{
