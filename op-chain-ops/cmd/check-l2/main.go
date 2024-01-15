@@ -517,7 +517,7 @@ func checkWTON(addr common.Address, client *ethclient.Client) error {
 }
 
 func checkWETH(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWTON(addr, client)
+	contract, err := bindings.NewWETH(addr, client)
 	if err != nil {
 		return err
 	}
