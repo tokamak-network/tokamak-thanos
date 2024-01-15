@@ -65,6 +65,7 @@ func TestBuildOptimism(t *testing.T) {
 		"LegacyERC20ETH":                true,
 		"EAS":                           true,
 		"SchemaRegistry":                true,
+		"WETH":                          true,
 	}
 
 	// Only the exact contracts that we care about are being
