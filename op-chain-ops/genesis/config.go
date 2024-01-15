@@ -716,10 +716,6 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
-	immutable["OptimismMintableERC721Factory"] = immutables.ImmutableValues{
-		"bridge":        predeploys.L2ERC721BridgeAddr,
-		"remoteChainId": new(big.Int).SetUint64(config.L1ChainID),
-	}
 	immutable["WETH"] = immutables.ImmutableValues{}
 
 	return immutable, nil
