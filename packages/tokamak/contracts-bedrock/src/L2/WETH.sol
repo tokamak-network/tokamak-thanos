@@ -5,7 +5,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
 /// @custom:proxied
-/// @custom:predeploy 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000
+/// @custom:predeploy 0x4200000000000000000000000000000000000022
 /// @title WETH
 /// @notice WETH is a contract that Wrap ETH
 contract WETH is OptimismMintableERC20 {
