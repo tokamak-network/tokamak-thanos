@@ -69,7 +69,7 @@
   "faultGameMaxDepth": 63,
   "faultGameMaxDuration": 604800,
   "systemConfigStartBlock": 0,
-  "setPrecompileBalances": false,
+  "setPrecompileBalances": true,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "recommendedProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
