@@ -215,8 +215,13 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 				return err
 			}
 
-		case predeploys.WETH9Addr:
-			if err := checkWETH9(p, client); err != nil {
+		case predeploys.WTONAddr:
+			if err := checkWTON(p, client); err != nil {
+				return err
+			}
+
+		case predeploys.WETHAddr:
+			if err := checkWETH(p, client); err != nil {
 				return err
 			}
 
@@ -477,8 +482,8 @@ func checkGovernanceToken(addr common.Address, client *ethclient.Client) error {
 	return nil
 }
 
-func checkWETH9(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWETH9(addr, client)
+func checkWTON(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewWTON(addr, client)
 	if err != nil {
 		return err
 	}
@@ -486,27 +491,61 @@ func checkWETH9(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "name", name)
-	if name != "Wrapped Ether" {
-		return fmt.Errorf("WETH9 name should be 'Wrapped Ether', got %s", name)
+	log.Info("WTON", "name", name)
+	if name != "Wrapped TON" {
+		return fmt.Errorf("WTON name should be 'Wrapped TON', got %s", name)
 	}
 
 	symbol, err := contract.Symbol(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "symbol", symbol)
-	if symbol != "WETH" {
-		return fmt.Errorf("WETH9 symbol should be 'WETH', got %s", symbol)
+	log.Info("WTON", "symbol", symbol)
+	if symbol != "WTON" {
+		return fmt.Errorf("WTON symbol should be 'WTON', got %s", symbol)
 	}
 
 	decimals, err := contract.Decimals(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH9", "decimals", decimals)
+	log.Info("WTON", "decimals", decimals)
 	if decimals != 18 {
-		return fmt.Errorf("WETH9 decimals should be 18, got %d", decimals)
+		return fmt.Errorf("WTON decimals should be 18, got %d", decimals)
+	}
+	return nil
+}
+
+func checkWETH(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewWETH(addr, client)
+	if err != nil {
+		return err
+	}
+	name, err := contract.Name(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("WETH", "name", name)
+	if name != "Wrapped Ether" {
+		return fmt.Errorf("WETH name should be 'Wrapped Ether', got %s", name)
+	}
+
+	symbol, err := contract.Symbol(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("WETH", "symbol", symbol)
+	if symbol != "WETH" {
+		return fmt.Errorf("WETH symbol should be 'WETH', got %s", symbol)
+	}
+
+	decimals, err := contract.Decimals(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("WETH", "decimals", decimals)
+	if decimals != 18 {
+		return fmt.Errorf("WETH decimals should be 18, got %d", decimals)
 	}
 	return nil
 }

@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 
 pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
-contracts-dir := $(monorepo-base)/packages/contracts-bedrock
+contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
 
 all: version mkdir bindings
 

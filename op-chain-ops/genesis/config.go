@@ -716,6 +716,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
+	immutable["WETH"] = immutables.ImmutableValues{}
 
 	return immutable, nil
 }
@@ -760,9 +761,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_name":   "Ether",
 		"_symbol": "ETH",
 	}
-	storage["WETH9"] = state.StorageValues{
-		"name":     "Wrapped Ether",
-		"symbol":   "WETH",
+	storage["WTON"] = state.StorageValues{
+		"name":     "Wrapped TON",
+		"symbol":   "WTON",
 		"decimals": 18,
 	}
 	if config.EnableGovernance {
@@ -784,6 +785,10 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"bridge":        predeploys.L2StandardBridgeAddr,
 		"_initialized":  initializedValue,
 		"_initializing": false,
+	}
+	storage["WETH"] = state.StorageValues{
+		"_name":   "Wrapped ETH",
+		"_symbol": "WETH",
 	}
 	return storage, nil
 }
