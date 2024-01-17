@@ -36,7 +36,7 @@ jobs:
         path: "/go/pkg/mod"
 
     - name: Go mod tidy
-      run: make mod-tidy
+      run: make mod-tidy && git diff --exit-code
   go-lint:
     runs-on: ubuntu-latest
     container:
@@ -45,7 +45,9 @@ jobs:
     - go-mod-tidy
     steps:
     - uses: actions/checkout@v4.1.0
-    - name: restore_cache
+    - name: Print golangci-lint version
+      run: golangci-lint --version
+    - name: Restore cache
       uses: actions/cache@v3.3.2
       with:
         key: gomod-{{ checksum "go.sum" }}
@@ -53,9 +55,9 @@ jobs:
     - name: restore_cache
       uses: actions/cache@v3.3.2
       with:
-        key: golang-build-cache
+        key: Golang build cache
         path: "/root/.cache/go-build"
-    - name: restore_cache
+    - name: Restore golangci-lint cache
       uses: actions/cache@v3.3.2
       with:
         key: golang-lint-cache
