@@ -3,41 +3,16 @@ name: Check Go lint
 on:
   push:
 jobs:
-  go-mod-download:
-    runs-on: ubuntu-latest
-    container:
-      image: onthertech/titan-ci-builder:latest
-    steps:
-    - uses: actions/checkout@v4.1.0
-    - name: Setup Go
-      uses: actions/setup-go@v4
-  go-mod-tidy:
-    runs-on: ubuntu-latest
-    container:
-      image: onthertech/titan-ci-builder:latest
-    needs:
-    - go-mod-download
-    steps:
-    - uses: actions/checkout@v4.1.0
-    - name: Add repository to git safe directories
-      run: git config --global --add safe.directory $GITHUB_WORKSPACE
-    - name: Setup Go
-      uses: actions/setup-go@v4
-
-    - name: Go mod tidy
-      run: make mod-tidy && git diff --exit-code
   go-lint:
     runs-on: ubuntu-latest
     container:
       image: onthertech/titan-ci-builder:latest
-    needs:
-    - go-mod-tidy
     steps:
     - uses: actions/checkout@v4.1.0
-    - name: Print golangci-lint version
-      run: golangci-lint --version
     - name: Setup Go
       uses: actions/setup-go@v4
+    - name: Go mod tidy
+      run: make mod-tidy && git diff --exit-code
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
       with:
@@ -45,13 +20,3 @@ jobs:
         args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
       env:
         GOFLAGS: "-buildvcs=false"
-    # - name: Run lint-go
-    #   run: |-
-    #     # Identify how many cores it defaults to
-    #     golangci-lint --help | grep concurrency
-    #     make lint-go
-    #   env:
-    #     # need to set -buildevcs=false to ignore the typecheck error
-    #     GOFLAGS: "-buildvcs=false"
-
-    #   working-directory: "."
