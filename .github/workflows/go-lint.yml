@@ -16,9 +16,7 @@ jobs:
       uses: actions/cache@v3.3.2
       with:
         key: ${{ env.key }}-{{ checksum "${{ env.file }}" }}
-        path: /go/pkg/mod
-    - name: Sanity check go mod cache path
-      run: test "$(go env GOMODCACHE)" == "/go/pkg/mod"
+        path: "/go/pkg/mod"
     - name: Download Go module dependencies
       run: go mod download
   go-mod-tidy:
@@ -32,8 +30,8 @@ jobs:
     - name: Restore cache
       uses: actions/cache@v3.3.2
       with:
-          key: gomod-{{ hashFiles('go.sum') }}
-          path: /go/pkg/mod
+        key: gomod-{{ checksum "go.sum" }}
+        path: "/go/pkg/mod"
 
     - name: Go mod tidy
       run: make mod-tidy && git diff --exit-code
@@ -49,7 +47,7 @@ jobs:
       uses: actions/cache@v3.3.2
       with:
         key: gomod-{{ checksum "go.sum" }}
-        path: UPDATE_ME
+        path: "/go/pkg/mod"
     - name: restore_cache
       uses: actions/cache@v3.3.2
       with:
