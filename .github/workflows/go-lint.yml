@@ -66,13 +66,16 @@ jobs:
         path: "/root/.cache/golangci-lint"
     - name: Print Golang version
       run: go version
-    - name: Print Golang env
-      run: go env
     - name: Run lint-go
       run: |-
         # Identify how many cores it defaults to
         golangci-lint --help | grep concurrency
+        go env
         make lint-go
+      env:
+        GOFLAGS: "-buildvcs=false"
+
+      working-directory: "."
     - name: Save cache
       uses: actions/cache@v3
       with:
