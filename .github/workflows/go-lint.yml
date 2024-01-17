@@ -1,0 +1,68 @@
+name: Check Go lint
+
+on:
+  push:
+jobs:
+  go-mod-download:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    env:
+      file: go.sum
+      key: gomod
+    steps:
+    - uses: actions/checkout@v4.1.0
+    - name: Restore cache
+      uses: actions/cache@v3.3.2
+      with:
+        key: ${{ env.key }}-{{ checksum "${{ env.file }}" }}
+        path: /go/pkg/mod
+    - name: Sanity check go mod cache path
+      run: test "$(go env GOMODCACHE)" == "/go/pkg/mod"
+    - name: Download Go module dependencies
+      run: go mod download
+  go-mod-tidy:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    needs:
+    - go-mod-download
+    steps:
+    - uses: actions/checkout@v4.1.0
+    - name: Restore cache
+      uses: actions/cache@v3.3.2
+      with:
+          key: gomod-{{ hashFiles('go.sum') }}
+          path: /go/pkg/mod
+
+    - name: Go mod tidy
+      run: make mod-tidy && git diff --exit-code
+  go-lint:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    needs:
+    - go-mod-tidy
+    steps:
+    - uses: actions/checkout@v4.1.0
+    - name: restore_cache
+      uses: actions/cache@v3.3.2
+      with:
+        key: gomod-{{ checksum "go.sum" }}
+        path: UPDATE_ME
+    - name: restore_cache
+      uses: actions/cache@v3.3.2
+      with:
+        key: golang-build-cache
+        path: "/root/.cache/go-build"
+    - name: restore_cache
+      uses: actions/cache@v3.3.2
+      with:
+        key: golang-lint-cache
+        path: "/root/.cache/golangci-lint"
+    - name: run Go linter
+      run: |-
+        # Identify how many cores it defaults to
+        golangci-lint --help | grep concurrency
+        make lint-go
+      working-directory: "."
