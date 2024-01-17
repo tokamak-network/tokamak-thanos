@@ -47,8 +47,6 @@ jobs:
     - uses: actions/checkout@v4.1.0
     - name: Print golangci-lint version
       run: golangci-lint --version
-    - name: Print directories
-      run: ls -a
     - name: Restore cache
       uses: actions/cache@v3.3.2
       with:
@@ -70,7 +68,6 @@ jobs:
       run: |-
         # Identify how many cores it defaults to
         golangci-lint --help | grep concurrency
-        go env
         make lint-go
       env:
         GOFLAGS: "-buildvcs=false"
