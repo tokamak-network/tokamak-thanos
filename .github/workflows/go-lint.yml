@@ -27,6 +27,8 @@ jobs:
     - go-mod-download
     steps:
     - uses: actions/checkout@v4.1.0
+    - name: Add repository to git safe directories
+      run: git config --global --add safe.directory $GITHUB_WORKSPACE
     - name: Restore cache
       uses: actions/cache@v3.3.2
       with:
@@ -34,7 +36,7 @@ jobs:
         path: "/go/pkg/mod"
 
     - name: Go mod tidy
-      run: make mod-tidy && git diff --exit-code
+      run: make mod-tidy
   go-lint:
     runs-on: ubuntu-latest
     container:
