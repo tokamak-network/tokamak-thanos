@@ -47,15 +47,17 @@ jobs:
     - uses: actions/checkout@v4.1.0
     - name: Print golangci-lint version
       run: golangci-lint --version
+    - name: Print directories
+      run: ls -a
     - name: Restore cache
       uses: actions/cache@v3.3.2
       with:
         key: gomod-{{ checksum "go.sum" }}
         path: "/go/pkg/mod"
-    - name: restore_cache
+    - name: Restore build cache
       uses: actions/cache@v3.3.2
       with:
-        key: Golang build cache
+        key: golang-build-cache
         path: "/root/.cache/go-build"
     - name: Restore golangci-lint cache
       uses: actions/cache@v3.3.2
@@ -68,3 +70,13 @@ jobs:
         golangci-lint --help | grep concurrency
         make lint-go
       working-directory: "."
+    - name: Save cache
+      uses: actions/cache@v3
+      with:
+        key: golang-build-cache
+        path: "/root/.cache/go-build"
+    - name: Save golang-lint cache
+      uses: actions/cache@v3
+      with:
+        key: golang-lint-cache
+        path: "/root/.cache/golangci-lint"
