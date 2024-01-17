@@ -3,7 +3,7 @@ name: Check Go lint
 on:
   push:
 jobs:
-  go-mod-tidy:
+  go-lint:
     runs-on: ubuntu-latest
     container:
       image: onthertech/titan-ci-builder:latest
@@ -16,18 +16,6 @@ jobs:
 
     - name: Go mod tidy
       run: make mod-tidy && git diff --exit-code
-  go-lint:
-    runs-on: ubuntu-latest
-    container:
-      image: onthertech/titan-ci-builder:latest
-    needs:
-    - go-mod-tidy
-    steps:
-    - uses: actions/checkout@v4.1.0
-    - name: Print golangci-lint version
-      run: golangci-lint --version
-    - name: Setup Go
-      uses: actions/setup-go@v4
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
       with:
