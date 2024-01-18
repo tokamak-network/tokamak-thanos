@@ -126,7 +126,9 @@ jobs:
         working-directory: packages/${{ env.package_name }}
 
       - name: Test
-        run: pnpm test:coverage
+        run: |
+          ls -a
+          pnpm test:coverage
         working-directory: packages/${{ env.package_name }}
 
       - name: Upload coverage

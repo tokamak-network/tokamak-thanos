@@ -1,7 +1,7 @@
 name: check-changed
 description: "Check changes"
 inputs:
-  params:
+  patterns:
     description: 'Params for check changes'
     required: true
 runs:
