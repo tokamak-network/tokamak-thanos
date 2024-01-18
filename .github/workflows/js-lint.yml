@@ -103,6 +103,6 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Lint
-        run: pnpm lint:check && git diff --exit-code
+        run: pnpm lint && git diff --exit-code
         working-directory: packages/${{ env.package_name }}
 
