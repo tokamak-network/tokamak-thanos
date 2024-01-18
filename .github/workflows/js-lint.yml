@@ -1,0 +1,92 @@
+name: Check JS lint
+
+on:
+  push:
+jobs:
+  pnpm-monorepo:
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Declares the repository safe and not under dubious ownership.
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Fetch dependencies
+        run: pnpm fetch --frozen-lockfile --prefer-offline
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --offline
+
+      - name: Print forge version
+        run: forge --version
+
+      - name: Build monorepo
+        run: pnpm build
+
+      - name: Persist to workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-artifacts
+          path: |
+            packages/**/dist
+            packages/contracts-bedrock/forge-artifacts
+  js-lint-test:
+    runs-on: ubuntu-latest
+    needs: [pnpm-monorepo]
+    strategy:
+      matrix:
+        package_name: ['common-ts', 'core-utils', 'chain-mon', 'contracts-ts', 'sdk']
+        dependencies: ['', '(common-ts|contracts-bedrock|core-utils|sdk)', '(contracts-bedrock|core-utils)', '(common-ts|contracts-bedrock|core-utils)', '(contracts-bedrock|core-utils)']
+        coverage_flag: ['common-ts-tests', 'core-utils-tests', 'chain-mon-tests', 'contracts-ts-tests', 'sdk-next-tests', 'sdk-tests']
+
+    env:
+      package_name: ${{ matrix.package_name }}
+      dependencies: ${{ matrix.dependencies }}
+      coverage_flag: ${{ matrix.coverage_flag }}
+
+    steps:
+      - uses: actions/checkout@v4.1.0
+      - uses: actions/download-artifact@v4.1.0
+        with:
+          path: "."
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - uses: "./.github/actions/check-changed"
+        with:
+          patterns: "${{ env.package_name }},${{ env.dependencies }}"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Lint
+        run: pnpm lint && git diff --exit-code
+        working-directory: packages/${{ env.package_name }}
+
+      - name: Test
+        run: pnpm test:coverage
+        working-directory: packages/${{ env.package_name }}
+
+      - name: Upload coverage
+        run: codecov --verbose --clean --flags ${{ env.coverage_flag }}
