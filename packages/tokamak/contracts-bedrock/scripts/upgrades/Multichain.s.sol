@@ -353,7 +353,7 @@ contract Multichain is SafeBuilder {
                     payable(prox.L1CrossDomainMessenger), // proxy
                     L1CrossDomainMessengerImplementation, // implementation
                     abi.encodeCall( // data
-                        L1CrossDomainMessenger.initialize, (OptimismPortal(payable(prox.OptimismPortal))))
+                        L1CrossDomainMessenger.initialize, (OptimismPortal(payable(prox.OptimismPortal)), cfg.l1Token()))
                 )
                 )
         });
@@ -421,6 +421,7 @@ contract Multichain is SafeBuilder {
                     abi.encodeCall( // data
                             OptimismPortal.initialize,
                             (
+                                address(0),
                                 L2OutputOracle(prox.L2OutputOracle),
                                 cfg.portalGuardian(),
                                 SystemConfig(prox.SystemConfig),
