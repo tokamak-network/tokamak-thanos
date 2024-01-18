@@ -54,32 +54,27 @@ jobs:
           },
           {
             name: 'core-utils-tests',
-            package_name: 'core-utils',
-            coverage_flag: 'core-utils-tests'
+            package_name: 'core-utils'
           },
           {
             name: 'chain-mon-tests',
             package_name: 'chain-mon',
-            dependencies: '(common-ts|contracts-bedrock|core-utils|sdk)',
-            coverage_flag: 'chain-mon-tests'
+            dependencies: '(common-ts|contracts-bedrock|core-utils|sdk)'
           },
           {
             name: 'contracts-ts-tests',
             package_name: 'contracts-ts',
-            dependencies: '(contracts-bedrock|contracts-ts)',
-            coverage_flag: 'contracts-ts-tests'
+            dependencies: '(contracts-bedrock|contracts-ts)'
           },
           {
             name: 'sdk-next-tests',
             package_name: 'sdk',
-            dependencies: '(common-ts|contracts-bedrock|core-utils)',
-            coverage_flag: 'sdk-next-tests'
+            dependencies: '(common-ts|contracts-bedrock|core-utils)'
           },
           {
             name: 'sdk-tests',
             package_name: 'sdk',
-            dependencies: '(contracts-bedrock|core-utils)',
-            coverage_flag: 'sdk-tests'
+            dependencies: '(contracts-bedrock|core-utils)'
           }
         ]
 
@@ -108,6 +103,6 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Lint
-        run: pnpm lint && git diff --exit-code
+        run: pnpm lint:check && git diff --exit-code
         working-directory: packages/${{ env.package_name }}
 
