@@ -1,5 +1,9 @@
 name: check-changed
 description: "Check changes"
+inputs:
+  params:
+    description: 'Params for check changes'
+    required: true
 runs:
   using: composite
   steps:
@@ -7,5 +11,5 @@ runs:
     run: |-
       cd ops/check-changed
       pip3 install -r requirements.txt
-      python3 main.py "${{ inputs.patterns }}"
+      python3 main-copy.py "${{ inputs.patterns }}"
     shell: bash
