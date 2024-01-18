@@ -61,7 +61,6 @@ jobs:
 
   js-lint-test:
     runs-on: ubuntu-latest
-    if: ${{ needs.changes.outputs.packages == 'true' }}
     needs: [changes,pnpm-monorepo]
     container:
       image: onthertech/titan-ci-builder:latest
@@ -72,6 +71,8 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
 
     steps:
+      - name: Print needs
+        run: echo ${{fromJSON(needs.changes.outputs.packages)}}
       - name: Checkout
         uses: actions/checkout@v3
       - name: Add repository to git safe directories
