@@ -7,7 +7,7 @@ import { getContract, GetContractArgs } from 'wagmi/actions'
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xdE1FCfB0851916CA5101820A69b13a4E276bd81F)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xdE1FCfB0851916CA5101820A69b13a4E276bd811111F)
  * - [__View Contract on Goerli Etherscan__](https://goerli.etherscan.io/address/0xa6f73589243a6A7a9023b1Fa0651b1d89c177111)
  */
 export const addressManagerABI = [
