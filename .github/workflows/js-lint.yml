@@ -51,6 +51,8 @@ jobs:
   js-lint-test:
     runs-on: ubuntu-latest
     needs: [pnpm-monorepo]
+    container:
+      image: onthertech/titan-ci-builder:latest
     name: js-lint-test-${{matrix.params.name}}
 
     strategy:
