@@ -55,7 +55,7 @@ jobs:
           core-utils:
             - "packages/core-utils/**.ts"
           contract-ts:
-            - "packages/contract-ts/**.ts"
+            - "packages/contracts-ts/**.ts"
           sdk:
             - "packages/sdk/**.ts"
 
