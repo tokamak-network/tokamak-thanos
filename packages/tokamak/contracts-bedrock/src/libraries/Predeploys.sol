@@ -74,4 +74,7 @@ library Predeploys {
 
     /// @notice Address of the EAS predeploy.
     address internal constant EAS = 0x4200000000000000000000000000000000000021;
+
+    /// @notice Address of the WETH predeploy.
+    address internal constant WETH = 0x4200000000000000000000000000000000000022;
 }
