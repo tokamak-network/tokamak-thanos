@@ -49,8 +49,6 @@ const component = () => {
 }
 ```
 
-
-
 #### @eth-optimism/contracts-ts/actions
 
 - All [wagmi actions](https://wagmi.sh/react/actions) for use in Vanilla JS or non react code
