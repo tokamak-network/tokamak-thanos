@@ -2,9 +2,9 @@ name: Check JS lint
 
 on:
   push:
-    paths:
-      - '**/*.ts'
-      - '**/*.js'
+  # pull_request:
+  #   paths:
+  #     - 'packages/*.ts'
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
@@ -40,43 +40,33 @@ jobs:
       - name: Print forge version
         run: forge --version
 
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          common-ts: packages/common-ts/**.ts
+          core-utils: packages/core-utils/**.ts
+          contract-ts: packages/contract-ts/**.ts
+          sdk: packages/sdk/**.ts
+
   js-lint-test:
     runs-on: ubuntu-latest
-    needs: [pnpm-monorepo]
+    if: ${{ needs.changes.outputs.packages == 'true' }}
+    needs: [changes,pnpm-monorepo]
     container:
       image: onthertech/titan-ci-builder:latest
-    name: js-lint-test-${{matrix.params.name}}
+    name: js-lint-test-${{matrix.package}}
 
     strategy:
       matrix:
-        params: [
-          {
-            name: 'common-ts-tests',
-            package_name: 'packages/common-ts',
-            coverage_flag: 'common-ts-tests'
-          },
-          {
-            name: 'core-utils-tests',
-            package_name: 'packages/core-utils'
-          },
-          {
-            name: 'chain-mon-tests',
-            package_name: 'packages/chain-mon'
-          },
-          {
-            name: 'contracts-ts-tests',
-            package_name: 'packages/contracts-ts'
-          },
-          {
-            name: 'sdk-next-tests',
-            package_name: 'packages/sdk'
-          }
-        ]
-
-    env:
-      package_name: ${{ matrix.params.package_name }}
-      dependencies: ${{ matrix.params.dependencies }}
-      coverage_flag: ${{ matrix.params.coverage_flag }}
+        package: ${{ fromJSON(needs.changes.outputs.packages) }}
 
     steps:
       - name: Checkout
@@ -90,17 +80,9 @@ jobs:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            packages:
-              - "${{ env.package_name }}/**.(js|ts)"
-            package.json:
-              - 'package.json'
-      - if: steps.changes.outputs.packages == 'true' || steps.changes.outputs.package.json == 'true'
+      - name: Run Lint
         run: |
           pnpm install --frozen-lockfile --prefer-offline
-          cd ${{ env.package_name }}
+          cd packages/${{ matrix.package }}
           pnpm lint && git diff --exit-code
 
