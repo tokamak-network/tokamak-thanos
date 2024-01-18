@@ -3,7 +3,7 @@ name: Check JS lint
 on:
   pull_request:
     paths:
-      - 'packages/*.ts'
+      - 'packages/**/*.ts'
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
