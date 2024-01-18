@@ -51,13 +51,13 @@ jobs:
       with:
         filters: |
           common-ts:
-            - 'packages/common-ts/**.ts'
+            - 'packages/common-ts/**'
           core-utils:
-            - 'packages/core-utils/**.ts'
+            - 'packages/core-utils/**'
           contracts-ts:
-            - 'packages/contracts-ts/**.ts'
+            - 'packages/contracts-ts/**'
           sdk:
-            - 'packages/sdk/**.ts'
+            - 'packages/sdk/**'
 
   js-lint-test:
     runs-on: ubuntu-latest
