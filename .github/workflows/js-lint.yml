@@ -6,6 +6,8 @@ on:
       - 'packages/**/*.ts'
 jobs:
   changes:
+    container:
+      image: onthertech/titan-ci-builder:latest
     runs-on: ubuntu-latest
     outputs:
       packages: ${{ steps.filter.outputs.changes }}
