@@ -118,8 +118,12 @@ jobs:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Update node modules
+        run: pnpm update
 
       - name: Lint
         run: pnpm lint && git diff --exit-code
