@@ -27,30 +27,30 @@ jobs:
             - 'packages/sdk/**'
             - name: Checkout
     - name: Echo JSON
-      run: echo ${{ toJson(steps.filter.outputs.changes)}}
+      run: echo ${{steps.filter.outputs.changes}}
     # Declares the repository safe and not under dubious ownership.
     - name: Add repository to git safe directories
       run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
+    - if: steps.filter.outputs.changes!= '[]'
       name: Restore PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: node_modules
         key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
+    - if: steps.filter.outputs.changes!= '[]'
       name: Fetch dependencies
       run: pnpm fetch --frozen-lockfile --prefer-offline
 
-    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
+    - if: steps.filter.outputs.changes!= '[]'
       name: Save PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: node_modules
         key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
+    - if: steps.filter.outputs.changes!= '[]'
       name: Install dependencies
       run: pnpm install --frozen-lockfile --offline
 
