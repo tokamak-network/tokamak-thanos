@@ -100,7 +100,7 @@ jobs:
         with:
           filters: |
             packages:
-              - 'packages/**'
+              - "${{ env.package_name }}"
       - if: steps.changes.outputs.packages == 'true'
         run: echo 'hello'
       - name: Install dependencies
