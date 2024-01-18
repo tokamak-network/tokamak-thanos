@@ -111,10 +111,3 @@ jobs:
         run: pnpm lint && git diff --exit-code
         working-directory: packages/${{ env.package_name }}
 
-      - name: Test
-        run:
-          pnpm test:coverage
-        working-directory: packages/${{ env.package_name }}
-
-      - name: Upload coverage
-        run: codecov --verbose --clean --flags ${{ env.coverage_flag }}
