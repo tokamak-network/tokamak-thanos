@@ -2,6 +2,7 @@
 pragma solidity 0.8.15;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
@@ -14,6 +15,8 @@ import { Constants } from "src/libraries/Constants.sol";
 ///         for sending and receiving data on the L1 side. Users are encouraged to use this
 ///         interface instead of interacting with lower-level contracts directly.
 contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
+    using SafeERC20 for IERC20;
+
     /// @notice Address of the OptimismPortal. The public getter for this
     ///         is legacy and will be removed in the future. Use `portal()` instead.
     /// @custom:network-specific
@@ -51,6 +54,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     }
 
     function _sendDepositTonMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+        IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
+        IERC20(tonAddress).approve(address(PORTAL), _value);
         PORTAL.depositTonTransaction(_to, _value, _gasLimit, false, _data);
     }
 

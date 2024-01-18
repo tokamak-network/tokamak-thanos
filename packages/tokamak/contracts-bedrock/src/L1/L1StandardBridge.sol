@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IOptimismMintableERC20 } from "src/universal/IOptimismMintableERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
@@ -18,6 +21,7 @@ import { Constants } from "src/libraries/Constants.sol";
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
 contract L1StandardBridge is StandardBridge, ISemver {
+    using SafeERC20 for IERC20;
 
     address public l1TokenAddress;
 
@@ -230,6 +234,49 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _initiateBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _minGasLimit, _extraData);
     }
 
+    /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        // Dont burn if localToken is TON address.
+        // We need to transfer TON to OptimismPortal
+        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TokenAddress) {
+            require(
+                _isCorrectTokenPair(_localToken, _remoteToken),
+                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
+            );
+
+            IOptimismMintableERC20(_localToken).burn(_from, _amount);
+        } else {
+            IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
+            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] + _amount;
+        }
+
+        // Emit the correct events. By default this will be ERC20BridgeInitiated, but child
+        // contracts may override this function in order to emit legacy events as well.
+        _emitERC20BridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+
+        _sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+
+    }
+
     /// @notice Override create finalized mesasge on other chain
     /// @param _localToken  Address of the ERC20 on this chain.
     /// @param _remoteToken Address of the ERC20 on the remote chain.
@@ -251,6 +298,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
         if (l1TokenAddress == _localToken) {
             // _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+            IERC20(l1TokenAddress).approve(address(messenger), _amount);
             messenger.sendDepositTonMessage(
                 address(OTHER_BRIDGE),
                 _amount,
