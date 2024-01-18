@@ -21,3 +21,5 @@ jobs:
       with:
         version: v1.54
         args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
+      env:
+        GOFLAGS: "-buildvcs=false"
