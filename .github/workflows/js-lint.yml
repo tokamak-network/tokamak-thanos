@@ -2,6 +2,8 @@ name: Check JS lint
 
 on:
   push:
+    paths:
+
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
@@ -49,32 +51,27 @@ jobs:
         params: [
           {
             name: 'common-ts-tests',
-            package_name: 'common-ts',
+            package_name: 'packages/common-ts',
             coverage_flag: 'common-ts-tests'
           },
           {
             name: 'core-utils-tests',
-            package_name: 'core-utils'
+            package_name: 'packages/core-utils'
           },
           {
             name: 'chain-mon-tests',
-            package_name: 'chain-mon',
+            package_name: 'packages/chain-mon',
             dependencies: '(common-ts|contracts-bedrock|core-utils|sdk)'
           },
           {
             name: 'contracts-ts-tests',
-            package_name: 'contracts-ts',
+            package_name: 'packages/contracts-ts',
             dependencies: '(contracts-bedrock|contracts-ts)'
           },
           {
             name: 'sdk-next-tests',
-            package_name: 'sdk',
+            package_name: 'packages/sdk',
             dependencies: '(common-ts|contracts-bedrock|core-utils)'
-          },
-          {
-            name: 'sdk-tests',
-            package_name: 'sdk',
-            dependencies: '(contracts-bedrock|core-utils)'
           }
         ]
 
@@ -100,17 +97,10 @@ jobs:
         with:
           filters: |
             packages:
-              - "${{ env.package_name }}"
+              - "${{ env.package_name }}/**"
       - if: steps.changes.outputs.packages == 'true'
         run: |
           pnpm install --frozen-lockfile --prefer-offline
           cd packages/${{ env.package_name }}
           pnpm lint && git diff --exit-code
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
-
-      - name: Lint
-        run: pnpm lint && git diff --exit-code
-        working-directory: packages/${{ env.package_name }}
 
