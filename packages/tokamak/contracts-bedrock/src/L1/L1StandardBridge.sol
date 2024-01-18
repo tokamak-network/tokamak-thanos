@@ -23,7 +23,7 @@ import { Constants } from "src/libraries/Constants.sol";
 contract L1StandardBridge is StandardBridge, ISemver {
     using SafeERC20 for IERC20;
 
-    address public l1TokenAddress;
+    address public l1TONAddress;
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -81,13 +81,13 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
-        initialize({ _messenger: CrossDomainMessenger(address(0)), _l1TokenAddress: address(0) });
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _l1TONAddress: address(0) });
     }
 
     /// @notice Initializer
-    function initialize(CrossDomainMessenger _messenger, address _l1TokenAddress) public reinitializer(Constants.INITIALIZER) {
+    function initialize(CrossDomainMessenger _messenger, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
         __StandardBridge_init({ _messenger: _messenger });
-        l1TokenAddress = _l1TokenAddress;
+        l1TONAddress = _l1TONAddress;
     }
 
     /// @notice Deposit ETH on L1 and receive WETH on L2.
@@ -304,7 +304,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
         // Dont burn if localToken is TON address.
         // We need to transfer TON to OptimismPortal
-        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TokenAddress) {
+        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TONAddress) {
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
@@ -343,10 +343,10 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        if (l1TokenAddress == _localToken) {
+        if (l1TONAddress == _localToken) {
             // _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-            IERC20(l1TokenAddress).approve(address(messenger), _amount);
-            messenger.sendDepositTonMessage(
+            IERC20(l1TONAddress).approve(address(messenger), _amount);
+            messenger.sendDepositTONMessage(
                 address(OTHER_BRIDGE),
                 _amount,
                 abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),

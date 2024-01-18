@@ -438,7 +438,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
-    function depositTonTransaction(
+    function depositTONTransaction(
         address _to,
         uint256 _value,
         uint64 _gasLimit,
