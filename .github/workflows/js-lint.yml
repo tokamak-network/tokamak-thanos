@@ -3,7 +3,8 @@ name: Check JS lint
 on:
   push:
     paths:
-      - '**/*.{ts,js}'
+      - '**/*.ts'
+      - '**/*.js'
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
