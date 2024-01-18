@@ -763,7 +763,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
-                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.l1Token())
+                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.l1TONToken())
                 )
         });
 
@@ -850,7 +850,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
             _innerCallData: abi.encodeCall(
-                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.l1Token())
+                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.l1TONToken())
                 )
         });
 
@@ -918,7 +918,7 @@ contract Deploy is Deployer {
             _implementation: optimismPortal,
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
-                (cfg.l1Token(), L2OutputOracle(l2OutputOracleProxy), guardian, SystemConfig(systemConfigProxy), false)
+                (cfg.l1TONToken(), L2OutputOracle(l2OutputOracleProxy), guardian, SystemConfig(systemConfigProxy), false)
                 )
         });
 

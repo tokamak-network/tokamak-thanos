@@ -53,10 +53,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
-    function _sendDepositTonMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+    function _sendDepositTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
         IERC20(tonAddress).approve(address(PORTAL), _value);
-        PORTAL.depositTonTransaction(_to, _value, _gasLimit, false, _data);
+        PORTAL.depositTONTransaction(_to, _value, _gasLimit, false, _data);
     }
 
 
