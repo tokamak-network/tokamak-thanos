@@ -102,7 +102,11 @@ jobs:
             packages:
               - "${{ env.package_name }}"
       - if: steps.changes.outputs.packages == 'true'
-        run: echo 'hello'
+        run: |
+          pnpm install --frozen-lockfile --prefer-offline
+          cd packages/${{ env.package_name }}
+          pnpm lint && git diff --exit-code
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
