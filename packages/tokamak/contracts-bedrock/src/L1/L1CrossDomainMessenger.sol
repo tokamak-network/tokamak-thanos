@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
@@ -19,19 +20,23 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @custom:legacy
     OptimismPortal public PORTAL;
 
+    /// @notice Address of TON (ERC-20 token)
+    address public tonAddress;
+
     /// @notice Semantic version.
     /// @custom:semver 1.7.1
     string public constant version = "1.7.1";
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
-        initialize({ _portal: OptimismPortal(payable(0)) });
+        initialize({ _portal: OptimismPortal(payable(0)),  _tonAddress: address(0) });
     }
 
     /// @notice Initializes the contract.
     /// @param _portal Address of the OptimismPortal contract on this network.
-    function initialize(OptimismPortal _portal) public reinitializer(Constants.INITIALIZER) {
+    function initialize(OptimismPortal _portal, address _tonAddress) public reinitializer(Constants.INITIALIZER) {
         PORTAL = _portal;
+        tonAddress = _tonAddress;
         __CrossDomainMessenger_init();
     }
 
