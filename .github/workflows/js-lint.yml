@@ -2,9 +2,9 @@ name: Check JS lint
 
 on:
   push:
-  # pull_request:
-  #   paths:
-  #     - 'packages/*.ts'
+  pull_request:
+    paths:
+      - 'packages/*.ts'
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
