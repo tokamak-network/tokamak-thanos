@@ -1,7 +1,5 @@
 name: check-changed
-inputs:
-  patterns:
-    required: false
+description: "Check changes"
 runs:
   using: composite
   steps:
