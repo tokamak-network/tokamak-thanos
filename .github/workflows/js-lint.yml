@@ -39,7 +39,7 @@ jobs:
         path: node_modules
         key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - if: steps.filter.outputs.changes!= '[]'
+    - if: fromJson(steps.filter.outputs.changes)[0] != null
       name: Fetch dependencies
       run: pnpm fetch --frozen-lockfile --prefer-offline
 
