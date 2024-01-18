@@ -90,14 +90,60 @@ contract L1StandardBridge is StandardBridge, ISemver {
         l1TokenAddress = _l1TokenAddress;
     }
 
-    /// @notice Dont allows to bridge ETH by sending directly to the bridge.
+    /// @notice Deposit ETH on L1 and receive WETH on L2.
     receive() external payable override {
-        revert("does not receive ETH");
-        // _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+        _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+    }
+
+    /// @notice Deposits some amount of ETH into the sender's WETH's account on L2.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function depositETH(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
+        _initiateETHDeposit(msg.sender, msg.sender, _minGasLimit, _extraData);
+    }
+
+    /// @notice Deposits some amount of ETH into a target WETH's account on L2.
+    ///         Note that if ETH is sent to a contract on L2 and the call fails, then that ETH will
+    ///         be locked in the L2StandardBridge. ETH may be recoverable if the call can be
+    ///         successfully replayed by increasing the amount of gas supplied to the call. If the
+    ///         call will fail for any amount of gas, then the ETH will be locked permanently.
+    /// @param _to          Address of the recipient on L2.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function depositETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
+        _initiateETHDeposit(msg.sender, _to, _minGasLimit, _extraData);
     }
 
     function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
        _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
+    }
+
+    /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive WETH on L2
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of ETH being bridged.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeETH(
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
+
+        _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+        _sendERC20BridgeFinalizedMessage(address(0), Predeploys.WETH, _from, _to, _amount, _minGasLimit, _extraData);
     }
 
     /// @custom:legacy
@@ -202,7 +248,8 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         external
     {
-        finalizeBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _extraData);
+        // TODO
+        // finalizeBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _extraData);
     }
 
     /// @custom:legacy
