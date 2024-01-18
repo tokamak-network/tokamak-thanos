@@ -112,7 +112,7 @@ export const addressManagerConfig = {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0x15DdA60616Ffca20371ED1659dBB78E888f65556)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0x15DdA60616Ffca20371ED1659dBB78E888f655561)
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x15DdA60616Ffca20371ED1659dBB78E888f65556)
  */
 export const assetReceiverABI = [
