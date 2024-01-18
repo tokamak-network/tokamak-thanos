@@ -5,40 +5,6 @@ on:
     paths:
       - 'packages/**/*.ts'
 jobs:
-  pnpm-monorepo:
-    runs-on: ubuntu-latest
-    container:
-      image: onthertech/titan-ci-builder:latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      # Declares the repository safe and not under dubious ownership.
-      - name: Add repository to git safe directories
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
-
-      - name: Restore PNPM Package Cache
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Fetch dependencies
-        run: pnpm fetch --frozen-lockfile --prefer-offline
-
-      - name: Save PNPM Package Cache
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --offline
-
-      - name: Print forge version
-        run: forge --version
-
   changes:
     runs-on: ubuntu-latest
     permissions:
@@ -58,10 +24,39 @@ jobs:
             - 'packages/contracts-ts/**'
           sdk:
             - 'packages/sdk/**'
+            - name: Checkout
+            uses: actions/checkout@v3
+    - name: Echo JSON
+      run: echo ${{ toJson(steps.filter.outputs.changes)}}
+    # Declares the repository safe and not under dubious ownership.
+    - name: Add repository to git safe directories
+      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+    - if: ${{ toJson(steps.filter.outputs.changes)}} != '[]'
+      name: Restore PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - if: ${{ toJson(steps.filter.outputs.changes)}} != '[]'
+      name: Fetch dependencies
+      run: pnpm fetch --frozen-lockfile --prefer-offline
+
+    - if: ${{ toJson(steps.filter.outputs.changes)}} != '[]'
+      name: Save PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - if: ${{ toJson(steps.filter.outputs.changes)}} != '[]'
+      name: Install dependencies
+      run: pnpm install --frozen-lockfile --offline
 
   js-lint-test:
     runs-on: ubuntu-latest
-    needs: [changes,pnpm-monorepo]
+    needs: [changes]
     container:
       image: onthertech/titan-ci-builder:latest
     name: js-lint-test-${{matrix.package}}
