@@ -20,7 +20,7 @@ import * as chains from 'viem/chains'
 import { Abi } from 'abitype'
 
 /**
- * Bytes type representing a hex string with a 0x prefix
+ * Bytes type representing a hex string with a 0x prefixx
  * @typedef {`0x${string}`} Bytes
  */
 export type Bytes = `0x${string}`
