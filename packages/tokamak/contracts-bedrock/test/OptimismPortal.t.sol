@@ -919,6 +919,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitProxy_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(payable(proxy)).initialize({
+            _tonAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
@@ -930,6 +931,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitImpl_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(opImpl).initialize({
+            _tonAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
