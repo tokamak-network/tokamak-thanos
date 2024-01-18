@@ -122,9 +122,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Update node modules
-        run: pnpm update
-
       - name: Lint
         run: pnpm lint && git diff --exit-code
         working-directory: packages/${{ env.package_name }}
