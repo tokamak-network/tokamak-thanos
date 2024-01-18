@@ -32,25 +32,25 @@ jobs:
     - name: Add repository to git safe directories
       run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    - if: ${{ toJson(steps.filter.outputs.changes)}} != []
+    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
       name: Restore PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: node_modules
         key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - if: ${{ toJson(steps.filter.outputs.changes)}} != []
+    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
       name: Fetch dependencies
       run: pnpm fetch --frozen-lockfile --prefer-offline
 
-    - if: ${{ toJson(steps.filter.outputs.changes)}} != []
+    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
       name: Save PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: node_modules
         key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - if: ${{ toJson(steps.filter.outputs.changes)}} != []
+    - if: "!contains(${{ toJson(steps.filter.outputs.changes)}}, '')"
       name: Install dependencies
       run: pnpm install --frozen-lockfile --offline
 
