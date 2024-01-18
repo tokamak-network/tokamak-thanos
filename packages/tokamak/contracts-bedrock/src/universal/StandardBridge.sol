@@ -306,13 +306,13 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
+        virtual
     {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-
         messenger.sendMessage{ value: _amount }(
             address(OTHER_BRIDGE),
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
