@@ -99,14 +99,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v3
 
       - name: Check changes
         uses: "./.github/actions/check-changed"
         with:
           patterns: "${{ env.package_name }},${{ env.dependencies }}"
       - name: Download Artifact
-        uses: actions/download-artifact@v4.1.0
+        uses: actions/download-artifact@v4
         with:
           path: "."
       - name: Restore PNPM Package Cache
