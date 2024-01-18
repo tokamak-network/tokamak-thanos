@@ -47,35 +47,73 @@ jobs:
           path: |
             packages/**/dist
             packages/contracts-bedrock/forge-artifacts
+
   js-lint-test:
     runs-on: ubuntu-latest
     needs: [pnpm-monorepo]
+    name: js-lint-test-${{matrix.params.name}}
+
     strategy:
       matrix:
-        package_name: ['common-ts', 'core-utils', 'chain-mon', 'contracts-ts', 'sdk']
-        dependencies: ['', '(common-ts|contracts-bedrock|core-utils|sdk)', '(contracts-bedrock|core-utils)', '(common-ts|contracts-bedrock|core-utils)', '(contracts-bedrock|core-utils)']
-        coverage_flag: ['common-ts-tests', 'core-utils-tests', 'chain-mon-tests', 'contracts-ts-tests', 'sdk-next-tests', 'sdk-tests']
+        params: [
+          {
+            name: 'common-ts-tests',
+            package_name: 'common-ts',
+            coverage_flag: 'common-ts-tests'
+          },
+          {
+            name: 'core-utils-tests',
+            package_name: 'core-utils',
+            coverage_flag: 'core-utils-tests'
+          },
+          {
+            name: 'chain-mon-tests',
+            package_name: 'chain-mon',
+            dependencies: '(common-ts|contracts-bedrock|core-utils|sdk)',
+            coverage_flag: 'chain-mon-tests'
+          },
+          {
+            name: 'contracts-ts-tests',
+            package_name: 'contracts-ts',
+            dependencies: '(contracts-bedrock|contracts-ts)',
+            coverage_flag: 'contracts-ts-tests'
+          },
+          {
+            name: 'sdk-next-tests',
+            package_name: 'sdk',
+            dependencies: '(common-ts|contracts-bedrock|core-utils)',
+            coverage_flag: 'sdk-next-tests'
+          },
+          {
+            name: 'sdk-tests',
+            package_name: 'sdk',
+            dependencies: '(contracts-bedrock|core-utils)',
+            coverage_flag: 'sdk-tests'
+          }
+        ]
 
     env:
-      package_name: ${{ matrix.package_name }}
-      dependencies: ${{ matrix.dependencies }}
-      coverage_flag: ${{ matrix.coverage_flag }}
+      package_name: ${{ matrix.params.package_name }}
+      dependencies: ${{ matrix.params.dependencies }}
+      coverage_flag: ${{ matrix.params.coverage_flag }}
 
     steps:
-      - uses: actions/checkout@v4.1.0
-      - uses: actions/download-artifact@v4.1.0
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
+
+      - name: Check changes
+        uses: "./.github/actions/check-changed"
+        with:
+          patterns: "${{ env.package_name }},${{ env.dependencies }}"
+      - name: Download Artifact
+        uses: actions/download-artifact@v4.1.0
         with:
           path: "."
-
       - name: Restore PNPM Package Cache
         uses: actions/cache@v3
         with:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - uses: "./.github/actions/check-changed"
-        with:
-          patterns: "${{ env.package_name }},${{ env.dependencies }}"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
