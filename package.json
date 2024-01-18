@@ -9,6 +9,7 @@
     "pnpm": ">=8"
   },
   "scripts": {
+    "custom": "nx bindings @eth-optimism/contracts-bedrock",
     "clean": "pnpm recursive run clean; rm -rf node_modules packages/**/*/node_modules && echo 'Finished cleaning. Run `pnpm install && pnpm build` from root of repo to rebuild the repo.'",
     "bindings": "nx bindings @eth-optimism/contracts-bedrock",
     "build": "npx nx run-many --target=build",
