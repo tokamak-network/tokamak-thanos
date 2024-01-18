@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
@@ -64,6 +65,9 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @custom:network-specific
     address public guardian;
 
+    /// @notice Address of TON (ERC-20 token)
+    address public tonAddress;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
     ///         transactions on L2.
@@ -105,6 +109,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
+            _tonAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _guardian: address(0),
             _systemConfig: SystemConfig(address(0)),
@@ -118,6 +123,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _paused Sets the contract's pausability state.
     /// @param _systemConfig Address of the SystemConfig contract.
     function initialize(
+        address _tonAddress,
         L2OutputOracle _l2Oracle,
         address _guardian,
         SystemConfig _systemConfig,
@@ -126,6 +132,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
+        tonAddress = _tonAddress;
         l2Sender = Constants.DEFAULT_L2_SENDER;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
