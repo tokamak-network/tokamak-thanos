@@ -1,0 +1,101 @@
+name: Check Ts Lint
+
+on:
+  pull_request:
+    paths:
+      - 'packages/**/*.ts'
+jobs:
+  check-changes-and-install-dependencies:
+    container:
+      image: onthertech/titan-ci-builder:latest
+    runs-on: ubuntu-latest
+
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          packages/chain-mon:
+            - 'packages/chain-mon/**'
+          packages/common-ts:
+            - 'packages/common-ts/**'
+          packages/contracts-ts:
+            - 'packages/contracts-ts/**'
+          packages/core-utils:
+            - 'packages/core-utils/**'
+          packages/fee-estimation:
+            - 'packages/fee-estimation/**'
+          packages/web3js-plugin:
+            - 'packages/web3js-plugin/**'
+          packages/tokamak/sdk:
+            - 'packages/tokamak/sdk/**'
+
+
+    - name: Print directory changes
+      run: echo ${{steps.filter.outputs.changes}}
+
+    # Declares the repository safe and not under dubious ownership.
+    - name: Add repository to git safe directories
+      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+    - if: steps.filter.outputs.changes != '[]'
+      name: Restore PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - if: steps.filter.outputs.changes != '[]'
+      name: Fetch dependencies
+      run: pnpm fetch --frozen-lockfile --prefer-offline
+
+    - if: steps.filter.outputs.changes != '[]'
+      name: Save PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - if: steps.filter.outputs.changes != '[]'
+      name: Install dependencies
+      run: pnpm install --frozen-lockfile --offline
+
+  ts-lint:
+    runs-on: ubuntu-latest
+    if: needs.check-changes-and-install-dependencies.outputs.packages != '[]'
+    needs: [check-changes-and-install-dependencies]
+    container:
+      image: onthertech/titan-ci-builder:latest
+    name:  Check lint ${{matrix.package}}
+
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.check-changes-and-install-dependencies.outputs.packages) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Run Lint Check
+        run: |
+          cd ${{ matrix.package }}
+          pnpm lint && git diff --exit-code
+
