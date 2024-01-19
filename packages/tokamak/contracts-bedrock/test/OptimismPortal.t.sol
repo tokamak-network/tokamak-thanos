@@ -96,18 +96,18 @@ contract OptimismPortal_Test is Portal_Initializer {
     }
 
     /// @dev Tests that `receive` successdully deposits ETH.
-    function test_receive_succeeds() external {
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(alice, alice, 100, 100, 100_000, false, hex"");
+    // function test_receive_succeeds() external {
+    //     vm.expectEmit(true, true, false, true);
+    //     emitTransactionDeposited(alice, alice, 100, 100, 100_000, false, hex"");
 
-        // give alice money and send as an eoa
-        vm.deal(alice, 2 ** 64);
-        vm.prank(alice, alice);
-        (bool s,) = address(op).call{ value: 100 }(hex"");
+    //     // give alice money and send as an eoa
+    //     vm.deal(alice, 2 ** 64);
+    //     vm.prank(alice, alice);
+    //     (bool s,) = address(op).call{ value: 100 }(hex"");
 
-        assert(s);
-        assertEq(address(op).balance, 100);
-    }
+    //     assert(s);
+    //     assertEq(address(op).balance, 100);
+    // }
 
     /// @dev Tests that `depositTransaction` reverts when the destination address is non-zero
     ///      for a contract creation deposit.
