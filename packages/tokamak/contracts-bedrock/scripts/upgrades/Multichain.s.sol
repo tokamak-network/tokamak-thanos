@@ -110,7 +110,7 @@ contract Multichain is SafeBuilder {
         string memory deployConfigPath;
         if (network == getting_started) {
             console.log("Using getting-started");
-            deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/getting-started.json");
+            deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/getting-started-template.json");
             proxies = ContractSet({
                 L1CrossDomainMessenger: 0x5086d1eEF304eb5284A0f6720f79403b4e9bE294,
                 L1StandardBridge: 0x636Af16bf2f682dD3109e60102b8E1A089FedAa8,
