@@ -91,7 +91,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     }
 
     /// @notice Deposit ETH on L1 and receive WETH on L2.
-    receive() external payable override {
+    receive() external payable override onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
@@ -212,11 +212,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         //// finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
-    /// @notice Sends ETH to the sender's address on the other chain.
-    /// @notice Deny on L1
-    function bridgeETH(uint32, bytes calldata) public payable onlyEOA override {
-        revert("L1 does not support this function");
-    }
+    // /// @notice Sends ETH to the sender's address on the other chain.
+    // /// @notice Deny on L1
+    // function bridgeETH(uint32, bytes calldata) public payable onlyEOA override {
+    //     revert("L1 does not support this function");
+    // }
 
     /// @notice Sends ETH to a receiver's address on the other chain. Note that if ETH is sent to a
     ///         smart contract and the call fails, the ETH will be temporarily locked in the
@@ -226,9 +226,9 @@ contract L1StandardBridge is StandardBridge, ISemver {
     ///         be locked if the receiver is the other bridge, because finalizeBridgeETH will revert
     ///         in that case.
     ///         Deny on L1
-    function bridgeETHTo(address, uint32, bytes calldata) public payable override {
-        revert("L1 does not support this function");
-    }
+    // function bridgeETHTo(address, uint32, bytes calldata) public payable override {
+    //     revert("L1 does not support this function");
+    // }
 
     /// @custom:legacy
     /// @notice Finalizes a withdrawal of ERC20 tokens from L2.
