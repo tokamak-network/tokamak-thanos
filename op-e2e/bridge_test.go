@@ -1,5 +1,9 @@
 package op_e2e
 
+import (
+	"testing"
+)
+
 // TestERC20BridgeDeposits tests the the L1StandardBridge bridge ERC20
 // functionality.
 func TestERC20BridgeDeposits(t *testing.T) {
