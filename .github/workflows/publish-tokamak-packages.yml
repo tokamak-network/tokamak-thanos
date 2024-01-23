@@ -1,0 +1,71 @@
+name: Publish the Titan2 Packages
+
+on:
+  push:
+    tags:
+      - 'release-*'
+
+jobs:
+  release-titan2-packages:
+    name: Release
+    runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Fetch dependencies
+        run: pnpm fetch --frozen-lockfile --prefer-offline
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --offline
+
+      - name: Build
+        run: pnpm build
+
+      - name: Create .npmrc
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_AUTH_TOKEN }}" > .npmrc
+
+      - name: Filter packages to publish
+        id: filter-packages
+        run: |
+          # Define the package names to publish
+          PACKAGES_TO_PUBLISH=("@tokamak-network/titan2-sdk @tokamak-network/titan2-contracts")
+          # Set the output variables for packages to publish
+          echo "packages-to-publish=${PACKAGES_TO_PUBLISH[@]}" >> $GITHUB_OUTPUT
+
+      - name: Print Git changes
+        run: git diff
+
+      - name: Publish Packages
+        run: |
+          for PACKAGE in ${{ steps.filter-packages.outputs.packages-to-publish }}; do
+            echo "Publishing $PACKAGE"
+            if pnpm publish --filter=$PACKAGE --access public --no-git-checks; then
+              echo "Package $PACKAGE published successfully!"
+            else
+              echo "Skipping package $PACKAGE publishing as it encountered an error."
+            fi
+          done
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
