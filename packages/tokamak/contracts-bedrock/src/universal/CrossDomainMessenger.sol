@@ -178,12 +178,12 @@ abstract contract CrossDomainMessenger is
     /// @param _amount      Amount of deposit TON.
     /// @param _message     Message to trigger the target address with.
     /// @param _minGasLimit Minimum gas limit that the message can be executed with.
-    function sendDepositTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
+    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
         // the minimum gas limit specified by the user.
-        _sendDepositTONMessage(
+        _sendTONMessage(
             OTHER_MESSENGER,
             baseGas(_message, _minGasLimit),
             _amount,
@@ -383,7 +383,7 @@ abstract contract CrossDomainMessenger is
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
     }
 
-    function _sendDepositTONMessage(address , uint64 , uint256 , bytes memory ) internal virtual {
+    function _sendTONMessage(address , uint64 , uint256 , bytes memory ) internal virtual {
         revert("Cannot call this function except it is overrided");
     }
 

@@ -24,7 +24,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     OptimismPortal public PORTAL;
 
     /// @notice Address of TON (ERC-20 token)
-    address public tonAddress;
+    address public l1TONAddress;
 
     /// @notice Semantic version.
     /// @custom:semver 1.7.1
@@ -32,15 +32,18 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
-        initialize({ _portal: OptimismPortal(payable(0)),  _tonAddress: address(0) });
+        initialize({ _portal: OptimismPortal(payable(0)),  _l1TONAddress: address(0) });
     }
 
     /// @notice Initializes the contract.
     /// @param _portal Address of the OptimismPortal contract on this network.
-    function initialize(OptimismPortal _portal, address _tonAddress) public reinitializer(Constants.INITIALIZER) {
+    function initialize(OptimismPortal _portal, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
         PORTAL = _portal;
-        tonAddress = _tonAddress;
+        l1TONAddress = _l1TONAddress;
         __CrossDomainMessenger_init();
+        if (address(PORTAL) != address(0) && address(l1TONAddress) != address(0)) {
+            IERC20(l1TONAddress).approve(address(PORTAL), 2**256 - 1);
+        }
     }
 
     /// @notice Getter for the OptimismPortal address.
@@ -53,12 +56,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
-    function _sendDepositTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
-        IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
-        IERC20(tonAddress).approve(address(PORTAL), _value);
+    function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override{
+        IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
         PORTAL.depositTONTransaction(_to, _value, _gasLimit, false, _data);
     }
-
 
     /// @inheritdoc CrossDomainMessenger
     function _isOtherMessenger() internal view override returns (bool) {

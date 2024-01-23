@@ -88,6 +88,9 @@ contract L1StandardBridge is StandardBridge, ISemver {
     function initialize(CrossDomainMessenger _messenger, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
         __StandardBridge_init({ _messenger: _messenger });
         l1TONAddress = _l1TONAddress;
+        if(address(_messenger) != address(0) && address(l1TONAddress) != address(0)) {
+            IERC20(l1TONAddress).approve(address(_messenger), 2**256 - 1);
+        }
     }
 
     /// @notice Deposit ETH on L1 and receive WETH on L2.
@@ -116,10 +119,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
     ///                     only emitted as extra data for the convenience of off-chain tooling.
     function depositETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
         _initiateETHDeposit(msg.sender, _to, _minGasLimit, _extraData);
-    }
-
-    function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
-       _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
     }
 
     /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive WETH on L2
@@ -208,8 +207,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         external
         payable
     {
-        // TODO
-        //// finalizeBridgeETH(_from, _to, _amount, _extraData);
+        // finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
     // /// @notice Sends ETH to the sender's address on the other chain.
@@ -259,6 +257,15 @@ contract L1StandardBridge is StandardBridge, ISemver {
         return address(OTHER_BRIDGE);
     }
 
+    /// @notice Internal function for initiating an ETH deposit.
+    /// @param _from        Address of the sender on L1.
+    /// @param _to          Address of the recipient on L2.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
+        _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
+    }
+
     /// @notice Internal function for initiating an ERC20 deposit.
     /// @param _l1Token     Address of the L1 token being deposited.
     /// @param _l2Token     Address of the corresponding token on L2.
@@ -302,38 +309,21 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        // Dont burn if localToken is TON address.
-        // We need to transfer TON to OptimismPortal
-        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TONAddress) {
-            require(
-                _isCorrectTokenPair(_localToken, _remoteToken),
-                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
-            );
-
-            IOptimismMintableERC20(_localToken).burn(_from, _amount);
-        } else {
-            IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
-            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] + _amount;
-        }
-
-        // Emit the correct events. By default this will be ERC20BridgeInitiated, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitERC20BridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
-
-        _sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
-
+         if (l1TONAddress == _localToken) {
+            _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
+         }else {
+            super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+         }
     }
 
-    /// @notice Override create finalized mesasge on other chain
-    /// @param _localToken  Address of the ERC20 on this chain.
-    /// @param _remoteToken Address of the ERC20 on the remote chain.
-    /// @param _from        Address of the sender.
+    /// @notice Sends TON tokens to a receiver's address on the other chain.
     /// @param _to          Address of the receiver.
-    /// @param _amount      Amount of the ERC20 sent.
-    /// @param _extraData   Extra data sent with the transaction.
-    function _sendERC20BridgeFinalizedMessage(
-        address _localToken,
-        address _remoteToken,
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeTON(
         address _from,
         address _to,
         uint256 _amount,
@@ -341,20 +331,19 @@ contract L1StandardBridge is StandardBridge, ISemver {
         bytes memory _extraData
     )
         internal
-        override
     {
-        if (l1TONAddress == _localToken) {
-            // _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-            IERC20(l1TONAddress).approve(address(messenger), _amount);
-            messenger.sendDepositTONMessage(
-                address(OTHER_BRIDGE),
-                _amount,
-                abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
-                _minGasLimit
-            );
-        } else {
-            super._sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
-        }
+
+        IERC20(l1TONAddress).safeTransferFrom(_from, address(this), _amount);
+        deposits[l1TONAddress][l1TONAddress] = deposits[l1TONAddress][l1TONAddress] + _amount;
+
+        _emitERC20BridgeInitiated(l1TONAddress, l1TONAddress, _from, _to, _amount, _extraData);
+
+        messenger.sendTONMessage(
+            address(OTHER_BRIDGE),
+            _amount,
+            abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
+            _minGasLimit
+        );
     }
 
     // /// @inheritdoc StandardBridge
