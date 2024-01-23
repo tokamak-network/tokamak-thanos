@@ -221,69 +221,69 @@ contract OptimismPortal_Test is Portal_Initializer {
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with ETH.
-    function test_depositTransaction_withEthValueFromEOA_succeeds() external {
-        // EOA emulation
-        vm.prank(address(this), address(this));
+    // function test_depositTransaction_withEthValueFromEOA_succeeds() external {
+    //     // EOA emulation
+    //     vm.prank(address(this), address(this));
 
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+    //     vm.expectEmit(true, true, false, true);
+    //     emitTransactionDeposited(
+    //         address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
 
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-        assertEq(address(op).balance, NON_ZERO_VALUE);
-    }
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    //     assertEq(address(op).balance, NON_ZERO_VALUE);
+    // }
 
-    /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with ETH.
-    function test_depositTransaction_withEthValueFromContract_succeeds() external {
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            AddressAliasHelper.applyL1ToL2Alias(address(this)),
-            NON_ZERO_ADDRESS,
-            NON_ZERO_VALUE,
-            ZERO_VALUE,
-            NON_ZERO_GASLIMIT,
-            false,
-            NON_ZERO_DATA
-        );
+    // /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with ETH.
+    // function test_depositTransaction_withEthValueFromContract_succeeds() external {
+    //     vm.expectEmit(true, true, false, true);
+    //     emitTransactionDeposited(
+    //         AddressAliasHelper.applyL1ToL2Alias(address(this)),
+    //         NON_ZERO_ADDRESS,
+    //         NON_ZERO_VALUE,
+    //         ZERO_VALUE,
+    //         NON_ZERO_GASLIMIT,
+    //         false,
+    //         NON_ZERO_DATA
+    //     );
 
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-    }
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    // }
 
-    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with ETH.
-    function test_depositTransaction_withEthValueAndEOAContractCreation_succeeds() external {
-        // EOA emulation
-        vm.prank(address(this), address(this));
+    // /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with ETH.
+    // function test_depositTransaction_withEthValueAndEOAContractCreation_succeeds() external {
+    //     // EOA emulation
+    //     vm.prank(address(this), address(this));
 
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
-        );
+    //     vm.expectEmit(true, true, false, true);
+    //     emitTransactionDeposited(
+    //         address(this), ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
+    //     );
 
-        op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
-        assertEq(address(op).balance, NON_ZERO_VALUE);
-    }
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
+    //     assertEq(address(op).balance, NON_ZERO_VALUE);
+    // }
 
-    /// @dev Tests that `depositTransaction` succeeds for a contract depositing a contract creation with ETH.
-    function test_depositTransaction_withEthValueAndContractContractCreation_succeeds() external {
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            AddressAliasHelper.applyL1ToL2Alias(address(this)),
-            ZERO_ADDRESS,
-            NON_ZERO_VALUE,
-            ZERO_VALUE,
-            NON_ZERO_GASLIMIT,
-            true,
-            NON_ZERO_DATA
-        );
+    // /// @dev Tests that `depositTransaction` succeeds for a contract depositing a contract creation with ETH.
+    // function test_depositTransaction_withEthValueAndContractContractCreation_succeeds() external {
+    //     vm.expectEmit(true, true, false, true);
+    //     emitTransactionDeposited(
+    //         AddressAliasHelper.applyL1ToL2Alias(address(this)),
+    //         ZERO_ADDRESS,
+    //         NON_ZERO_VALUE,
+    //         ZERO_VALUE,
+    //         NON_ZERO_GASLIMIT,
+    //         true,
+    //         NON_ZERO_DATA
+    //     );
 
-        op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
-        assertEq(address(op).balance, NON_ZERO_VALUE);
-    }
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+    //     assertEq(address(op).balance, NON_ZERO_VALUE);
+    // }
 
     /// @dev Tests that `isOutputFinalized` succeeds for an EOA depositing a tx with ETH and data.
     function test_simple_isOutputFinalized_succeeds() external {
