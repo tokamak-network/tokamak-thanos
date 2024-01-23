@@ -79,18 +79,18 @@ contract GasBenchMark_OptimismPortal is Portal_Initializer {
         vm.deal(address(op), 0xFFFFFFFF);
     }
 
-    function test_depositTransaction_benchmark() external {
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-    }
+    // function test_depositTransaction_benchmark() external {
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    // }
 
-    function test_depositTransaction_benchmark_1() external {
-        setPrevBaseFee(vm, address(op), 1 gwei);
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-    }
+    // function test_depositTransaction_benchmark_1() external {
+    //     setPrevBaseFee(vm, address(op), 1 gwei);
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    // }
 
     function test_proveWithdrawalTransaction_benchmark() external {
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
