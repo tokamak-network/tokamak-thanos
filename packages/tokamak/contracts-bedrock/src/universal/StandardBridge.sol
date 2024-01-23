@@ -358,10 +358,9 @@ abstract contract StandardBridge is Initializable {
         _emitERC20BridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
 
         _sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
-
     }
 
-    /// @notice Create finalized mesasge on other chain
+    /// @notice Override create finalized mesasge on other chain
     /// @param _localToken  Address of the ERC20 on this chain.
     /// @param _remoteToken Address of the ERC20 on the remote chain.
     /// @param _from        Address of the sender.
@@ -378,7 +377,6 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
-        virtual
     {
         messenger.sendMessage(
             address(OTHER_BRIDGE),

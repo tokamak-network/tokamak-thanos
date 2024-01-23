@@ -394,7 +394,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         bytes memory _data
     )
         public
-        payable
         metered(_gasLimit)
     {
         // Just to be safe, make sure that people specify address(0) as the target when doing
@@ -422,7 +421,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(msg.value, _value, _gasLimit, _isCreation, _data);
+        bytes memory opaqueData = abi.encodePacked(uint256(0), _value, _gasLimit, _isCreation, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
