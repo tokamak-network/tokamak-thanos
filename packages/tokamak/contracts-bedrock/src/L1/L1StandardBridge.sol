@@ -9,6 +9,8 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { SafeCall } from "src/libraries/SafeCall.sol";
+import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
 /// @custom:proxied
 /// @title L1StandardBridge
@@ -207,7 +209,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         external
         payable
     {
-        // finalizeBridgeETH(_from, _to, _amount, _extraData);
+        finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
     // /// @notice Sends ETH to the sender's address on the other chain.
@@ -247,7 +249,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         external
     {
         // TODO
-        // finalizeBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _extraData);
+        finalizeBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _extraData);
     }
 
     /// @custom:legacy
@@ -334,9 +336,9 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
 
         IERC20(l1TONAddress).safeTransferFrom(_from, address(this), _amount);
-        deposits[l1TONAddress][l1TONAddress] = deposits[l1TONAddress][l1TONAddress] + _amount;
+        deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] = deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
 
-        _emitERC20BridgeInitiated(l1TONAddress, l1TONAddress, _from, _to, _amount, _extraData);
+        _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
         messenger.sendTONMessage(
             address(OTHER_BRIDGE),
@@ -412,5 +414,71 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
         emit ERC20WithdrawalFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+    }
+
+    /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of ETH being bridged.
+    /// @param _extraData Extra data to be sent with the transaction. Note that the recipient will
+    ///                   not be triggered with this data, but it will be emitted and can be used
+    ///                   to identify the transaction.
+    function finalizeBridgeETH(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        onlyOtherBridge
+        override
+    {
+        require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
+        require(_to != address(this), "StandardBridge: cannot send to self");
+        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
+
+        // Emit the correct events. By default this will be _amount, but child
+        // contracts may override this function in order to emit legacy events as well.
+        _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
+        IERC20(l1TONAddress).safeTransferFrom(address(messenger), address(this), _amount);
+        finalizeBridgeERC20(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+    }
+
+    function finalizeBridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        onlyOtherBridge
+        override
+    {
+        if (_isOptimismMintableERC20(_localToken)) {
+            require(
+                _isCorrectTokenPair(_localToken, _remoteToken),
+                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
+            );
+
+            OptimismMintableERC20(_localToken).mint(_to, _amount);
+        } else {
+            // Case 1: Withdraw ETH
+            // Case 2: Withdraw normal Token
+            if(_localToken == address(0) && _remoteToken == Predeploys.WETH) {
+                bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
+                require(success, "StandardBridge: ETH transfer failed");
+            } else {
+                deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
+                IERC20(_localToken).safeTransfer(_to, _amount);
+            }
+        }
+
+        // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
+        // contracts may override this function in order to emit legacy events as well.
+        _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 }
