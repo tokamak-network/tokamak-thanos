@@ -383,9 +383,14 @@ abstract contract CrossDomainMessenger is
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
     }
 
-    function _sendTONMessage(address , uint64 , uint256 , bytes memory ) internal virtual {
-        revert("Cannot call this function except it is overrided");
-    }
+    /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
+    ///         contracts because the logic for this depends on the network where the messenger is
+    ///         being deployed.
+    /// @param _to       Recipient of the message on the other chain.
+    /// @param _gasLimit Minimum gas limit the message can be executed with.
+    /// @param _value    Amount of TON to send with the message.
+    /// @param _data     Message data.
+    function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal virtual;
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
     ///         contracts because the logic for this depends on the network where the messenger is
