@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/titan2-sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Tools for working with Titan 2.0",
   "main": "dist/index",
   "types": "dist/index",
@@ -63,6 +63,7 @@
   "dependencies": {
     "@eth-optimism/contracts": "0.6.0",
     "@eth-optimism/contracts-bedrock": "workspace:*",
+    "@tokamak-network/titan2-contracts": "0.0.1",
     "@eth-optimism/core-utils": "workspace:*",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.3.10",
