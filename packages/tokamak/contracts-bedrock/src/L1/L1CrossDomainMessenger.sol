@@ -8,6 +8,10 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { SafeCall } from "src/libraries/SafeCall.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 /// @custom:proxied
 /// @title L1CrossDomainMessenger
@@ -70,5 +74,112 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(PORTAL);
+    }
+
+    /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
+    ///         be executed via cross-chain call from the other messenger OR if the message was
+    ///         already received once and is currently being replayed.
+    /// @param _nonce       Nonce of the message being relayed.
+    /// @param _sender      Address of the user who sent the message.
+    /// @param _target      Address that the message is targeted at.
+    /// @param _value       ETH value to send with the message.
+    /// @param _minGasLimit Minimum amount of gas that the message can be executed with.
+    /// @param _message     Message to send to the target.
+    function relayMessage(
+        uint256 _nonce,
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _minGasLimit,
+        bytes calldata _message
+    )
+        external
+        payable
+        override
+    {
+        (, uint16 _nonceVersion) = Encoding.decodeVersionedNonce(_nonce);
+        require(_nonceVersion < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
+
+        // If the message is version 0, then it's a migrated legacy withdrawal. We therefore need
+        // to check that the legacy version of the message has not already been relayed.
+        if (_nonceVersion == 0) {
+            bytes32 oldHash = Hashing.hashCrossDomainMessageV0(_target, _sender, _message, _nonce);
+            require(successfulMessages[oldHash] == false, "CrossDomainMessenger: legacy withdrawal already relayed");
+        }
+
+        // We use the v1 message hash as the unique identifier for the message because it commits
+        // to the value and minimum gas limit of the message.
+        bytes32 versionedHash =
+            Hashing.hashCrossDomainMessageV1(_nonce, _sender, _target, _value, _minGasLimit, _message);
+
+        if (_isOtherMessenger()) {
+            // These properties should always hold when the message is first submitted (as
+            // opposed to being replayed).
+            assert(msg.value == 0);
+            assert(!failedMessages[versionedHash]);
+        } else {
+            require(msg.value == 0, "CrossDomainMessenger: value must be zero unless message is from a system address");
+
+            require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
+        }
+
+        require(
+            _isUnsafeTarget(_target) == false, "CrossDomainMessenger: cannot send message to blocked system address"
+        );
+
+        require(successfulMessages[versionedHash] == false, "CrossDomainMessenger: message has already been relayed");
+
+        // If there is not enough gas left to perform the external call and finish the execution,
+        // return early and assign the message to the failedMessages mapping.
+        // We are asserting that we have enough gas to:
+        // 1. Call the target contract (_minGasLimit + RELAY_CALL_OVERHEAD + RELAY_GAS_CHECK_BUFFER)
+        //   1.a. The RELAY_CALL_OVERHEAD is included in `hasMinGas`.
+        // 2. Finish the execution after the external call (RELAY_RESERVED_GAS).
+        //
+        // If `xDomainMsgSender` is not the default L2 sender, this function
+        // is being re-entered. This marks the message as failed to allow it to be replayed.
+        if (
+            !SafeCall.hasMinGas(_minGasLimit, RELAY_RESERVED_GAS + RELAY_GAS_CHECK_BUFFER)
+                || xDomainMsgSender != Constants.DEFAULT_L2_SENDER
+        ) {
+            failedMessages[versionedHash] = true;
+            emit FailedRelayedMessage(versionedHash);
+
+            // Revert in this case if the transaction was triggered by the estimation address. This
+            // should only be possible during gas estimation or we have bigger problems. Reverting
+            // here will make the behavior of gas estimation change such that the gas limit
+            // computed will be the amount required to relay the message, even if that amount is
+            // greater than the minimum gas limit specified by the user.
+            if (tx.origin == Constants.ESTIMATION_ADDRESS) {
+                revert("CrossDomainMessenger: failed to relay message");
+            }
+
+            return;
+        }
+
+        xDomainMsgSender = _sender;
+        bool approvalStatus = true;
+        if (_value != 0){
+            approvalStatus = IERC20(l1TONAddress).approve(_target, _value);
+        }
+        bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
+        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
+
+        if (success && approvalStatus) {
+            successfulMessages[versionedHash] = true;
+            emit RelayedMessage(versionedHash);
+        } else {
+            failedMessages[versionedHash] = true;
+            emit FailedRelayedMessage(versionedHash);
+
+            // Revert in this case if the transaction was triggered by the estimation address. This
+            // should only be possible during gas estimation or we have bigger problems. Reverting
+            // here will make the behavior of gas estimation change such that the gas limit
+            // computed will be the amount required to relay the message, even if that amount is
+            // greater than the minimum gas limit specified by the user.
+            if (tx.origin == Constants.ESTIMATION_ADDRESS) {
+                revert("CrossDomainMessenger: failed to relay message");
+            }
+        }
     }
 }
