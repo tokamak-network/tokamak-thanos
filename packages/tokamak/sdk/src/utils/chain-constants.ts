@@ -3,47 +3,57 @@ import { ethers } from 'ethers'
 import portalArtifactsMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/OptimismPortalProxy.json'
 import portalArtifactsGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/OptimismPortalProxy.json'
 import portalArtifactsSepolia from '@eth-optimism/contracts-bedrock/deployments/sepolia/OptimismPortalProxy.json'
+import portalArtifactsTitanSepoliaTest from '@tokamak-network/titan2-contracts/deployments/titan-sepolia-test/OptimismPortalProxy.json'
 import l2OutputOracleArtifactsMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/L2OutputOracleProxy.json'
 import l2OutputOracleArtifactsGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/L2OutputOracleProxy.json'
 import l2OutputOracleArtifactsSepolia from '@eth-optimism/contracts-bedrock/deployments/sepolia/L2OutputOracleProxy.json'
+import l2OutputOracleArtifactsTitanSepoliaTest from '@tokamak-network/titan2-contracts/deployments/titan-sepolia-test/L2OutputOracleProxy.json'
 import addressManagerArtifactMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/AddressManager.json'
 import addressManagerArtifactGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/AddressManager.json'
 import addressManagerArtifactSepolia from '@eth-optimism/contracts-bedrock/deployments/sepolia/AddressManager.json'
+import addressManagerArtifactTitanSepoliaTest from '@tokamak-network/titan2-contracts/deployments/titan-sepolia-test/AddressManager.json'
 import l1StandardBridgeArtifactMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/L1StandardBridgeProxy.json'
 import l1StandardBridgeArtifactGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/L1StandardBridgeProxy.json'
 import l1StandardBridgeArtifactSepolia from '@eth-optimism/contracts-bedrock/deployments/sepolia/L1StandardBridgeProxy.json'
+import l1StandardBridgeArtifactTitanSepoliaTest from '@tokamak-network/titan2-contracts/deployments/titan-sepolia-test/L1StandardBridgeProxy.json'
 import l1CrossDomainMessengerArtifactMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/L1CrossDomainMessengerProxy.json'
 import l1CrossDomainMessengerArtifactGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/L1CrossDomainMessengerProxy.json'
 import l1CrossDomainMessengerArtifactSepolia from '@eth-optimism/contracts-bedrock/deployments/sepolia/L1CrossDomainMessengerProxy.json'
+import l1CrossDomainMessengerArtifactTitanSepoliaTest from '@tokamak-network/titan2-contracts/deployments/titan-sepolia-test/L1CrossDomainMessengerProxy.json'
 
 const portalAddresses = {
   mainnet: portalArtifactsMainnet.address,
   goerli: portalArtifactsGoerli.address,
   sepolia: portalArtifactsSepolia.address,
+  'titan-sepolia-test': portalArtifactsTitanSepoliaTest.address,
 }
 
 const l2OutputOracleAddresses = {
   mainnet: l2OutputOracleArtifactsMainnet.address,
   goerli: l2OutputOracleArtifactsGoerli.address,
   sepolia: l2OutputOracleArtifactsSepolia.address,
+  'titan-sepolia-test': l2OutputOracleArtifactsTitanSepoliaTest.address,
 }
 
 const addressManagerAddresses = {
   mainnet: addressManagerArtifactMainnet.address,
   goerli: addressManagerArtifactGoerli.address,
   sepolia: addressManagerArtifactSepolia.address,
+  'titan-sepolia-test': addressManagerArtifactTitanSepoliaTest.address,
 }
 
 const l1StandardBridgeAddresses = {
   mainnet: l1StandardBridgeArtifactMainnet.address,
   goerli: l1StandardBridgeArtifactGoerli.address,
   sepolia: l1StandardBridgeArtifactSepolia.address,
+  'titan-sepolia-test': l1StandardBridgeArtifactTitanSepoliaTest.address,
 }
 
 const l1CrossDomainMessengerAddresses = {
   mainnet: l1CrossDomainMessengerArtifactMainnet.address,
   goerli: l1CrossDomainMessengerArtifactGoerli.address,
   sepolia: l1CrossDomainMessengerArtifactSepolia.address,
+  'titan-sepolia-test': l1CrossDomainMessengerArtifactTitanSepoliaTest.address,
 }
 
 // legacy
@@ -88,6 +98,7 @@ export const DEPOSIT_CONFIRMATION_BLOCKS: {
   [L2ChainID.BASE_MAINNET]: 10 as const,
   [L2ChainID.ZORA_GOERLI]: 12 as const,
   [L2ChainID.ZORA_MAINNET]: 50 as const,
+  [L2ChainID.TITAN_SEPOLIA_TEST]: 111551115050 as const,
 }
 
 export const CHAIN_BLOCK_TIMES: {
@@ -284,6 +295,24 @@ export const CONTRACT_ADDRESSES: {
       OptimismPortal: '0x1a0ad011913A150f69f6A19DF447A0CfD9551054' as const,
       L2OutputOracle: '0x9E6204F750cD866b299594e2aC9eA824E2e5f95c' as const,
     },
+    l2: DEFAULT_L2_CONTRACT_ADDRESSES,
+  },
+  // internal testnet
+  [L2ChainID.TITAN_SEPOLIA_TEST]: {
+    l1: {
+      AddressManager: '0x65CA9eE5e705c5C2DBaAeCB55AF5778d16EeA728' as const,
+      L1CrossDomainMessenger:
+        '0xa94B847AAc9F00f10dA2F5c476408Fd5477D7d49' as const,
+      L1StandardBridge: '0xF036e9d5e3C1974DD6BE4e36d15666F6e6D59cc7' as const,
+      StateCommitmentChain:
+        '0x0000000000000000000000000000000000000000' as const,
+      CanonicalTransactionChain:
+        '0x0000000000000000000000000000000000000000' as const,
+      BondManager: '0x0000000000000000000000000000000000000000' as const,
+      OptimismPortal: '0x3dDBaa55c9462D9Dc3a38d184246D1Fb12c7f2D3' as const,
+      L2OutputOracle: '0xf44376c327655C6D6Ca65B42C0F961284387A2b0' as const,
+    },
+    // TODO: change predeploys in L2
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   },
 }
