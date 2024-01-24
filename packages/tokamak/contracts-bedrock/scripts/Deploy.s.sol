@@ -240,6 +240,39 @@ contract Deploy is Deployer {
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
 
+    function upgradeOptimismPortal(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployOptimismPortal();
+        upgradeOptimismPortalLogic();
+        sync();
+    }
+
+    function upgradeOptimismPortalLogic() public broadcast {
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address optimismPortal = mustGetAddress("OptimismPortal");
+        address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+
+        address guardian = cfg.portalGuardian();
+        if (guardian.code.length == 0) {
+            console.log("Portal guardian has no code: %s", guardian);
+        }
+
+        _upgradeViaSafe({
+            _proxy: payable(optimismPortalProxy),
+            _implementation: optimismPortal
+        });
+
+        OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
+        string memory version = portal.version();
+        console.log("OptimismPortal version: %s", version);
+
+        require(address(portal.L2_ORACLE()) == l2OutputOracleProxy);
+        require(portal.GUARDIAN() == cfg.portalGuardian());
+        require(address(portal.SYSTEM_CONFIG()) == systemConfigProxy);
+        require(portal.paused() == false);
+    }
+
     /// @notice Deploy the Safe
     function deploySafe() public broadcast returns (address addr_) {
         (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
