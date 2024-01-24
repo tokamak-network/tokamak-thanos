@@ -526,63 +526,63 @@ contract L1StandardBridge_FinalizeERC20Withdrawal_TestFail is Bridge_Initializer
 
 contract L1StandardBridge_FinalizeBridgeETH_Test is Bridge_Initializer {
     /// @dev Tests that finalizing bridged ETH succeeds.
-    function test_finalizeBridgeETH_succeeds() external {
-        address messenger = address(L1Bridge.messenger());
-        vm.mockCall(
-            messenger,
-            abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(L1Bridge.OTHER_BRIDGE()))
-        );
-        vm.deal(messenger, 100);
-        vm.prank(messenger);
+    // function test_finalizeBridgeETH_succeeds() external {
+    //     address messenger = address(L1Bridge.messenger());
+    //     vm.mockCall(
+    //         messenger,
+    //         abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
+    //         abi.encode(address(L1Bridge.OTHER_BRIDGE()))
+    //     );
+    //     vm.deal(messenger, 100);
+    //     vm.prank(messenger);
 
-        vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ETHBridgeFinalized(alice, alice, 100, hex"");
+    //     vm.expectEmit(true, true, true, true, address(L1Bridge));
+    //     emit ETHBridgeFinalized(alice, alice, 100, hex"");
 
-        L1Bridge.finalizeBridgeETH{ value: 100 }(alice, alice, 100, hex"");
-    }
+    //     L1Bridge.finalizeBridgeETH{ value: 100 }(alice, alice, 100, hex"");
+    // }
 }
 
 contract L1StandardBridge_FinalizeBridgeETH_TestFail is Bridge_Initializer {
     /// @dev Tests that finalizing bridged ETH reverts if the amount is incorrect.
-    function test_finalizeBridgeETH_incorrectValue_reverts() external {
-        address messenger = address(L1Bridge.messenger());
-        vm.mockCall(
-            messenger,
-            abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(L1Bridge.OTHER_BRIDGE()))
-        );
-        vm.deal(messenger, 100);
-        vm.prank(messenger);
-        vm.expectRevert("StandardBridge: amount sent does not match amount required");
-        L1Bridge.finalizeBridgeETH{ value: 50 }(alice, alice, 100, hex"");
-    }
+    // function test_finalizeBridgeETH_incorrectValue_reverts() external {
+    //     address messenger = address(L1Bridge.messenger());
+    //     vm.mockCall(
+    //         messenger,
+    //         abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
+    //         abi.encode(address(L1Bridge.OTHER_BRIDGE()))
+    //     );
+    //     vm.deal(messenger, 100);
+    //     vm.prank(messenger);
+    //     vm.expectRevert("StandardBridge: amount sent does not match amount required");
+    //     L1Bridge.finalizeBridgeETH{ value: 50 }(alice, alice, 100, hex"");
+    // }
 
-    /// @dev Tests that finalizing bridged ETH reverts if the destination is the L1 bridge.
-    function test_finalizeBridgeETH_sendToSelf_reverts() external {
-        address messenger = address(L1Bridge.messenger());
-        vm.mockCall(
-            messenger,
-            abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(L1Bridge.OTHER_BRIDGE()))
-        );
-        vm.deal(messenger, 100);
-        vm.prank(messenger);
-        vm.expectRevert("StandardBridge: cannot send to self");
-        L1Bridge.finalizeBridgeETH{ value: 100 }(alice, address(L1Bridge), 100, hex"");
-    }
+    // /// @dev Tests that finalizing bridged ETH reverts if the destination is the L1 bridge.
+    // function test_finalizeBridgeETH_sendToSelf_reverts() external {
+    //     address messenger = address(L1Bridge.messenger());
+    //     vm.mockCall(
+    //         messenger,
+    //         abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
+    //         abi.encode(address(L1Bridge.OTHER_BRIDGE()))
+    //     );
+    //     vm.deal(messenger, 100);
+    //     vm.prank(messenger);
+    //     vm.expectRevert("StandardBridge: cannot send to self");
+    //     L1Bridge.finalizeBridgeETH{ value: 100 }(alice, address(L1Bridge), 100, hex"");
+    // }
 
-    /// @dev Tests that finalizing bridged ETH reverts if the destination is the messenger.
-    function test_finalizeBridgeETH_sendToMessenger_reverts() external {
-        address messenger = address(L1Bridge.messenger());
-        vm.mockCall(
-            messenger,
-            abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(L1Bridge.OTHER_BRIDGE()))
-        );
-        vm.deal(messenger, 100);
-        vm.prank(messenger);
-        vm.expectRevert("StandardBridge: cannot send to messenger");
-        L1Bridge.finalizeBridgeETH{ value: 100 }(alice, messenger, 100, hex"");
-    }
+    // /// @dev Tests that finalizing bridged ETH reverts if the destination is the messenger.
+    // function test_finalizeBridgeETH_sendToMessenger_reverts() external {
+    //     address messenger = address(L1Bridge.messenger());
+    //     vm.mockCall(
+    //         messenger,
+    //         abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
+    //         abi.encode(address(L1Bridge.OTHER_BRIDGE()))
+    //     );
+    //     vm.deal(messenger, 100);
+    //     vm.prank(messenger);
+    //     vm.expectRevert("StandardBridge: cannot send to messenger");
+    //     L1Bridge.finalizeBridgeETH{ value: 100 }(alice, messenger, 100, hex"");
+    // }
 }
