@@ -568,7 +568,7 @@ importers:
         specifier: workspace:*
         version: link:../../core-utils
       '@tokamak-network/titan2-contracts':
-        specifier: 0.0.1
+        specifier: workspace:*
         version: link:../contracts-bedrock
       lodash:
         specifier: ^4.17.21
