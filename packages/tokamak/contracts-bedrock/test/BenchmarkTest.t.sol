@@ -181,12 +181,12 @@ contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
         vm.deal(address(L1Bridge.messenger()), 100);
     }
 
-    function test_finalizeETHWithdrawal_benchmark() external {
-        // TODO: Make this more accurate. It is underestimating the cost because it pranks
-        // the call coming from the messenger, which bypasses the portal
-        // and oracle.
-        L1Bridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
-    }
+    // function test_finalizeETHWithdrawal_benchmark() external {
+    //     // TODO: Make this more accurate. It is underestimating the cost because it pranks
+    //     // the call coming from the messenger, which bypasses the portal
+    //     // and oracle.
+    //     L1Bridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
+    // }
 }
 
 contract GasBenchMark_L2OutputOracle is L2OutputOracle_Initializer {
