@@ -353,6 +353,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
 
+        bool transferStatus = IERC20(tonAddress).transfer(_tx.target, _tx.value);
+
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
         //   1. Target contracts cannot force this call to run out of gas by returning a very large
@@ -360,7 +362,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, 0, _tx.data);
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
@@ -372,7 +374,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
-        if (success == false && tx.origin == Constants.ESTIMATION_ADDRESS) {
+        if (!transferStatus && !success && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert("OptimismPortal: withdrawal failed");
         }
     }

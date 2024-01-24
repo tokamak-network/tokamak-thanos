@@ -248,6 +248,7 @@ abstract contract CrossDomainMessenger is
     )
         external
         payable
+        virtual
     {
         (, uint16 version) = Encoding.decodeVersionedNonce(_nonce);
         require(version < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
