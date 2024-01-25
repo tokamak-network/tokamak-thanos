@@ -97,7 +97,7 @@ contracts+=( ["4200000000000000000000000000000000000016"]=""  # L2ToL1MessagePas
              ["420000000000000000000000000000000000001a"]=""  # L1FeeVault
              ["4200000000000000000000000000000000000020"]=""  # SchemaRegistry
              ["4200000000000000000000000000000000000021"]=""  # EAS
-             ["4200000000000000000000000000000000000022"]=""  # WETH !
+             ["4200000000000000000000000000000000000022"]=""  # WETH ! is proxy or not?
 )
 
 for address in ${!contracts[@]}; do
@@ -109,3 +109,27 @@ for address in ${!contracts[@]}; do
     contracts[${address}]=${address}
   fi
 done
+
+# Path of contracts
+
+BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
+L2_TO_L1_MESSAGE_PASSER_PATH=${BASE_PATH}/src/L2/L2ToL1MessagePasser.sol
+DEPLOYER_WHITE_LIST_PATH=${BASE_PATH}/src/legacy/DeployerWhitelist.sol
+WTON_PATH=${BASE_PATH} # where is it
+L2_CROSS_DOMAIN_MESSENGER_PATH=${BASE_PATH}/src/L2/L2CrossDomainMessenger.sol
+L2_STANDARD_BRIDGE_PATH=${BASE_PATH}/src/L2/L2StandardBridge.sol
+SEQUENCER_FEE_VAULT_PATH=${BASE_PATH}/src/L2/SequencerFeeVault.sol
+OPTIMISM_MINTABLE_ERC20_FACTORY_PATH=${BASE_PATH}/src/universal/OptimismMintableERC20Factory.sol
+L1_BLOCK_NUMBER_PATH=${BASE_PATH}/src/legacy/L1BlockNumber.sol
+GAS_PRICE_ORACLE_PATH=${BASE_PATH}/src/L2/GasPriceOracle.sol
+L1_BLOCK_PATH=${BASE_PATH}/src/L2/L1Block.sol
+GOVERNANCE_TOKEN_PATH=${BASE_PATH}/src/governance/GovernanceToken.sol
+LEGACY_MESSAGE_PASSER_PATH=${BASE_PATH}/src/legacy/LegacyMessagePasser.sol
+L2_ERC721_BRIDGE_PATH=${BASE_PATH}/src/L2/L2ERC721Bridge.sol
+OPTIMISM_MINTABLE_ERC721_FACTORY_PATH=${BASE_PATH}/src/universal/OptimismMintableERC721Factory.sol
+PROXY_ADMIN_PATH=${BASE_PATH}/src/universal/ProxyAdmin.sol
+BASE_FEE_VAULT_PATH=${BASE_PATH}/src/L2/BaseFeeVault.sol
+L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
+SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
+EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
+WETH_PATH=${BASE_PATH}/src/L2/WETH.sol
