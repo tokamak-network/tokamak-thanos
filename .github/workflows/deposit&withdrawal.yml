@@ -99,7 +99,7 @@ jobs:
           - name: Check the output
             run: cat log.txt
 
-          - name: create local devnet.
+          - name: create local devnet
             run: |
               make devnet-up
 
