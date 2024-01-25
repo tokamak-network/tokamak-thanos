@@ -92,7 +92,19 @@ jobs:
           - name: build necessary files for @eth-optimism/core-utils
             run: pnpm run build
 
-          - name: Run a long-running command-
+          - name: Install submodule for test.sol
+            run: |
+              git submodule init
+              git submodule update
+
+          - name: Install submodule for test.sol2
+            run: |
+              cd packages/contracts-bedrock/lib/forge-std/lib/ds-test
+              git submodule init
+              git submodule update
+              cd ../../../../../..
+
+          - name: Run a long-running command
             run: make devnet-up
 
           - name: cd to tokamak-titan-canyon/packages/sdk and execute test code
