@@ -6,7 +6,7 @@ on:
 
 jobs:
   env-setting:
-    name: Os-Stetting
+    name: Os-Stetting-Deposit_WithdrawalTest
     runs-on: ubuntu-latest
 
     steps:
@@ -93,10 +93,7 @@ jobs:
             run: pnpm run build
 
           - name: Run a long-running command-
-            run: make devnet-up > log.txt 2>&1
-
-          - name: Check the output
-            run: cat log.txt
+            run: make devnet-up
 
           - name: cd to tokamak-titan-canyon/packages/sdk and execute test code
             run: |
