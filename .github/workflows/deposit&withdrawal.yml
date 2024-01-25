@@ -92,16 +92,11 @@ jobs:
           - name: build necessary files for @eth-optimism/core-utils
             run: pnpm run build
 
-          - name: create local devnet
-            run: |
-              make devnet-up > log.txt 2>&1 &
+          - name: Run a long-running command
+            run: make devnet-up > log.txt 2>&1
 
           - name: Check the output
             run: cat log.txt
-
-          - name: create local devnet.
-            run: |
-              make devnet-up
 
           - name: cd to tokamak-titan-canyon/packages/sdk and execute test code
             run: |
