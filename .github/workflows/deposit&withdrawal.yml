@@ -92,7 +92,7 @@ jobs:
           - name: build necessary files for @eth-optimism/core-utils
             run: pnpm run build
 
-          - name: Run a long-running command
+          - name: Run a long-running command-
             run: make devnet-up > log.txt 2>&1
 
           - name: Check the output
