@@ -78,6 +78,10 @@ jobs:
               foundryup
               sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
 
+          - name: upgrade foundry
+            run: |
+              npm run update:foundry
+
           - name: Verify versions.
             run: |
               git --version
