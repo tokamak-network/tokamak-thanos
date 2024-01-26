@@ -58,20 +58,21 @@ jobs:
               sudo apt-get install make=4.*
 
           - name: Install Geth
-            run: |
-              sudo add-apt-repository -y ppa:ethereum/ethereum
-              sudo apt-get update
-              sudo apt-get install geth=1.13.4
-              which geth
+            uses: gacts/install-geth-tools@v1
+            with:
+              version: '1.10.13'
 
-          - name: Add Geth to PATH
-            run: |
-              echo "$(dirname $(which geth))" >> $GITHUB_PATH
+          - run: geth version
+          - run: abigen --version
+          - run: bootnode -h
+          - run: clef --version
+          - run: evm --version
+          - run: rlpdump -h
 
           - name: Install Foundry
             uses: foundry-rs/foundry-toolchain@v1
 
-          - name: Add foundryup to PATH-
+          - name: Add foundryup to PATH
             run: |
               echo "/home/runner/.bashrc" >> $GITHUB_PATH
 
