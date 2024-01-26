@@ -63,6 +63,8 @@ jobs:
               sudo apt-get update
               sudo apt-get install geth
               which geth
+              with:
+                geth-version: '1.10.13'
 
           - name: Add Geth to PATH
             run: |
