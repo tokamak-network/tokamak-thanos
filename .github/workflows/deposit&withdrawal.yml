@@ -86,7 +86,7 @@ jobs:
               pnpm --version
               make --version
               geth version
-              forge version
+              forge --version
 
 
           - name: Install dependencies
