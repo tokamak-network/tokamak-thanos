@@ -78,7 +78,7 @@ jobs:
               foundryup
               sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
 
-          - name: Verify versions
+          - name: Verify versions.
             run: |
               git --version
               go version
