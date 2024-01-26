@@ -72,12 +72,11 @@ jobs:
           - name: Install and Run Foundry
             run: |
               curl -L https://foundry.paradigm.xyz | bash
-              echo 'export PATH="$HOME/.config/.foundry/bin:$PATH"' >> $HOME/.bashrc
-              source /home/runner/.bashrc
-              echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-              cat ~/.bashrc
-              ls -alrt ~/.config
-              ~/.config/.foundry/bin/foundryup
+              FOUNDRY_BIN_PATH=$(cd ~/.config/.foundry/bin && pwd -P)
+              echo $FOUNDRY_BIN_PATH
+              echo 'export PATH="$FOUNDRY_BIN_PATH:$PATH"' >> ~/.bashrc
+              source ~/.bashrc
+              foundryup
 
           - name: Verify versions
             run: |
@@ -87,6 +86,7 @@ jobs:
               pnpm --version
               make --version
               geth version
+              forge version
 
 
           - name: Install dependencies
