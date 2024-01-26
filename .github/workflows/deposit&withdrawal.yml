@@ -61,10 +61,8 @@ jobs:
             run: |
               sudo add-apt-repository -y ppa:ethereum/ethereum
               sudo apt-get update
-              sudo apt-get install geth
+              sudo apt-get install geth=1.13.4
               which geth
-              with:
-                geth-version: '1.10.13'
 
           - name: Add Geth to PATH
             run: |
