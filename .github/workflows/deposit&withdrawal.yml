@@ -79,10 +79,6 @@ jobs:
               ls -alrt ~/.config
               ~/.config/.foundry/bin/foundryup
 
-          - name: update foundry
-            run: |
-              npm run update:foundry
-
           - name: Verify versions
             run: |
               git --version
