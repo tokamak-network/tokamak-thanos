@@ -87,6 +87,10 @@ jobs:
             #   ~/.config/.foundry/bin/foundryup
             uses: foundry-rs/foundry-toolchain@v1
 
+          - name: update foundry
+            run: |
+              npm run update:foundry
+
           - name: Verify versions
             run: |
               git --version
