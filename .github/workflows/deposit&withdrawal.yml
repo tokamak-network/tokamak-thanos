@@ -79,7 +79,9 @@ jobs:
               ls -alrt ~/.
               echo $HOME
               echo $XDG_CONFIG_HOME
-              echo ${XDG_CONFIG_HOME:-$HOME}
+              echo ${XDG_CONFIG_HOME:-$HOME
+              ls -alrt /home/runner/.config
+              ls -alrt /home/runner/.config/.foundry
               foundryup
 
           - name: Verify versions.
