@@ -76,7 +76,7 @@ jobs:
             run: |
               npm run update:foundry
 
-          - name: Verify versions-2
+          - name: Verify versions
             run: |
               git --version
               go version
