@@ -72,13 +72,9 @@ jobs:
           - name: Install Foundry
             uses: foundry-rs/foundry-toolchain@v1
 
-          - name: Add foundryup to PATH
-            run: |
-              echo "/home/runner/.bashrc" >> $GITHUB_PATH
-
           - name: update foundry-up
             run: |
-              bash -c 'source ~/.bashrc && npm run update:foundry'
+              npm run update:foundry
 
           - name: Verify versions-2
             run: |
