@@ -73,10 +73,6 @@ jobs:
             run: |
               curl -L https://foundry.paradigm.xyz | bash
 
-          - name: Add Foundry to PATH
-            run: |
-              echo "$(dirname $(which foundryup))" >> $GITHUB_PATH
-
           - name: Update Foundry
             run: |
               npm run update:foundry
