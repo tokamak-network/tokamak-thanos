@@ -55,14 +55,18 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         return address(PORTAL);
     }
 
-    /// @inheritdoc CrossDomainMessenger
-    function _sendMessage(address _to, uint64 _gasLimit, uint256 , bytes memory _data) internal override {
-        PORTAL.depositTransaction(_to, 0, _gasLimit, false, _data);
-    }
+    // /// @inheritdoc CrossDomainMessenger
+    // function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+    //     require(msg.value == 0, "Deny depositing ETH");
+    //     PORTAL.depositTransaction(_to, 0, _gasLimit, false, _data);
+    // }
 
     /// @inheritdoc CrossDomainMessenger
-    function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override{
-        IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
+    function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override{
+        require(msg.value == 0, "Deny depositing ETH");
+        if (_value > 0) {
+            IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
+        }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
