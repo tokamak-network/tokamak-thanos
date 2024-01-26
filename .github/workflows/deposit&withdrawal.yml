@@ -75,10 +75,10 @@ jobs:
               source ~/.bashrc
 
           - name: Set PATH
-            run: echo "~/.foundry/bin:${PATH}" >> $GITHUB_ENV
+            run: echo "$HOME/.foundry/bin:$PATH" >> $GITHUB_ENV
 
           - name: Run Foundry
-            run: foundryup
+            run: ~/.foundry/bin/foundryup
 
           - name: Verify versions.
             run: |
