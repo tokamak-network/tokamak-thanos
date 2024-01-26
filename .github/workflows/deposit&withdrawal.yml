@@ -72,8 +72,8 @@ jobs:
           - name: Install and Run Foundry
             run: |
               curl -L https://foundry.paradigm.xyz | bash
-              echo "$HOME/.foundry/bin" >> $GITHUB_ENV
-              foundryup
+              echo "$HOME/.foundry/bin" >> $GITHUB_PATH
+              $HOME/.foundry/bin/foundryup
 
           - name: Verify versions.
             run: |
