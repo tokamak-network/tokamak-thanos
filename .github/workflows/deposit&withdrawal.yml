@@ -76,9 +76,9 @@ jobs:
             run: |
               echo "/home/runner/.bashrc" >> $GITHUB_PATH
 
-          - name: update foundry-up.
+          - name: update foundry-up
             run: |
-              npm run update:foundry
+              bash -c 'source ~/.bashrc && npm run update:foundry'
 
           - name: Verify versions-2
             run: |
