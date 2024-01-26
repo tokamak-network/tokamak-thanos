@@ -86,7 +86,7 @@ jobs:
               export PATH="$FOUNDRY_BIN_PATH:$PATH"
               foundryup
 
-          - name: Verify versions.
+          - name: Verify versions
             run: |
               git --version
               go version
