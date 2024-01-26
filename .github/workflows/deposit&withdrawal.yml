@@ -78,6 +78,7 @@ jobs:
               cat ~/.bashrc
               ls -alrt ~/.
               echo $HOME
+              echo $XDG_CONFIG_HOME
               echo ${XDG_CONFIG_HOME:-$HOME}
               foundryup
 
