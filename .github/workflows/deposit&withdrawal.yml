@@ -70,9 +70,9 @@ jobs:
           - run: rlpdump -h
 
           - name: Install Foundry
-            run: |
-              curl -L https://foundry.paradigm.xyz | bash
-              source ~/.bashrc
+            uses: onbjerg/foundry-toolchain@v1
+            with:
+              version: nightly
 
           - name: Set PATH
             run: echo "PATH=$HOME/.foundry/bin:$PATH" >> $GITHUB_ENV
