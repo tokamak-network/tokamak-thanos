@@ -76,7 +76,7 @@ jobs:
               echo $FOUNDRY_BIN_PATH
               export PATH="$FOUNDRY_BIN_PATH:$PATH"
               foundryup
-              cp $FOUNDRY_BIN_PATH/* /usr/bin
+              sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
 
           - name: Verify versions
             run: |
