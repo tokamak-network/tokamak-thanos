@@ -69,7 +69,7 @@ jobs:
           - run: evm --version
           - run: rlpdump -h
 
-          - name: Install and Run Foundry.
+          - name: Install and Run Foundry
             run: |
               curl -L https://foundry.paradigm.xyz | bash
               echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> $HOME/.bashrc
