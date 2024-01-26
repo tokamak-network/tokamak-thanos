@@ -29,37 +29,37 @@
 # codeNamespace
 # codeNamespace = common.HexToAddress("0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000")
 
-GENESIS_SEPOLIA_TEST_URL=https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json
-GENESIS_MAINNET_URL=https://mainnet/genesis.json
-GENESIS_TESTNET_URL=https://testnet/genesis.json
-
-IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
-
 while [ $# -gt 0 ]; do
   OPTION=$1
   case $OPTION in
-  -n | -network)
+  -c | --chain-id)
     if [ -z $2 ]; then
-        echo "Error: Please Enter an option value"
-        echo "networks : 'mainnet', 'testnet', 'sepolia_test'"
+        echo "Error: Please Enter an chain id value(required)"
+        echo "chain id : "
+        echo "  titan-sepolia-test : 111551115050"
         exit 1
     fi
-    case $2 in
-    mainnet)
-      GENESIS_URL=$GENESIS_MAINNET_URL
+    CHAIN_ID=$2
+    shift 2
     ;;
-    testnet)
-      GENESIS_URL=$GENESIS_TESTNET_URL
+  -gURL | --genesis-url)
+    if [ -z $2 ]; then
+        echo "Error: Please Enter an genesis url value(required)"
+        echo "genesis url : "
+        echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+        exit 1
+    fi
+    GENESIS_URL=$2
+    shift 2
     ;;
-    sepolia_test)
-      GENESIS_URL=$GENESIS_SEPOLIA_TEST_URL
-    ;;
-    *)
-      echo "It's not valid network"
-      echo "networks : 'mainnet', 'testnet', 'sepolia_test'"
-      exit 1
-    ;;
-    esac
+  -eURL | --explorer-url)
+    if [ -z $2 ]; then
+        echo "Error: Please Enter an explorer url value(required)"
+        echo "explorer url : "
+        echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+        exit 1
+    fi
+    VERIFIER_URL=$(echo $2/api?)
     shift 2
     ;;
   *)
@@ -71,14 +71,37 @@ done
 
 set -- "${POSITION[@]}"
 
-echo $GENESIS_URL
+if [ -z $CHAIN_ID ]; then
+  echo "Error: Please Enter an chain id value(required)"
+  echo "option   : -c, --chain-id"
+  echo "chain id :"
+  echo "  titan-sepolia-test : 111551115050"
+  exit 1
+fi
+
+if [ -z $GENESIS_URL ]; then
+  echo "Error: Please Enter an genesis url value(required)"
+  echo "option      : -gURL, --genesis-url"
+  echo "genesis url : "
+  echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  exit 1
+fi
+
+if [ -z $VERIFIER_URL ]; then
+  echo "Error: Please Enter an explorer url value(required)"
+  echo "option       : -eURL, --explorer-url"
+  echo "explorer url : "
+  echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+  exit 1
+fi
 
 # map array for contracts
 # key(string) : contract address
 # value(string) : implementation contract address
 declare -A contracts
 
-contracts+=( ["4200000000000000000000000000000000000016"]=""  # L2ToL1MessagePasser
+contracts+=( ["4200000000000000000000000000000000000001"]=""  # Proxy
+             ["4200000000000000000000000000000000000016"]=""  # L2ToL1MessagePasser
              ["4200000000000000000000000000000000000002"]=""  # DeployerWhitelist
              ["4200000000000000000000000000000000000006"]=""  # WTON !
              ["4200000000000000000000000000000000000007"]=""  # L2CrossDomainMessenger
@@ -100,19 +123,22 @@ contracts+=( ["4200000000000000000000000000000000000016"]=""  # L2ToL1MessagePas
              ["4200000000000000000000000000000000000022"]=""  # WETH ! is proxy or not?
 )
 
+IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+
+echo "Getting contracts addresses..."
 for address in ${!contracts[@]}; do
   QUERY=.alloc.\"$address\".storage.\"$IMPLEMENTATION_SLOT\"
-
   contracts[${address}]=$(echo $(curl -fsSL $GENESIS_URL | jq $QUERY) | cut -c 28-67)
 
   if [ -z ${contracts[${address}]} ]; then
     contracts[${address}]=${address}
   fi
 done
+echo "Successfully getting contracts addresses!"
 
 # Path of contracts
-
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
+PROXY_PATH=${BASE_PATH}/src/universal/Proxy.sol
 L2_TO_L1_MESSAGE_PASSER_PATH=${BASE_PATH}/src/L2/L2ToL1MessagePasser.sol
 DEPLOYER_WHITE_LIST_PATH=${BASE_PATH}/src/legacy/DeployerWhitelist.sol
 WTON_PATH=${BASE_PATH} # where is it
@@ -133,3 +159,46 @@ L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 WETH_PATH=${BASE_PATH}/src/L2/WETH.sol
+
+function verify_contract() {
+  forge verify-contract \
+    --chain-id $CHAIN_ID \
+    --verifier blockscout \
+    --verifier-url $VERIFIER_URL \
+    --compiler-version v0.8.23+commit.f704f362 \
+    $([[ -n $1 ]] && echo "--constructor-args $1") \
+    $2 \
+    $3
+}
+
+function verify_proxy() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 0x4200000000000000000000000000000000000001)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000001"]}
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${PROXY_PATH}:Proxy"
+}
+
+function verify_L2ToL1MessagePasser() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000016"]}
+  verify_contract "" $CONTRACT_ADDR "${L2_TO_L1_MESSAGE_PASSER_PATH}:L2ToL1MessagePasser"
+}
+
+function verify_DeployerWhitelist() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000002"]}
+  verify_contract "" $CONTRACT_ADDR "${DEPLOYER_WHITE_LIST_PATH}:DeployerWhitelist"
+}
+
+function verify_WTON() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000006"]}
+  # TODO : Verify WTON
+}
+
+function verify_L2CrossDomainMessenger() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 0x4200000000000000000000000000000000000007)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000007"]}
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${L2_CROSS_DOMAIN_MESSENGER_PATH}:L2CrossDomainMessenger"
+}
+
+verify_proxy
+verify_L2ToL1MessagePasser
+verify_DeployerWhitelist
+verify_L2CrossDomainMessenger
