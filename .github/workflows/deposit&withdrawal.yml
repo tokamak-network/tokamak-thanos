@@ -75,7 +75,9 @@ jobs:
               echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> $HOME/.bashrc
               source /home/runner/.bashrc
               echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-              sudo foundryup
+              cat ~/.bashrc
+              ls -alrt ~/.foundry/bin
+              foundryup
 
           - name: Verify versions.
             run: |
