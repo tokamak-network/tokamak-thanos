@@ -69,12 +69,11 @@ jobs:
           - run: evm --version
           - run: rlpdump -h
 
-          - name: Install Foundry.
-            run:
+          - name: Install Foundry
+            run: |
               curl -L https://foundry.paradigm.xyz | bash
-
-          - name: Run Foundry
-            run: foundry up
+              source ~/.bashrc
+              foundry up
 
           - name: Verify versions.
             run: |
