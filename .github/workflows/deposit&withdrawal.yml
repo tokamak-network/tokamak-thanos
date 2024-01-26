@@ -70,21 +70,22 @@ jobs:
           - run: rlpdump -h
 
           - name: Install and Run Foundry
-            run: |
-              curl -L https://foundry.paradigm.xyz | bash
-              echo 'export PATH="$HOME/.config/.foundry/bin:$PATH"' >> $HOME/.bashrc
-              source /home/runner/.bashrc
-              echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-              cat ~/.bashrc
-              ls -alrt ~/.config
-              # echo $HOME
-              # echo $XDG_CONFIG_HOME
-              # echo ${XDG_CONFIG_HOME:-$HOME
-              # ls -alrt /home/runner/.config
-              # ls -alrt /home/runner/.config/.foundry
-              # FOUNDRY_BIN_PATH=${FOUNDRY_DIR-"${XDG_CONFIG_HOME:-$HOME}/.foundry/bin"}
-              # export PATH="$FOUNDRY_BIN_PATH:$PATH"
-              ~/.config/.foundry/bin/foundryup
+            # run: |
+            #   curl -L https://foundry.paradigm.xyz | bash
+            #   echo 'export PATH="$HOME/.config/.foundry/bin:$PATH"' >> $HOME/.bashrc
+            #   source /home/runner/.bashrc
+            #   echo "$HOME/.foundry/bin" >> $GITHUB_PATH
+            #   cat ~/.bashrc
+            #   ls -alrt ~/.config
+            #   echo $HOME
+            #   echo $XDG_CONFIG_HOME
+            #   echo ${XDG_CONFIG_HOME:-$HOME
+            #   ls -alrt /home/runner/.config
+            #   ls -alrt /home/runner/.config/.foundry
+            #   FOUNDRY_BIN_PATH=${FOUNDRY_DIR-"${XDG_CONFIG_HOME:-$HOME}/.foundry/bin"}
+            #   export PATH="$FOUNDRY_BIN_PATH:$PATH"
+            #   ~/.config/.foundry/bin/foundryup
+            uses: foundry-rs/foundry-toolchain@v1
 
           - name: Verify versions
             run: |
