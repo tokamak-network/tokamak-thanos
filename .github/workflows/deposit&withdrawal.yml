@@ -76,7 +76,7 @@ jobs:
               source /home/runner/.bashrc
               echo "$HOME/.foundry/bin" >> $GITHUB_PATH
               cat ~/.bashrc
-              ls -alrt ~/.foundry/bin
+              ls -alrt ~/.
               foundryup
 
           - name: Verify versions.
