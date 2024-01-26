@@ -57,7 +57,7 @@ jobs:
             run: |
               sudo apt-get install make=4.*
 
-          - name: Install Geth
+          - name: Install Geth1
             uses: gacts/install-geth-tools@v1
             with:
               version: '1.10.13'
