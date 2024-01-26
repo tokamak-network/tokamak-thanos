@@ -60,7 +60,7 @@ jobs:
           - name: Install Geth1
             uses: gacts/install-geth-tools@v1
             with:
-              version: '1.10.13'
+              version: '1.13.4'
 
           - run: geth version
           - run: abigen --version
