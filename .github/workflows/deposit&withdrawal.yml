@@ -78,6 +78,7 @@ jobs:
               cat ~/.bashrc
               ls -alrt ~/.
               foundryup
+              echo ${XDG_CONFIG_HOME:-$HOME}
 
           - name: Verify versions.
             run: |
