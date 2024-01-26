@@ -79,11 +79,17 @@ jobs:
 
           - name: Verify versions
             run: |
+              which git
               git --version
+              which go
               go version
+              which node
               node --version
+              which pnpm
               pnpm --version
+              which make
               make --version
+              which geth
               geth version
               forge version
 
