@@ -53,9 +53,4 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(Predeploys.L2_TO_L1_MESSAGE_PASSER);
     }
-
-    /// @inheritdoc CrossDomainMessenger
-    function _sendTONMessage(address , uint64 , uint256 , bytes memory ) internal override {
-        revert("Cannot call this function except it is overrided");
-    }
 }
