@@ -80,7 +80,7 @@ jobs:
           - name: Run Foundry
             run: foundryup
 
-          - name: Verify versions
+          - name: Verify versions.
             run: |
               git --version
               go version
