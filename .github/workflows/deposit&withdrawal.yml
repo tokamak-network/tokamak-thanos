@@ -72,11 +72,13 @@ jobs:
           - name: Install Foundry
             run: |
               curl -L https://foundry.paradigm.xyz | bash
-              source /home/runner/.bashrc
+              source ~/.bashrc
 
-          - name: Update Foundry
-            run: |
-              npm run update:foundry
+          - name: Set PATH
+            run: echo "~/.foundry/bin:${PATH}" >> $GITHUB_ENV
+
+          - name: Run Foundry
+            run: foundryup
 
           - name: Verify versions
             run: |
