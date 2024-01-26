@@ -21,7 +21,7 @@ packages/contracts-bedrock/deployments/devnetL1
 packages/contracts-bedrock/deployments/anvil
 
 packages/tokamak/contracts-bedrock/deployments/devnetL1
-packages/contracts-bedrock/deployments/anvil
+packages/tokamak/contracts-bedrock/deployments/anvil
 
 # vim
 *.sw*
