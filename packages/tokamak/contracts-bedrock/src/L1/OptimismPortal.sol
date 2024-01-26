@@ -398,7 +398,12 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         metered(_gasLimit)
     {
-        IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
+        // Lock token in this contract
+        if (_value > 0)
+        {
+            IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
+        }
+
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation) {
