@@ -70,9 +70,14 @@ jobs:
           - run: rlpdump -h
 
           - name: Install Foundry
-            uses: foundry-rs/foundry-toolchain@v1
+            run: |
+              curl -L https://foundry.paradigm.xyz | bash
 
-          - name: update foundry-up
+          - name: Add Foundry to PATH
+            run: |
+              echo "$(dirname $(which foundryup))" >> $GITHUB_PATH
+
+          - name: Update Foundry
             run: |
               npm run update:foundry
 
