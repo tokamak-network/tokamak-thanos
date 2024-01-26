@@ -82,6 +82,8 @@ jobs:
               echo ${XDG_CONFIG_HOME:-$HOME
               ls -alrt /home/runner/.config
               ls -alrt /home/runner/.config/.foundry
+              FOUNDRY_BIN_PATH=${FOUNDRY_DIR-"${XDG_CONFIG_HOME:-$HOME}/.foundry/bin"}
+              export PATH="$FOUNDRY_BIN_PATH:$PATH"
               foundryup
 
           - name: Verify versions.
