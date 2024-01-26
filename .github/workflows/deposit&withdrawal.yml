@@ -76,6 +76,10 @@ jobs:
             run: |
               echo "/home/runner/.bashrc" >> $GITHUB_PATH
 
+          - name: Run update:foundry
+            run: |
+              npm run update:foundry
+
           - name: Verify versions
             run: |
               git --version
