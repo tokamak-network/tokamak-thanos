@@ -74,8 +74,7 @@ jobs:
               curl -L https://foundry.paradigm.xyz | bash
               FOUNDRY_BIN_PATH=$(cd ~/.config/.foundry/bin && pwd -P)
               echo $FOUNDRY_BIN_PATH
-              echo 'export PATH="$FOUNDRY_BIN_PATH:$PATH"' >> ~/.bashrc
-              source ~/.bashrc
+              export PATH="$FOUNDRY_BIN_PATH:$PATH"
               foundryup
 
           - name: Verify versions
