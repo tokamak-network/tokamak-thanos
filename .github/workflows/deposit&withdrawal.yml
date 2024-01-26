@@ -77,8 +77,8 @@ jobs:
               echo "$HOME/.foundry/bin" >> $GITHUB_PATH
               cat ~/.bashrc
               ls -alrt ~/.
-              foundryup
               echo ${XDG_CONFIG_HOME:-$HOME}
+              foundryup
 
           - name: Verify versions.
             run: |
