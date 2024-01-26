@@ -72,12 +72,12 @@ jobs:
           - name: Install and Run Foundry
             run: |
               curl -L https://foundry.paradigm.xyz | bash
-              echo 'export PATH="$HOME/.config/.foundry/bin:$PATH"' >> $HOME/.bashrc
-              source /home/runner/.bashrc
-              echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-              cat ~/.bashrc
-              ls -alrt ~/.config
-              ~/.config/.foundry/bin/foundryup
+              FOUNDRY_BIN_PATH=~/.config/.foundry/bin
+              echo 'export PATH="$FOUNDRY_BIN_PATH:$PATH"' >> ~/.bashrc
+              source ~/.bashrc
+              foundryup
+
+          - name: Update
 
           - name: Verify versions
             run: |
