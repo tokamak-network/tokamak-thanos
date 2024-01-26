@@ -183,7 +183,7 @@ abstract contract CrossDomainMessenger is
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
         // the minimum gas limit specified by the user.
-        _sendTONMessage(
+        _sendMessage(
             OTHER_MESSENGER,
             baseGas(_message, _minGasLimit),
             _amount,
@@ -383,15 +383,6 @@ abstract contract CrossDomainMessenger is
     function __CrossDomainMessenger_init() internal onlyInitializing {
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
     }
-
-    /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
-    ///         contracts because the logic for this depends on the network where the messenger is
-    ///         being deployed.
-    /// @param _to       Recipient of the message on the other chain.
-    /// @param _gasLimit Minimum gas limit the message can be executed with.
-    /// @param _value    Amount of TON to send with the message.
-    /// @param _data     Message data.
-    function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal virtual;
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
     ///         contracts because the logic for this depends on the network where the messenger is
