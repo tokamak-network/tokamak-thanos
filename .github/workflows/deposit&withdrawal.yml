@@ -47,7 +47,7 @@ jobs:
             with:
               go-version: '1.21'
 
-          - name: Install Git
+          - name: Install Git.
             run: |
               sudo add-apt-repository ppa:git-core/ppa
               sudo apt-get update
