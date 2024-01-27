@@ -76,11 +76,8 @@ jobs:
               echo $FOUNDRY_BIN_PATH
               export PATH="$FOUNDRY_BIN_PATH:$PATH"
               foundryup
-              sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
-
-          - name: upgrade foundry
-            run: |
               npm run update:foundry
+              sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
 
           - name: Verify versions.
             run: |
