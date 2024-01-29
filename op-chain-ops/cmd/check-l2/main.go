@@ -220,8 +220,8 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 				return err
 			}
 
-		case predeploys.WETHAddr:
-			if err := checkWETH(p, client); err != nil {
+		case predeploys.ETHAddr:
+			if err := checkETH(p, client); err != nil {
 				return err
 			}
 
@@ -516,8 +516,8 @@ func checkWTON(addr common.Address, client *ethclient.Client) error {
 	return nil
 }
 
-func checkWETH(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWETH(addr, client)
+func checkETH(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewETH(addr, client)
 	if err != nil {
 		return err
 	}
@@ -525,27 +525,27 @@ func checkWETH(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "name", name)
-	if name != "Wrapped Ether" {
-		return fmt.Errorf("WETH name should be 'Wrapped Ether', got %s", name)
+	log.Info("ETH", "name", name)
+	if name != "Ether" {
+		return fmt.Errorf("ETH name should be 'Ether', got %s", name)
 	}
 
 	symbol, err := contract.Symbol(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "symbol", symbol)
-	if symbol != "WETH" {
-		return fmt.Errorf("WETH symbol should be 'WETH', got %s", symbol)
+	log.Info("ETH", "symbol", symbol)
+	if symbol != "ETH" {
+		return fmt.Errorf("ETH symbol should be 'ETH', got %s", symbol)
 	}
 
 	decimals, err := contract.Decimals(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "decimals", decimals)
+	log.Info("ETH", "decimals", decimals)
 	if decimals != 18 {
-		return fmt.Errorf("WETH decimals should be 18, got %d", decimals)
+		return fmt.Errorf("ETH decimals should be 18, got %d", decimals)
 	}
 	return nil
 }
