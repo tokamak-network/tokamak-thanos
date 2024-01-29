@@ -152,6 +152,7 @@ abstract contract StandardBridge is Initializable {
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
     function bridgeETH(uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
+        require(false, "Error: ETH deposit is currently disabled.");
         _initiateBridgeETH(msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
     }
 
