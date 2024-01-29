@@ -78,12 +78,13 @@ contract L1StandardBridge is StandardBridge, ISemver {
     }
 
     /// @notice Initializer
-    function initialize(CrossDomainMessenger _messenger) internal reinitializer(Constants.INITIALIZER) {
+    function initialize(CrossDomainMessenger _messenger) public reinitializer(Constants.INITIALIZER) {
         __StandardBridge_init({ _messenger: _messenger });
     }
+
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
     receive() external payable override onlyEOA {
-        _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+        revert("Deposits are not allowed in this contract.");
     }
 
     /// @custom:legacy
