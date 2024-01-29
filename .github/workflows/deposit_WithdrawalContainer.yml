@@ -84,7 +84,7 @@ jobs:
               git submodule update
               cd ../../../../../..
 
-          - name: Run devnet-up command
+          - name: Run devnet-up command.
             run: make devnet-up
 
           - name: cd to tokamak-titan-canyon/packages/sdk and execute test code
