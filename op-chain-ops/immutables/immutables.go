@@ -151,7 +151,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			Name: "SchemaRegistry",
 		},
 		{
-			Name: "WETH",
+			Name: "ETH",
 		},
 	}
 	return BuildL2(deployments)
@@ -248,8 +248,8 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		_, tx, _, err = bindings.DeployEAS(opts, backend)
 	case "SchemaRegistry":
 		_, tx, _, err = bindings.DeploySchemaRegistry(opts, backend)
-	case "WETH":
-		_, tx, _, err = bindings.DeployWETH(opts, backend)
+	case "ETH":
+		_, tx, _, err = bindings.DeployETH(opts, backend)
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
