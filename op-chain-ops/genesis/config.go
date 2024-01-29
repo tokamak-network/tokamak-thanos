@@ -788,9 +788,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_initialized":  initializedValue,
 		"_initializing": false,
 	}
-	storage["WETH"] = state.StorageValues{
-		"_name":   "Wrapped Ether",
-		"_symbol": "WETH",
+	storage["ETH"] = state.StorageValues{
+		"_name":   "Ether",
+		"_symbol": "ETH",
 	}
 	return storage, nil
 }
