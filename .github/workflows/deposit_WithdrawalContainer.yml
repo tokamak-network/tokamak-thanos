@@ -48,6 +48,10 @@ jobs:
             with:
               version: '1.13.4'
 
+          - name: Install packages
+            run: |
+              pnpm install
+
           - name: Run devnet-up command
             run: make devnet-up
 
