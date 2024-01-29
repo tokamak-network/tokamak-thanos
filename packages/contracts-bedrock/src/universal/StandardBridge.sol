@@ -152,15 +152,22 @@ abstract contract StandardBridge is Initializable {
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
     function bridgeETH(uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
-        require(false, "Error: ETH deposit is currently disabled.");
         _initiateBridgeETH(msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
     }
 
-
-
-    function bridgeETHTo(uint32 _minGasLimit, bytes calldata _extraData) public payable {
-        // 랜덤한 이더리움 주소를 생성
-        address _to = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
+    /// @notice Sends ETH to a receiver's address on the other chain. Note that if ETH is sent to a
+    ///         smart contract and the call fails, the ETH will be temporarily locked in the
+    ///         StandardBridge on the other chain until the call is replayed. If the call cannot be
+    ///         replayed with any amount of gas (call always reverts), then the ETH will be
+    ///         permanently locked in the StandardBridge on the other chain. ETH will also
+    ///         be locked if the receiver is the other bridge, because finalizeBridgeETH will revert
+    ///         in that case.
+    /// @param _to          Address of the receiver.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) public payable {
         _initiateBridgeETH(msg.sender, _to, msg.value, _minGasLimit, _extraData);
     }
 

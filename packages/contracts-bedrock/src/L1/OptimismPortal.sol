@@ -386,6 +386,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         payable
         metered(_gasLimit)
     {
+        require(_value > 0, "Error: Deposit value must be greater than 0");
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation) {
@@ -400,7 +401,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // upper limit on the size of unsafe blocks over the p2p network. 120kb is chosen to ensure
         // that the transaction can fit into the p2p network policy of 128kb even though deposit
         // transactions are not gossipped over the p2p network.
-        require(_data.length <= 120_000, "OptimismPortal: data too large");
+        require(_data.length <= 10, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
         address from = msg.sender;
