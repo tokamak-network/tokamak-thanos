@@ -13,6 +13,22 @@ jobs:
           - name: Checkout
             uses: actions/checkout@v3
 
+          # Declares the repository safe and not under dubious ownership.
+          - name: Add repository to git safe directories
+            run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+          - name: Restore PNPM Package Cache
+            uses: actions/cache@v3
+            with:
+              path: node_modules
+              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+          - name: Save PNPM Package Cache
+            uses: actions/cache@v3
+            with:
+              path: node_modules
+              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
           - name: Copy files from Docker container
             run: |
               container_id=$(docker create onthertech/titan-ci-builder:latest)
