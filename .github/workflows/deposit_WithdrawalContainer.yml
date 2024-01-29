@@ -6,15 +6,10 @@ on:
 
 jobs:
   env-setting:
-    name: Os-Stetting-Deposit_WithdrawalTest
+    name: Deposit_WithdrawalTest_Devent
     runs-on: ubuntu-latest
 
     steps:
-          - name: Install Docker
-            run: |
-              curl -fsSL https://get.docker.com -o get-docker.sh
-              sudo sh get-docker.sh
-
           - name: Checkout
             uses: actions/checkout@v3
 
@@ -22,30 +17,10 @@ jobs:
           - name: Add repository to git safe directories
             run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-          - name: Restore PNPM Package Cache
-            uses: actions/cache@v3
+          - name: Install Geth
+            uses: gacts/install-geth-tools@v1
             with:
-              path: node_modules
-              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
-          - name: Save PNPM Package Cache
-            uses: actions/cache@v3
-            with:
-              path: node_modules
-              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
-          - name: Setup Node.js
-            uses: actions/setup-node@v3
-            with:
-              node-version: '20'
-
-          - name: install pnpm
-            run: npm install -g pnpm@8
-
-          - name: Setup Python
-            uses: actions/setup-python@v3
-            with:
-              python-version: '3.9'
+              version: '1.13.4'
 
           - name: Setup Go
             uses: actions/setup-go@v3
