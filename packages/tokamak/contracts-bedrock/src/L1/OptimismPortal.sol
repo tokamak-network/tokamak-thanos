@@ -352,8 +352,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
-
-        bool transferStatus = IERC20(tonAddress).transfer(_tx.target, _tx.value);
+        bool transferStatus = true;
+        if (_tx.value > 0) {
+            transferStatus = IERC20(tonAddress).transfer(_tx.target, _tx.value);
+        }
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
