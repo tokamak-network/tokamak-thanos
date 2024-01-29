@@ -17,6 +17,7 @@ import { Constants } from "src/libraries/Constants.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
+
 contract L2StandardBridge is StandardBridge, ISemver {
     /// @custom:legacy
     /// @notice Emitted whenever a withdrawal from L2 to L1 is initiated.
@@ -92,7 +93,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
         virtual
         onlyEOA
     {
-        require(_amount == 0, "Withdrawal amount should be zero"); // 추가한 부분
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -109,6 +109,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @param _amount      Amount of the L2 token to withdraw.
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
     /// @param _extraData   Extra data attached to the withdrawal.
+
     function withdrawTo(
         address _l2Token,
         address _to,
