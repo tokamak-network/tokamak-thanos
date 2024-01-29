@@ -50,24 +50,6 @@ jobs:
             with:
               go-version: '1.21'
 
-          - run: geth version
-          - run: abigen --version
-          - run: bootnode -h
-          - run: clef --version
-          - run: evm --version
-          - run: rlpdump -h
-
-
-          - name: Verify versions
-            run: |
-              git --version
-              go version
-              node --version
-              pnpm --version
-              make --version
-              geth version
-              forge --version
-
           - name: Copy binary files from Docker container
             run: |
               container_id=$(docker create onthertech/titan-ci-builder:latest)
