@@ -458,7 +458,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         onlyOtherBridge
         override
     {
-        if (_isOptimismMintableERC20(_localToken)) {
+        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TONAddress) {
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
