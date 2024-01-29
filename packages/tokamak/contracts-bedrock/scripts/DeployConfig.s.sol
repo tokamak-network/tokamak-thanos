@@ -103,6 +103,10 @@ contract DeployConfig is Script {
         }
     }
 
+    function setL1TonAddress(address _l1TonToken) public {
+        l1TONToken = _l1TonToken;
+    }
+
     function l1StartingBlockTag() public returns (bytes32) {
         try vm.parseJsonBytes32(_json, "$.l1StartingBlockTag") returns (bytes32 tag) {
             return tag;
