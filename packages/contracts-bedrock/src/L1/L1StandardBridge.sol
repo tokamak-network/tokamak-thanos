@@ -84,7 +84,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
     receive() external payable override onlyEOA {
-        revert("Deposits are not allowed in this contract.");
+        _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
     /// @custom:legacy
@@ -94,6 +94,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
     function depositETH(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
+        require(msg.value == 0, "Deposit amount should be zero"); // 추가한 부분
         _initiateETHDeposit(msg.sender, msg.sender, _minGasLimit, _extraData);
     }
 
