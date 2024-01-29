@@ -55,6 +55,9 @@ jobs:
             run: |
               pnpm install
 
+          - name: build necessary projects
+            run: pnpm run build
+
           - name: Run devnet-up command
             run: make devnet-up
 
