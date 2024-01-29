@@ -41,9 +41,8 @@ jobs:
               chmod +x $HOME/bin/*
               echo "$HOME/bin" >> $GITHUB_PATH
 
-          - name: Install dependencies
-            run: |
-              pnpm install
+          - name: install pnpm
+            run: npm install -g pnpm@8
 
           - name: build necessary files for @eth-optimism/core-utils
             run: pnpm run build
