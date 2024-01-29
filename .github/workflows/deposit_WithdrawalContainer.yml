@@ -48,6 +48,9 @@ jobs:
             with:
               version: '1.13.4'
 
+          - name: install pnpm
+            run: npm install -g pnpm@8
+
           - name: Install packages
             run: |
               pnpm install
