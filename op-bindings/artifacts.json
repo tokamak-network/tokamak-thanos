@@ -24,7 +24,7 @@
   "LegacyMessagePasser",
   "ERC20",
   "WTON",
-  "WETH",
+  "ETH",
   "DeployerWhitelist",
   "L1BlockNumber",
   "DisputeGameFactory",
