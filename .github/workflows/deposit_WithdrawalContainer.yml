@@ -73,7 +73,7 @@ jobs:
           - run: rlpdump -h
 
 
-          - name: Verify versions.
+          - name: Verify versions
             run: |
               git --version
               go version
