@@ -2,12 +2,15 @@ name: DepositWithdrawal Test
 on:
   push:
     paths:
-      - 'op-chain-ops/**'
+      - '**'
 
 jobs:
   env-setting:
     name: Os-Stetting-Deposit_WithdrawalTest
     runs-on: ubuntu-latest
+    container:
+      image: onthertech/titan-ci-builder:latest
+
 
     steps:
           - name: Checkout
@@ -69,15 +72,6 @@ jobs:
           - run: evm --version
           - run: rlpdump -h
 
-          - name: Install and Run Foundry
-            run: |
-              curl -L https://foundry.paradigm.xyz | bash
-              FOUNDRY_BIN_PATH=$(cd ~/.config/.foundry/bin && pwd -P)
-              echo $FOUNDRY_BIN_PATH
-              export PATH="$FOUNDRY_BIN_PATH:$PATH"
-              foundryup
-              npm run update:foundry
-              sudo cp $FOUNDRY_BIN_PATH/* /usr/bin
 
           - name: Verify versions.
             run: |
@@ -88,6 +82,20 @@ jobs:
               make --version
               geth version
               forge --version
+
+          - name: Copy binary files from Docker container
+            run: |
+              container_id=$(docker create onthertech/titan-ci-builder:latest)
+              mkdir -p $HOME/bin
+              docker cp $container_id:/usr/local/bin/cast $HOME/bin/
+              docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
+              docker cp $container_id:/usr/local/bin/forge $HOME/bin/
+              docker rm $container_id
+
+          - name: Set execute permissions and add to PATH
+            run: |
+              chmod +x $HOME/bin/*
+              echo "$HOME/bin" >> $GITHUB_PATH
 
 
           - name: Install dependencies
@@ -109,7 +117,7 @@ jobs:
               git submodule update
               cd ../../../../../..
 
-          - name: Run a long-running command
+          - name: Run devnet-up command
             run: make devnet-up
 
           - name: cd to tokamak-titan-canyon/packages/sdk and execute test code
