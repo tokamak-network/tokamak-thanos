@@ -95,12 +95,12 @@ contract L1StandardBridge is StandardBridge, ISemver {
         }
     }
 
-    /// @notice Deposit ETH on L1 and receive WETH on L2.
+    /// @notice Deposit ETH on L1 and receive ETH on L2.
     receive() external payable override onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
-    /// @notice Deposits some amount of ETH into the sender's WETH's account on L2.
+    /// @notice Deposits some amount of ETH into the sender's ETH's account on L2.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
@@ -109,7 +109,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _initiateETHDeposit(msg.sender, msg.sender, _minGasLimit, _extraData);
     }
 
-    /// @notice Deposits some amount of ETH into a target WETH's account on L2.
+    /// @notice Deposits some amount of ETH into a target ETH's account on L2.
     ///         Note that if ETH is sent to a contract on L2 and the call fails, then that ETH will
     ///         be locked in the L2StandardBridge. ETH may be recoverable if the call can be
     ///         successfully replayed by increasing the amount of gas supplied to the call. If the
@@ -123,7 +123,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _initiateETHDeposit(msg.sender, _to, _minGasLimit, _extraData);
     }
 
-    /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive WETH on L2
+    /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive ETH on L2
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of ETH being bridged.
@@ -144,7 +144,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-        _sendERC20BridgeFinalizedMessage(address(0), Predeploys.WETH, _from, _to, _amount, _minGasLimit, _extraData);
+        _sendERC20BridgeFinalizedMessage(address(0), Predeploys.ETH, _from, _to, _amount, _minGasLimit, _extraData);
     }
 
     /// @custom:legacy
@@ -468,7 +468,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         } else {
             // Case 1: Withdraw ETH
             // Case 2: Withdraw normal Token
-            if(_localToken == address(0) && _remoteToken == Predeploys.WETH) {
+            if(_localToken == address(0) && _remoteToken == Predeploys.ETH) {
                 bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
                 require(success, "StandardBridge: ETH transfer failed");
             } else {
