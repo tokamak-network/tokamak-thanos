@@ -14,7 +14,7 @@ jobs:
             uses: actions/checkout@v3
 
           # Declares the repository safe and not under dubious ownership.
-          - name: Add repository to git safe directories
+          - name: Add repo to git safe directories
             run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
           - name: Restore PNPM Package Cache
@@ -29,7 +29,11 @@ jobs:
               path: node_modules
               key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-          - name: Copy files from Docker container
+          - name: Get Cache Location
+            id: cache
+            run: echo "::set-output name=dir::$(npm config get cache)"
+
+          - name: cp foundry from Docker container
             run: |
               container_id=$(docker create onthertech/titan-ci-builder:latest)
               mkdir -p $HOME/bin
@@ -38,7 +42,7 @@ jobs:
               docker cp $container_id:/usr/local/bin/forge $HOME/bin/
               docker rm $container_id
 
-          - name: Set execute permissions and add to PATH
+          - name: Set permissions_add PATH
             run: |
               chmod +x $HOME/bin/*
               echo "$HOME/bin" >> $GITHUB_PATH
@@ -61,7 +65,7 @@ jobs:
           - name: Run devnet-up command
             run: make devnet-up
 
-          - name: cd tokamak-titan-canyon/packages/tokamak/sdk_execute test code
+          - name: execute test code
             run: |
               cd packages/tokamak/sdk
               npx hardhat deposit-eth --amount 40 --to 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --network devnetL1
