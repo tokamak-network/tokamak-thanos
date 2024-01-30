@@ -13,7 +13,6 @@ jobs:
           - name: Checkout
             uses: actions/checkout@v3
 
-          # Declares the repository safe and not under dubious ownership.
           - name: Add repo to git safe directories
             run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
