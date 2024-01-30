@@ -1,4 +1,4 @@
-name: DepositWithdrawal Test
+name: Deposit-Withdrawal Test
 on:
   push:
     paths:
