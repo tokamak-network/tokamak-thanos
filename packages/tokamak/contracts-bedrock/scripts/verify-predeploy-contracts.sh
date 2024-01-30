@@ -116,6 +116,7 @@ contracts+=( ["4200000000000000000000000000000000000001"]=""  # Proxy
              ["4200000000000000000000000000000000000013"]=""  # L1BlockNumber
              ["420000000000000000000000000000000000000f"]=""  # GasPriceOracle
              ["4200000000000000000000000000000000000015"]=""  # L1Block
+             ["4200000000000000000000000000000000000042"]=""  # GovernanceToken : No Proxy
              ["4200000000000000000000000000000000000000"]=""  # LegacyMessagePasser
              ["4200000000000000000000000000000000000014"]=""  # L2ERC721Bridge
              ["4200000000000000000000000000000000000017"]=""  # OptimismMintableERC721Factory
@@ -124,6 +125,7 @@ contracts+=( ["4200000000000000000000000000000000000001"]=""  # Proxy
              ["420000000000000000000000000000000000001a"]=""  # L1FeeVault
              ["4200000000000000000000000000000000000020"]=""  # SchemaRegistry
              ["4200000000000000000000000000000000000021"]=""  # EAS
+             ["4200000000000000000000000000000000000486"]=""  # ETH (TOKAMAK)
 )
 
 IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
@@ -152,6 +154,7 @@ OPTIMISM_MINTABLE_ERC20_FACTORY_PATH=${BASE_PATH}/src/universal/OptimismMintable
 L1_BLOCK_NUMBER_PATH=${BASE_PATH}/src/legacy/L1BlockNumber.sol
 GAS_PRICE_ORACLE_PATH=${BASE_PATH}/src/L2/GasPriceOracle.sol
 L1_BLOCK_PATH=${BASE_PATH}/src/L2/L1Block.sol
+GOVERNANCE_TOKEN_PATH=${BASE_PATH}/src/governance/GovernanceToken.sol
 LEGACY_MESSAGE_PASSER_PATH=${BASE_PATH}/src/legacy/LegacyMessagePasser.sol
 L2_ERC721_BRIDGE_PATH=${BASE_PATH}/src/L2/L2ERC721Bridge.sol
 OPTIMISM_MINTABLE_ERC721_FACTORY_PATH=${BASE_PATH}/src/universal/OptimismMintableERC721Factory.sol
@@ -160,6 +163,7 @@ BASE_FEE_VAULT_PATH=${BASE_PATH}/src/L2/BaseFeeVault.sol
 L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
+ETH_PATH=
 
 function run() {
   verify_proxy
@@ -173,6 +177,7 @@ function run() {
   verify_L1BlockNumber
   verify_GasPriceOracle
   verify_L1Block
+  verify_GovernanceToken
   verify_LegacyMessagePasser
   verify_L2ERC721Bridge
   verify_OptimismMintableERC721Factory
@@ -181,6 +186,7 @@ function run() {
   verify_L1FeeVault
   verify_SchemaRegistry
   verify_EAS
+  #verify_ETH
 }
 
 # Verify contract
@@ -270,6 +276,12 @@ function verify_L1Block() {
   verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${L1_BLOCK_PATH}:L1Block"
 }
 
+function verify_GovernanceToken() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000042"]}
+  COMPILER_VERSION=v0.8.15+commit.e14f2714
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${GOVERNANCE_TOKEN_PATH}:GovernanceToken"
+}
+
 function verify_LegacyMessagePasser() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000000"]}
   COMPILER_VERSION=v0.8.15+commit.e14f2714
@@ -323,5 +335,11 @@ function verify_EAS() {
   COMPILER_VERSION=v0.8.19+commit.7dd6d404
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${EAS_PATH}:EAS"
 }
+
+function verify_ETH() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000486"]}
+  # TODO : Verify ETH in future
+}
+
 
 run
