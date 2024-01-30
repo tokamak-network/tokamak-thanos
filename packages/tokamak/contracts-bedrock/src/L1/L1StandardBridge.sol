@@ -8,6 +8,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
@@ -144,7 +145,23 @@ contract L1StandardBridge is StandardBridge, ISemver {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-        _sendERC20BridgeFinalizedMessage(address(0), Predeploys.ETH, _from, _to, _amount, _minGasLimit, _extraData);
+
+        messenger.sendMessage(
+            address(OTHER_BRIDGE),
+            abi.encodeWithSelector(
+                this.finalizeBridgeERC20.selector,
+                // Because this call will be executed on the remote chain, we reverse the order of
+                // the remote and local token addresses relative to their order in the
+                // finalizeBridgeERC20 function.
+                Predeploys.ETH,
+                address(0),
+                _from,
+                _to,
+                _amount,
+                _extraData
+            ),
+            _minGasLimit
+        );
     }
 
     /// @custom:legacy
@@ -340,7 +357,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
         _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
-        messenger.sendTONMessage(
+        L1CrossDomainMessenger(address(messenger)).sendTONMessage(
             address(OTHER_BRIDGE),
             _amount,
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
