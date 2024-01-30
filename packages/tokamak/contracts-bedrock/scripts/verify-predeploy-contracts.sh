@@ -7,16 +7,26 @@ RESET="\e[0m"
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
+declare -A network_list
+
+network_list+=(
+  ["titan-sepolia-test"]=111551115050
+)
+
 function help() {
   echo -e "Verify L2 Pre-deploy contracts\n"
   echo -e "${BOLD}Usage: /path/to/script/verify-predeploy-contracts.sh${NORMAL} <ARGS>\n"
   echo -e "${BOLD}Arguments:${NORMAL}\n"
-  echo -e "  ${BOLD}-c, --chain-id        (required)${NORMAL}               Set target chain id"
+  echo -e "  ${BOLD}-n,    --network      (required)${NORMAL}               Set target network"
   echo -e "  ${BOLD}-gURL, --genesis-url  (required)${NORMAL}               Set genesis file for get contracts addresses"
   echo -e "  ${BOLD}-eURL, --explorer-url (required)${NORMAL}               Block explorer URL to verify contracts(only blockscout)"
+  echo -e "\n${BOLD}Network list:${NORMAL}\n"
+  for network in ${!network_list[@]}; do
+    echo -e "  ${network}"
+  done
   echo -e "\n${BOLD}Example:${NORMAL}\n"
   echo -e "  ./verify-predeploy-contracts.sh \\"
-  echo -e "  --chain-id 111551115050 \\"
+  echo -e "  --network titan-sepolia-test \\"
   echo -e "  --genesis-url https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
   echo -e "  --explorer-url https://explorer.titan-sepolia-test.tokamak.network"
 }
@@ -24,24 +34,28 @@ function help() {
 while [ $# -gt 0 ]; do
   ARG=$1
   case $ARG in
-  -c | --chain-id)
+  -n | --network)
     if [ -z $2 ]; then
-      echo -e "${RED}error${RESET}: please enter an chain id value(${BOLD}required${NORMAL})\n"
-      echo "argument   : -c, --chain-id"
-      echo "chain id   :"
-      echo "  titan-sepolia-test : 111551115050"
+      echo -e "${RED}error${RESET}: please enter an network value(${BOLD}required${NORMAL})\n"
+      echo -e "${BOLD}argument:${NORMAL}\n"
+      echo -e "  ${BOLD}-n, --network${NORMAL}"
+      echo -e "\n${BOLD}network list:${NORMAL}\n"
+      for network in ${!network_list[@]}; do
+        echo -e "  ${network}"
+      done
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
-    CHAIN_ID=$2
+    NETWORK_NAME=$2
     shift 2
     ;;
   -gURL | --genesis-url)
     if [ -z $2 ]; then
       echo -e "${RED}error${RESET}: please enter an genesis url value(${BOLD}required${NORMAL})\n"
-      echo "argument      : -gURL, --genesis-url"
-      echo "genesis url   : "
-      echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+      echo -e "${BOLD}argument:${NORMAL}\n"
+      echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
+      echo -e "\n${BOLD}genesis url:${NORMAL}\n"
+      echo -e "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -51,9 +65,10 @@ while [ $# -gt 0 ]; do
   -eURL | --explorer-url)
     if [ -z $2 ]; then
       echo -e "${RED}error${RESET}: please enter an explorer url value(${BOLD}required${NORMAL})\n"
-      echo "argument       : -eURL, --explorer-url"
-      echo "explorer url   : "
-      echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+      echo -e "${BOLD}argument:${NORMAL}\n"
+      echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
+      echo -e "\n${BOLD}explorer url:${NORMAL}\n"
+      echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -73,29 +88,42 @@ done
 
 set -- "${POSITION[@]}"
 
+for network in ${!network_list[@]}; do
+  if [ ${network} == ${NETWORK_NAME} ]; then
+    CHAIN_ID=${network_list[${network}]}
+    break
+  fi
+done
+
+
 if [ -z $CHAIN_ID ]; then
-  echo -e "${RED}error${RESET}: please enter an chain id value(${BOLD}required${NORMAL})\n"
-  echo "argument   : -c, --chain-id"
-  echo "chain id   :"
-  echo "  titan-sepolia-test : 111551115050"
+  echo -e "${RED}error${RESET}: please enter an network value(${BOLD}required${NORMAL})\n"
+  echo -e "${BOLD}argument:${NORMAL}\n"
+  echo -e "  ${BOLD}-n, --network${NORMAL}"
+  echo -e "\n${BOLD}network list:${NORMAL}\n"
+  for network in ${!network_list[@]}; do
+    echo -e "  ${network}"
+  done
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
 
 if [ -z $GENESIS_URL ]; then
   echo -e "${RED}error${RESET}: please enter an genesis url value(${BOLD}required${NORMAL})\n"
-  echo "argument      : -gURL, --genesis-url"
-  echo "genesis url   : "
-  echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  echo -e "${BOLD}argument:${NORMAL}\n"
+  echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
+  echo -e "\n${BOLD}genesis url:${NORMAL}\n"
+  echo -e "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
 
 if [ -z $VERIFIER_URL ]; then
   echo -e "${RED}error${RESET}: please enter an explorer url value(${BOLD}required${NORMAL})\n"
-  echo "argument       : -eURL, --explorer-url"
-  echo "explorer url   : "
-  echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "${BOLD}argument:${NORMAL}\n"
+  echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
+  echo -e "\n${BOLD}explorer url:${NORMAL}\n"
+  echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
