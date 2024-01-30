@@ -63,7 +63,7 @@ def main():
     devnet_config_path = pjoin(deploy_config_dir, 'devnetL1.json')
     devnet_config_template_path = pjoin(deploy_config_dir, 'devnetL1-template.json')
     ops_chain_ops = pjoin(monorepo_dir, 'op-chain-ops')
-    sdk_dir = pjoin(monorepo_dir, 'packages', 'sdk')
+    sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk')
 
     paths = Bunch(
       mono_repo_dir=monorepo_dir,
