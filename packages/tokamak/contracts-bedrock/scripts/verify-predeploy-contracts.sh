@@ -2,38 +2,67 @@
 
 # solidity Versions: https://etherscan.io/solcversions
 
+RED="\e[31m"
+RESET="\e[0m"
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
+
+function help() {
+  echo -e "Verify L2 Pre-deploy contracts\n"
+  echo -e "${BOLD}Usage: /path/to/script/verify-predeploy-contracts.sh${NORMAL} <OPTION>\n"
+  echo -e "${BOLD}Options:${NORMAL}\n"
+  echo -e "  ${BOLD}-c, --chain-id        (required)${NORMAL}               Set target chain id"
+  echo -e "  ${BOLD}-gURL, --genesis-url  (required)${NORMAL}               Set genesis file for get contracts addresses"
+  echo -e "  ${BOLD}-eURL, --explorer-url (required)${NORMAL}               Block explorer URL to verify contracts(only blockscout)"
+  echo -e "\n${BOLD}Example:${NORMAL}\n"
+  echo -e "  ./verify-predeploy-contracts.sh \\"
+  echo -e "  --chain-id 111551115050 \\"
+  echo -e "  --genesis-url https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
+  echo -e "  --explorer-url https://explorer.titan-sepolia-test.tokamak.network"
+}
+
 while [ $# -gt 0 ]; do
   OPTION=$1
   case $OPTION in
   -c | --chain-id)
     if [ -z $2 ]; then
-        echo "Error: Please Enter an chain id value(required)"
-        echo "chain id : "
-        echo "  titan-sepolia-test : 111551115050"
-        exit 1
+      echo -e "${RED}error${RESET}: please enter an chain id value(${BOLD}required${NORMAL})\n"
+      echo "option   : -c, --chain-id"
+      echo "chain id :"
+      echo "  titan-sepolia-test : 111551115050"
+      echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
+      exit 1
     fi
     CHAIN_ID=$2
     shift 2
     ;;
   -gURL | --genesis-url)
     if [ -z $2 ]; then
-        echo "Error: Please Enter an genesis url value(required)"
-        echo "genesis url : "
-        echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
-        exit 1
+      echo -e "${RED}error${RESET}: please enter an genesis url value(${BOLD}required${NORMAL})\n"
+      echo "option      : -gURL, --genesis-url"
+      echo "genesis url : "
+      echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+      echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
+      exit 1
     fi
     GENESIS_URL=$2
     shift 2
     ;;
   -eURL | --explorer-url)
     if [ -z $2 ]; then
-        echo "Error: Please Enter an explorer url value(required)"
-        echo "explorer url : "
-        echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
-        exit 1
+      echo -e "${RED}error${RESET}: please enter an explorer url value(${BOLD}required${NORMAL})\n"
+      echo "option       : -eURL, --explorer-url"
+      echo "explorer url : "
+      echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+      echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
+      exit 1
     fi
     VERIFIER_URL=$(echo $2/api?)
     shift 2
+    ;;
+  -h | --help)
+    help
+    exit 0
     ;;
   *)
     POSITION+=($1)
@@ -45,31 +74,34 @@ done
 set -- "${POSITION[@]}"
 
 if [ -z $CHAIN_ID ]; then
-  echo "Error: Please Enter an chain id value(required)"
+  echo -e "${RED}error${RESET}: please enter an chain id value(${BOLD}required${NORMAL})\n"
   echo "option   : -c, --chain-id"
   echo "chain id :"
   echo "  titan-sepolia-test : 111551115050"
+  echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
 
 if [ -z $GENESIS_URL ]; then
-  echo "Error: Please Enter an genesis url value(required)"
+  echo -e "${RED}error${RESET}: please enter an genesis url value(${BOLD}required${NORMAL})\n"
   echo "option      : -gURL, --genesis-url"
   echo "genesis url : "
   echo "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
 
 if [ -z $VERIFIER_URL ]; then
-  echo "Error: Please Enter an explorer url value(required)"
+  echo -e "${RED}error${RESET}: please enter an explorer url value(${BOLD}required${NORMAL})\n"
   echo "option       : -eURL, --explorer-url"
   echo "explorer url : "
   echo "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
 
 # map array for contracts
-# key(string) : contract address
+# key(string) : proxy contract address
 # value(string) : implementation contract address
 declare -A contracts
 
@@ -137,6 +169,7 @@ function run() {
   verify_proxy
   verify_L2ToL1MessagePasser
   verify_DeployerWhitelist
+  #verify_WTON
   verify_L2CrossDomainMessenger
   verify_L2StandardBridge
   verify_SequencerFeeVault
@@ -156,6 +189,11 @@ function run() {
   #verify_ETH
 }
 
+# Verify contract
+# $1 : compiler version
+# $2 : constructor args
+# $3 : contract address
+# $4 : contract path
 function verify_contract() {
   forge verify-contract \
     --chain-id $CHAIN_ID \
@@ -298,9 +336,10 @@ function verify_EAS() {
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${EAS_PATH}:EAS"
 }
 
-# function verify_ETH() {
-
-# }
+function verify_ETH() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000486"]}
+  # TODO : Verify ETH in future
+}
 
 
 run
