@@ -14,7 +14,7 @@ import { ERC20Mintable } from "./ERC20Mintable.sol";
 contract TON is ERC20, Ownable, ERC20Mintable {
     uint224 public constant initSupply = 50000000e18; // 50 million TON
 
-    constructor() ERC20("Ton Test Token", "TON") ERC20Mintable() {
+    constructor() ERC20("Ton Test Token", "TON") {
         // mint maxSupply at genesis, allocated to deployer
         _mint(_msgSender(), initSupply);
     }
