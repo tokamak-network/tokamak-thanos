@@ -296,7 +296,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
         // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
         // a timestamp of zero.
-        require(provenWithdrawal.timestamp != 0, "OptimismPortal: withdrawal has not been proven yet");
+        require(provenWithdrawal.timestamp == 0, "OptimismPortal: withdrawal has not been proven yet");
 
         // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
         // starting timestamp inside the L2OutputOracle. Not strictly necessary but extra layer of
@@ -401,7 +401,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // upper limit on the size of unsafe blocks over the p2p network. 120kb is chosen to ensure
         // that the transaction can fit into the p2p network policy of 128kb even though deposit
         // transactions are not gossipped over the p2p network.
-        require(_data.length <= 10, "OptimismPortal: data too large");
+        require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
         address from = msg.sender;
