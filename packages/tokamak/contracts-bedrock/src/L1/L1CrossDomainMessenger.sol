@@ -116,7 +116,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @param _nonce       Nonce of the message being relayed.
     /// @param _sender      Address of the user who sent the message.
     /// @param _target      Address that the message is targeted at.
-    /// @param _value       ETH value to send with the message.
+    /// @param _value       TON value to send with the message.
     /// @param _minGasLimit Minimum amount of gas that the message can be executed with.
     /// @param _message     Message to send to the target.
     function relayMessage(
@@ -192,14 +192,14 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         }
 
         xDomainMsgSender = _sender;
-        bool approvalStatus = true;
+        bool transferStatus = true;
         if (_value != 0){
-            approvalStatus = IERC20(l1TONAddress).approve(_target, _value);
+            transferStatus = IERC20(l1TONAddress).transfer(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
-        if (success && approvalStatus) {
+        if (success && transferStatus) {
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {

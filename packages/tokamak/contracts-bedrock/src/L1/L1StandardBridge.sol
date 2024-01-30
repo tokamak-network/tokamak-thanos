@@ -229,24 +229,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
         finalizeBridgeETH(_from, _to, _amount, _extraData);
     }
 
-    // /// @notice Sends ETH to the sender's address on the other chain.
-    // /// @notice Deny on L1
-    // function bridgeETH(uint32, bytes calldata) public payable onlyEOA override {
-    //     revert("L1 does not support this function");
-    // }
-
-    /// @notice Sends ETH to a receiver's address on the other chain. Note that if ETH is sent to a
-    ///         smart contract and the call fails, the ETH will be temporarily locked in the
-    ///         StandardBridge on the other chain until the call is replayed. If the call cannot be
-    ///         replayed with any amount of gas (call always reverts), then the ETH will be
-    ///         permanently locked in the StandardBridge on the other chain. ETH will also
-    ///         be locked if the receiver is the other bridge, because finalizeBridgeETH will revert
-    ///         in that case.
-    ///         Deny on L1
-    // function bridgeETHTo(address, uint32, bytes calldata) public payable override {
-    //     revert("L1 does not support this function");
-    // }
-
     /// @custom:legacy
     /// @notice Finalizes a withdrawal of ERC20 tokens from L2.
     /// @param _l1Token   Address of the token on L1. L1 must be different than l1TokenAddress
@@ -459,7 +441,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
-        IERC20(l1TONAddress).safeTransferFrom(address(messenger), address(this), _amount);
         finalizeBridgeERC20(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
     }
 
