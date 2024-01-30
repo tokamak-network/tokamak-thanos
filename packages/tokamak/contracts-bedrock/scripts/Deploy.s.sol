@@ -137,7 +137,7 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the Safe
     function deployTON() public broadcast returns (address addr_) {
-        TON ton = new TON{ salt: implSalt() }();
+        TON ton = new TON{ salt: keccak256(bytes(string("TON address"))) }();
         addr_ = address(ton);
 
     }
