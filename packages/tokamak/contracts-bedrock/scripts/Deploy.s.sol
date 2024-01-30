@@ -75,7 +75,7 @@ contract Deploy is Deployer {
 
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             address _addr = deployTON();
-            console.log("Deploy TON %s", _addr);
+            console.log(" Deployed TON Address %s", _addr);
             cfg.setL1TonAddress(_addr);
         }
 
@@ -139,6 +139,7 @@ contract Deploy is Deployer {
     function deployTON() public broadcast returns (address addr_) {
         TON ton = new TON{ salt: implSalt() }();
         addr_ = address(ton);
+
     }
 
     /// @notice Deploy all of the proxies
