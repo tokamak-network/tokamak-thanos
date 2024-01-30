@@ -88,7 +88,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @param _amount      Amount of deposit TON.
     /// @param _message     Message to trigger the target address with.
     /// @param _minGasLimit Minimum gas limit that the message can be executed with.
-    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external override {
+    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
