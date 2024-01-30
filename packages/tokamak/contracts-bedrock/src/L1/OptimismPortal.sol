@@ -193,7 +193,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         otherwise any deposited funds will be lost due to address aliasing.
     // solhint-disable-next-line ordering
     receive() external payable {
-        revert("Not allow deposit to ERC-20: WETH");
+        revert("Not allow deposit to ERC-20: ETH");
         // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 
