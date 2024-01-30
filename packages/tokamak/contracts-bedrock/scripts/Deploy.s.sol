@@ -13,6 +13,7 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 import { Deployer } from "scripts/Deployer.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 
+import { TON } from "src/L1/token/TON.sol";
 import { Safe } from "safe-contracts/Safe.sol";
 import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -72,6 +73,12 @@ contract Deploy is Deployer {
     function run() public {
         console.log("Deploying L1 system");
 
+        if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
+            address _addr = deployTON();
+            console.log(" Deployed TON Address %s", _addr);
+            cfg.setL1TonAddress(_addr);
+        }
+
         deployProxies();
         deployImplementations();
 
@@ -126,6 +133,13 @@ contract Deploy is Deployer {
         ) {
             _;
         }
+    }
+
+    /// @notice Deploy the Safe
+    function deployTON() public broadcast returns (address addr_) {
+        TON ton = new TON{ salt: keccak256(bytes(string("TON address"))) }();
+        addr_ = address(ton);
+
     }
 
     /// @notice Deploy all of the proxies
