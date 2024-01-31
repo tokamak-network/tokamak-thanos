@@ -22,17 +22,11 @@ jobs:
               path: node_modules
               key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-          - name: Save PNPM Package Cache
-            uses: actions/cache@v3
-            with:
-              path: node_modules
-              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
-
           - name: Get Cache Location
             id: cache
             run: echo "::set-output name=dir::$(npm config get cache)"
 
-          - name: cp foundry from Docker container
+          - name: Copy foundry from Docker container
             run: |
               container_id=$(docker create onthertech/titan-ci-builder:latest)
               mkdir -p $HOME/bin
@@ -51,20 +45,30 @@ jobs:
             with:
               version: '1.13.4'
 
-          - name: install pnpm
+          - name: Install pnpm
             run: npm install -g pnpm@8
 
           - name: Install packages
             run: |
               pnpm install
 
-          - name: build necessary projects
+          - name: Save PNPM Package Cache
+            uses: actions/cache@v3
+            with:
+              path: node_modules
+              key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+          - name: Get Cache Location
+            id: cache
+            run: echo "dir=$(npm config get cache)" >> $GITHUB_ENV
+
+          - name: Build necessary projects
             run: pnpm run build
 
           - name: Run devnet-up command
             run: make devnet-up
 
-          - name: execute test code
+          - name: Execute test code
             run: |
               cd packages/tokamak/sdk
               npx hardhat deposit-eth --amount 40 --to 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --network devnetL1
