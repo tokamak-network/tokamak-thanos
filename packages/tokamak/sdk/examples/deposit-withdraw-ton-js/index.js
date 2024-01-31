@@ -163,11 +163,11 @@ const withdrawTON = async (amount) => {
 }
 
 const main = async () => {
-  console.log("L1 Address ", l1Wallet.address);
-  console.log("L2 Address ", l2Wallet.address);
+  console.log('L1 Address ', l1Wallet.address)
+  console.log('L2 Address ', l2Wallet.address)
 
-  await depositTON(5000);
-  await withdrawTON(4000);
+  await depositTON(5000)
+  await withdrawTON(4000)
 }
 
-main();
+main()
