@@ -22,10 +22,6 @@ jobs:
               path: node_modules
               key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-          - name: Get Cache Location
-            id: cache
-            run: echo "::set-output name=dir::$(npm config get cache)"
-
           - name: Copy foundry from Docker container
             run: |
               container_id=$(docker create onthertech/titan-ci-builder:latest)
