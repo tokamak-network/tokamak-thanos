@@ -39,34 +39,34 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
-	// Deploy WETH9
-	wtonaddress, tx, WTON, err := bindings.DeployWTON(opts, l1Client)
+	// Deploy WTON
+	wtonAddress, tx, WTON, err := bindings.DeployWTON(opts, l1Client)
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err, "Waiting for deposit tx on L1")
 
-	// Get some WETH
+	// Get some WTON
 	opts.Value = big.NewInt(params.Ether)
 	tx, err = WTON.Fallback(opts, []byte{})
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 	opts.Value = nil
-	wethBalance, err := WTON.BalanceOf(&bind.CallOpts{}, opts.From)
+	wtonBalance, err := WTON.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	require.Equal(t, big.NewInt(params.Ether), wethBalance)
+	require.Equal(t, big.NewInt(params.Ether), wtonBalance)
 
-	// Deploy L2 WETH9
+	// Deploy L2 WTON
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	optimismMintableTokenFactory, err := bindings.NewOptimismMintableERC20Factory(predeploys.OptimismMintableERC20FactoryAddr, l2Client)
 	require.NoError(t, err)
-	tx, err = optimismMintableTokenFactory.CreateOptimismMintableERC20(l2Opts, wtonaddress, "L2-WETH", "L2-WETH")
+	tx, err = optimismMintableTokenFactory.CreateOptimismMintableERC20(l2Opts, wtonAddress, "L2-WTON", "L2-WTON")
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
 	require.NoError(t, err)
 
-	// Get the deployment event to have access to the L2 WETH9 address
+	// Get the deployment event to have access to the L2 WTON address
 	it, err := optimismMintableTokenFactory.FilterOptimismMintableERC20Created(&bind.FilterOpts{Start: 0}, nil, nil)
 	require.NoError(t, err)
 	var event *bindings.OptimismMintableERC20FactoryOptimismMintableERC20Created
@@ -75,17 +75,17 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	}
 	require.NotNil(t, event)
 
-	// Approve WETH9 with the bridge
+	// Approve WTON with the bridge
 	tx, err = WTON.Approve(opts, cfg.L1Deployments.L1StandardBridgeProxy, new(big.Int).SetUint64(math.MaxUint64))
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	// Bridge the WETH9
+	// Bridge the WTON
 	l1StandardBridge, err := bindings.NewL1StandardBridge(cfg.L1Deployments.L1StandardBridgeProxy, l1Client)
 	require.NoError(t, err)
 	tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l1StandardBridge.BridgeERC20(opts, wtonaddress, event.LocalToken, big.NewInt(100), 100000, []byte{})
+		return l1StandardBridge.BridgeERC20(opts, wtonAddress, event.LocalToken, big.NewInt(100), 100000, []byte{})
 	})
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
