@@ -10,7 +10,7 @@ import {
   AddressLike,
 } from '../src'
 
-console.log("Setup task...")
+console.log('Setup task...')
 
 const privateKey = process.env.PRIVATE_KEY
 const TON = process.env.TON as AddressLike
