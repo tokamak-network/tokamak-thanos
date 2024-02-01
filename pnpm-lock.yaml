@@ -299,7 +299,7 @@ importers:
         version: 18.2.0(react@18.2.0)
       viem:
         specifier: ^1.18.0
-        version: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+        version: 1.18.0(typescript@5.2.2)(zod@3.22.4)
       wagmi:
         specifier: '>1.0.0'
         version: 1.0.1(react-dom@18.2.0)(react@18.2.0)(typescript@5.2.2)(viem@1.18.0)
@@ -439,7 +439,7 @@ importers:
         version: 5.2.2
       viem:
         specifier: ^1.18.0
-        version: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+        version: 1.18.0(typescript@5.2.2)(zod@3.22.4)
       vite:
         specifier: ^4.5.0
         version: 4.5.0(@types/node@20.8.9)
@@ -567,12 +567,6 @@ importers:
       '@eth-optimism/core-utils':
         specifier: workspace:*
         version: link:../../core-utils
-      '@tokamak-network/titan2-contracts':
-        specifier: workspace:*
-        version: link:../contracts-bedrock
-      dotenv:
-        specifier: ^16.3.1
-        version: 16.3.1
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -3334,7 +3328,7 @@ packages:
     resolution: {integrity: sha512-gYw0ki/EAuV1oSyMxpqandHjnthZjYYy+YWpTAzf8BqfXM3ItcZLpjxfg+3+mXW8HIO+3jw6T9iiqEXsqHaMMw==}
     dependencies:
       '@safe-global/safe-gateway-typescript-sdk': 3.7.3
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -4752,7 +4746,7 @@ packages:
       abitype: 0.8.1(typescript@5.2.2)
       eventemitter3: 4.0.7
       typescript: 5.2.2
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
       - bufferutil
@@ -4784,7 +4778,7 @@ packages:
       abitype: 0.8.7(typescript@5.2.2)(zod@3.22.3)
       eventemitter3: 4.0.7
       typescript: 5.2.2
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
       - '@types/react'
@@ -4811,7 +4805,7 @@ packages:
       abitype: 0.8.1(typescript@5.2.2)
       eventemitter3: 4.0.7
       typescript: 5.2.2
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
       zustand: 4.3.9(react@18.2.0)
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
@@ -4838,7 +4832,7 @@ packages:
       abitype: 0.8.7(typescript@5.2.2)(zod@3.22.3)
       eventemitter3: 4.0.7
       typescript: 5.2.2
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
       zustand: 4.3.9(react@18.2.0)
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
@@ -5437,6 +5431,7 @@ packages:
     dependencies:
       typescript: 5.2.2
       zod: 3.22.3
+    dev: true
 
   /abitype@0.9.8(typescript@5.2.2)(zod@3.22.4):
     resolution: {integrity: sha512-puLifILdm+8sjyss4S+fsUN09obiT1g2YW6CtcQF+QDzxR0euzgEB29MZujC6zMk2a6SVmtttq1fc6+YFA7WYQ==}
@@ -5451,7 +5446,6 @@ packages:
     dependencies:
       typescript: 5.2.2
       zod: 3.22.4
-    dev: true
 
   /abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -14454,6 +14448,7 @@ packages:
       - bufferutil
       - utf-8-validate
       - zod
+    dev: true
 
   /viem@1.18.0(typescript@5.2.2)(zod@3.22.4):
     resolution: {integrity: sha512-NeKi5RFj7fHdsnk5pojivHFLkTyBWyehxeSE/gSPTDJKCWnR9i+Ra0W++VwN5ghciEG55O8b4RdpYhzGmhnr7A==}
@@ -14476,7 +14471,6 @@ packages:
       - bufferutil
       - utf-8-validate
       - zod
-    dev: true
 
   /vite-node@0.34.1(@types/node@20.8.9):
     resolution: {integrity: sha512-odAZAL9xFMuAg8aWd7nSPT+hU8u2r9gU3LRm9QKjxBEF2rRdWpMuqkrkjvyVQEdNFiBctqr2Gg4uJYizm5Le6w==}
@@ -14881,7 +14875,7 @@ packages:
       react: 18.2.0
       typescript: 5.2.2
       use-sync-external-store: 1.2.0(react@18.2.0)
-      viem: 1.18.0(typescript@5.2.2)(zod@3.22.3)
+      viem: 1.18.0(typescript@5.2.2)(zod@3.22.4)
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
       - bufferutil
@@ -15670,6 +15664,7 @@ packages:
 
   /zod@3.22.3:
     resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
+    dev: true
 
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
