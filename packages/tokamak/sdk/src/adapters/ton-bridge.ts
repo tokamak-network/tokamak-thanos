@@ -35,7 +35,6 @@ export class TONBridgeAdapter implements IBridgeAdapter {
   public messenger: CrossChainMessenger
   public l1Bridge: Contract
   public l2Bridge: Contract
-  public ton: AddressLike
 
   /**
    * Creates a TONBridgeAdapter instance.
@@ -50,7 +49,6 @@ export class TONBridgeAdapter implements IBridgeAdapter {
     messenger: CrossChainMessenger
     l1Bridge: AddressLike
     l2Bridge: AddressLike
-    ton: AddressLike
   }) {
     this.messenger = opts.messenger
     this.l1Bridge = new Contract(
@@ -63,7 +61,6 @@ export class TONBridgeAdapter implements IBridgeAdapter {
       l2StandardBridgeArtifact.abi,
       this.messenger.l2Provider
     )
-    this.ton = opts.ton
   }
 
   public async getDepositsByAddress(
