@@ -11,7 +11,6 @@
   "scripts": {
     "all": "pnpm clean && pnpm build && pnpm test && pnpm lint:fix && pnpm lint",
     "build": "tsc -p tsconfig.json",
-    "test-ton": "node examples/deposit-withdraw-ton-js/index.js",
     "clean": "rimraf dist/ ./tsconfig.tsbuildinfo",
     "preinstall": "npx only-allow pnpm",
     "lint": "pnpm lint:fix && pnpm lint:check",
@@ -65,8 +64,6 @@
     "@eth-optimism/contracts": "0.6.0",
     "@eth-optimism/contracts-bedrock": "workspace:*",
     "@eth-optimism/core-utils": "workspace:*",
-    "@tokamak-network/titan2-contracts": "workspace:*",
-    "dotenv": "^16.3.1",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.3.10",
     "rlp": "^2.2.7"
