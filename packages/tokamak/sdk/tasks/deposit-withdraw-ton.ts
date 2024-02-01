@@ -1,7 +1,7 @@
 import { task, types } from 'hardhat/config'
 import '@nomiclabs/hardhat-ethers'
 import { predeploys } from '@eth-optimism/core-utils'
-import { ethers } from 'ethers'
+import { BytesLike, ethers } from 'ethers'
 
 import {
   CrossChainMessenger,
@@ -21,8 +21,8 @@ const l1Provider = new ethers.providers.StaticJsonRpcProvider(
 const l2Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L2_URL
 )
-const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+const l1Wallet = new ethers.Wallet(privateKey as BytesLike, l1Provider)
+const l2Wallet = new ethers.Wallet(privateKey as BytesLike, l2Provider)
 
 const erc20ABI = [
   {
@@ -55,6 +55,7 @@ const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
 const ETH = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
 
 const zeroAddr = '0x'.padEnd(42, '0')
+
 const l1Contracts = {
   StateCommitmentChain: zeroAddr,
   CanonicalTransactionChain: zeroAddr,
