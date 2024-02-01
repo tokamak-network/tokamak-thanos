@@ -106,10 +106,7 @@ const depositTON = async (amount) => {
   await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
-  await messenger.waitForMessageStatus(
-    depositTx.hash,
-    MessageStatus.RELAYED
-  )
+  await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
 
   l2Balance = await l2Wallet.getBalance()
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
@@ -195,23 +192,13 @@ const withdrawTON = async (amount) => {
 }
 
 task('deposit-ton', 'Deposits ERC20-TON to L2.')
-  .addParam(
-    'amount',
-    'Deposit amount',
-    1,
-    types.int
-  )
+  .addParam('amount', 'Deposit amount', 1, types.int)
   .setAction(async (args) => {
     await depositTON(args.amount)
   })
 
 task('withdraw-ton', 'Withdraw native TON from L2.')
-  .addParam(
-    'amount',
-    'Withdrawal amount',
-    1,
-    types.int
-  )
+  .addParam('amount', 'Withdrawal amount', 1, types.int)
   .setAction(async (args) => {
     await withdrawTON(args.amount)
   })
