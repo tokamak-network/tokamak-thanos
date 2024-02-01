@@ -6,7 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 // have permission to mint (create) new tokens as they see fit.
 // now it is not used.
-import { ERC20Mintable } from "./ERC20Mintable.sol";
+import { ERC20Mintable } from "./token/ERC20Mintable.sol";
 
 /**
  * @dev Current implementations is just for testing seigniorage manager.
