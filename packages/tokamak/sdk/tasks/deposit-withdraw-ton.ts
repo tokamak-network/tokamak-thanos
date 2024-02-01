@@ -69,7 +69,9 @@ const updateAddress = async (hre) => {
   }
 
   if (addressManager === undefined || addressManager === '') {
-    const Deployment__AddressManager = await hre.deployments.get('AddressManager')
+    const Deployment__AddressManager = await hre.deployments.get(
+      'AddressManager'
+    )
     addressManager = Deployment__AddressManager.address
   }
 
@@ -101,7 +103,6 @@ const updateAddress = async (hre) => {
     l2OutputOracle = Deployment__L2OutputOracle.address
   }
 }
-
 
 const depositTON = async (amount) => {
   console.log('Deposit TON:', amount)
@@ -181,7 +182,6 @@ const withdrawTON = async (amount) => {
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
   }
-  console.log("l1 contracts:", l1Contracts)
 
   const bridges = {
     TON: {
