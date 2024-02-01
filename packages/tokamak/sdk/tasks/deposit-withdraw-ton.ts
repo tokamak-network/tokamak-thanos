@@ -1,8 +1,19 @@
-const optimism = require('@tokamak-network/titan2-sdk')
-const ethers = require('ethers')
+import { task, types } from 'hardhat/config'
+import '@nomiclabs/hardhat-ethers'
+import { predeploys } from '@eth-optimism/core-utils'
+import { ethers } from 'ethers'
+
+import {
+  CrossChainMessenger,
+  MessageStatus,
+  TONBridgeAdapter,
+  AddressLike,
+} from '../src'
+
+console.log("Setup task...")
 
 const privateKey = process.env.PRIVATE_KEY
-const TON = process.env.TON
+const TON = process.env.TON as AddressLike
 
 const l1Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L1_URL
@@ -56,33 +67,36 @@ const l1Contracts = {
 }
 
 const bridges = {
-  Standard: {
-    l1Bridge: l1Contracts.L1StandardBridge,
-    l2Bridge: '0x4200000000000000000000000000000000000010',
-    Adapter: optimism.TONBridgeAdapter,
+  TON: {
+    l1Bridge: l1Contracts.L1StandardBridge as AddressLike,
+    l2Bridge: predeploys.L2StandardBridge as AddressLike,
+    Adapter: TONBridgeAdapter,
   },
 }
-
-const messenger = new optimism.CrossChainMessenger({
-  bedrock: true,
-  contracts: {
-    l1: l1Contracts,
-  },
-  bridges,
-  l1ChainId: process.env.L1_CHAIN_ID,
-  l2ChainId: process.env.L2_CHAIN_ID,
-  l1SignerOrProvider: l1Wallet,
-  l2SignerOrProvider: l2Wallet,
-})
 
 const depositTON = async (amount) => {
   console.log('Deposit TON:', amount)
 
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const messenger = new CrossChainMessenger({
+    bedrock: true,
+    contracts: {
+      l1: l1Contracts,
+    },
+    bridges,
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  console.log('l1 ton balance:', l1TONBalance.toString())
+
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
-
-  const l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance:', l1TONBalance.toString())
 
   const approveTx = await messenger.approveERC20(TON, ETH, amount)
   await approveTx.wait()
@@ -94,15 +108,33 @@ const depositTON = async (amount) => {
 
   await messenger.waitForMessageStatus(
     depositTx.hash,
-    optimism.MessageStatus.RELAYED
+    MessageStatus.RELAYED
   )
 
   l2Balance = await l2Wallet.getBalance()
+  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  console.log('l1 ton balance: ', l1TONBalance.toString())
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
 const withdrawTON = async (amount) => {
   console.log('Withdraw TON:', amount)
+
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const messenger = new CrossChainMessenger({
+    bedrock: true,
+    contracts: {
+      l1: l1Contracts,
+    },
+    bridges,
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
   let tonBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance: ', tonBalance.toString())
 
@@ -121,12 +153,12 @@ const withdrawTON = async (amount) => {
   )
 
   l2Balance = await l2Wallet.getBalance()
-  console.log('Updated l2 native balance:', l2Balance.toString())
+  console.log('l2 native balance:', l2Balance.toString())
 
   // // Check ready for prove
   await messenger.waitForMessageStatus(
     withdrawalTx.transactionHash,
-    optimism.MessageStatus.READY_TO_PROVE
+    MessageStatus.READY_TO_PROVE
   )
 
   console.log('Prove the message')
@@ -144,7 +176,7 @@ const withdrawTON = async (amount) => {
   try {
     await messenger.waitForMessageStatus(
       withdrawalTx.transactionHash,
-      optimism.MessageStatus.READY_FOR_RELAY
+      MessageStatus.READY_FOR_RELAY
     )
   } finally {
     clearInterval(finalizeInterval)
@@ -162,12 +194,24 @@ const withdrawTON = async (amount) => {
   console.log('l1 ton balance: ', tonBalance.toString())
 }
 
-const main = async () => {
-  console.log('L1 Address ', l1Wallet.address)
-  console.log('L2 Address ', l2Wallet.address)
+task('deposit-ton', 'Deposits ERC20-TON to L2.')
+  .addParam(
+    'amount',
+    'Deposit amount',
+    1,
+    types.int
+  )
+  .setAction(async (args) => {
+    await depositTON(args.amount)
+  })
 
-  await depositTON(5000)
-  await withdrawTON(4000)
-}
-
-main()
+task('withdraw-ton', 'Withdraw native TON from L2.')
+  .addParam(
+    'amount',
+    'Withdrawal amount',
+    1,
+    types.int
+  )
+  .setAction(async (args) => {
+    await withdrawTON(args.amount)
+  })
