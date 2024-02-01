@@ -1,6 +1,7 @@
 packages:
   - 'packages/*'
   - 'packages/tokamak/*'
+  - 'packages/tokamak/example'
   - 'endpoint-monitor'
   - 'op-exporter'
   - 'indexer/api-ts'
