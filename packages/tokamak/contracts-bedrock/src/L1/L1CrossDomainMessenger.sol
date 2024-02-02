@@ -45,9 +45,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         PORTAL = _portal;
         l1TONAddress = _l1TONAddress;
         __CrossDomainMessenger_init();
-        if (address(PORTAL) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(PORTAL), 2**256 - 1);
-        }
     }
 
     /// @notice Getter for the OptimismPortal address.
@@ -66,6 +63,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         require(msg.value == 0, "Deny depositing ETH");
         if (_value > 0) {
             IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
+            IERC20(l1TONAddress).approve(address(PORTAL), _value);
         }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }

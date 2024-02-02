@@ -91,9 +91,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
     function initialize(CrossDomainMessenger _messenger, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
         __StandardBridge_init({ _messenger: _messenger });
         l1TONAddress = _l1TONAddress;
-        if(address(_messenger) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(_messenger), 2**256 - 1);
-        }
     }
 
     /// @notice Deposit ETH on L1 and receive ETH on L2.
@@ -339,6 +336,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
         _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
+        IERC20(l1TONAddress).approve(address(messenger), _amount);
         L1CrossDomainMessenger(address(messenger)).sendTONMessage(
             address(OTHER_BRIDGE),
             _amount,
