@@ -26,7 +26,11 @@ import {
   TokenBridgeMessage,
   MessageDirection,
 } from '../interfaces'
-import { toAddress } from '../utils'
+import {
+  filterEthDepositsAndWithdrawls,
+  filterTonDepositsAndWithdrawls,
+  toAddress,
+} from '../utils'
 
 /**
  * Bridge adapter for any token bridge that uses the standard token bridge interface.
@@ -80,15 +84,9 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
-        // adapter. Bridges that are not the ETH bridge should not be able to handle or even
-        // present ETH deposits or withdrawals.
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L1_TO_L2,
@@ -123,15 +121,9 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
-        // adapter. Bridges that are not the ETH bridge should not be able to handle or even
-        // present ETH deposits or withdrawals.
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L2_TO_L1,
@@ -163,10 +155,12 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
         this.messenger.l2Provider
       )
       // Don't support ETH deposits or withdrawals via this bridge.
-      if (
-        hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) ||
-        hexStringEquals(toAddress(l2Token), predeploys.OVM_ETH)
-      ) {
+      if (filterEthDepositsAndWithdrawls(l1Token, l2Token)) {
+        return false
+      }
+
+      // Don't support TON deposits or withdrawls via this bridge.
+      if (filterTonDepositsAndWithdrawls(l1Token, l2Token)) {
         return false
       }
 

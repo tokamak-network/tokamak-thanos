@@ -19,7 +19,6 @@ import {
   remove0x,
   toHexString,
   toRpcHexString,
-  hashCrossDomainMessage,
   encodeCrossDomainMessageV0,
   encodeCrossDomainMessageV1,
   BedrockOutputData,
@@ -32,6 +31,7 @@ import {
 } from '@tokamak-network/core-utils'
 import { getContractInterface, predeploys } from '@eth-optimism/contracts'
 import * as rlp from 'rlp'
+import l1CrossDomainMessagerArtifact from '@tokamak-network/titan2-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 
 import {
   OEContracts,
@@ -1869,7 +1869,7 @@ export class CrossChainMessenger {
       } else {
         const legacyL1XDM = new ethers.Contract(
           this.contracts.l1.L1CrossDomainMessenger.address,
-          getContractInterface('L1CrossDomainMessenger'),
+          l1CrossDomainMessagerArtifact.abi,
           this.l1SignerOrProvider
         )
         return legacyL1XDM.populateTransaction.replayMessage(
@@ -1983,7 +1983,7 @@ export class CrossChainMessenger {
         const proof = await this.getMessageProof(resolved, messageIndex)
         const legacyL1XDM = new ethers.Contract(
           this.contracts.l1.L1CrossDomainMessenger.address,
-          getContractInterface('L1CrossDomainMessenger'),
+          l1CrossDomainMessagerArtifact.abi,
           this.l1SignerOrProvider
         )
         return legacyL1XDM.populateTransaction.relayMessage(
@@ -2005,6 +2005,7 @@ export class CrossChainMessenger {
      * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
      * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
      * @param opts.overrides Optional transaction overrides.
+     * @param isEstimatingGas Enable estimation gas
      * @returns Transaction that can be signed and executed to deposit the ETH.
      */
     depositETH: async (
