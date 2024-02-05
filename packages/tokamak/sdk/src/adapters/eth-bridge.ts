@@ -2,7 +2,6 @@
 import { ethers, Overrides, BigNumber } from 'ethers'
 import { TransactionRequest, BlockTag } from '@ethersproject/abstract-provider'
 import { predeploys } from '@eth-optimism/contracts'
-import { hexStringEquals } from '@tokamak-network/core-utils'
 
 import {
   NumberLike,
@@ -10,7 +9,7 @@ import {
   TokenBridgeMessage,
   MessageDirection,
 } from '../interfaces'
-import { toAddress, omit } from '../utils'
+import { toAddress, omit, filterEthDepositsAndWithdrawls } from '../utils'
 import { StandardBridgeAdapter } from './standard-bridge'
 
 /**
@@ -45,7 +44,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
           from: event.args.from,
           to: event.args.to,
           l1Token: ethers.constants.AddressZero,
-          l2Token: predeploys.OVM_ETH,
+          l2Token: predeploys.ETH,
           amount: event.args.amount,
           data: event.args.extraData,
           logIndex: event.logIndex,
@@ -75,10 +74,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
     return events
       .filter((event) => {
         // Only find ETH withdrawals.
-        return (
-          hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
+        return this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
       })
       .map((event) => {
         return {
@@ -105,10 +101,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
     l2Token: AddressLike
   ): Promise<boolean> {
     // Only support ETH deposits and withdrawals.
-    return (
-      hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) &&
-      hexStringEquals(toAddress(l2Token), predeploys.OVM_ETH)
-    )
+    return filterEthDepositsAndWithdrawls(l1Token, l2Token)
   }
 
   populateTransaction = {
@@ -180,7 +173,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
           '0x', // No data.
           {
             ...omit(opts?.overrides || {}, 'value'),
-            value: this.messenger.bedrock ? amount : 0,
+            value: 0, // we change the native token in L2 chain to TON, so pass zero as `value` in `_extraData`
           }
         )
       } else {
@@ -192,7 +185,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
           '0x', // No data.
           {
             ...omit(opts?.overrides || {}, 'value'),
-            value: this.messenger.bedrock ? amount : 0,
+            value: 0, // we change the native token in L2 chain to TON, so pass zero as `value` in `_extraData`
           }
         )
       }
