@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 // Testing utilities
 import { Test, StdUtils } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { TON } from "src/L1/TON.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
@@ -175,12 +176,15 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
     SystemConfig systemConfig;
+    TON ton;
 
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
 
     function setUp() public virtual override {
         super.setUp();
+
+        ton = new TON();
 
         Proxy systemConfigProxy = new Proxy(multisig);
 
@@ -220,8 +224,7 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
         proxy.upgradeToAndCall(
-            address(opImpl),
-            abi.encodeCall(OptimismPortal.initialize, (address(0), oracle, guardian, systemConfig, false))
+            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (address(ton), oracle, guardian, systemConfig, false))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
@@ -280,7 +283,7 @@ contract Messenger_Initializer is Portal_Initializer {
             "OVM_L1CrossDomainMessenger"
         );
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(op, address(0));
+        L1Messenger.initialize(op, address(ton));
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger(address(L1Messenger))).code);
 
@@ -373,7 +376,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         vm.stopPrank();
 
         L1Bridge = L1StandardBridge(payable(address(proxy)));
-        L1Bridge.initialize(L1Messenger, address(0));
+        L1Bridge.initialize(L1Messenger, address(ton));
 
         vm.label(address(proxy), "L1StandardBridge_Proxy");
         vm.label(address(L1Bridge_Impl), "L1StandardBridge_Impl");
