@@ -107,7 +107,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
+    function depositTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
         _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -118,7 +118,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable {
+    function depositTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
         _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
@@ -128,7 +128,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function bridgeTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
+    function bridgeTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
         _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -139,7 +139,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function bridgeTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable {
+    function bridgeTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
         _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
