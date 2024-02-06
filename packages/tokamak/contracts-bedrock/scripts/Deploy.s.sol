@@ -205,10 +205,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
 
-        _upgradeViaSafe({
-            _proxy: payable(l1StandardBridgeProxy),
-            _implementation: l1StandardBridge
-        });
+        _upgradeViaSafe({ _proxy: payable(l1StandardBridgeProxy), _implementation: l1StandardBridge });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
         console.log("L1StandardBridge version: %s", version);
@@ -235,11 +232,11 @@ contract Deploy is Deployer {
 
         require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
         string memory contractName = "OVM_L1CrossDomainMessenger";
-        require(keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) == keccak256(bytes(contractName)));
-        _upgradeViaSafe({
-            _proxy: payable(l1CrossDomainMessengerProxy),
-            _implementation: l1CrossDomainMessenger
-        });
+        require(
+            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
+                == keccak256(bytes(contractName))
+        );
+        _upgradeViaSafe({ _proxy: payable(l1CrossDomainMessengerProxy), _implementation: l1CrossDomainMessenger });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
         string memory version = messenger.version();
@@ -269,10 +266,7 @@ contract Deploy is Deployer {
             console.log("Portal guardian has no code: %s", guardian);
         }
 
-        _upgradeViaSafe({
-            _proxy: payable(optimismPortalProxy),
-            _implementation: optimismPortal
-        });
+        _upgradeViaSafe({ _proxy: payable(optimismPortalProxy), _implementation: optimismPortal });
 
         OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
         string memory version = portal.version();
@@ -684,12 +678,11 @@ contract Deploy is Deployer {
         });
     }
 
-     /// @notice Call from the Safe contract to the Proxy Admin's upgrade
+    /// @notice Call from the Safe contract to the Proxy Admin's upgrade
     function _upgradeViaSafe(address _proxy, address _implementation) internal {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
 
-        bytes memory data =
-            abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
+        bytes memory data = abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
 
         _callViaSafe({ _target: proxyAdmin, _data: data });
     }
