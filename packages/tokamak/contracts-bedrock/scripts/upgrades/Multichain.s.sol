@@ -120,8 +120,7 @@ contract Multichain is SafeBuilder {
                 SystemConfig: 0xAe851f927Ee40dE99aaBb7461C00f9622ab91d60,
                 L1ERC721Bridge: 0x8DD330DdE8D9898d43b4dc840Da27A07dF91b3c9
             });
-        }else
-        if (network == goerli) {
+        } else if (network == goerli) {
             console.log("Using goerli-prod");
             deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/goerli.json");
             proxies = ContractSet({
@@ -384,7 +383,9 @@ contract Multichain is SafeBuilder {
                 (
                     payable(prox.L1StandardBridge), // proxy
                     L1StandardBridgeImplementation, // implementation
-                    abi.encodeCall(L1StandardBridge.initialize, (L1CrossDomainMessenger(prox.L1CrossDomainMessenger), cfg.l1TONToken()))
+                    abi.encodeCall(
+                        L1StandardBridge.initialize, (L1CrossDomainMessenger(prox.L1CrossDomainMessenger), cfg.l1TONToken())
+                        )
                 )
                 )
         });
