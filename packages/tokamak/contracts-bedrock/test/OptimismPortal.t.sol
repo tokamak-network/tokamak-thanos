@@ -281,7 +281,8 @@ contract OptimismPortal_Test is Portal_Initializer {
     //         NON_ZERO_DATA
     //     );
 
-    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true,
+    // NON_ZERO_DATA);
     //     assertEq(address(op).balance, NON_ZERO_VALUE);
     // }
 
