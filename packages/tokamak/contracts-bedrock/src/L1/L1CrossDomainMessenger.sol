@@ -36,7 +36,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
-        initialize({ _portal: OptimismPortal(payable(0)),  _l1TONAddress: address(0) });
+        initialize({ _portal: OptimismPortal(payable(0)), _l1TONAddress: address(0) });
     }
 
     /// @notice Initializes the contract.
@@ -46,7 +46,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         l1TONAddress = _l1TONAddress;
         __CrossDomainMessenger_init();
         if (address(PORTAL) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(PORTAL), 2**256 - 1);
+            IERC20(l1TONAddress).approve(address(PORTAL), 2 ** 256 - 1);
         }
     }
 
@@ -62,7 +62,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     // }
 
     /// @inheritdoc CrossDomainMessenger
-    function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override{
+    function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
         if (_value > 0) {
             IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
@@ -193,7 +193,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
         xDomainMsgSender = _sender;
         bool transferStatus = true;
-        if (_value != 0){
+        if (_value != 0) {
             transferStatus = IERC20(l1TONAddress).transfer(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
