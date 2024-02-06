@@ -11,5 +11,4 @@ import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 contract ETH is OptimismMintableERC20 {
     /// @notice Initializes the contract as an Optimism Mintable ERC20.
     constructor() OptimismMintableERC20(Predeploys.L2_STANDARD_BRIDGE, address(0), "Ether", "ETH", 18) { }
-
 }
