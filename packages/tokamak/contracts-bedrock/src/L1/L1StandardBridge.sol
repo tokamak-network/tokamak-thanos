@@ -88,11 +88,17 @@ contract L1StandardBridge is StandardBridge, ISemver {
     }
 
     /// @notice Initializer
-    function initialize(CrossDomainMessenger _messenger, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
+    function initialize(
+        CrossDomainMessenger _messenger,
+        address _l1TONAddress
+    )
+        public
+        reinitializer(Constants.INITIALIZER)
+    {
         __StandardBridge_init({ _messenger: _messenger });
         l1TONAddress = _l1TONAddress;
-        if(address(_messenger) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(_messenger), 2**256 - 1);
+        if (address(_messenger) != address(0) && address(l1TONAddress) != address(0)) {
+            IERC20(l1TONAddress).approve(address(_messenger), 2 ** 256 - 1);
         }
     }
 
@@ -142,7 +148,6 @@ contract L1StandardBridge is StandardBridge, ISemver {
     function bridgeTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
         _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
-
 
     /// @notice Deposits some amount of ETH into the sender's ETH's account on L2.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
@@ -353,11 +358,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-         if (l1TONAddress == _localToken) {
+        if (l1TONAddress == _localToken) {
             _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
-         }else {
+        } else {
             super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
-         }
+        }
     }
 
     /// @notice Sends TON tokens to a receiver's address on the other chain.
@@ -376,9 +381,9 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         internal
     {
-
         IERC20(l1TONAddress).safeTransferFrom(_from, address(this), _amount);
-        deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] = deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
+        deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] =
+            deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
 
         _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
@@ -474,8 +479,8 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         public
         payable
-        onlyOtherBridge
         override
+        onlyOtherBridge
     {
         require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
         require(_to != address(this), "StandardBridge: cannot send to self");
@@ -496,8 +501,8 @@ contract L1StandardBridge is StandardBridge, ISemver {
         bytes calldata _extraData
     )
         public
-        onlyOtherBridge
         override
+        onlyOtherBridge
     {
         if (_isOptimismMintableERC20(_localToken) && _localToken != l1TONAddress) {
             require(
@@ -509,7 +514,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         } else {
             // Case 1: Withdraw ETH
             // Case 2: Withdraw normal Token
-            if(_localToken == address(0) && _remoteToken == Predeploys.ETH) {
+            if (_localToken == address(0) && _remoteToken == Predeploys.ETH) {
                 bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
                 require(success, "StandardBridge: ETH transfer failed");
             } else {
