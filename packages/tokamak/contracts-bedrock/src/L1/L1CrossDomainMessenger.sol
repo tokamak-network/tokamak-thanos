@@ -28,7 +28,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     OptimismPortal public PORTAL;
 
     /// @notice Address of TON (ERC-20 token)
-    address public l1TONAddress;
+    address public nativeTokenAddress;
 
     /// @notice Semantic version.
     /// @custom:semver 1.7.1
@@ -36,17 +36,23 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
-        initialize({ _portal: OptimismPortal(payable(0)), _l1TONAddress: address(0) });
+        initialize({ _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
     }
 
     /// @notice Initializes the contract.
     /// @param _portal Address of the OptimismPortal contract on this network.
-    function initialize(OptimismPortal _portal, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
+    function initialize(
+        OptimismPortal _portal,
+        address _nativeTokenAddress
+    )
+        public
+        reinitializer(Constants.INITIALIZER)
+    {
         PORTAL = _portal;
-        l1TONAddress = _l1TONAddress;
+        nativeTokenAddress = _nativeTokenAddress;
         __CrossDomainMessenger_init();
-        if (address(PORTAL) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(PORTAL), 2 ** 256 - 1);
+        if (address(PORTAL) != address(0) && address(nativeTokenAddress) != address(0)) {
+            IERC20(nativeTokenAddress).approve(address(PORTAL), 2 ** 256 - 1);
         }
     }
 
@@ -65,7 +71,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
         if (_value > 0) {
-            IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
+            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
         }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
@@ -194,7 +200,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         xDomainMsgSender = _sender;
         bool transferStatus = true;
         if (_value != 0) {
-            transferStatus = IERC20(l1TONAddress).transfer(_target, _value);
+            transferStatus = IERC20(nativeTokenAddress).transfer(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;

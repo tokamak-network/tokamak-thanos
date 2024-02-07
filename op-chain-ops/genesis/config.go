@@ -45,7 +45,7 @@ type DeployConfig struct {
 	// with this.
 	L1StartingBlockTag *MarshalableRPCBlockNumberOrHash `json:"l1StartingBlockTag"`
 	// L1Token is the L1's address of the L2 chain's native token.
-	L1TONToken common.Address `json:"l1TONToken"`
+	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
 	// L1ChainID is the chain ID of the L1 chain.
 	L1ChainID uint64 `json:"l1ChainID"`
 	// L2ChainID is the chain ID of the L2 chain.

@@ -69,7 +69,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     address public guardian;
 
     /// @notice Address of TON (ERC-20 token)
-    address public tonAddress;
+    address public nativeTokenAddress;
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -112,7 +112,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
-            _tonAddress: address(0),
+            _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _guardian: address(0),
             _systemConfig: SystemConfig(address(0)),
@@ -126,7 +126,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _paused Sets the contract's pausability state.
     /// @param _systemConfig Address of the SystemConfig contract.
     function initialize(
-        address _tonAddress,
+        address _nativeTokenAddress,
         L2OutputOracle _l2Oracle,
         address _guardian,
         SystemConfig _systemConfig,
@@ -135,7 +135,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
-        tonAddress = _tonAddress;
+        nativeTokenAddress = _nativeTokenAddress;
         l2Sender = Constants.DEFAULT_L2_SENDER;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
@@ -354,7 +354,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         l2Sender = _tx.sender;
         bool transferStatus = true;
         if (_tx.value > 0) {
-            transferStatus = IERC20(tonAddress).transfer(_tx.target, _tx.value);
+            transferStatus = IERC20(nativeTokenAddress).transfer(_tx.target, _tx.value);
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -402,7 +402,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     {
         // Lock token in this contract
         if (_value > 0) {
-            IERC20(tonAddress).safeTransferFrom(msg.sender, address(this), _value);
+            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
         }
 
         // Just to be safe, make sure that people specify address(0) as the target when doing

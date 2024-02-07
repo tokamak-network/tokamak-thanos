@@ -134,7 +134,7 @@ contract Deploy is Deployer {
     function deployTON() public onlyDevnet broadcast {
         TON ton = new TON{ salt: implSalt() }();
         address addr_ = address(ton);
-        cfg.setL1TonAddress(addr_);
+        cfg.setNativeTokenAddress(addr_);
         console.log("TON deployed at", addr_);
         save("TON", addr_);
     }
@@ -800,7 +800,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
-                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.l1TONToken())
+                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.nativeTokenAddress())
                 )
         });
 
@@ -887,7 +887,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
             _innerCallData: abi.encodeCall(
-                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.l1TONToken())
+                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.nativeTokenAddress())
                 )
         });
 
@@ -955,7 +955,13 @@ contract Deploy is Deployer {
             _implementation: optimismPortal,
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
-                (cfg.l1TONToken(), L2OutputOracle(l2OutputOracleProxy), guardian, SystemConfig(systemConfigProxy), false)
+                (
+                    cfg.nativeTokenAddress(),
+                    L2OutputOracle(l2OutputOracleProxy),
+                    guardian,
+                    SystemConfig(systemConfigProxy),
+                    false
+                )
                 )
         });
 
