@@ -48,11 +48,15 @@ contract Multichain is SafeBuilder {
     }
 
     /// @notice Possible value of NETWORK env var, for goerli
+    string internal constant GETTING_STARTED_PROD = "getting-started";
+    /// @notice Possible value of NETWORK env var, for goerli
     string internal constant GOERLI_PROD = "goerli-prod";
     /// @notice Possible value of NETWORK env var, for chaosnet
     string internal constant CHAOSNET = "chaosnet";
     /// @notice Possible value of NETWORK env var, for devnet
     string internal constant DEVNET = "devnet";
+    /// @notice Digest of goerli-prod for comparison purposes
+    bytes32 internal getting_started = keccak256(bytes(GETTING_STARTED_PROD));
     /// @notice Digest of goerli-prod for comparison purposes
     bytes32 internal goerli = keccak256(bytes(GOERLI_PROD));
     /// @notice Digest of chaosnet for comparison purposes
@@ -95,7 +99,7 @@ contract Multichain is SafeBuilder {
     /// @notice Place the contract addresses in storage so they can be used when building calldata.
     function setUp() external {
         // Set the network in storage
-        NETWORK = vm.envOr("NETWORK", GOERLI_PROD);
+        NETWORK = vm.envOr("NETWORK", GETTING_STARTED_PROD);
 
         // TODO: hack
         PROXY_ADMIN = ProxyAdmin(vm.envOr("PROXY_ADMIN", 0x01d3670863c3F4b24D7b107900f0b75d4BbC6e0d));
@@ -104,6 +108,19 @@ contract Multichain is SafeBuilder {
         bytes32 network = keccak256(bytes(NETWORK));
 
         string memory deployConfigPath;
+        if (network == getting_started) {
+            console.log("Using getting-started");
+            deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/getting-started-template.json");
+            proxies = ContractSet({
+                L1CrossDomainMessenger: 0x5086d1eEF304eb5284A0f6720f79403b4e9bE294,
+                L1StandardBridge: 0x636Af16bf2f682dD3109e60102b8E1A089FedAa8,
+                L2OutputOracle: 0xE6Dfba0953616Bacab0c9A8ecb3a9BBa77FC15c0,
+                OptimismMintableERC20Factory: 0x883dcF8B05364083D849D8bD226bC8Cb4c42F9C5,
+                OptimismPortal: 0x5b47E1A08Ea6d985D6649300584e6722Ec4B1383,
+                SystemConfig: 0xAe851f927Ee40dE99aaBb7461C00f9622ab91d60,
+                L1ERC721Bridge: 0x8DD330DdE8D9898d43b4dc840Da27A07dF91b3c9
+            });
+        }else
         if (network == goerli) {
             console.log("Using goerli-prod");
             deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/goerli.json");
@@ -353,7 +370,7 @@ contract Multichain is SafeBuilder {
                     payable(prox.L1CrossDomainMessenger), // proxy
                     L1CrossDomainMessengerImplementation, // implementation
                     abi.encodeCall( // data
-                        L1CrossDomainMessenger.initialize, (OptimismPortal(payable(prox.OptimismPortal))))
+                        L1CrossDomainMessenger.initialize, (OptimismPortal(payable(prox.OptimismPortal)), cfg.l1TONToken()))
                 )
                 )
         });
@@ -367,7 +384,7 @@ contract Multichain is SafeBuilder {
                 (
                     payable(prox.L1StandardBridge), // proxy
                     L1StandardBridgeImplementation, // implementation
-                    abi.encodeCall(L1StandardBridge.initialize, (L1CrossDomainMessenger(prox.L1CrossDomainMessenger))) // data
+                    abi.encodeCall(L1StandardBridge.initialize, (L1CrossDomainMessenger(prox.L1CrossDomainMessenger), cfg.l1TONToken()))
                 )
                 )
         });
@@ -421,6 +438,7 @@ contract Multichain is SafeBuilder {
                     abi.encodeCall( // data
                             OptimismPortal.initialize,
                             (
+                                address(0),
                                 L2OutputOracle(prox.L2OutputOracle),
                                 cfg.portalGuardian(),
                                 SystemConfig(prox.SystemConfig),

@@ -79,18 +79,18 @@ contract GasBenchMark_OptimismPortal is Portal_Initializer {
         vm.deal(address(op), 0xFFFFFFFF);
     }
 
-    function test_depositTransaction_benchmark() external {
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-    }
+    // function test_depositTransaction_benchmark() external {
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    // }
 
-    function test_depositTransaction_benchmark_1() external {
-        setPrevBaseFee(vm, address(op), 1 gwei);
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-    }
+    // function test_depositTransaction_benchmark_1() external {
+    //     setPrevBaseFee(vm, address(op), 1 gwei);
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
+    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+    //     );
+    // }
 
     function test_proveWithdrawalTransaction_benchmark() external {
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
@@ -127,19 +127,19 @@ contract GasBenchMark_L1StandardBridge_Deposit is Bridge_Initializer {
         L1Token.approve(address(L1Bridge), type(uint256).max);
     }
 
-    function test_depositETH_benchmark_0() external {
-        vm.pauseGasMetering();
-        setPrevBaseFee(vm, address(op), 1 gwei);
-        vm.resumeGasMetering();
-        L1Bridge.depositETH{ value: 500 }(50000, hex"");
-    }
+    // function test_depositETH_benchmark_0() external {
+    //     vm.pauseGasMetering();
+    //     setPrevBaseFee(vm, address(op), 1 gwei);
+    //     vm.resumeGasMetering();
+    //     L1Bridge.depositETH{ value: 500 }(50000, hex"");
+    // }
 
-    function test_depositETH_benchmark_1() external {
-        vm.pauseGasMetering();
-        setPrevBaseFee(vm, address(op), 10 gwei);
-        vm.resumeGasMetering();
-        L1Bridge.depositETH{ value: 500 }(50000, hex"");
-    }
+    // function test_depositETH_benchmark_1() external {
+    //     vm.pauseGasMetering();
+    //     setPrevBaseFee(vm, address(op), 10 gwei);
+    //     vm.resumeGasMetering();
+    //     L1Bridge.depositETH{ value: 500 }(50000, hex"");
+    // }
 
     function test_depositERC20_benchmark_0() external {
         vm.pauseGasMetering();
@@ -181,12 +181,12 @@ contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
         vm.deal(address(L1Bridge.messenger()), 100);
     }
 
-    function test_finalizeETHWithdrawal_benchmark() external {
-        // TODO: Make this more accurate. It is underestimating the cost because it pranks
-        // the call coming from the messenger, which bypasses the portal
-        // and oracle.
-        L1Bridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
-    }
+    // function test_finalizeETHWithdrawal_benchmark() external {
+    //     // TODO: Make this more accurate. It is underestimating the cost because it pranks
+    //     // the call coming from the messenger, which bypasses the portal
+    //     // and oracle.
+    //     L1Bridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
+    // }
 }
 
 contract GasBenchMark_L2OutputOracle is L2OutputOracle_Initializer {

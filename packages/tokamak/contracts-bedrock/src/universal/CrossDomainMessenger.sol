@@ -170,6 +170,36 @@ abstract contract CrossDomainMessenger is
         OTHER_MESSENGER = _otherMessenger;
     }
 
+    /// @notice Sends a deposit ton message to some target address on the other chain. Note that if the call
+    ///         always reverts, then the message will be unrelayable, and any ETH sent will be
+    ///         permanently locked. The same will occur if the target on the other chain is
+    ///         considered unsafe (see the _isUnsafeTarget() function).
+    /// @param _target      Target contract or wallet address.
+    /// @param _amount      Amount of deposit TON.
+    /// @param _message     Message to trigger the target address with.
+    /// @param _minGasLimit Minimum gas limit that the message can be executed with.
+    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
+        // Triggers a message to the other messenger. Note that the amount of gas provided to the
+        // message is the amount of gas requested by the user PLUS the base gas value. We want to
+        // guarantee the property that the call to the target contract will always have at least
+        // the minimum gas limit specified by the user.
+        _sendTONMessage(
+            OTHER_MESSENGER,
+            baseGas(_message, _minGasLimit),
+            _amount,
+            abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), msg.sender, _target, _amount, _minGasLimit, _message
+            )
+        );
+
+        emit SentMessage(_target, msg.sender, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(msg.sender, _amount);
+
+        unchecked {
+            ++msgNonce;
+        }
+    }
+
     /// @notice Sends a message to some target address on the other chain. Note that if the call
     ///         always reverts, then the message will be unrelayable, and any ETH sent will be
     ///         permanently locked. The same will occur if the target on the other chain is
@@ -218,6 +248,7 @@ abstract contract CrossDomainMessenger is
     )
         external
         payable
+        virtual
     {
         (, uint16 version) = Encoding.decodeVersionedNonce(_nonce);
         require(version < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
@@ -352,6 +383,15 @@ abstract contract CrossDomainMessenger is
     function __CrossDomainMessenger_init() internal onlyInitializing {
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
     }
+
+    /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
+    ///         contracts because the logic for this depends on the network where the messenger is
+    ///         being deployed.
+    /// @param _to       Recipient of the message on the other chain.
+    /// @param _gasLimit Minimum gas limit the message can be executed with.
+    /// @param _value    Amount of TON to send with the message.
+    /// @param _data     Message data.
+    function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal virtual;
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
     ///         contracts because the logic for this depends on the network where the messenger is

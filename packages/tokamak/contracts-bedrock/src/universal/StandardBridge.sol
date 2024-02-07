@@ -239,6 +239,7 @@ abstract contract StandardBridge is Initializable {
         public
         payable
         onlyOtherBridge
+        virtual
     {
         require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
         require(_to != address(this), "StandardBridge: cannot send to self");
@@ -272,6 +273,7 @@ abstract contract StandardBridge is Initializable {
     )
         public
         onlyOtherBridge
+        virtual
     {
         if (_isOptimismMintableERC20(_localToken)) {
             require(
@@ -306,13 +308,13 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
+        virtual
     {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-
         messenger.sendMessage{ value: _amount }(
             address(OTHER_BRIDGE),
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
@@ -339,6 +341,7 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
+        virtual
     {
         if (_isOptimismMintableERC20(_localToken)) {
             require(
@@ -356,6 +359,27 @@ abstract contract StandardBridge is Initializable {
         // contracts may override this function in order to emit legacy events as well.
         _emitERC20BridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
 
+        _sendERC20BridgeFinalizedMessage(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Override create finalized mesasge on other chain
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the ERC20 on the remote chain.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of the ERC20 sent.
+    /// @param _extraData   Extra data sent with the transaction.
+    function _sendERC20BridgeFinalizedMessage(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+    {
         messenger.sendMessage(
             address(OTHER_BRIDGE),
             abi.encodeWithSelector(
