@@ -61,7 +61,7 @@ let addressManager = process.env.ADDRESS_MANAGER || ''
 let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
 let optimismPortal = process.env.OPTIMISM_PORTAL || ''
-let l2OutputOracle = process.env.L1_OUTPUT_ORACLE || ''
+let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (TON === '') {
