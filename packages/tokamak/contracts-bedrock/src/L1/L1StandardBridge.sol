@@ -26,7 +26,7 @@ import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 contract L1StandardBridge is StandardBridge, ISemver {
     using SafeERC20 for IERC20;
 
-    address public l1TONAddress;
+    address public nativeTokenAddress;
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -84,21 +84,21 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
-        initialize({ _messenger: CrossDomainMessenger(address(0)), _l1TONAddress: address(0) });
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _nativeTokenAddress: address(0) });
     }
 
     /// @notice Initializer
     function initialize(
         CrossDomainMessenger _messenger,
-        address _l1TONAddress
+        address _nativeTokenAddress
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
         __StandardBridge_init({ _messenger: _messenger });
-        l1TONAddress = _l1TONAddress;
-        if (address(_messenger) != address(0) && address(l1TONAddress) != address(0)) {
-            IERC20(l1TONAddress).approve(address(_messenger), 2 ** 256 - 1);
+        nativeTokenAddress = _nativeTokenAddress;
+        if (address(_messenger) != address(0) && address(nativeTokenAddress) != address(0)) {
+            IERC20(nativeTokenAddress).approve(address(_messenger), 2 ** 256 - 1);
         }
     }
 
@@ -358,7 +358,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        if (l1TONAddress == _localToken) {
+        if (nativeTokenAddress == _localToken) {
             _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
         } else {
             super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
@@ -381,11 +381,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         internal
     {
-        IERC20(l1TONAddress).safeTransferFrom(_from, address(this), _amount);
-        deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] =
-            deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
+        IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
+        deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] =
+            deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
 
-        _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+        _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
         L1CrossDomainMessenger(address(messenger)).sendTONMessage(
             address(OTHER_BRIDGE),
@@ -489,7 +489,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
-        finalizeBridgeERC20(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+        finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
     }
 
     function finalizeBridgeERC20(
@@ -504,7 +504,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
         override
         onlyOtherBridge
     {
-        if (_isOptimismMintableERC20(_localToken) && _localToken != l1TONAddress) {
+        if (_isOptimismMintableERC20(_localToken) && _localToken != nativeTokenAddress) {
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"

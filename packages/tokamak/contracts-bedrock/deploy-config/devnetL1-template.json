@@ -2,7 +2,7 @@
   "l1ChainID": 900,
   "l2ChainID": 901,
   "l2BlockTime": 2,
-  "l1TONToken": "0x75fE809aE1C4A66c27a0239F147d0cc5710a104A",
+  "nativeTokenAddress": "0x75fE809aE1C4A66c27a0239F147d0cc5710a104A",
   "maxSequencerDrift": 300,
   "sequencerWindowSize": 200,
   "channelTimeout": 120,
