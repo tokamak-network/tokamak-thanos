@@ -215,71 +215,79 @@ contract OptimismPortal_Test is Portal_Initializer {
         op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
     }
 
-    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with ETH.
-    // function test_depositTransaction_withEthValueFromEOA_succeeds() external {
-    //     // EOA emulation
-    //     vm.prank(address(this), address(this));
+    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with TON.
+    function test_depositTransaction_withTONValueFromEOA_succeeds() external {
+        // EOA emulation
+        vm.prank(address(this));
+        ton.approve(address(op), type(uint256).max);
 
-    //     vm.expectEmit(true, true, false, true);
-    //     emitTransactionDeposited(
-    //         address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-    //     );
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(
+            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+        );
+        vm.prank(address(this), address(this));
+        op.depositTransaction(
+            NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+        );
+        assertEq(ton.balanceOf(address(op)), NON_ZERO_VALUE);
+    }
 
-    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
-    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-    //     );
-    //     assertEq(address(op).balance, NON_ZERO_VALUE);
-    // }
+    /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with ETH.
+    function test_depositTransaction_withTONValueFromContract_succeeds() external {
+        vm.prank(address(this), address(alice));
+        ton.approve(address(op), type(uint256).max);
 
-    // /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with ETH.
-    // function test_depositTransaction_withEthValueFromContract_succeeds() external {
-    //     vm.expectEmit(true, true, false, true);
-    //     emitTransactionDeposited(
-    //         AddressAliasHelper.applyL1ToL2Alias(address(this)),
-    //         NON_ZERO_ADDRESS,
-    //         NON_ZERO_VALUE,
-    //         ZERO_VALUE,
-    //         NON_ZERO_GASLIMIT,
-    //         false,
-    //         NON_ZERO_DATA
-    //     );
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(
+            AddressAliasHelper.applyL1ToL2Alias(address(this)),
+            NON_ZERO_ADDRESS,
+            NON_ZERO_VALUE,
+            NON_ZERO_VALUE,
+            NON_ZERO_GASLIMIT,
+            false,
+            NON_ZERO_DATA
+        );
+        vm.prank(address(this), address(alice));
+        op.depositTransaction(
+            NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+        );
+    }
 
-    //     op.depositTransaction{ value: NON_ZERO_VALUE }(
-    //         NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-    //     );
-    // }
+    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with TON.
+    function test_depositTransaction_withTONValueAndEOAContractCreation_succeeds() external {
+        // EOA emulation
+        vm.prank(address(this), address(this));
+        ton.approve(address(op), type(uint256).max);
 
-    // /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with ETH.
-    // function test_depositTransaction_withEthValueAndEOAContractCreation_succeeds() external {
-    //     // EOA emulation
-    //     vm.prank(address(this), address(this));
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(
+            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
+        );
+        vm.prank(address(this), address(this));
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
+        assertEq(ton.balanceOf(address(op)), NON_ZERO_VALUE);
+    }
 
-    //     vm.expectEmit(true, true, false, true);
-    //     emitTransactionDeposited(
-    //         address(this), ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
-    //     );
+    /// @dev Tests that `depositTransaction` succeeds for a contract depositing a contract creation with ETH.
+    function test_depositTransaction_withEthValueAndContractContractCreation_succeeds() external {
+        vm.prank(address(this), address(alice));
+        ton.approve(address(op), type(uint256).max);
 
-    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
-    //     assertEq(address(op).balance, NON_ZERO_VALUE);
-    // }
-
-    // /// @dev Tests that `depositTransaction` succeeds for a contract depositing a contract creation with ETH.
-    // function test_depositTransaction_withEthValueAndContractContractCreation_succeeds() external {
-    //     vm.expectEmit(true, true, false, true);
-    //     emitTransactionDeposited(
-    //         AddressAliasHelper.applyL1ToL2Alias(address(this)),
-    //         ZERO_ADDRESS,
-    //         NON_ZERO_VALUE,
-    //         ZERO_VALUE,
-    //         NON_ZERO_GASLIMIT,
-    //         true,
-    //         NON_ZERO_DATA
-    //     );
-
-    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true,
-    // NON_ZERO_DATA);
-    //     assertEq(address(op).balance, NON_ZERO_VALUE);
-    // }
+        vm.expectEmit(true, true, false, true);
+        emitTransactionDeposited(
+            AddressAliasHelper.applyL1ToL2Alias(address(this)),
+            ZERO_ADDRESS,
+            NON_ZERO_VALUE,
+            NON_ZERO_VALUE,
+            NON_ZERO_GASLIMIT,
+            true,
+            NON_ZERO_DATA
+        );
+        vm.prank(address(this), address(alice));
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true,
+    NON_ZERO_DATA);
+        assertEq(ton.balanceOf(address(op)), NON_ZERO_VALUE);
+    }
 
     /// @dev Tests that `isOutputFinalized` succeeds for an EOA depositing a tx with ETH and data.
     function test_simple_isOutputFinalized_succeeds() external {
@@ -523,21 +531,28 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
-    // /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
-    // function test_finalizeWithdrawalTransaction_provenWithdrawalHash_succeeds() external {
-    //     uint256 bobBalanceBefore = address(bob).balance;
+    /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
+    function test_finalizeWithdrawalTransaction_provenWithdrawalHash_succeeds() external {
+        uint256 withdrawalAmount = 100;
+        vm.prank(address(op));
+        ton.faucet(withdrawalAmount);
 
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalProven(_withdrawalHash, alice, bob);
-    //     op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+        vm.prank(address(this));
+        ton.approve(address(op), type(uint256).max);
 
-    //     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-    //     vm.expectEmit(true, true, false, true);
-    //     emit WithdrawalFinalized(_withdrawalHash, true);
-    //     op.finalizeWithdrawalTransaction(_defaultTx);
+        uint256 bobBalanceBefore = ton.balanceOf(address(bob));
 
-    //     assert(address(bob).balance == bobBalanceBefore + 100);
-    // }
+        vm.expectEmit(true, true, true, true);
+        emit WithdrawalProven(_withdrawalHash, alice, bob);
+        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.expectEmit(true, true, false, true);
+        emit WithdrawalFinalized(_withdrawalHash, true);
+        op.finalizeWithdrawalTransaction(_defaultTx);
+
+        assert(ton.balanceOf(address(bob)) == bobBalanceBefore + withdrawalAmount);
+    }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
     function test_finalizeWithdrawalTransaction_paused_reverts() external {
@@ -667,23 +682,6 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         assertEq(bobBalanceBefore, address(bob).balance);
     }
 
-    // /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the target reverts.
-    // function test_finalizeWithdrawalTransaction_targetFails_fails() external {
-    //     uint256 bobBalanceBefore = address(bob).balance;
-    //     vm.etch(bob, hex"fe"); // Contract with just the invalid opcode.
-
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalProven(_withdrawalHash, alice, bob);
-    //     op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
-
-    //     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalFinalized(_withdrawalHash, false);
-    //     op.finalizeWithdrawalTransaction(_defaultTx);
-
-    //     assert(address(bob).balance == bobBalanceBefore);
-    // }
-
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the finalization period
     ///      has not yet passed.
     function test_finalizeWithdrawalTransaction_onRecentWithdrawal_reverts() external {
@@ -701,112 +699,124 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         op.finalizeWithdrawalTransaction(_defaultTx);
     }
 
-    // /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal has already been
-    // ///      finalized.
-    // function test_finalizeWithdrawalTransaction_onReplay_reverts() external {
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalProven(_withdrawalHash, alice, bob);
-    //     op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal has already been
+    ///      finalized.
+    function test_finalizeWithdrawalTransaction_onReplay_reverts() external {
+        vm.prank(address(op));
+        ton.faucet(100);
 
-    //     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalFinalized(_withdrawalHash, true);
-    //     op.finalizeWithdrawalTransaction(_defaultTx);
+        vm.expectEmit(true, true, true, true);
+        emit WithdrawalProven(_withdrawalHash, alice, bob);
+        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
-    //     vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
-    //     op.finalizeWithdrawalTransaction(_defaultTx);
-    // }
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.expectEmit(true, true, true, true);
+        emit WithdrawalFinalized(_withdrawalHash, true);
+        op.finalizeWithdrawalTransaction(_defaultTx);
+
+        vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
+        op.finalizeWithdrawalTransaction(_defaultTx);
+    }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal transaction
     ///      does not have enough gas to execute.
-    // function test_finalizeWithdrawalTransaction_onInsufficientGas_reverts() external {
-    //     // This number was identified through trial and error.
-    //     uint256 gasLimit = 150_000;
-    //     Types.WithdrawalTransaction memory insufficientGasTx = Types.WithdrawalTransaction({
-    //         nonce: 0,
-    //         sender: alice,
-    //         target: bob,
-    //         value: 100,
-    //         gasLimit: gasLimit,
-    //         data: hex""
-    //     });
+    function test_finalizeWithdrawalTransaction_onInsufficientGas_reverts() external {
+        uint256 withdrawalAmount = 100;
 
-    //     // Get updated proof inputs.
-    //     (bytes32 stateRoot, bytes32 storageRoot,,, bytes[] memory withdrawalProof) =
-    //         ffi.getProveWithdrawalTransactionInputs(insufficientGasTx);
-    //     Types.OutputRootProof memory outputRootProof = Types.OutputRootProof({
-    //         version: bytes32(0),
-    //         stateRoot: stateRoot,
-    //         messagePasserStorageRoot: storageRoot,
-    //         latestBlockhash: bytes32(0)
-    //     });
+        vm.prank(address(op));
+        ton.faucet(withdrawalAmount);
 
-    //     vm.mockCall(
-    //         address(op.L2_ORACLE()),
-    //         abi.encodeWithSelector(L2OutputOracle.getL2Output.selector),
-    //         abi.encode(
-    //             Types.OutputProposal(
-    //                 Hashing.hashOutputRootProof(outputRootProof),
-    //                 uint128(block.timestamp),
-    //                 uint128(_proposedBlockNumber)
-    //             )
-    //         )
-    //     );
+        // This number was identified through trial and error.
+        uint256 gasLimit = 150_000;
+        Types.WithdrawalTransaction memory insufficientGasTx = Types.WithdrawalTransaction({
+            nonce: 0,
+            sender: alice,
+            target: bob,
+            value: withdrawalAmount,
+            gasLimit: gasLimit,
+            data: hex""
+        });
 
-    //     op.proveWithdrawalTransaction(insufficientGasTx, _proposedOutputIndex, outputRootProof, withdrawalProof);
+        // Get updated proof inputs.
+        (bytes32 stateRoot, bytes32 storageRoot,,, bytes[] memory withdrawalProof) =
+            ffi.getProveWithdrawalTransactionInputs(insufficientGasTx);
+        Types.OutputRootProof memory outputRootProof = Types.OutputRootProof({
+            version: bytes32(0),
+            stateRoot: stateRoot,
+            messagePasserStorageRoot: storageRoot,
+            latestBlockhash: bytes32(0)
+        });
 
-    //     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-    //     vm.expectRevert("SafeCall: Not enough gas");
-    //     op.finalizeWithdrawalTransaction{ gas: gasLimit }(insufficientGasTx);
-    // }
+        vm.mockCall(
+            address(op.L2_ORACLE()),
+            abi.encodeWithSelector(L2OutputOracle.getL2Output.selector),
+            abi.encode(
+                Types.OutputProposal(
+                    Hashing.hashOutputRootProof(outputRootProof),
+                    uint128(block.timestamp),
+                    uint128(_proposedBlockNumber)
+                )
+            )
+        );
 
-    // /// @dev Tests that `finalizeWithdrawalTransaction` reverts if a sub-call attempts to finalize
-    // ///      another withdrawal.
-    // function test_finalizeWithdrawalTransaction_onReentrancy_reverts() external {
-    //     uint256 bobBalanceBefore = address(bob).balance;
+        op.proveWithdrawalTransaction(insufficientGasTx, _proposedOutputIndex, outputRootProof, withdrawalProof);
 
-    //     // Copy and modify the default test values to attempt a reentrant call by first calling to
-    //     // this contract's callPortalAndExpectRevert() function above.
-    //     Types.WithdrawalTransaction memory _testTx = _defaultTx;
-    //     _testTx.target = address(this);
-    //     _testTx.data = abi.encodeWithSelector(this.callPortalAndExpectRevert.selector);
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.expectRevert("SafeCall: Not enough gas");
+        op.finalizeWithdrawalTransaction{ gas: gasLimit }(insufficientGasTx);
+    }
 
-    //     // Get modified proof inputs.
-    //     (
-    //         bytes32 stateRoot,
-    //         bytes32 storageRoot,
-    //         bytes32 outputRoot,
-    //         bytes32 withdrawalHash,
-    //         bytes[] memory withdrawalProof
-    //     ) = ffi.getProveWithdrawalTransactionInputs(_testTx);
-    //     Types.OutputRootProof memory outputRootProof = Types.OutputRootProof({
-    //         version: bytes32(0),
-    //         stateRoot: stateRoot,
-    //         messagePasserStorageRoot: storageRoot,
-    //         latestBlockhash: bytes32(0)
-    //     });
+    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if a sub-call attempts to finalize
+    ///      another withdrawal.
+    function test_finalizeWithdrawalTransaction_onReentrancy_reverts() external {
+        uint256 withdrawalAmount = 100;
+        vm.prank(address(op));
+        ton.faucet(withdrawalAmount);
 
-    //     // Setup the Oracle to return the outputRoot we want as well as a finalized timestamp.
-    //     uint256 finalizedTimestamp = block.timestamp - oracle.FINALIZATION_PERIOD_SECONDS() - 1;
-    //     vm.mockCall(
-    //         address(op.L2_ORACLE()),
-    //         abi.encodeWithSelector(L2OutputOracle.getL2Output.selector),
-    //         abi.encode(Types.OutputProposal(outputRoot, uint128(finalizedTimestamp), uint128(_proposedBlockNumber)))
-    //     );
+        uint256 bobBalanceBefore = ton.balanceOf(address(bob));
 
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalProven(withdrawalHash, alice, address(this));
-    //     op.proveWithdrawalTransaction(_testTx, _proposedBlockNumber, outputRootProof, withdrawalProof);
+        // Copy and modify the default test values to attempt a reentrant call by first calling to
+        // this contract's callPortalAndExpectRevert() function above.
+        Types.WithdrawalTransaction memory _testTx = _defaultTx;
+        _testTx.target = address(this);
+        _testTx.data = abi.encodeWithSelector(this.callPortalAndExpectRevert.selector);
 
-    //     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-    //     vm.expectCall(address(this), _testTx.data);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit WithdrawalFinalized(withdrawalHash, true);
-    //     op.finalizeWithdrawalTransaction(_testTx);
+        // Get modified proof inputs.
+        (
+            bytes32 stateRoot,
+            bytes32 storageRoot,
+            bytes32 outputRoot,
+            bytes32 withdrawalHash,
+            bytes[] memory withdrawalProof
+        ) = ffi.getProveWithdrawalTransactionInputs(_testTx);
+        Types.OutputRootProof memory outputRootProof = Types.OutputRootProof({
+            version: bytes32(0),
+            stateRoot: stateRoot,
+            messagePasserStorageRoot: storageRoot,
+            latestBlockhash: bytes32(0)
+        });
 
-    //     // Ensure that bob's balance was not changed by the reentrant call.
-    //     assert(address(bob).balance == bobBalanceBefore);
-    // }
+        // Setup the Oracle to return the outputRoot we want as well as a finalized timestamp.
+        uint256 finalizedTimestamp = block.timestamp - oracle.FINALIZATION_PERIOD_SECONDS() - 1;
+        vm.mockCall(
+            address(op.L2_ORACLE()),
+            abi.encodeWithSelector(L2OutputOracle.getL2Output.selector),
+            abi.encode(Types.OutputProposal(outputRoot, uint128(finalizedTimestamp), uint128(_proposedBlockNumber)))
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit WithdrawalProven(withdrawalHash, alice, address(this));
+        op.proveWithdrawalTransaction(_testTx, _proposedBlockNumber, outputRootProof, withdrawalProof);
+
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.expectCall(address(this), _testTx.data);
+        vm.expectEmit(true, true, true, true);
+        emit WithdrawalFinalized(withdrawalHash, true);
+        op.finalizeWithdrawalTransaction(_testTx);
+
+        // Ensure that bob's balance was not changed by the reentrant call.
+        assert(ton.balanceOf(address(bob)) == bobBalanceBefore);
+    }
 
     // /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     // function testDiff_finalizeWithdrawalTransaction_succeeds(
@@ -825,9 +835,14 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     //             && uint160(_target) > 9 // No precompiles (or zero address)
     //     );
 
-    //     // Total ETH supply is currently about 120M ETH.
-    //     uint256 value = bound(_value, 0, 200_000_000 ether);
-    //     vm.deal(address(op), value);
+    //     // vm.prank(address(op));
+    //     uint256 opBalance = ton.balanceOf(address(op));
+    //     if (opBalance < _value) {
+    //         vm.prank(address(op));
+    //         ton.faucet(_value - opBalance);
+    //     }
+
+    //     vm.prank(address(this));
 
     //     uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
     //     uint256 nonce = messagePasser.messageNonce();
@@ -837,7 +852,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     //         nonce: nonce,
     //         sender: _sender,
     //         target: _target,
-    //         value: value,
+    //         value: _value,
     //         gasLimit: gasLimit,
     //         data: _data
     //     });
@@ -966,71 +981,75 @@ contract OptimismPortalResourceFuzz_Test is Portal_Initializer {
     uint256 constant MAX_GAS_LIMIT = 30_000_000;
 
     /// @dev Test that various values of the resource metering config will not break deposits.
-    // function testFuzz_systemConfigDeposit_succeeds(
-    //     uint32 _maxResourceLimit,
-    //     uint8 _elasticityMultiplier,
-    //     uint8 _baseFeeMaxChangeDenominator,
-    //     uint32 _minimumBaseFee,
-    //     uint32 _systemTxMaxGas,
-    //     uint128 _maximumBaseFee,
-    //     uint64 _gasLimit,
-    //     uint64 _prevBoughtGas,
-    //     uint128 _prevBaseFee,
-    //     uint8 _blockDiff
-    // )
-    //     external
-    // {
-    //     // Get the set system gas limit
-    //     uint64 gasLimit = systemConfig.gasLimit();
-    //     // Bound resource config
-    //     _maxResourceLimit = uint32(bound(_maxResourceLimit, 21000, MAX_GAS_LIMIT / 8));
-    //     _gasLimit = uint64(bound(_gasLimit, 21000, _maxResourceLimit));
-    //     _prevBaseFee = uint128(bound(_prevBaseFee, 0, 3 gwei));
-    //     // Prevent values that would cause reverts
-    //     vm.assume(gasLimit >= _gasLimit);
-    //     vm.assume(_minimumBaseFee < _maximumBaseFee);
-    //     vm.assume(_baseFeeMaxChangeDenominator > 1);
-    //     vm.assume(uint256(_maxResourceLimit) + uint256(_systemTxMaxGas) <= gasLimit);
-    //     vm.assume(_elasticityMultiplier > 0);
-    //     vm.assume(((_maxResourceLimit / _elasticityMultiplier) * _elasticityMultiplier) == _maxResourceLimit);
-    //     _prevBoughtGas = uint64(bound(_prevBoughtGas, 0, _maxResourceLimit - _gasLimit));
-    //     _blockDiff = uint8(bound(_blockDiff, 0, 3));
-    //     // Pick a pseudorandom block number
-    //     vm.roll(uint256(keccak256(abi.encode(_blockDiff))) % uint256(type(uint16).max) + uint256(_blockDiff));
+    function testFuzz_systemConfigDeposit_succeeds(
+        uint32 _maxResourceLimit,
+        uint8 _elasticityMultiplier,
+        uint8 _baseFeeMaxChangeDenominator,
+        uint32 _minimumBaseFee,
+        uint32 _systemTxMaxGas,
+        uint128 _maximumBaseFee,
+        uint64 _gasLimit,
+        uint64 _prevBoughtGas,
+        uint128 _prevBaseFee,
+        uint8 _blockDiff
+    )
+        external
+    {
+        // Get the set system gas limit
+        uint64 gasLimit = systemConfig.gasLimit();
+        // Bound resource config
+        _maxResourceLimit = uint32(bound(_maxResourceLimit, 21000, MAX_GAS_LIMIT / 8));
+        _gasLimit = uint64(bound(_gasLimit, 21000, _maxResourceLimit));
+        _prevBaseFee = uint128(bound(_prevBaseFee, 0, 3 gwei));
+        // Prevent values that would cause reverts
+        vm.assume(gasLimit >= _gasLimit);
+        vm.assume(_minimumBaseFee < _maximumBaseFee);
+        vm.assume(_baseFeeMaxChangeDenominator > 1);
+        vm.assume(uint256(_maxResourceLimit) + uint256(_systemTxMaxGas) <= gasLimit);
+        vm.assume(_elasticityMultiplier > 0);
+        vm.assume(((_maxResourceLimit / _elasticityMultiplier) * _elasticityMultiplier) == _maxResourceLimit);
+        _prevBoughtGas = uint64(bound(_prevBoughtGas, 0, _maxResourceLimit - _gasLimit));
+        _blockDiff = uint8(bound(_blockDiff, 0, 3));
+        // Pick a pseudorandom block number
+        vm.roll(uint256(keccak256(abi.encode(_blockDiff))) % uint256(type(uint16).max) + uint256(_blockDiff));
 
-    //     // Create a resource config to mock the call to the system config with
-    //     ResourceMetering.ResourceConfig memory rcfg = ResourceMetering.ResourceConfig({
-    //         maxResourceLimit: _maxResourceLimit,
-    //         elasticityMultiplier: _elasticityMultiplier,
-    //         baseFeeMaxChangeDenominator: _baseFeeMaxChangeDenominator,
-    //         minimumBaseFee: _minimumBaseFee,
-    //         systemTxMaxGas: _systemTxMaxGas,
-    //         maximumBaseFee: _maximumBaseFee
-    //     });
-    //     vm.mockCall(
-    //         address(systemConfig), abi.encodeWithSelector(systemConfig.resourceConfig.selector), abi.encode(rcfg)
-    //     );
+        // Create a resource config to mock the call to the system config with
+        ResourceMetering.ResourceConfig memory rcfg = ResourceMetering.ResourceConfig({
+            maxResourceLimit: _maxResourceLimit,
+            elasticityMultiplier: _elasticityMultiplier,
+            baseFeeMaxChangeDenominator: _baseFeeMaxChangeDenominator,
+            minimumBaseFee: _minimumBaseFee,
+            systemTxMaxGas: _systemTxMaxGas,
+            maximumBaseFee: _maximumBaseFee
+        });
+        vm.mockCall(
+            address(systemConfig), abi.encodeWithSelector(systemConfig.resourceConfig.selector), abi.encode(rcfg)
+        );
 
-    //     // Set the resource params
-    //     uint256 _prevBlockNum = block.number - _blockDiff;
-    //     vm.store(
-    //         address(op),
-    //         bytes32(uint256(1)),
-    //         bytes32((_prevBlockNum << 192) | (uint256(_prevBoughtGas) << 128) | _prevBaseFee)
-    //     );
-    //     // Ensure that the storage setting is correct
-    //     (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = op.params();
-    //     assertEq(prevBaseFee, _prevBaseFee);
-    //     assertEq(prevBoughtGas, _prevBoughtGas);
-    //     assertEq(prevBlockNum, _prevBlockNum);
+        // Set the resource params
+        uint256 _prevBlockNum = block.number - _blockDiff;
+        vm.store(
+            address(op),
+            bytes32(uint256(1)),
+            bytes32((_prevBlockNum << 192) | (uint256(_prevBoughtGas) << 128) | _prevBaseFee)
+        );
+        // Ensure that the storage setting is correct
+        (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = op.params();
+        assertEq(prevBaseFee, _prevBaseFee);
+        assertEq(prevBoughtGas, _prevBoughtGas);
+        assertEq(prevBlockNum, _prevBlockNum);
 
-    //     // Do a deposit, should not revert
-    //     op.depositTransaction{ gas: MAX_GAS_LIMIT }({
-    //         _to: address(0x20),
-    //         _value: 0x40,
-    //         _gasLimit: _gasLimit,
-    //         _isCreation: false,
-    //         _data: hex""
-    //     });
-    // }
+        uint256 depositAmount = 0x40;
+        ton.faucet(depositAmount);
+        ton.approve(address(op), depositAmount);
+
+        // Do a deposit, should not revert
+        op.depositTransaction({
+            _to: address(0x20),
+            _value: depositAmount,
+            _gasLimit: _gasLimit,
+            _isCreation: false,
+            _data: hex""
+        });
+    }
 }
