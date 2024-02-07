@@ -226,9 +226,7 @@ contract OptimismPortal_Test is Portal_Initializer {
             address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
         );
         vm.prank(address(this), address(this));
-        op.depositTransaction(
-            NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
         assertEq(ton.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
@@ -248,9 +246,7 @@ contract OptimismPortal_Test is Portal_Initializer {
             NON_ZERO_DATA
         );
         vm.prank(address(this), address(alice));
-        op.depositTransaction(
-            NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with TON.
@@ -284,8 +280,7 @@ contract OptimismPortal_Test is Portal_Initializer {
             NON_ZERO_DATA
         );
         vm.prank(address(this), address(alice));
-        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true,
-    NON_ZERO_DATA);
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
         assertEq(ton.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
