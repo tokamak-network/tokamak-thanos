@@ -1,60 +1,46 @@
 {
   "finalSystemOwner": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
   "portalGuardian": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
-  "l1TONToken": "0x75fE809aE1C4A66c27a0239F147d0cc5710a104A",
-
+  "nativeTokenAddress": "0x75fE809aE1C4A66c27a0239F147d0cc5710a104A",
   "l1StartingBlockTag": "0x531bb6c0b2e138874751dbcd8d111856133cb4f6d0307a795a0c7a9f8d6e3bc3",
-
   "l1ChainID": 2023,
   "l2ChainID": 42069,
   "l2BlockTime": 2,
   "l1BlockTime": 12,
-
   "maxSequencerDrift": 600,
   "sequencerWindowSize": 3600,
   "channelTimeout": 300,
-
   "p2pSequencerAddress": "0xC06566E8Ec6cF81B4B26376880dB620d83d50Dfb",
   "batchInboxAddress": "0xff00000000000000000000000000000000042069",
   "batchSenderAddress": "0xa1AEF4C07AB21E39c37F05466b872094edcf9cB1",
-
   "l2OutputOracleSubmissionInterval": 10,
   "l2OutputOracleStartingBlockNumber": 0,
   "l2OutputOracleStartingTimestamp": 1705573962,
-
   "l2OutputOracleProposer": "0x40E805e252D0Ee3D587b68736544dEfB419F351b",
   "l2OutputOracleChallenger": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
-
   "finalizationPeriodSeconds": 12,
-
   "proxyAdminOwner": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
   "baseFeeVaultRecipient": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
   "l1FeeVaultRecipient": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
   "sequencerFeeVaultRecipient": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
-
   "baseFeeVaultMinimumWithdrawalAmount": "0x8ac7230489e80000",
   "l1FeeVaultMinimumWithdrawalAmount": "0x8ac7230489e80000",
   "sequencerFeeVaultMinimumWithdrawalAmount": "0x8ac7230489e80000",
   "baseFeeVaultWithdrawalNetwork": 0,
   "l1FeeVaultWithdrawalNetwork": 0,
   "sequencerFeeVaultWithdrawalNetwork": 0,
-
   "gasPriceOracleOverhead": 2100,
   "gasPriceOracleScalar": 1000000,
-
   "enableGovernance": true,
   "governanceTokenSymbol": "OP",
   "governanceTokenName": "Optimism",
   "governanceTokenOwner": "0x9625B9aF7C42b4Ab7f2C437dbc4ee749d52E19FC",
-
   "l2GenesisBlockGasLimit": "0x1c9c380",
   "l2GenesisBlockBaseFeePerGas": "0x3b9aca00",
   "l2GenesisRegolithTimeOffset": "0x0",
-
   "eip1559Denominator": 50,
   "eip1559DenominatorCanyon": 250,
   "eip1559Elasticity": 10,
-
   "systemConfigStartBlock": 0,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "recommendedProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000"
