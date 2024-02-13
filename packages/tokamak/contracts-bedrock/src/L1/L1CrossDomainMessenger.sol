@@ -28,7 +28,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     OptimismPortal public PORTAL;
 
     /// @notice Address of TON (ERC-20 token)
+<<<<<<< HEAD
     address public l1TONAddress;
+=======
+    address public nativeTokenAddress;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 
     /// @notice Semantic version.
     /// @custom:semver 1.7.1
@@ -36,17 +40,36 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
+<<<<<<< HEAD
         initialize({ _portal: OptimismPortal(payable(0)),  _l1TONAddress: address(0) });
+=======
+        initialize({ _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     }
 
     /// @notice Initializes the contract.
     /// @param _portal Address of the OptimismPortal contract on this network.
+<<<<<<< HEAD
     function initialize(OptimismPortal _portal, address _l1TONAddress) public reinitializer(Constants.INITIALIZER) {
         PORTAL = _portal;
         l1TONAddress = _l1TONAddress;
         __CrossDomainMessenger_init();
         if (address(PORTAL) != address(0) && address(l1TONAddress) != address(0)) {
             IERC20(l1TONAddress).approve(address(PORTAL), 2**256 - 1);
+=======
+    function initialize(
+        OptimismPortal _portal,
+        address _nativeTokenAddress
+    )
+        public
+        reinitializer(Constants.INITIALIZER)
+    {
+        PORTAL = _portal;
+        nativeTokenAddress = _nativeTokenAddress;
+        __CrossDomainMessenger_init();
+        if (address(PORTAL) != address(0) && address(nativeTokenAddress) != address(0)) {
+            IERC20(nativeTokenAddress).approve(address(PORTAL), 2 ** 256 - 1);
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         }
     }
 
@@ -55,8 +78,15 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         return address(PORTAL);
     }
 
+    // /// @inheritdoc CrossDomainMessenger
+    // function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+    //     require(msg.value == 0, "Deny depositing ETH");
+    //     PORTAL.depositTransaction(_to, 0, _gasLimit, false, _data);
+    // }
+
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+<<<<<<< HEAD
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
@@ -64,6 +94,13 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     function _sendTONMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override{
         IERC20(l1TONAddress).safeTransferFrom(msg.sender, address(this), _value);
         PORTAL.depositTONTransaction(_to, _value, _gasLimit, false, _data);
+=======
+        require(msg.value == 0, "Deny depositing ETH");
+        if (_value > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
+        }
+        PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     }
 
     /// @inheritdoc CrossDomainMessenger
@@ -76,13 +113,50 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         return _target == address(this) || _target == address(PORTAL);
     }
 
+<<<<<<< HEAD
+=======
+    /// @notice Sends a deposit ton message to some target address on the other chain. Note that if the call
+    ///         always reverts, then the message will be unrelayable, and any ETH sent will be
+    ///         permanently locked. The same will occur if the target on the other chain is
+    ///         considered unsafe (see the _isUnsafeTarget() function).
+    /// @param _target      Target contract or wallet address.
+    /// @param _amount      Amount of deposit TON.
+    /// @param _message     Message to trigger the target address with.
+    /// @param _minGasLimit Minimum gas limit that the message can be executed with.
+    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
+        // Triggers a message to the other messenger. Note that the amount of gas provided to the
+        // message is the amount of gas requested by the user PLUS the base gas value. We want to
+        // guarantee the property that the call to the target contract will always have at least
+        // the minimum gas limit specified by the user.
+        _sendMessage(
+            OTHER_MESSENGER,
+            baseGas(_message, _minGasLimit),
+            _amount,
+            abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), msg.sender, _target, _amount, _minGasLimit, _message
+            )
+        );
+
+        emit SentMessage(_target, msg.sender, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(msg.sender, _amount);
+
+        unchecked {
+            ++msgNonce;
+        }
+    }
+
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
     ///         be executed via cross-chain call from the other messenger OR if the message was
     ///         already received once and is currently being replayed.
     /// @param _nonce       Nonce of the message being relayed.
     /// @param _sender      Address of the user who sent the message.
     /// @param _target      Address that the message is targeted at.
+<<<<<<< HEAD
     /// @param _value       ETH value to send with the message.
+=======
+    /// @param _value       TON value to send with the message.
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     /// @param _minGasLimit Minimum amount of gas that the message can be executed with.
     /// @param _message     Message to send to the target.
     function relayMessage(
@@ -158,14 +232,24 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         }
 
         xDomainMsgSender = _sender;
+<<<<<<< HEAD
         bool approvalStatus = true;
         if (_value != 0){
             approvalStatus = IERC20(l1TONAddress).approve(_target, _value);
+=======
+        bool transferStatus = true;
+        if (_value != 0) {
+            transferStatus = IERC20(nativeTokenAddress).transfer(_target, _value);
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
+<<<<<<< HEAD
         if (success && approvalStatus) {
+=======
+        if (success && transferStatus) {
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {

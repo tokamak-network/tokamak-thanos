@@ -45,7 +45,11 @@ type DeployConfig struct {
 	// with this.
 	L1StartingBlockTag *MarshalableRPCBlockNumberOrHash `json:"l1StartingBlockTag"`
 	// L1Token is the L1's address of the L2 chain's native token.
+<<<<<<< HEAD
 	L1TONToken common.Address `json:"l1TONToken"`
+=======
+	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 	// L1ChainID is the chain ID of the L1 chain.
 	L1ChainID uint64 `json:"l1ChainID"`
 	// L2ChainID is the chain ID of the L2 chain.
@@ -788,9 +792,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_initialized":  initializedValue,
 		"_initializing": false,
 	}
-	storage["WETH"] = state.StorageValues{
-		"_name":   "Wrapped Ether",
-		"_symbol": "WETH",
+	storage["ETH"] = state.StorageValues{
+		"_name":   "Ether",
+		"_symbol": "ETH",
 	}
 	return storage, nil
 }

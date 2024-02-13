@@ -16,7 +16,11 @@ contract DeployConfig is Script {
 
     address public finalSystemOwner;
     address public portalGuardian;
+<<<<<<< HEAD
     address public l1TONToken;
+=======
+    address public nativeTokenAddress;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     uint256 public l1ChainID;
     uint256 public l2ChainID;
     uint256 public l2BlockTime;
@@ -63,7 +67,11 @@ contract DeployConfig is Script {
 
         finalSystemOwner = stdJson.readAddress(_json, "$.finalSystemOwner");
         portalGuardian = stdJson.readAddress(_json, "$.portalGuardian");
+<<<<<<< HEAD
         l1TONToken = stdJson.readAddress(_json, "$.l1TONToken");
+=======
+        nativeTokenAddress = stdJson.readAddress(_json, "$.nativeTokenAddress");
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         l1ChainID = stdJson.readUint(_json, "$.l1ChainID");
         l2ChainID = stdJson.readUint(_json, "$.l2ChainID");
         l2BlockTime = stdJson.readUint(_json, "$.l2BlockTime");
@@ -101,6 +109,10 @@ contract DeployConfig is Script {
             faultGameMaxDepth = stdJson.readUint(_json, "$.faultGameMaxDepth");
             faultGameMaxDuration = stdJson.readUint(_json, "$.faultGameMaxDuration");
         }
+    }
+
+    function setNativeTokenAddress(address _nativeTokenAddress) public {
+        nativeTokenAddress = _nativeTokenAddress;
     }
 
     function l1StartingBlockTag() public returns (bytes32) {

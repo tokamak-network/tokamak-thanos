@@ -13,6 +13,7 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 import { Deployer } from "scripts/Deployer.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 
+import { TON } from "src/L1/TON.sol";
 import { Safe } from "safe-contracts/Safe.sol";
 import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -72,6 +73,7 @@ contract Deploy is Deployer {
     function run() public {
         console.log("Deploying L1 system");
 
+        deployTON();
         deployProxies();
         deployImplementations();
 
@@ -126,6 +128,15 @@ contract Deploy is Deployer {
         ) {
             _;
         }
+    }
+
+    /// @notice Deploy the Safe
+    function deployTON() public onlyDevnet broadcast {
+        TON ton = new TON{ salt: implSalt() }();
+        address addr_ = address(ton);
+        cfg.setNativeTokenAddress(addr_);
+        console.log("TON deployed at", addr_);
+        save("TON", addr_);
     }
 
     /// @notice Deploy all of the proxies
@@ -194,10 +205,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
 
-        _upgradeViaSafe({
-            _proxy: payable(l1StandardBridgeProxy),
-            _implementation: l1StandardBridge
-        });
+        _upgradeViaSafe({ _proxy: payable(l1StandardBridgeProxy), _implementation: l1StandardBridge });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
         console.log("L1StandardBridge version: %s", version);
@@ -224,11 +232,11 @@ contract Deploy is Deployer {
 
         require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
         string memory contractName = "OVM_L1CrossDomainMessenger";
-        require(keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) == keccak256(bytes(contractName)));
-        _upgradeViaSafe({
-            _proxy: payable(l1CrossDomainMessengerProxy),
-            _implementation: l1CrossDomainMessenger
-        });
+        require(
+            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
+                == keccak256(bytes(contractName))
+        );
+        _upgradeViaSafe({ _proxy: payable(l1CrossDomainMessengerProxy), _implementation: l1CrossDomainMessenger });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
         string memory version = messenger.version();
@@ -258,10 +266,14 @@ contract Deploy is Deployer {
             console.log("Portal guardian has no code: %s", guardian);
         }
 
+<<<<<<< HEAD
         _upgradeViaSafe({
             _proxy: payable(optimismPortalProxy),
             _implementation: optimismPortal
         });
+=======
+        _upgradeViaSafe({ _proxy: payable(optimismPortalProxy), _implementation: optimismPortal });
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 
         OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
         string memory version = portal.version();
@@ -673,12 +685,11 @@ contract Deploy is Deployer {
         });
     }
 
-     /// @notice Call from the Safe contract to the Proxy Admin's upgrade
+    /// @notice Call from the Safe contract to the Proxy Admin's upgrade
     function _upgradeViaSafe(address _proxy, address _implementation) internal {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
 
-        bytes memory data =
-            abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
+        bytes memory data = abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
 
         _callViaSafe({ _target: proxyAdmin, _data: data });
     }
@@ -796,7 +807,11 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
+<<<<<<< HEAD
                 L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.l1TONToken())
+=======
+                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.nativeTokenAddress())
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 )
         });
 
@@ -883,7 +898,11 @@ contract Deploy is Deployer {
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
             _innerCallData: abi.encodeCall(
+<<<<<<< HEAD
                 L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.l1TONToken())
+=======
+                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.nativeTokenAddress())
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 )
         });
 
@@ -951,7 +970,17 @@ contract Deploy is Deployer {
             _implementation: optimismPortal,
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
+<<<<<<< HEAD
                 (cfg.l1TONToken(), L2OutputOracle(l2OutputOracleProxy), guardian, SystemConfig(systemConfigProxy), false)
+=======
+                (
+                    cfg.nativeTokenAddress(),
+                    L2OutputOracle(l2OutputOracleProxy),
+                    guardian,
+                    SystemConfig(systemConfigProxy),
+                    false
+                )
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 )
         });
 

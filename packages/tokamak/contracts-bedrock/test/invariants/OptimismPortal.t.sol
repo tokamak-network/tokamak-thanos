@@ -175,6 +175,7 @@ contract OptimismPortal_CannotTimeTravel is OptimismPortal_Invariant_Harness {
 }
 
 contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness {
+<<<<<<< HEAD
     // function setUp() public override {
     //     super.setUp();
 
@@ -202,6 +203,35 @@ contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness 
     //     vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
     //     op.finalizeWithdrawalTransaction(_defaultTx);
     // }
+=======
+// function setUp() public override {
+//     super.setUp();
+
+//     // Prove the withdrawal transaction
+//     op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+
+//     // Warp past the finalization period.
+//     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+
+//     // Finalize the withdrawal transaction.
+//     op.finalizeWithdrawalTransaction(_defaultTx);
+
+//     // Set the target contract to the portal proxy
+//     targetContract(address(op));
+//     // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
+//     excludeSender(EIP1967Helper.getAdmin(address(op)));
+// }
+
+// /// @custom:invariant `finalizeWithdrawalTransaction` should revert if the withdrawal
+// ///                   has already been finalized.
+// ///
+// ///                   Ensures that there is no chain of calls that can be made that
+// ///                   allows a withdrawal to be finalized twice.
+// function invariant_cannotFinalizeTwice() external {
+//     vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
+//     op.finalizeWithdrawalTransaction(_defaultTx);
+// }
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 }
 
 contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant_Harness {

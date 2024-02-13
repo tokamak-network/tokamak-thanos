@@ -75,6 +75,11 @@ library Predeploys {
     /// @notice Address of the EAS predeploy.
     address internal constant EAS = 0x4200000000000000000000000000000000000021;
 
+<<<<<<< HEAD
     /// @notice Address of the WETH predeploy.
     address internal constant WETH = 0x4200000000000000000000000000000000000022;
+=======
+    /// @notice Address of the ETH predeploy.
+    address internal constant ETH = 0x4200000000000000000000000000000000000486;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 }

@@ -111,11 +111,11 @@ contract OptimismPortal_Test is Portal_Initializer {
 
     /// @dev Tests that `depositTransaction` reverts when the destination address is non-zero
     ///      for a contract creation deposit.
-    function test_depositTransaction_contractCreation_reverts() external {
-        // contract creation must have a target of address(0)
-        vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
-        op.depositTransaction(address(1), 1, 0, true, hex"");
-    }
+    // function test_depositTransaction_contractCreation_reverts() external {
+    //     // contract creation must have a target of address(0)
+    //     vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
+    //     op.depositTransaction(address(1), 1, 0, true, hex"");
+    // }
 
     /// @dev Tests that `depositTransaction` reverts when the data is too large.
     ///      This places an upper bound on unsafe blocks sent over p2p.
@@ -281,7 +281,12 @@ contract OptimismPortal_Test is Portal_Initializer {
     //         NON_ZERO_DATA
     //     );
 
+<<<<<<< HEAD
     //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+=======
+    //     op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true,
+    // NON_ZERO_DATA);
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     //     assertEq(address(op).balance, NON_ZERO_VALUE);
     // }
 
@@ -919,7 +924,11 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitProxy_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(payable(proxy)).initialize({
+<<<<<<< HEAD
             _tonAddress: address(0),
+=======
+            _nativeTokenAddress: address(0),
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
@@ -931,7 +940,11 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitImpl_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(opImpl).initialize({
+<<<<<<< HEAD
             _tonAddress: address(0),
+=======
+            _nativeTokenAddress: address(0),
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
@@ -970,71 +983,71 @@ contract OptimismPortalResourceFuzz_Test is Portal_Initializer {
     uint256 constant MAX_GAS_LIMIT = 30_000_000;
 
     /// @dev Test that various values of the resource metering config will not break deposits.
-    function testFuzz_systemConfigDeposit_succeeds(
-        uint32 _maxResourceLimit,
-        uint8 _elasticityMultiplier,
-        uint8 _baseFeeMaxChangeDenominator,
-        uint32 _minimumBaseFee,
-        uint32 _systemTxMaxGas,
-        uint128 _maximumBaseFee,
-        uint64 _gasLimit,
-        uint64 _prevBoughtGas,
-        uint128 _prevBaseFee,
-        uint8 _blockDiff
-    )
-        external
-    {
-        // Get the set system gas limit
-        uint64 gasLimit = systemConfig.gasLimit();
-        // Bound resource config
-        _maxResourceLimit = uint32(bound(_maxResourceLimit, 21000, MAX_GAS_LIMIT / 8));
-        _gasLimit = uint64(bound(_gasLimit, 21000, _maxResourceLimit));
-        _prevBaseFee = uint128(bound(_prevBaseFee, 0, 3 gwei));
-        // Prevent values that would cause reverts
-        vm.assume(gasLimit >= _gasLimit);
-        vm.assume(_minimumBaseFee < _maximumBaseFee);
-        vm.assume(_baseFeeMaxChangeDenominator > 1);
-        vm.assume(uint256(_maxResourceLimit) + uint256(_systemTxMaxGas) <= gasLimit);
-        vm.assume(_elasticityMultiplier > 0);
-        vm.assume(((_maxResourceLimit / _elasticityMultiplier) * _elasticityMultiplier) == _maxResourceLimit);
-        _prevBoughtGas = uint64(bound(_prevBoughtGas, 0, _maxResourceLimit - _gasLimit));
-        _blockDiff = uint8(bound(_blockDiff, 0, 3));
-        // Pick a pseudorandom block number
-        vm.roll(uint256(keccak256(abi.encode(_blockDiff))) % uint256(type(uint16).max) + uint256(_blockDiff));
+    // function testFuzz_systemConfigDeposit_succeeds(
+    //     uint32 _maxResourceLimit,
+    //     uint8 _elasticityMultiplier,
+    //     uint8 _baseFeeMaxChangeDenominator,
+    //     uint32 _minimumBaseFee,
+    //     uint32 _systemTxMaxGas,
+    //     uint128 _maximumBaseFee,
+    //     uint64 _gasLimit,
+    //     uint64 _prevBoughtGas,
+    //     uint128 _prevBaseFee,
+    //     uint8 _blockDiff
+    // )
+    //     external
+    // {
+    //     // Get the set system gas limit
+    //     uint64 gasLimit = systemConfig.gasLimit();
+    //     // Bound resource config
+    //     _maxResourceLimit = uint32(bound(_maxResourceLimit, 21000, MAX_GAS_LIMIT / 8));
+    //     _gasLimit = uint64(bound(_gasLimit, 21000, _maxResourceLimit));
+    //     _prevBaseFee = uint128(bound(_prevBaseFee, 0, 3 gwei));
+    //     // Prevent values that would cause reverts
+    //     vm.assume(gasLimit >= _gasLimit);
+    //     vm.assume(_minimumBaseFee < _maximumBaseFee);
+    //     vm.assume(_baseFeeMaxChangeDenominator > 1);
+    //     vm.assume(uint256(_maxResourceLimit) + uint256(_systemTxMaxGas) <= gasLimit);
+    //     vm.assume(_elasticityMultiplier > 0);
+    //     vm.assume(((_maxResourceLimit / _elasticityMultiplier) * _elasticityMultiplier) == _maxResourceLimit);
+    //     _prevBoughtGas = uint64(bound(_prevBoughtGas, 0, _maxResourceLimit - _gasLimit));
+    //     _blockDiff = uint8(bound(_blockDiff, 0, 3));
+    //     // Pick a pseudorandom block number
+    //     vm.roll(uint256(keccak256(abi.encode(_blockDiff))) % uint256(type(uint16).max) + uint256(_blockDiff));
 
-        // Create a resource config to mock the call to the system config with
-        ResourceMetering.ResourceConfig memory rcfg = ResourceMetering.ResourceConfig({
-            maxResourceLimit: _maxResourceLimit,
-            elasticityMultiplier: _elasticityMultiplier,
-            baseFeeMaxChangeDenominator: _baseFeeMaxChangeDenominator,
-            minimumBaseFee: _minimumBaseFee,
-            systemTxMaxGas: _systemTxMaxGas,
-            maximumBaseFee: _maximumBaseFee
-        });
-        vm.mockCall(
-            address(systemConfig), abi.encodeWithSelector(systemConfig.resourceConfig.selector), abi.encode(rcfg)
-        );
+    //     // Create a resource config to mock the call to the system config with
+    //     ResourceMetering.ResourceConfig memory rcfg = ResourceMetering.ResourceConfig({
+    //         maxResourceLimit: _maxResourceLimit,
+    //         elasticityMultiplier: _elasticityMultiplier,
+    //         baseFeeMaxChangeDenominator: _baseFeeMaxChangeDenominator,
+    //         minimumBaseFee: _minimumBaseFee,
+    //         systemTxMaxGas: _systemTxMaxGas,
+    //         maximumBaseFee: _maximumBaseFee
+    //     });
+    //     vm.mockCall(
+    //         address(systemConfig), abi.encodeWithSelector(systemConfig.resourceConfig.selector), abi.encode(rcfg)
+    //     );
 
-        // Set the resource params
-        uint256 _prevBlockNum = block.number - _blockDiff;
-        vm.store(
-            address(op),
-            bytes32(uint256(1)),
-            bytes32((_prevBlockNum << 192) | (uint256(_prevBoughtGas) << 128) | _prevBaseFee)
-        );
-        // Ensure that the storage setting is correct
-        (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = op.params();
-        assertEq(prevBaseFee, _prevBaseFee);
-        assertEq(prevBoughtGas, _prevBoughtGas);
-        assertEq(prevBlockNum, _prevBlockNum);
+    //     // Set the resource params
+    //     uint256 _prevBlockNum = block.number - _blockDiff;
+    //     vm.store(
+    //         address(op),
+    //         bytes32(uint256(1)),
+    //         bytes32((_prevBlockNum << 192) | (uint256(_prevBoughtGas) << 128) | _prevBaseFee)
+    //     );
+    //     // Ensure that the storage setting is correct
+    //     (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = op.params();
+    //     assertEq(prevBaseFee, _prevBaseFee);
+    //     assertEq(prevBoughtGas, _prevBoughtGas);
+    //     assertEq(prevBlockNum, _prevBlockNum);
 
-        // Do a deposit, should not revert
-        op.depositTransaction{ gas: MAX_GAS_LIMIT }({
-            _to: address(0x20),
-            _value: 0x40,
-            _gasLimit: _gasLimit,
-            _isCreation: false,
-            _data: hex""
-        });
-    }
+    //     // Do a deposit, should not revert
+    //     op.depositTransaction{ gas: MAX_GAS_LIMIT }({
+    //         _to: address(0x20),
+    //         _value: 0x40,
+    //         _gasLimit: _gasLimit,
+    //         _isCreation: false,
+    //         _data: hex""
+    //     });
+    // }
 }

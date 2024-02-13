@@ -238,6 +238,7 @@ abstract contract StandardBridge is Initializable {
     )
         public
         payable
+        virtual
         onlyOtherBridge
         virtual
     {
@@ -272,6 +273,7 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
+        virtual
         onlyOtherBridge
         virtual
     {

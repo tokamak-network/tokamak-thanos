@@ -24,11 +24,19 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	// opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	// require.Nil(t, err)
 
+<<<<<<< HEAD
 	// // Deploy WETH9
 	// weth9Address, tx, WETH9, err := bindings.DeployWETH9(opts, l1Client)
 	// require.NoError(t, err)
 	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	// require.NoError(t, err, "Waiting for deposit tx on L1")
+=======
+	// Deploy WETH9
+	weth9Address, tx, WETH9, err := bindings.DeployWTON(opts, l1Client)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err, "Waiting for deposit tx on L1")
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 
 	// // Get some WETH
 	// opts.Value = big.NewInt(params.Ether)

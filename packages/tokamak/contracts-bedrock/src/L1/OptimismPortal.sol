@@ -69,7 +69,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     address public guardian;
 
     /// @notice Address of TON (ERC-20 token)
+<<<<<<< HEAD
     address public tonAddress;
+=======
+    address public nativeTokenAddress;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -112,7 +116,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
+<<<<<<< HEAD
             _tonAddress: address(0),
+=======
+            _nativeTokenAddress: address(0),
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             _l2Oracle: L2OutputOracle(address(0)),
             _guardian: address(0),
             _systemConfig: SystemConfig(address(0)),
@@ -126,7 +134,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _paused Sets the contract's pausability state.
     /// @param _systemConfig Address of the SystemConfig contract.
     function initialize(
+<<<<<<< HEAD
         address _tonAddress,
+=======
+        address _nativeTokenAddress,
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         L2OutputOracle _l2Oracle,
         address _guardian,
         SystemConfig _systemConfig,
@@ -135,7 +147,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
+<<<<<<< HEAD
         tonAddress = _tonAddress;
+=======
+        nativeTokenAddress = _nativeTokenAddress;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         l2Sender = Constants.DEFAULT_L2_SENDER;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
@@ -193,7 +209,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         otherwise any deposited funds will be lost due to address aliasing.
     // solhint-disable-next-line ordering
     receive() external payable {
+<<<<<<< HEAD
         revert("Not allow deposit to ERC-20: WETH");
+=======
+        revert("Not allow deposit to ERC-20: ETH");
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 
@@ -352,6 +372,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
+        bool transferStatus = true;
+        if (_tx.value > 0) {
+            transferStatus = IERC20(nativeTokenAddress).transfer(_tx.target, _tx.value);
+        }
 
         bool transferStatus = IERC20(tonAddress).transfer(_tx.target, _tx.value);
 
@@ -379,12 +403,12 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         }
     }
 
-    /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
+    // @notice Accepts deposits of TON and data, and emits a TransactionDeposited event for use in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _to         Target address on L2.
-    /// @param _value      ETH value to send to the recipient.
+    /// @param _value      TON value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
@@ -398,6 +422,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         metered(_gasLimit)
     {
+        // Lock token in this contract
+        if (_value > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
+        }
+
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation) {
@@ -423,6 +452,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
+<<<<<<< HEAD
         bytes memory opaqueData = abi.encodePacked(uint256(0), _value, _gasLimit, _isCreation, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
@@ -475,6 +505,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
+=======
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
         bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, _isCreation, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit

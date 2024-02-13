@@ -120,8 +120,12 @@ contract Multichain is SafeBuilder {
                 SystemConfig: 0xAe851f927Ee40dE99aaBb7461C00f9622ab91d60,
                 L1ERC721Bridge: 0x8DD330DdE8D9898d43b4dc840Da27A07dF91b3c9
             });
+<<<<<<< HEAD
         }else
         if (network == goerli) {
+=======
+        } else if (network == goerli) {
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             console.log("Using goerli-prod");
             deployConfigPath = string.concat(vm.projectRoot(), "/deploy-config/goerli.json");
             proxies = ContractSet({
@@ -370,7 +374,13 @@ contract Multichain is SafeBuilder {
                     payable(prox.L1CrossDomainMessenger), // proxy
                     L1CrossDomainMessengerImplementation, // implementation
                     abi.encodeCall( // data
+<<<<<<< HEAD
                         L1CrossDomainMessenger.initialize, (OptimismPortal(payable(prox.OptimismPortal)), cfg.l1TONToken()))
+=======
+                            L1CrossDomainMessenger.initialize,
+                            (OptimismPortal(payable(prox.OptimismPortal)), cfg.nativeTokenAddress())
+                        )
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 )
                 )
         });
@@ -384,7 +394,14 @@ contract Multichain is SafeBuilder {
                 (
                     payable(prox.L1StandardBridge), // proxy
                     L1StandardBridgeImplementation, // implementation
+<<<<<<< HEAD
                     abi.encodeCall(L1StandardBridge.initialize, (L1CrossDomainMessenger(prox.L1CrossDomainMessenger), cfg.l1TONToken()))
+=======
+                    abi.encodeCall(
+                        L1StandardBridge.initialize,
+                        (L1CrossDomainMessenger(prox.L1CrossDomainMessenger), cfg.nativeTokenAddress())
+                        )
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 )
                 )
         });

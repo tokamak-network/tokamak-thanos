@@ -8,6 +8,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
@@ -25,7 +26,11 @@ import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 contract L1StandardBridge is StandardBridge, ISemver {
     using SafeERC20 for IERC20;
 
+<<<<<<< HEAD
     address public l1TONAddress;
+=======
+    address public nativeTokenAddress;
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -83,6 +88,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
+<<<<<<< HEAD
         initialize({ _messenger: CrossDomainMessenger(address(0)), _l1TONAddress: address(0) });
     }
 
@@ -96,11 +102,78 @@ contract L1StandardBridge is StandardBridge, ISemver {
     }
 
     /// @notice Deposit ETH on L1 and receive WETH on L2.
+=======
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _nativeTokenAddress: address(0) });
+    }
+
+    /// @notice Initializer
+    function initialize(
+        CrossDomainMessenger _messenger,
+        address _nativeTokenAddress
+    )
+        public
+        reinitializer(Constants.INITIALIZER)
+    {
+        __StandardBridge_init({ _messenger: _messenger });
+        nativeTokenAddress = _nativeTokenAddress;
+        if (address(_messenger) != address(0) && address(nativeTokenAddress) != address(0)) {
+            IERC20(nativeTokenAddress).approve(address(_messenger), 2 ** 256 - 1);
+        }
+    }
+
+    /// @notice Deposit ETH on L1 and receive ETH on L2.
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     receive() external payable override onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
+<<<<<<< HEAD
     /// @notice Deposits some amount of ETH into the sender's WETH's account on L2.
+=======
+    /// @notice Deposits some amount of TON into the sender's TON's account on L2.
+    /// @param _amount      Amount of TON being bridged.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function depositTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
+        _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Deposits some amount of TON into a target TON's account on L2.
+    /// @param _to          Address of the recipient on L2.
+    /// @param _amount      Amount of TON being bridged.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function depositTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
+        _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Deposits some amount of TON into the sender's TON's account on L2.
+    /// @param _amount      Amount of TON being bridged.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function bridgeTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
+        _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Deposits some amount of TON into a target TON's account on L2.
+    /// @param _to          Address of the recipient on L2.
+    /// @param _amount      Amount of TON being bridged.
+    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
+    /// @param _extraData   Optional data to forward to L2.
+    ///                     Data supplied here will not be used to execute any code on L2 and is
+    ///                     only emitted as extra data for the convenience of off-chain tooling.
+    function bridgeTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
+        _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Deposits some amount of ETH into the sender's ETH's account on L2.
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
@@ -109,7 +182,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _initiateETHDeposit(msg.sender, msg.sender, _minGasLimit, _extraData);
     }
 
+<<<<<<< HEAD
     /// @notice Deposits some amount of ETH into a target WETH's account on L2.
+=======
+    /// @notice Deposits some amount of ETH into a target ETH's account on L2.
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     ///         Note that if ETH is sent to a contract on L2 and the call fails, then that ETH will
     ///         be locked in the L2StandardBridge. ETH may be recoverable if the call can be
     ///         successfully replayed by increasing the amount of gas supplied to the call. If the
@@ -123,7 +200,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _initiateETHDeposit(msg.sender, _to, _minGasLimit, _extraData);
     }
 
+<<<<<<< HEAD
     /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive WETH on L2
+=======
+    /// @notice Initiates a bridge of ETH through the CrossDomainMessenger. Receive ETH on L2
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of ETH being bridged.
@@ -144,7 +225,27 @@ contract L1StandardBridge is StandardBridge, ISemver {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+<<<<<<< HEAD
         _sendERC20BridgeFinalizedMessage(address(0), Predeploys.WETH, _from, _to, _amount, _minGasLimit, _extraData);
+=======
+
+        messenger.sendMessage(
+            address(OTHER_BRIDGE),
+            abi.encodeWithSelector(
+                this.finalizeBridgeERC20.selector,
+                // Because this call will be executed on the remote chain, we reverse the order of
+                // the remote and local token addresses relative to their order in the
+                // finalizeBridgeERC20 function.
+                Predeploys.ETH,
+                address(0),
+                _from,
+                _to,
+                _amount,
+                _extraData
+            ),
+            _minGasLimit
+        );
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     }
 
     /// @custom:legacy
@@ -311,11 +412,19 @@ contract L1StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
+<<<<<<< HEAD
          if (l1TONAddress == _localToken) {
             _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
          }else {
             super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
          }
+=======
+        if (nativeTokenAddress == _localToken) {
+            _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
+        } else {
+            super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+        }
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     }
 
     /// @notice Sends TON tokens to a receiver's address on the other chain.
@@ -334,6 +443,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         internal
     {
+<<<<<<< HEAD
 
         IERC20(l1TONAddress).safeTransferFrom(_from, address(this), _amount);
         deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] = deposits[l1TONAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
@@ -341,6 +451,15 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _emitERC20BridgeInitiated(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
         messenger.sendTONMessage(
+=======
+        IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
+        deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] =
+            deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
+
+        _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+
+        L1CrossDomainMessenger(address(messenger)).sendTONMessage(
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             address(OTHER_BRIDGE),
             _amount,
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
@@ -432,8 +551,13 @@ contract L1StandardBridge is StandardBridge, ISemver {
     )
         public
         payable
+<<<<<<< HEAD
         onlyOtherBridge
         override
+=======
+        override
+        onlyOtherBridge
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     {
         require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
         require(_to != address(this), "StandardBridge: cannot send to self");
@@ -442,8 +566,12 @@ contract L1StandardBridge is StandardBridge, ISemver {
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
+<<<<<<< HEAD
         IERC20(l1TONAddress).safeTransferFrom(address(messenger), address(this), _amount);
         finalizeBridgeERC20(l1TONAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+=======
+        finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
     }
 
     function finalizeBridgeERC20(
@@ -455,10 +583,17 @@ contract L1StandardBridge is StandardBridge, ISemver {
         bytes calldata _extraData
     )
         public
+<<<<<<< HEAD
         onlyOtherBridge
         override
     {
         if (_isOptimismMintableERC20(_localToken)) {
+=======
+        override
+        onlyOtherBridge
+    {
+        if (_isOptimismMintableERC20(_localToken) && _localToken != nativeTokenAddress) {
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
@@ -468,7 +603,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         } else {
             // Case 1: Withdraw ETH
             // Case 2: Withdraw normal Token
+<<<<<<< HEAD
             if(_localToken == address(0) && _remoteToken == Predeploys.WETH) {
+=======
+            if (_localToken == address(0) && _remoteToken == Predeploys.ETH) {
+>>>>>>> origin/OR-1257-Update-smart-contracts-for-deposit-TON-in-L1
                 bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
                 require(success, "StandardBridge: ETH transfer failed");
             } else {
