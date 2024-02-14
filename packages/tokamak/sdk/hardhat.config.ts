@@ -1,9 +1,12 @@
 import { HardhatUserConfig } from 'hardhat/types'
 import { ethers } from 'ethers'
+import dotenv from 'dotenv'
 
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-deploy'
+
+dotenv.config()
 
 import './tasks'
 
