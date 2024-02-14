@@ -2,6 +2,8 @@
 pragma solidity 0.8.15;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IOptimismMintableERC20 } from "src/universal/IOptimismMintableERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -12,6 +14,7 @@ import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
+import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title L1StandardBridge
@@ -23,7 +26,7 @@ import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, ISemver {
+contract L1StandardBridge is StandardBridge, ISemver, OnApprove {
     using SafeERC20 for IERC20;
 
     address public nativeTokenAddress;
@@ -105,6 +108,12 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @notice Deposit ETH on L1 and receive ETH on L2.
     receive() external payable override onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+    }
+
+    function onApprove(address _owner, address, uint256 _amount, bytes calldata) external override returns (bool) {
+        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        _initiateBridgeTON(_owner, _owner, _amount, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+        return true;
     }
 
     /// @notice Deposits some amount of TON into the sender's TON's account on L2.
