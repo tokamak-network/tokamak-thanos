@@ -12,13 +12,14 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title L1CrossDomainMessenger
 /// @notice The L1CrossDomainMessenger is a message passing interface between L1 and L2 responsible
 ///         for sending and receiving data on the L1 side. Users are encouraged to use this
 ///         interface instead of interacting with lower-level contracts directly.
-contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
+contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver, OnApprove {
     using SafeERC20 for IERC20;
 
     /// @notice Address of the OptimismPortal. The public getter for this
@@ -74,6 +75,15 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
             IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
         }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
+    }
+
+    function onApprove(address _owner, address, uint256 _amount, bytes calldata) external override returns (bool) {
+        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        if (_amount > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
+        }
+        PORTAL.depositTransaction(_owner, _amount, 200_000, false, bytes(""));
+        return true;
     }
 
     /// @inheritdoc CrossDomainMessenger
