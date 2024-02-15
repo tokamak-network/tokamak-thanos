@@ -8,15 +8,10 @@ abstract contract OnApprove is IERC165 {
         return interfaceId == (OnApprove(this).onApprove.selector);
     }
 
-    function pack(uint32 _minGasLimit, bytes memory _message) public pure returns(bytes memory) {
-        bytes memory packedData = abi.encode(_minGasLimit, _message);
-        return packedData;
-    }
-
     function unpackOnApproveData(bytes memory _data) public pure returns(uint32, bytes memory) {
         require(_data.length >= 4, "");
         uint32 _minGasLimit;
-        bytes memory _message =_data;
+        bytes memory _message;
         uint256 _messageLength;
 
         assembly {
