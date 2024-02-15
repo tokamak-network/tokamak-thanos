@@ -14,10 +14,9 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
 import { ERC165Storage } from "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
-import { L1StandardBridgeStorage } from "./L1StandardBridgeStorage.sol";
 
 interface OnApprove {
-  function onApprove(address owner, address spender, uint256 amount, bytes calldata data) external returns (bool);
+    function onApprove(address owner, address spender, uint256 amount, bytes calldata data) external returns (bool);
 }
 
 /// @custom:proxied
@@ -30,10 +29,10 @@ interface OnApprove {
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, ISemver, L1StandardBridgeStorage, ERC165Storage {
+contract L1StandardBridge is StandardBridge, ISemver, ERC165Storage {
     using SafeERC20 for IERC20;
 
-    // address public nativeTokenAddress;
+    address public nativeTokenAddress;
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -121,15 +120,10 @@ contract L1StandardBridge is StandardBridge, ISemver, L1StandardBridgeStorage, E
     /// @param spender  OnApprove function contract address
     /// @param amount   Approved amount
     /// @param data     Data used in OnApprove contract
-    function onApprove(
-        address owner,
-        address spender,
-        uint256 amount,
-        bytes calldata data
-    ) external returns (bool) {
+    function onApprove(address owner, address spender, uint256 amount, bytes calldata data) external returns (bool) {
         require(msg.sender == nativeTokenAddress, "only accept nativeTokenAddress approve callback");
         require(spender == address(this), "wrong spender parameter");
-        require(data.length >= 4, '_minGasLimit outOfBounds');
+        require(data.length >= 4, "_minGasLimit outOfBounds");
         bytes memory _data = data;
 
         uint32 _minGasLimit;
