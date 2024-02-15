@@ -15,13 +15,14 @@ import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -381,7 +382,19 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         }
     }
 
-    // @notice Accepts deposits of TON and data, and emits a TransactionDeposited event for use in
+    /// @notice ERC20 onApprove callback
+    /// @param _owner    Account that called approveAndCall
+    /// @param _amount   Approved amount
+    /// @param _data     Data used in OnApprove contract
+    function onApprove(address _owner, address, uint256 _amount, bytes memory _data) external override returns (bool) {
+        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
+        _depositTransaction(_owner, _owner, _amount, _minGasLimit, false, _message);
+        return true;
+    }
+
+    // @notice Public interface for Accepting deposits of TON and data, and emits a TransactionDeposited event for use
+    // in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
@@ -397,12 +410,35 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         bool _isCreation,
         bytes memory _data
     )
-        public
+        external
+    {
+        _depositTransaction(msg.sender, _to, _value, _gasLimit, _isCreation, _data);
+    }
+
+    // @notice Accepts deposits of TON and data, and emits a TransactionDeposited event for use in
+    ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
+    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
+    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @param _sender       Sender address
+    /// @param _to         Target address on L2.
+    /// @param _value      TON value to send to the recipient.
+    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _isCreation Whether or not the transaction is a contract creation.
+    /// @param _data       Data to trigger the recipient with.
+    function _depositTransaction(
+        address _sender,
+        address _to,
+        uint256 _value,
+        uint64 _gasLimit,
+        bool _isCreation,
+        bytes memory _data
+    )
+        internal
         metered(_gasLimit)
     {
         // Lock token in this contract
         if (_value > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
+            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
         }
 
         // Just to be safe, make sure that people specify address(0) as the target when doing

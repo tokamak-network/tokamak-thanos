@@ -26,7 +26,7 @@ import { OnApprove } from "./OnApprove.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, ISemver, OnApprove {
+contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
     address public nativeTokenAddress;
@@ -110,9 +110,14 @@ contract L1StandardBridge is StandardBridge, ISemver, OnApprove {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
-    function onApprove(address _owner, address, uint256 _amount, bytes calldata) external override returns (bool) {
+    /// @notice ERC20 onApprove callback
+    /// @param _owner    Account that called approveAndCall
+    /// @param _amount   Approved amount
+    /// @param _data     Data used in OnApprove contract
+    function onApprove(address _owner, address, uint256 _amount, bytes memory _data) external override returns (bool) {
         require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
-        _initiateBridgeTON(_owner, _owner, _amount, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
+        _initiateBridgeTON(_owner, _owner, _amount, _minGasLimit, _message);
         return true;
     }
 
