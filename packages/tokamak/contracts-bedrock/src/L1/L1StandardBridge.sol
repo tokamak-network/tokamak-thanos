@@ -13,6 +13,13 @@ import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
+import { ERC165Storage } from "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
+import { L1StandardBridgeStorage } from "./L1StandardBridgeStorage.sol";
+
+interface OnApprove {
+  function onApprove(address owner, address spender, uint256 amount, bytes calldata data) external returns (bool);
+}
+
 /// @custom:proxied
 /// @title L1StandardBridge
 /// @notice The L1StandardBridge is responsible for transfering ETH and ERC20 tokens between L1 and
@@ -23,10 +30,10 @@ import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, ISemver {
+contract L1StandardBridge is StandardBridge, ISemver, L1StandardBridgeStorage, ERC165Storage {
     using SafeERC20 for IERC20;
 
-    address public nativeTokenAddress;
+    // address public nativeTokenAddress;
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -85,6 +92,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
         initialize({ _messenger: CrossDomainMessenger(address(0)), _nativeTokenAddress: address(0) });
+        // _registerInterface(OnApprove.onApprove.selector);
     }
 
     /// @notice Initializer
@@ -100,11 +108,42 @@ contract L1StandardBridge is StandardBridge, ISemver {
         if (address(_messenger) != address(0) && address(nativeTokenAddress) != address(0)) {
             IERC20(nativeTokenAddress).approve(address(_messenger), 2 ** 256 - 1);
         }
+        _registerInterface(OnApprove.onApprove.selector);
     }
 
     /// @notice Deposit ETH on L1 and receive ETH on L2.
     receive() external payable override onlyEOA {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
+    }
+
+    /// @notice ERC20 Approve callback
+    /// @param owner    Account that called approveAndCall
+    /// @param spender  OnApprove function contract address
+    /// @param amount   Approved amount
+    /// @param data     Data used in OnApprove contract
+    function onApprove(
+        address owner,
+        address spender,
+        uint256 amount,
+        bytes calldata data
+    ) external returns (bool) {
+        require(msg.sender == nativeTokenAddress, "only accept nativeTokenAddress approve callback");
+        require(spender == address(this), "wrong spender parameter");
+        require(data.length >= 4, '_minGasLimit outOfBounds');
+        bytes memory _data = data;
+
+        uint32 _minGasLimit;
+        bytes memory _extraData;
+
+        assembly {
+            _minGasLimit := mload(add(add(_data, 0x4), 0))
+        }
+
+        if (data.length > 4) _extraData = data[4:];
+
+        _initiateBridgeTON(owner, owner, amount, _minGasLimit, _extraData);
+
+        return true;
     }
 
     /// @notice Deposits some amount of TON into the sender's TON's account on L2.
