@@ -59,6 +59,11 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			log.Warn("Governance is not enabled, skipping governance token predeploy.")
 			continue
 		}
+		if addr == predeploys.KevinAddr && !config.EnableTokamakPredeployKevin {
+			// there is no governance token configured, so skip the governance token predeploy
+			log.Warn("Governance is not enabled, skipping governance token predeploy.")
+			continue
+		}
 		codeAddr := addr
 		if predeploys.IsProxied(addr) {
 			codeAddr, err = AddressToCodeNamespace(addr)

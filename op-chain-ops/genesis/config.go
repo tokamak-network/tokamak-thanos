@@ -50,6 +50,10 @@ type DeployConfig struct {
 	L2ChainID uint64 `json:"l2ChainID"`
 	// L2BlockTime is the number of seconds between each L2 block.
 	L2BlockTime uint64 `json:"l2BlockTime"`
+	// Predeploy Kevin
+	EnableTokamakPredeployKevin bool `json:"enableTokamakPredeployKevin"`
+	// Predeploy Kevin Owner
+	TokamakPredeployKevinOwner common.Address `json:"tokamakPredeployKevinOwner"`
 	// FinalizationPeriodSeconds represents the number of seconds before an output is considered
 	// finalized. This impacts the amount of time that withdrawals take to finalize and is
 	// generally set to 1 week.
@@ -789,6 +793,13 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	storage["WETH"] = state.StorageValues{
 		"_name":   "Wrapped Ether",
 		"_symbol": "WETH",
+	}
+	if config.EnableTokamakPredeployKevin {
+		storage["Kevin"] = state.StorageValues{
+			"_owner":  config.TokamakPredeployKevinOwner,
+			"_name":   "Kevin Token",
+			"_symbol": "Kevin",
+		}
 	}
 	return storage, nil
 }

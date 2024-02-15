@@ -26,6 +26,7 @@ const (
 	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
 	EAS                           = "0x4200000000000000000000000000000000000021"
 	WETH                          = "0x4200000000000000000000000000000000000022"
+	Kevin                         = "0x4200000000000000000000000000000000000547"
 )
 
 var (
@@ -49,6 +50,7 @@ var (
 	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
 	EASAddr                           = common.HexToAddress(EAS)
 	WETHAddr                          = common.HexToAddress(WETH)
+	KevinAddr                         = common.HexToAddress(Kevin)
 
 	Predeploys = make(map[string]*common.Address)
 )
@@ -58,6 +60,7 @@ func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
 	case WTONAddr:
 	case GovernanceTokenAddr:
+	case KevinAddr:
 	default:
 		return true
 	}
@@ -85,4 +88,5 @@ func init() {
 	Predeploys["SchemaRegistry"] = &SchemaRegistryAddr
 	Predeploys["EAS"] = &EASAddr
 	Predeploys["WETH"] = &WETHAddr
+	Predeploys["Kevin"] = &KevinAddr
 }
