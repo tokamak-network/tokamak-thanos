@@ -1,0 +1,29 @@
+name: geth unit tests
+
+on:
+  push:
+    paths:
+      - '**'
+
+defaults:
+  run:
+    working-directory: ./l2geth
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.18.x
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install
+      run: make
+
+    - name: Test
+      run: make test
