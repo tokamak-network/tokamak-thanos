@@ -81,7 +81,16 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
     /// @param _data     Data used in OnApprove contract
-    function onApprove(address _owner, address, uint256 _amount, bytes memory _data) external override returns (bool) {
+    function onApprove(
+        address _owner,
+        address,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        returns (bool)
+    {
         require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
         (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
 
