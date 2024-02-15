@@ -458,7 +458,7 @@ abstract contract Deployer is Script {
         json = stdJson.serialize("", "solcInputHash", _artifact.solcInputHash);
         json = stdJson.serialize("", "storageLayout", _artifact.storageLayout);
         json = stdJson.serialize("", "transactionHash", _artifact.transactionHash);
-        json = stdJson.serialize("", "userdoc", _artifact.userdoc);
+        // json = stdJson.serialize("", "userdoc", _artifact.userdoc);
         return json;
     }
 
