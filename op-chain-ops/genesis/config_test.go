@@ -30,8 +30,15 @@ func TestConfigDataMarshalUnmarshal(t *testing.T) {
 
 func TestUnmarshalL1StartingBlockTag(t *testing.T) {
 	decoded := new(DeployConfig)
+
+	// When L1StartingBlockTag is "earliest"
 	require.NoError(t, json.Unmarshal([]byte(`{"l1StartingBlockTag": "earliest"}`), decoded))
 	require.EqualValues(t, rpc.EarliestBlockNumber, *decoded.L1StartingBlockTag.BlockNumber)
+
+	// Reset decoded for the next test
+	decoded = new(DeployConfig)
+
+	// When L1StartingBlockTag is a specific hash value
 	h := "0x86c7263d87140ca7cd9bf1bc9e95a435a7a0efc0ae2afaf64920c5b59a6393d4"
 	require.NoError(t, json.Unmarshal([]byte(fmt.Sprintf(`{"l1StartingBlockTag": "%s"}`, h)), decoded))
 	require.EqualValues(t, common.HexToHash(h), *decoded.L1StartingBlockTag.BlockHash)

@@ -7,7 +7,7 @@ on:
 
 defaults:
   run:
-    working-directory: ./l2geth
+    working-directory: ./op-e2e
 
 jobs:
   tests:
