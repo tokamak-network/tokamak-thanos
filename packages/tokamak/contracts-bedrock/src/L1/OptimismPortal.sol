@@ -72,6 +72,8 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @notice Address of TON (ERC-20 token)
     address public nativeTokenAddress;
 
+    uint256 public depositedAmount;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
     ///         transactions on L2.
@@ -356,6 +358,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         bool transferStatus = true;
         if (_tx.value > 0) {
             transferStatus = IERC20(nativeTokenAddress).transfer(_tx.target, _tx.value);
+            depositedAmount -= _tx.value;
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -448,6 +451,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Lock token in this contract
         if (_value > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
+            depositedAmount += _value;
         }
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
