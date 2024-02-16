@@ -151,6 +151,7 @@ def deploy_contracts(paths):
     log.info('Syncing contracts.')
     run_command([
         'forge', 'script', fqn, '--sig', 'sync()',
+        '--memory-limit', '268435456',
         '--rpc-url', 'http://127.0.0.1:8545'
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
