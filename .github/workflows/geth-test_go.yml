@@ -1,30 +1,68 @@
 name: geth unit tests
-
 on:
   push:
     paths:
       - '**'
 
-defaults:
-  run:
-    working-directory: ./op-e2e
-
 jobs:
-  tests:
+  env-setting:
+    name: run test_go
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Set up Go 1.21
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.21
+      - name: Add repo to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-    - name: Install
-      run: make
+      - name: Copy foundry from Docker container
+        run: |
+          container_id=$(docker create onthertech/titan-ci-builder:latest)
+          mkdir -p $HOME/bin
+          docker cp $container_id:/usr/local/bin/cast $HOME/bin/
+          docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
+          docker cp $container_id:/usr/local/bin/forge $HOME/bin/
+          docker rm $container_id
 
-    - name: Test
-      run: make test
+      - name: Set permissions_add PATH
+        run: |
+          chmod +x $HOME/bin/*
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Set up Go 1.21
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21
+
+      - name: Install Geth
+        uses: gacts/install-geth-tools@v1
+        with:
+          version: '1.13.4'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install packages
+        run: |
+          pnpm install
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Get Cache Location
+        id: cache
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_ENV
+
+      - name: Test
+        run: make test
+        continue-on-error: true

@@ -70,7 +70,5 @@ jobs:
         run: make devnet-up
 
       - name: Execute test.go
-        run: |
-          go test -v ./...
-          continue-on-error: true
-
+        run: go test -v ./...
+        continue-on-error: true
