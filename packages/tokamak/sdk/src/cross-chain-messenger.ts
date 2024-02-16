@@ -72,6 +72,7 @@ import {
   DEPOSIT_CONFIRMATION_BLOCKS,
   CHAIN_BLOCK_TIMES,
   hashMessageHash,
+  toAddress,
 } from './utils'
 
 export class CrossChainMessenger {
@@ -94,6 +95,11 @@ export class CrossChainMessenger {
    * Chain ID for the L2 network.
    */
   public l2ChainId: number
+
+  /**
+   * L1 Ton Address
+   */
+  public l1TonAddress: string
 
   /**
    * Contract objects attached to their respective providers and addresses.
@@ -139,6 +145,7 @@ export class CrossChainMessenger {
     l2SignerOrProvider: SignerOrProviderLike
     l1ChainId: NumberLike
     l2ChainId: NumberLike
+    l1TonAddress?: AddressLike
     depositConfirmationBlocks?: NumberLike
     l1BlockTimeSeconds?: NumberLike
     contracts?: DeepPartial<OEContractsLike>
@@ -160,6 +167,10 @@ export class CrossChainMessenger {
       this.l2ChainId = toNumber(opts.l2ChainId)
     } catch (err) {
       throw new Error(`L2 chain ID is missing or invalid: ${opts.l2ChainId}`)
+    }
+
+    if (opts.l1TonAddress) {
+      this.l1TonAddress = toAddress(opts.l1TonAddress)
     }
 
     this.depositConfirmationBlocks =
@@ -829,8 +840,8 @@ export class CrossChainMessenger {
       return {
         receiptStatus: MessageReceiptStatus.RELAYED_FAILED,
         transactionReceipt: await failedRelayedMessageEvents[
-          failedRelayedMessageEvents.length - 1
-        ].getTransactionReceipt(),
+        failedRelayedMessageEvents.length - 1
+          ].getTransactionReceipt(),
       }
     }
 
@@ -1133,12 +1144,12 @@ export class CrossChainMessenger {
       oracleVersion === '1.0.0'
         ? // The ABI in the SDK does not contain FINALIZATION_PERIOD_SECONDS
           // in OptimismPortal, so making an explicit call instead.
-          BigNumber.from(
-            await this.contracts.l1.OptimismPortal.provider.call({
-              to: this.contracts.l1.OptimismPortal.address,
-              data: '0xf4daa291', // FINALIZATION_PERIOD_SECONDS
-            })
-          )
+        BigNumber.from(
+          await this.contracts.l1.OptimismPortal.provider.call({
+            to: this.contracts.l1.OptimismPortal.address,
+            data: '0xf4daa291', // FINALIZATION_PERIOD_SECONDS
+          })
+        )
         : await this.contracts.l1.L2OutputOracle.FINALIZATION_PERIOD_SECONDS()
     return challengePeriod.toNumber()
   }
@@ -1674,6 +1685,75 @@ export class CrossChainMessenger {
   }
 
   /**
+   * Deposits some TON into the L2 chain.
+   *
+   * @param amount Amount of TON to deposit
+   * @param opts Additional options.
+   * @param opts.signer Optional signer to use to send the transaction.
+   * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
+   * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
+   * @param opts.overrides Optional transaction overrides.
+   * @returns Transaction response for the deposit transaction.
+   */
+  public async depositTON(
+    amount: NumberLike,
+    opts?: {
+      recipient?: AddressLike
+      signer?: Signer
+      l2GasLimit?: NumberLike
+      overrides?: Overrides
+    }
+  ): Promise<TransactionResponse> {
+    return (opts?.signer || this.l1Signer).sendTransaction(
+      await this.populateTransaction.depositTON(amount, opts)
+    )
+  }
+
+  /**
+   * Withdraws some TON back to the L1 chain.
+   *
+   * @param amount Amount of TON to withdraw.
+   * @param opts Additional options.
+   * @param opts.signer Optional signer to use to send the transaction.
+   * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
+   * @param opts.overrides Optional transaction overrides.
+   * @returns Transaction response for the withdraw transaction.
+   */
+  public async withdrawTON(
+    amount: NumberLike,
+    opts?: {
+      recipient?: AddressLike
+      signer?: Signer
+      overrides?: Overrides
+    }
+  ): Promise<TransactionResponse> {
+    return (opts?.signer || this.l2Signer).sendTransaction(
+      await this.populateTransaction.withdrawTON(amount, opts)
+    )
+  }
+
+  /**
+   * Approves a deposit TON into the L2 chain.
+   *
+   * @param amount Amount of the TON token to approve.
+   * @param opts Additional options.
+   * @param opts.signer Optional signer to use to send the transaction.
+   * @param opts.overrides Optional transaction overrides.
+   * @returns Transaction response for the approval transaction.
+   */
+  public async approveTON(
+    amount: NumberLike,
+    opts?: {
+      signer?: Signer
+      overrides?: Overrides
+    }
+  ): Promise<TransactionResponse> {
+    return (opts?.signer || this.l1Signer).sendTransaction(
+      await this.populateTransaction.approveTON(amount, opts)
+    )
+  }
+
+  /**
    * Queries the account's approval amount for a given L1 token.
    *
    * @param l1Token The L1 token address.
@@ -2063,6 +2143,97 @@ export class CrossChainMessenger {
     },
 
     /**
+     * Generates a transaction for depositing some TON into the L2 chain.
+     *
+     * @param amount Amount of TON to deposit.
+     * @param opts Additional options.
+     * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
+     * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
+     * @param opts.overrides Optional transaction overrides.
+     * @param isEstimatingGas Enable estimation gas
+     * @returns Transaction that can be signed and executed to deposit the TON.
+     */
+    depositTON: async (
+      amount: NumberLike,
+      opts?: {
+        recipient?: AddressLike
+        l2GasLimit?: NumberLike
+        overrides?: PayableOverrides
+      },
+      isEstimatingGas: boolean = false
+    ): Promise<TransactionRequest> => {
+      const getOpts = async () => {
+        if (isEstimatingGas) {
+          return opts
+        }
+        const gasEstimation = await this.estimateGas.depositTON(amount, opts)
+        return {
+          ...opts,
+          overrides: {
+            ...opts?.overrides,
+            gasLimit: gasEstimation.add(gasEstimation.div(2)),
+          },
+        }
+      }
+      return this.bridges.TON.populateTransaction.deposit(
+        this.l1TonAddress,
+        ethers.constants.AddressZero,
+        amount,
+        await getOpts()
+      )
+    },
+
+    /**
+     * Generates a transaction for withdrawing some TON back to the L1 chain.
+     *
+     * @param amount Amount of TON to withdraw.
+     * @param opts Additional options.
+     * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
+     * @param opts.overrides Optional transaction overrides.
+     * @returns Transaction that can be signed and executed to withdraw the TON.
+     */
+    withdrawTON: async (
+      amount: NumberLike,
+      opts?: {
+        recipient?: AddressLike
+        overrides?: Overrides
+      }
+    ): Promise<TransactionRequest> => {
+      return this.bridges.TON.populateTransaction.withdraw(
+        this.l1TonAddress,
+        ethers.constants.AddressZero,
+        amount,
+        opts
+      )
+    },
+
+    /**
+     * Generates a transaction for approving TON tokens to deposit into the L2 chain.
+     *
+     * @param amount Amount of the TON token to approve.
+     * @param opts Additional options.
+     * @param opts.overrides Optional transaction overrides.
+     * @returns Transaction response for the approval transaction.
+     */
+    approveTON: async (
+      amount: NumberLike,
+      opts?: {
+        overrides?: Overrides
+      }
+    ): Promise<TransactionRequest> => {
+      const bridge = await this.getBridgeForTokenPair(
+        this.l1TonAddress,
+        ethers.constants.AddressZero
+      )
+      return bridge.populateTransaction.approve(
+        this.l1TonAddress,
+        ethers.constants.AddressZero,
+        amount,
+        opts
+      )
+    },
+
+    /**
      * Generates a transaction for approving some tokens to deposit into the L2 chain.
      *
      * @param l1Token The L1 token address.
@@ -2313,6 +2484,68 @@ export class CrossChainMessenger {
     ): Promise<BigNumber> => {
       return this.l2Provider.estimateGas(
         await this.populateTransaction.withdrawETH(amount, opts)
+      )
+    },
+
+    /**
+     * Estimates gas required to deposit some TON into the L2 chain.
+     *
+     * @param amount Amount of TON to deposit.
+     * @param opts Additional options.
+     * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
+     * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
+     * @param opts.overrides Optional transaction overrides.
+     * @returns Gas estimate for the transaction.
+     */
+    depositTON: async (
+      amount: NumberLike,
+      opts?: {
+        recipient?: AddressLike
+        l2GasLimit?: NumberLike
+        overrides?: CallOverrides
+      }
+    ): Promise<BigNumber> => {
+      return this.l1Provider.estimateGas(
+        await this.populateTransaction.depositTON(amount, opts, true)
+      )
+    },
+
+    /**
+     * Estimates gas required to withdraw some TON back to the L1 chain.
+     *
+     * @param amount Amount of TON to withdraw.
+     * @param opts Additional options.
+     * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
+     * @param opts.overrides Optional transaction overrides.
+     * @returns Gas estimate for the transaction.
+     */
+    withdrawTON: async (
+      amount: NumberLike,
+      opts?: {
+        recipient?: AddressLike
+        overrides?: CallOverrides
+      }
+    ): Promise<BigNumber> => {
+      return this.l2Provider.estimateGas(
+        await this.populateTransaction.withdrawTON(amount, opts)
+      )
+    },
+    /**
+     * Estimates gas required to approve TON tokens to deposit into the L2 chain.
+     *
+     * @param amount Amount of the token to approve.
+     * @param opts Additional options.
+     * @param opts.overrides Optional transaction overrides.
+     * @returns Transaction response for the approval transaction.
+     */
+    approveTON: async (
+      amount: NumberLike,
+      opts?: {
+        overrides?: CallOverrides
+      }
+    ): Promise<BigNumber> => {
+      return this.l1Provider.estimateGas(
+        await this.populateTransaction.approveTON(amount, opts)
       )
     },
 

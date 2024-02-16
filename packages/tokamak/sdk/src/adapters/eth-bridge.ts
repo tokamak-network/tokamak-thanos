@@ -9,7 +9,7 @@ import {
   TokenBridgeMessage,
   MessageDirection,
 } from '../interfaces'
-import { toAddress, omit, filterEthDepositsAndWithdrawls } from '../utils'
+import { toAddress, omit } from '../utils'
 import { StandardBridgeAdapter } from './standard-bridge'
 
 /**
@@ -101,7 +101,7 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
     l2Token: AddressLike
   ): Promise<boolean> {
     // Only support ETH deposits and withdrawals.
-    return filterEthDepositsAndWithdrawls(l1Token, l2Token)
+    return this.filterEthDepositsAndWithdrawls(l1Token, l2Token)
   }
 
   populateTransaction = {
