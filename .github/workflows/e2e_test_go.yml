@@ -4,10 +4,6 @@ on:
     paths:
       - '**'
 
-defaults:
-  run:
-    working-directory: ./op-e2e
-
 jobs:
   env-setting:
     name: run test_go
@@ -63,4 +59,6 @@ jobs:
           make install-geth
           make cannon-prestate
           make devnet-allocs
-          make test
+          cd e2e
+          make test_go
+
