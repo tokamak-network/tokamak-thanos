@@ -214,7 +214,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
     {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
-
+        deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] + _amount;
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
 
         messenger.sendMessage(
@@ -538,6 +538,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
             // Case 1: Withdraw ETH
             // Case 2: Withdraw normal Token
             if (_localToken == address(0) && _remoteToken == Predeploys.ETH) {
+                deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] - _amount;
                 bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
                 require(success, "StandardBridge: ETH transfer failed");
             } else {
