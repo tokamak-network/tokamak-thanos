@@ -149,6 +149,7 @@ const depositNativeToken = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
+    l1TonAddress: TON,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
@@ -312,6 +313,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
+    l1TonAddress: TON,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
