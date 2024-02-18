@@ -2177,7 +2177,7 @@ export class CrossChainMessenger {
       }
       return this.bridges.TON.populateTransaction.deposit(
         this.l1TonAddress,
-        ethers.constants.AddressZero,
+        predeploys.L2Ton,
         amount,
         await getOpts()
       )
@@ -2201,7 +2201,7 @@ export class CrossChainMessenger {
     ): Promise<TransactionRequest> => {
       return this.bridges.TON.populateTransaction.withdraw(
         this.l1TonAddress,
-        ethers.constants.AddressZero,
+        predeploys.L2Ton,
         amount,
         opts
       )
@@ -2221,13 +2221,9 @@ export class CrossChainMessenger {
         overrides?: Overrides
       }
     ): Promise<TransactionRequest> => {
-      const bridge = await this.getBridgeForTokenPair(
+      return this.bridges.TON.populateTransaction.approve(
         this.l1TonAddress,
-        ethers.constants.AddressZero
-      )
-      return bridge.populateTransaction.approve(
-        this.l1TonAddress,
-        ethers.constants.AddressZero,
+        predeploys.L2Ton,
         amount,
         opts
       )
