@@ -9,7 +9,11 @@ import {
   CrossChainMessenger,
   StandardBridgeAdapter,
   MessageStatus,
+  TONBridgeAdapter,
+  ETHBridgeAdapter,
 } from '../src'
+
+let TON = process.env.TON || ''
 
 task('finalize-withdrawal', 'Finalize a withdrawal')
   .addParam(
@@ -60,6 +64,11 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       'OptimismPortalProxy'
     )
 
+    if (TON === '') {
+      const Deployment__TON = await hre.deployments.get('TON')
+      TON = Deployment__TON.address
+    }
+
     if (Deployment__L1StandardBridgeProxy?.address === undefined) {
       throw new Error('No L1StandardBridgeProxy deployment')
     }
@@ -81,9 +90,20 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId: await l2Signer.getChainId(),
+      l1TonAddress: TON,
       bridges: {
         Standard: {
           Adapter: StandardBridgeAdapter,
+          l1Bridge: Deployment__L1StandardBridgeProxy?.address,
+          l2Bridge: predeploys.L2StandardBridge,
+        },
+        TON: {
+          Adapter: TONBridgeAdapter,
+          l1Bridge: Deployment__L1StandardBridgeProxy?.address,
+          l2Bridge: predeploys.L2StandardBridge,
+        },
+        ETH: {
+          Adapter: ETHBridgeAdapter,
           l1Bridge: Deployment__L1StandardBridgeProxy?.address,
           l2Bridge: predeploys.L2StandardBridge,
         },
@@ -104,8 +124,9 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
     console.log(`Status: ${MessageStatus[status]}`)
 
     if (status === MessageStatus.READY_TO_PROVE) {
+      console.log('Proving the message')
       const proveTx = await messenger.proveMessage(txHash)
-      const proveReceipt = await proveTx.wait()
+      const proveReceipt = await proveTx.wait(3)
       console.log('Prove receipt', proveReceipt)
 
       const finalizeInterval = setInterval(async () => {
@@ -121,6 +142,8 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       } finally {
         clearInterval(finalizeInterval)
       }
+
+      console.log('Finalize the message')
 
       const tx = await messenger.finalizeMessage(txHash)
       const receipt = await tx.wait()
