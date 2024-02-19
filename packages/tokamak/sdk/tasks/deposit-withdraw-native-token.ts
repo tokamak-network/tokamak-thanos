@@ -8,7 +8,7 @@ import { BytesLike, ethers } from 'ethers'
 import {
   CrossChainMessenger,
   MessageStatus,
-  TONBridgeAdapter,
+  NativeTokenBridgeAdapter,
   NumberLike,
 } from '../src'
 
@@ -56,7 +56,7 @@ const ETH = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
-let TON = process.env.TON || ''
+let l2NativeToken = process.env.NATIVE_TOKEN || ''
 let addressManager = process.env.ADDRESS_MANAGER || ''
 let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
@@ -64,9 +64,9 @@ let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
-  if (TON === '') {
-    const Deployment__TON = await hre.deployments.get('TON')
-    TON = Deployment__TON.address
+  if (l2NativeToken === '') {
+    const Deployment__L2NativeToken = await hre.deployments.get('L2NativeToken')
+    l2NativeToken = Deployment__L2NativeToken.address
   }
 
   if (addressManager === '') {
@@ -105,11 +105,11 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   }
 }
 
-const depositTON = async (amount: NumberLike) => {
-  console.log('Deposit TON:', amount)
-  console.log('TON address:', TON)
+const depositNativeToken = async (amount: NumberLike) => {
+  console.log('Deposit Native token:', amount)
+  console.log('Native token address:', l2NativeToken)
 
-  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const l2NativeTokenContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -124,10 +124,10 @@ const depositTON = async (amount: NumberLike) => {
   console.log('l1 contracts:', l1Contracts)
 
   const bridges = {
-    TON: {
+    NativeToken: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
-      Adapter: TONBridgeAdapter,
+      Adapter: NativeTokenBridgeAdapter,
     },
   }
 
@@ -146,32 +146,32 @@ const depositTON = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance:', l1TONBalance.toString())
+  let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log('l2 native token balance in L1:', l2NativeTokenBalance.toString())
 
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
 
-  const approveTx = await messenger.approveERC20(TON, ETH, amount)
+  const approveTx = await messenger.approveERC20(l2NativeToken, ETH, amount)
   await approveTx.wait()
   console.log('approveTx:', approveTx.hash)
 
-  const depositTx = await messenger.depositERC20(TON, ETH, amount)
+  const depositTx = await messenger.depositERC20(l2NativeToken, ETH, amount)
   await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
   await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
 
   l2Balance = await l2Wallet.getBalance()
-  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance: ', l1TONBalance.toString())
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log('l2 native token balance in L1: ', l2NativeTokenBalance.toString())
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
-const withdrawTON = async (amount: NumberLike) => {
-  console.log('Withdraw TON:', amount)
+const withdrawNativeToken = async (amount: NumberLike) => {
+  console.log('Withdraw Native token:', amount)
 
-  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const l2NativeTokenContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -185,10 +185,10 @@ const withdrawTON = async (amount: NumberLike) => {
   }
 
   const bridges = {
-    TON: {
+    NativeToken: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
-      Adapter: TONBridgeAdapter,
+      Adapter: NativeTokenBridgeAdapter,
     },
   }
 
@@ -207,8 +207,8 @@ const withdrawTON = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  let tonBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance: ', tonBalance.toString())
+  let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log('l2 native token balance in L1: ', l2NativeTokenBalance.toString())
 
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
@@ -254,28 +254,28 @@ const withdrawTON = async (amount: NumberLike) => {
     clearInterval(finalizeInterval)
   }
 
-  tonBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance: ', tonBalance.toString())
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log('l2 native token balance in L1: ', l2NativeTokenBalance.toString())
 
   const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
   const receipt = await tx.wait()
   console.log('Finalized message tx', receipt.transactionHash)
   console.log('Finalized withdrawal')
 
-  tonBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log('l1 ton balance: ', tonBalance.toString())
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log('l2 native token balance in L1: ', l2NativeTokenBalance.toString())
 }
 
-task('deposit-ton', 'Deposits ERC20-TON to L2.')
+task('deposit-native-token', 'Deposits L2NativeToken to L2.')
   .addParam('amount', 'Deposit amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
-    await depositTON(args.amount)
+    await depositNativeToken(args.amount)
   })
 
-task('withdraw-ton', 'Withdraw native TON from L2.')
+task('withdraw-native-token', 'Withdraw native token from L2.')
   .addParam('amount', 'Withdrawal amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
-    await withdrawTON(args.amount)
+    await withdrawNativeToken(args.amount)
   })
