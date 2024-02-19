@@ -1088,7 +1088,7 @@ contract SeigToken is ERC20, Ownable, ERC20OnApprove, AuthController {
 /**
  * @dev Current implementations is just for testing seigniorage manager.
  */
-contract TON is Ownable, ERC20Detailed, SeigToken {
+contract L2NativeToken is Ownable, ERC20Detailed, SeigToken {
     constructor() ERC20Detailed("Tokamak Network Token", "TON", 18) { }
 
     function setSeigManager(SeigManagerI) external pure override {
