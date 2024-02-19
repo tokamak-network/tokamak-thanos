@@ -8,7 +8,7 @@ import { BytesLike, ethers } from 'ethers'
 import {
   CrossChainMessenger,
   MessageStatus,
-  TONBridgeAdapter,
+  NativeTokenBridgeAdapter,
   NumberLike,
 } from '../src'
 
@@ -165,7 +165,7 @@ const approveAndDepositTON = async (amount: NumberLike) => {
     TON: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
-      Adapter: TONBridgeAdapter,
+      Adapter: NativeTokenBridgeAdapter,
     },
   }
 

@@ -31,19 +31,18 @@ import { toAddress } from '../utils'
 /**
  * Bridge adapter for any token bridge that uses the standard token bridge interface.
  */
-export class TONBridgeAdapter implements IBridgeAdapter {
+export class NativeTokenBridgeAdapter implements IBridgeAdapter {
   public messenger: CrossChainMessenger
   public l1Bridge: Contract
   public l2Bridge: Contract
 
   /**
-   * Creates a TONBridgeAdapter instance.
+   * Creates a NativeBridgeAdapter instance.
    *
    * @param opts Options for the adapter.
    * @param opts.messenger Provider used to make queries related to cross-chain interactions.
    * @param opts.l1Bridge L1 bridge contract.
    * @param opts.l2Bridge L2 bridge contract.
-   * @param opts.ton TON contract.
    */
   constructor(opts: {
     messenger: CrossChainMessenger
