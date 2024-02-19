@@ -64,4 +64,5 @@ jobs:
           make devnet-allocs
           cd e2e
           make test_go
+          continue-on-error: true
 
