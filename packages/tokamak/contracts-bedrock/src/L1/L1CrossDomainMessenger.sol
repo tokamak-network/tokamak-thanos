@@ -169,6 +169,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         payable
         override
     {
+        if (_value > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(address(PORTAL), address(this), _value);
+        }
+
         (, uint16 _nonceVersion) = Encoding.decodeVersionedNonce(_nonce);
         require(_nonceVersion < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
 
