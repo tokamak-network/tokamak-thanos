@@ -52,9 +52,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         PORTAL = _portal;
         nativeTokenAddress = _nativeTokenAddress;
         __CrossDomainMessenger_init();
-        if (address(PORTAL) != address(0) && address(nativeTokenAddress) != address(0)) {
-            IERC20(nativeTokenAddress).approve(address(PORTAL), 2 ** 256 - 1);
-        }
+        if (address(PORTAL) != address(0) && address(nativeTokenAddress) != address(0)) { }
     }
 
     /// @notice Getter for the OptimismPortal address.
@@ -73,6 +71,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         require(msg.value == 0, "Deny depositing ETH");
         if (_value > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
+            IERC20(nativeTokenAddress).approve(address(PORTAL), _value);
         }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
@@ -96,6 +95,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
         if (_amount > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
+            IERC20(nativeTokenAddress).approve(address(PORTAL), _amount);
         }
         PORTAL.depositTransaction(_owner, _amount, _minGasLimit, false, _message);
         return true;
@@ -225,7 +225,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         xDomainMsgSender = _sender;
         bool transferStatus = true;
         if (_value != 0) {
-            transferStatus = IERC20(nativeTokenAddress).transfer(_target, _value);
+            transferStatus = IERC20(nativeTokenAddress).approve(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
