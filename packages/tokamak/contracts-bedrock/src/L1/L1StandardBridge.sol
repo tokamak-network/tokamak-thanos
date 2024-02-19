@@ -100,9 +100,6 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     {
         __StandardBridge_init({ _messenger: _messenger });
         nativeTokenAddress = _nativeTokenAddress;
-        if (address(_messenger) != address(0) && address(nativeTokenAddress) != address(0)) {
-            IERC20(nativeTokenAddress).approve(address(_messenger), 2 ** 256 - 1);
-        }
     }
 
     /// @notice Deposit ETH on L1 and receive ETH on L2.
@@ -405,6 +402,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         internal
     {
         IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
+        IERC20(nativeTokenAddress).approve(address(messenger), _amount);
         deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] =
             deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
 
@@ -509,9 +507,10 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
+        IERC20(nativeTokenAddress).transferFrom(address(messenger), address(this), _amount);
+
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
-        _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
         finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
     }
 
@@ -532,19 +531,18 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
             );
-
             OptimismMintableERC20(_localToken).mint(_to, _amount);
         } else {
             // Case 1: Withdraw ETH
             // Case 2: Withdraw normal Token
             if (_localToken == address(0) && _remoteToken == Predeploys.ETH) {
-                deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] - _amount;
                 bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
                 require(success, "StandardBridge: ETH transfer failed");
+                _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
             } else {
-                deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
                 IERC20(_localToken).safeTransfer(_to, _amount);
             }
+            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
         }
 
         // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
