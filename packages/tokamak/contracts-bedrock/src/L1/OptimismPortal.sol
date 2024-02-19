@@ -69,7 +69,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @custom:network-specific
     address public guardian;
 
-    /// @notice Address of TON (ERC-20 token)
+    /// @notice Address of native (ERC-20 token)
     address public nativeTokenAddress;
 
     uint256 public depositedAmount;
@@ -399,19 +399,20 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
         _depositTransaction(_owner, _owner, _amount, _minGasLimit, false, _message);
         return true;
     }
 
-    // @notice Public interface for Accepting deposits of TON and data, and emits a TransactionDeposited event for use
+    // @notice Public interface for Accepting deposits of L1's ERC20 as L2's native token and data, and emits a
+    // TransactionDeposited event for use
     // in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _to         Target address on L2.
-    /// @param _value      TON value to send to the recipient.
+    /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
@@ -427,13 +428,14 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         _depositTransaction(msg.sender, _to, _value, _gasLimit, _isCreation, _data);
     }
 
-    // @notice Accepts deposits of TON and data, and emits a TransactionDeposited event for use in
+    // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
+    // use in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _sender       Sender address
     /// @param _to         Target address on L2.
-    /// @param _value      TON value to send to the recipient.
+    /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
