@@ -355,9 +355,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
-        bool transferStatus = true;
+        bool approvalStatus = true;
         if (_tx.value > 0) {
-            transferStatus = IERC20(nativeTokenAddress).transfer(_tx.target, _tx.value);
+            approvalStatus = IERC20(nativeTokenAddress).approve(_tx.target, _tx.value);
             depositedAmount -= _tx.value;
         }
 
@@ -380,7 +380,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
-        if (!transferStatus && !success && tx.origin == Constants.ESTIMATION_ADDRESS) {
+        if (!approvalStatus && !success && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert("OptimismPortal: withdrawal failed");
         }
     }
