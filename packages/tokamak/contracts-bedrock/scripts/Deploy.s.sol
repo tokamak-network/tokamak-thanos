@@ -132,8 +132,8 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the Safe
     function deployL2NativeToken() public onlyDevnet broadcast {
-        L2NativeToken ton = new L2NativeToken{ salt: implSalt() }();
-        address addr_ = address(ton);
+        L2NativeToken token = new L2NativeToken{ salt: implSalt() }();
+        address addr_ = address(token);
         cfg.setNativeTokenAddress(addr_);
         console.log("Native token deployed at", addr_);
         save("L2NativeToken", addr_);
