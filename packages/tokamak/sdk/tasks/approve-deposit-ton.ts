@@ -162,7 +162,7 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   console.log('l1 contracts:', l1Contracts)
 
   const bridges = {
-    TON: {
+    NativeToken: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
       Adapter: NativeTokenBridgeAdapter,

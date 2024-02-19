@@ -21,7 +21,7 @@ import { CrossChainMessenger } from '../cross-chain-messenger'
 import {
   StandardBridgeAdapter,
   ETHBridgeAdapter,
-  TONBridgeAdapter,
+  NativeTokenBridgeAdapter,
 } from '../adapters'
 import {
   CONTRACT_ADDRESSES,
@@ -313,8 +313,8 @@ export const getBridgeAdapters = (
               CONTRACT_ADDRESSES[l2ChainId].l1.L1StandardBridge,
             l2Bridge: predeploys.L2StandardBridge,
           },
-          TON: {
-            Adapter: TONBridgeAdapter,
+          NativeToken: {
+            Adapter: NativeTokenBridgeAdapter,
             l1Bridge:
               opts?.contracts?.l1?.L1StandardBridge ||
               CONTRACT_ADDRESSES[l2ChainId].l1.L1StandardBridge,

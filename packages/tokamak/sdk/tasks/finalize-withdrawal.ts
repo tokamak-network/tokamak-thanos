@@ -9,7 +9,7 @@ import {
   CrossChainMessenger,
   StandardBridgeAdapter,
   MessageStatus,
-  TONBridgeAdapter,
+  NativeTokenBridgeAdapter,
   ETHBridgeAdapter,
 } from '../src'
 
@@ -90,15 +90,15 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId: await l2Signer.getChainId(),
-      l1TonAddress: TON,
+      l1NativeTokenAddress: TON,
       bridges: {
         Standard: {
           Adapter: StandardBridgeAdapter,
           l1Bridge: Deployment__L1StandardBridgeProxy?.address,
           l2Bridge: predeploys.L2StandardBridge,
         },
-        TON: {
-          Adapter: TONBridgeAdapter,
+        NativeToken: {
+          Adapter: NativeTokenBridgeAdapter,
           l1Bridge: Deployment__L1StandardBridgeProxy?.address,
           l2Bridge: predeploys.L2StandardBridge,
         },
