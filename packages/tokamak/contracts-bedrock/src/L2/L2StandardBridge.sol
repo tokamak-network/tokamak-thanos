@@ -74,11 +74,11 @@ contract L2StandardBridge is StandardBridge, ISemver {
     }
 
     /// @custom:legacy
-    /// @notice Initiates a withdrawal TON from L2 to L1.
-    ///         This function only works with TON
+    /// @notice Initiates a withdrawal native token from L2 to L1.
+    ///         This function only works with native token
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
     /// @param _extraData   Extra data attached to the withdrawal.
-    function withdrawTON(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
+    function withdrawNativeToken(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
         _initiateWithdrawal(Predeploys.LEGACY_ERC20_ETH, msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
     }
 
@@ -91,7 +91,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @param _to          Recipient account on L1.
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
     /// @param _extraData   Extra data attached to the withdrawal.
-    function withdrawTONTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
+    function withdrawNativeTokenTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
         _initiateWithdrawal(Predeploys.LEGACY_ERC20_ETH, msg.sender, _to, msg.value, _minGasLimit, _extraData);
     }
 
