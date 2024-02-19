@@ -69,5 +69,5 @@ jobs:
           make cannon-prestate
           make devnet-allocs
           go test -v ./...
-          continue-on-error: true
+        continue-on-error: true
 
