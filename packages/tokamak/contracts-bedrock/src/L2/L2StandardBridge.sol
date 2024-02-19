@@ -82,12 +82,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         _initiateWithdrawal(Predeploys.LEGACY_ERC20_ETH, msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
     }
 
-    /// @notice Initiates a withdrawal TON from L2 to L1 to a target account on L1.
-    ///         Note that if TON is sent to a contract on L1 and the call fails, then that TON will
-    ///         be locked in the L1StandardBridge. TON may be recoverable if the call can be
-    ///         successfully replayed by increasing the amount of gas supplied to the call. If the
-    ///         call will fail for any amount of gas, then the TON will be locked permanently.
-    ///         This function only works with TON
+    /// @notice Initiates a withdrawal native token from L2 to L1 to a target account on L1.
     /// @param _to          Recipient account on L1.
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
     /// @param _extraData   Extra data attached to the withdrawal.
@@ -96,7 +91,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
     }
 
     /// @notice Initiates a withdrawal from L2 to L1.
-    ///         This function only works with TON
     /// @param _l2Token     Address of the L2 token to withdraw.
     /// @param _amount      Amount of the L2 token to withdraw.
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
