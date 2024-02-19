@@ -13,7 +13,7 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 import { Deployer } from "scripts/Deployer.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 
-import { TON } from "src/L1/TON.sol";
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { Safe } from "safe-contracts/Safe.sol";
 import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -73,7 +73,7 @@ contract Deploy is Deployer {
     function run() public {
         console.log("Deploying L1 system");
 
-        deployTON();
+        deployL2NativeToken();
         deployProxies();
         deployImplementations();
 
@@ -131,12 +131,12 @@ contract Deploy is Deployer {
     }
 
     /// @notice Deploy the Safe
-    function deployTON() public onlyDevnet broadcast {
-        TON ton = new TON{ salt: implSalt() }();
+    function deployL2NativeToken() public onlyDevnet broadcast {
+        L2NativeToken ton = new L2NativeToken{ salt: implSalt() }();
         address addr_ = address(ton);
         cfg.setNativeTokenAddress(addr_);
-        console.log("TON deployed at", addr_);
-        save("TON", addr_);
+        console.log("Native token deployed at", addr_);
+        save("L2NativeToken", addr_);
     }
 
     /// @notice Deploy all of the proxies
