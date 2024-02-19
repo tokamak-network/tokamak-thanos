@@ -68,6 +68,6 @@ jobs:
           make cannon-prestate
           make devnet-allocs
           cd op-e2e
-          make test
+          go test -v ./...
         continue-on-error: true
 
