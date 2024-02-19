@@ -296,8 +296,10 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     l2Token: AddressLike
   ): boolean => {
     return (
-      !hexStringEquals(toAddress(l1Token), this.messenger.l1TonAddress) &&
-      !hexStringEquals(toAddress(l2Token), predeploys.L2Ton)
+      !hexStringEquals(
+        toAddress(l1Token),
+        this.messenger.l1NativeTokenAddress
+      ) && !hexStringEquals(toAddress(l2Token), predeploys.L2Ton)
     )
   }
 
@@ -305,10 +307,12 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     l1Token: AddressLike,
     l2Token: AddressLike
   ): boolean => {
-    console.log('L1 Ton Address', this.messenger.l1TonAddress)
+    console.log('L1 Ton Address', this.messenger.l1NativeTokenAddress)
     return (
-      hexStringEquals(toAddress(l1Token), this.messenger.l1TonAddress) &&
-      hexStringEquals(toAddress(l2Token), predeploys.L2Ton)
+      hexStringEquals(
+        toAddress(l1Token),
+        this.messenger.l1NativeTokenAddress
+      ) && hexStringEquals(toAddress(l2Token), predeploys.L2Ton)
     )
   }
 

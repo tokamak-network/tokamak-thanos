@@ -97,9 +97,9 @@ export class CrossChainMessenger {
   public l2ChainId: number
 
   /**
-   * L1 Ton Address
+   * L1 Native Token Address
    */
-  public l1TonAddress: string
+  public l1NativeTokenAddress: string
 
   /**
    * Contract objects attached to their respective providers and addresses.
@@ -145,7 +145,7 @@ export class CrossChainMessenger {
     l2SignerOrProvider: SignerOrProviderLike
     l1ChainId: NumberLike
     l2ChainId: NumberLike
-    l1TonAddress?: AddressLike
+    l1NativeTokenAddress?: AddressLike
     depositConfirmationBlocks?: NumberLike
     l1BlockTimeSeconds?: NumberLike
     contracts?: DeepPartial<OEContractsLike>
@@ -169,8 +169,8 @@ export class CrossChainMessenger {
       throw new Error(`L2 chain ID is missing or invalid: ${opts.l2ChainId}`)
     }
 
-    if (opts.l1TonAddress) {
-      this.l1TonAddress = toAddress(opts.l1TonAddress)
+    if (opts.l1NativeTokenAddress) {
+      this.l1NativeTokenAddress = toAddress(opts.l1NativeTokenAddress)
     }
 
     this.depositConfirmationBlocks =
@@ -2175,8 +2175,8 @@ export class CrossChainMessenger {
           },
         }
       }
-      return this.bridges.TON.populateTransaction.deposit(
-        this.l1TonAddress,
+      return this.bridges.NativeToken.populateTransaction.deposit(
+        this.l1NativeTokenAddress,
         predeploys.L2Ton,
         amount,
         await getOpts()
@@ -2199,8 +2199,8 @@ export class CrossChainMessenger {
         overrides?: Overrides
       }
     ): Promise<TransactionRequest> => {
-      return this.bridges.TON.populateTransaction.withdraw(
-        this.l1TonAddress,
+      return this.bridges.NativeToken.populateTransaction.withdraw(
+        this.l1NativeTokenAddress,
         predeploys.L2Ton,
         amount,
         opts
@@ -2221,8 +2221,8 @@ export class CrossChainMessenger {
         overrides?: Overrides
       }
     ): Promise<TransactionRequest> => {
-      return this.bridges.TON.populateTransaction.approve(
-        this.l1TonAddress,
+      return this.bridges.NativeToken.populateTransaction.approve(
+        this.l1NativeTokenAddress,
         predeploys.L2Ton,
         amount,
         opts
