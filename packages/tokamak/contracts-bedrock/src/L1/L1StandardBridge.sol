@@ -121,52 +121,66 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-        _initiateBridgeTON(_owner, _owner, _amount, _minGasLimit, _message);
+        _initiateBridgeNativeToken(_owner, _owner, _amount, _minGasLimit, _message);
         return true;
     }
 
-    /// @notice Deposits some amount of TON into the sender's TON's account on L2.
-    /// @param _amount      Amount of TON being bridged.
+    /// @notice Deposits some amount of token into the sender's native's account on L2.
+    /// @param _amount      Amount of native being bridged.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
-        _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    function depositNativeToken(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
+        _initiateBridgeNativeToken(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
-    /// @notice Deposits some amount of TON into a target TON's account on L2.
+    /// @notice Deposits some amount of token into the sender's native's account on L2.
     /// @param _to          Address of the recipient on L2.
-    /// @param _amount      Amount of TON being bridged.
+    /// @param _amount      Amount of native being bridged.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
-        _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
+    function depositNativeTokenTo(
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        external
+    {
+        _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
-    /// @notice Deposits some amount of TON into the sender's TON's account on L2.
-    /// @param _amount      Amount of TON being bridged.
+    /// @notice Deposits some amount of token into the sender's native's account on L2.
+    /// @param _amount      Amount of native being bridged.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function bridgeTON(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
-        _initiateBridgeTON(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    function bridgeNativeToken(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
+        _initiateBridgeNativeToken(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
-    /// @notice Deposits some amount of TON into a target TON's account on L2.
+    /// @notice Deposits some amount of ERC20 token into a target Native's account on L2.
     /// @param _to          Address of the recipient on L2.
-    /// @param _amount      Amount of TON being bridged.
+    /// @param _amount      Amount of native being bridged.
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     ///                     Data supplied here will not be used to execute any code on L2 and is
     ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function bridgeTONTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external {
-        _initiateBridgeTON(msg.sender, _to, _amount, _minGasLimit, _extraData);
+    function bridgeNativeTokenTo(
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        external
+    {
+        _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
     /// @notice Deposits some amount of ETH into the sender's ETH's account on L2.
@@ -280,7 +294,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     }
 
     /// @custom:legacy
-    /// @notice Finalizes a withdrawal of ETH from L2 => receive TON in L1
+    /// @notice Finalizes a withdrawal of ETH from L2 => receive L2's native token in L1
     /// @param _from      Address of the withdrawer on L2.
     /// @param _to        Address of the recipient on L1.
     /// @param _amount    Amount of ETH to withdraw.
@@ -379,20 +393,20 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
     {
         if (nativeTokenAddress == _localToken) {
-            _initiateBridgeTON(_from, _to, _amount, _minGasLimit, _extraData);
+            _initiateBridgeNativeToken(_from, _to, _amount, _minGasLimit, _extraData);
         } else {
             super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
         }
     }
 
-    /// @notice Sends TON tokens to a receiver's address on the other chain.
+    /// @notice Sends native tokens to a receiver's address on the other chain.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of local tokens to deposit.
     /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function _initiateBridgeTON(
+    function _initiateBridgeNativeToken(
         address _from,
         address _to,
         uint256 _amount,
@@ -408,7 +422,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
 
         _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
-        L1CrossDomainMessenger(address(messenger)).sendTONMessage(
+        L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
             address(OTHER_BRIDGE),
             _amount,
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),

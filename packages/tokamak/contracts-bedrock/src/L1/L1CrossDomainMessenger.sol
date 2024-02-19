@@ -28,7 +28,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:legacy
     OptimismPortal public PORTAL;
 
-    /// @notice Address of TON (ERC-20 token)
+    /// @notice Address of native token (ERC-20 token)
     address public nativeTokenAddress;
 
     /// @notice Semantic version.
@@ -90,7 +90,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept TON approve callback");
+        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
 
         if (_amount > 0) {
@@ -111,15 +111,22 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         return _target == address(this) || _target == address(PORTAL);
     }
 
-    /// @notice Sends a deposit ton message to some target address on the other chain. Note that if the call
+    /// @notice Sends a deposit native token message to some target address on the other chain. Note that if the call
     ///         always reverts, then the message will be unrelayable, and any ETH sent will be
     ///         permanently locked. The same will occur if the target on the other chain is
     ///         considered unsafe (see the _isUnsafeTarget() function).
     /// @param _target      Target contract or wallet address.
-    /// @param _amount      Amount of deposit TON.
+    /// @param _amount      Amount of deposit native token.
     /// @param _message     Message to trigger the target address with.
     /// @param _minGasLimit Minimum gas limit that the message can be executed with.
-    function sendTONMessage(address _target, uint256 _amount, bytes calldata _message, uint32 _minGasLimit) external {
+    function sendNativeTokenMessage(
+        address _target,
+        uint256 _amount,
+        bytes calldata _message,
+        uint32 _minGasLimit
+    )
+        external
+    {
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
@@ -147,7 +154,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @param _nonce       Nonce of the message being relayed.
     /// @param _sender      Address of the user who sent the message.
     /// @param _target      Address that the message is targeted at.
-    /// @param _value       TON value to send with the message.
+    /// @param _value       Native token value to send with the message.
     /// @param _minGasLimit Minimum amount of gas that the message can be executed with.
     /// @param _message     Message to send to the target.
     function relayMessage(
