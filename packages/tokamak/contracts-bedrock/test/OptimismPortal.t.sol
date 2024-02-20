@@ -275,8 +275,6 @@ contract OptimismPortal_Test is Portal_Initializer {
         token.faucet(NON_ZERO_VALUE);
         token.approve(address(op), NON_ZERO_VALUE);
 
-        console.log("Balance: ", token.balanceOf(address(this)));
-
         vm.expectEmit(true, true, false, true);
         emitTransactionDeposited(
             AddressAliasHelper.applyL1ToL2Alias(address(this)),
@@ -829,6 +827,93 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
 
         // Ensure that bob's balance was not changed by the reentrant call.
         assert(token.balanceOf(address(bob)) == bobBalanceBefore);
+    }
+
+    /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
+    function testDiff_finalizeWithdrawalTransaction_succeeds(
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data
+    )
+        external
+    {
+        // console.log(" ---->", address(_sender), address(_target), _value);
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_value));
+        vm.assume(
+            _target != address(op) // Cannot call the optimism portal or a contract
+                && _target.code.length == 0 // No accounts with code
+                && _target != CONSOLE // The console has no code but behaves like a contract
+                && uint160(_target) > 9 // No precompiles (or zero address)
+        );
+
+        // vm.prank(address(op));
+        uint256 opBalance = token.balanceOf(address(op));
+        if (opBalance < _value) {
+            vm.prank(address(op));
+            token.faucet(_value - opBalance);
+        }
+
+        vm.prank(address(this));
+
+        uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
+        uint256 nonce = messagePasser.messageNonce();
+
+        // Get a withdrawal transaction and mock proof from the differential testing script.
+        Types.WithdrawalTransaction memory _tx = Types.WithdrawalTransaction({
+            nonce: nonce,
+            sender: _sender,
+            target: _target,
+            value: 0,
+            gasLimit: gasLimit,
+            data: _data
+        });
+        (
+            bytes32 stateRoot,
+            bytes32 storageRoot,
+            bytes32 outputRoot,
+            bytes32 withdrawalHash,
+            bytes[] memory withdrawalProof
+        ) = ffi.getProveWithdrawalTransactionInputs(_tx);
+
+        // Create the output root proof
+        Types.OutputRootProof memory proof = Types.OutputRootProof({
+            version: bytes32(uint256(0)),
+            stateRoot: stateRoot,
+            messagePasserStorageRoot: storageRoot,
+            latestBlockhash: bytes32(uint256(0))
+        });
+
+        // Ensure the values returned from ffi are correct
+        assertEq(outputRoot, Hashing.hashOutputRootProof(proof));
+        assertEq(withdrawalHash, Hashing.hashWithdrawal(_tx));
+
+        // Setup the Oracle to return the outputRoot
+        vm.mockCall(
+            address(oracle),
+            abi.encodeWithSelector(oracle.getL2Output.selector),
+            abi.encode(outputRoot, block.timestamp, 100)
+        );
+
+        // Prove the withdrawal transaction
+        op.proveWithdrawalTransaction(
+            _tx,
+            100, // l2BlockNumber
+            proof,
+            withdrawalProof
+        );
+        (bytes32 _root,,) = op.provenWithdrawals(withdrawalHash);
+        assertTrue(_root != bytes32(0));
+
+        // Warp past the finalization period
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+
+        // Finalize the withdrawal transaction
+        vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
+
+        op.finalizeWithdrawalTransaction(_tx);
+        assertTrue(op.finalizedWithdrawals(withdrawalHash));
     }
 }
 
