@@ -169,10 +169,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         payable
         override
     {
-        if (_value > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(address(PORTAL), address(this), _value);
-        }
-
         (, uint16 _nonceVersion) = Encoding.decodeVersionedNonce(_nonce);
         require(_nonceVersion < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
 
@@ -193,6 +189,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             // opposed to being replayed).
             assert(msg.value == 0);
             assert(!failedMessages[versionedHash]);
+
+            if (_value > 0) {
+                IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
+            }
         } else {
             require(msg.value == 0, "CrossDomainMessenger: value must be zero unless message is from a system address");
 
@@ -229,19 +229,21 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             if (tx.origin == Constants.ESTIMATION_ADDRESS) {
                 revert("CrossDomainMessenger: failed to relay message");
             }
-
             return;
         }
 
         xDomainMsgSender = _sender;
-        bool transferStatus = true;
+        bool approvalStatus = true;
         if (_value != 0) {
-            transferStatus = IERC20(nativeTokenAddress).approve(_target, _value);
+            approvalStatus = IERC20(nativeTokenAddress).approve(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
+        if (_value != 0) {
+            approvalStatus = IERC20(nativeTokenAddress).approve(_target, 0);
+        }
 
-        if (success && transferStatus) {
+        if (success && approvalStatus) {
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {
