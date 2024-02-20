@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -186,6 +188,112 @@ var Subcommands = cli.Commands{
 			return writeGenesisFile(ctx.String("outfile.rollup"), rollupConfig)
 		},
 	},
+	{
+		Name:  "rollup",
+		Usage: "Generates rollup file using l2-genesis",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "l1-rpc",
+				Usage: "L1 RPC URL",
+			},
+			&cli.StringFlag{
+				Name:  "deploy-config",
+				Usage: "Path to deploy config file",
+			},
+			&cli.StringFlag{
+				Name:  "deployment-dir",
+				Usage: "Path to network deployment directory",
+			},
+			&cli.StringFlag{
+				Name:  "l2-genesis",
+				Usage: "Path to L2 genesis file",
+			},
+			&cli.StringFlag{
+				Name:  "outfile.rollup",
+				Usage: "Path to rollup output file",
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			deployConfig := ctx.String("deploy-config")
+			log.Info("Deploy config", "path", deployConfig)
+			config, err := genesis.NewDeployConfig(deployConfig)
+			if err != nil {
+				return err
+			}
+
+			deployDir := ctx.String("deployment-dir")
+			if deployDir == "" {
+				return errors.New("Must specify --deployment-dir")
+			}
+
+			log.Info("Deployment directory", "path", deployDir)
+			depPath, network := filepath.Split(deployDir)
+			hh, err := hardhat.New(network, nil, []string{depPath})
+			if err != nil {
+				return err
+			}
+
+			// Read the appropriate deployment addresses from disk
+			if err := config.GetDeployedAddresses(hh); err != nil {
+				return err
+			}
+
+			client, err := ethclient.Dial(ctx.String("l1-rpc"))
+			if err != nil {
+				return fmt.Errorf("cannot dial %s: %w", ctx.String("l1-rpc"), err)
+			}
+
+			var l1StartBlock *types.Block
+			if config.L1StartingBlockTag == nil {
+				l1StartBlock, err = client.BlockByNumber(context.Background(), nil)
+				tag := rpc.BlockNumberOrHashWithHash(l1StartBlock.Hash(), true)
+				config.L1StartingBlockTag = (*genesis.MarshalableRPCBlockNumberOrHash)(&tag)
+			} else if config.L1StartingBlockTag.BlockHash != nil {
+				l1StartBlock, err = client.BlockByHash(context.Background(), *config.L1StartingBlockTag.BlockHash)
+			} else if config.L1StartingBlockTag.BlockNumber != nil {
+				l1StartBlock, err = client.BlockByNumber(context.Background(), big.NewInt(config.L1StartingBlockTag.BlockNumber.Int64()))
+			}
+			if err != nil {
+				return fmt.Errorf("error getting l1 start block: %w", err)
+			}
+
+			// Sanity check the config. Do this after filling in the L1StartingBlockTag
+			// if it is not defined.
+			if err := config.Check(); err != nil {
+				return err
+			}
+
+			log.Info("Using L1 Start Block", "number", l1StartBlock.Number(), "hash", l1StartBlock.Hash().Hex())
+
+			// Build the L2 genesis block
+			l2Genesis := &core.Genesis{}
+			readGenesisFile(ctx.String("l2-genesis"), l2Genesis)
+			if err != nil {
+				return fmt.Errorf("error reading l2 genesis: %w", err)
+			}
+
+			l2GenesisBlock := l2Genesis.ToBlock()
+			rollupConfig, err := config.RollupConfig(l1StartBlock, l2GenesisBlock.Hash(), l2GenesisBlock.Number().Uint64())
+			if err != nil {
+				return err
+			}
+			if err := rollupConfig.Check(); err != nil {
+				return fmt.Errorf("generated rollup config does not pass validation: %w", err)
+			}
+
+			return writeGenesisFile(ctx.String("outfile.rollup"), rollupConfig)
+		},
+	},
+}
+
+func readGenesisFile(file string, input any) error {
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	dec := json.NewDecoder(bytes.NewBuffer(f))
+	return dec.Decode(input)
 }
 
 func writeGenesisFile(outfile string, input any) error {
