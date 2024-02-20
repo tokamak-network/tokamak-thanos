@@ -114,7 +114,7 @@ pre-devnet:
 .PHONY: pre-devnet
 
 devnet-up: pre-devnet
-	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
+	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/tokamak/contracts-bedrock \
 		|| make devnet-allocs
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=.
 .PHONY: devnet-up
@@ -155,7 +155,7 @@ test-unit:
 
 test-integration:
 	bash ./ops-bedrock/test-integration.sh \
-		./packages/contracts-bedrock/deployments/devnetL1
+		./packages/tokamak/contracts-bedrock/deployments/devnetL1
 .PHONY: test-integration
 
 # Remove the baseline-commit to generate a base reading & show all issues

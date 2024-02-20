@@ -1,9 +1,9 @@
 name: run test_go
-on:
-  push:
-    paths:
-      - 'op-node/**'
-      - 'packages/tokamak/contracts-bedrock/**'
+on: push
+  # push:
+  #   paths:
+  #     - 'op-node/**'
+  #     - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
   env-setting:

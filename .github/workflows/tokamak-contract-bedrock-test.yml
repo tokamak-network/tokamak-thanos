@@ -1,9 +1,9 @@
 name: 'Tokamak Contract Bedrock Test'
-on:
-  push:
-    paths:
-      - 'op-node/**'
-      - 'packages/tokamak/contracts-bedrock/**'
+on: push
+  # push:
+  #   paths:
+  #     - 'op-node/**'
+  #     - 'packages/tokamak/contracts-bedrock/**'
 jobs:
   start-runner:
     name: Start EC2 Runner
