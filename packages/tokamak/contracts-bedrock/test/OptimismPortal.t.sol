@@ -910,7 +910,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
 
         // Finalize the withdrawal transaction
-        vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
+        vm.expectCallMinGas(_tx.target, 0, uint64(_tx.gasLimit), _tx.data);
 
         op.finalizeWithdrawalTransaction(_tx);
         assertTrue(op.finalizedWithdrawals(withdrawalHash));
