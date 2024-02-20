@@ -267,7 +267,7 @@ var Subcommands = cli.Commands{
 
 			// Build the L2 genesis block
 			l2Genesis := &core.Genesis{}
-			readGenesisFile(ctx.String("l2-genesis"), l2Genesis)
+			err = readGenesisFile(ctx.String("l2-genesis"), l2Genesis)
 			if err != nil {
 				return fmt.Errorf("error reading l2 genesis: %w", err)
 			}
