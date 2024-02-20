@@ -1,5 +1,5 @@
 name: 'Tokamak Contract Bedrock Test'
-on: push
+on:
   # push:
   #   paths:
   #     - 'op-node/**'

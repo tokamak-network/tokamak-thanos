@@ -68,7 +68,7 @@ const config: HardhatUserConfig = {
         '../contracts-bedrock/deployments/mainnet',
       ],
       hivenet: ['../contracts-bedrock/deployments/hivenet'],
-      devnetL1: ['../contracts-bedrock/deployments/devnetL1'],
+      devnetL1: ['../tokamak/contracts-bedrock/deployments/devnetL1'],
       goerli: [
         '../contracts-bedrock/deployments/goerli',
         '../contracts/deployments/goerli',

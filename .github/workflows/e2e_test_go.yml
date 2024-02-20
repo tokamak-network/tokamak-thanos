@@ -1,8 +1,8 @@
 name: e2e test_go
-on: push
-  # push:
-  #   paths:
-  #     - '**'
+on:
+   push:
+     paths:
+       - '**'
 
 jobs:
   env-setting:

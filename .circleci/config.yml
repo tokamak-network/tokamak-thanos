@@ -813,8 +813,8 @@ jobs:
             mkdir -p .devnet
             cp /tmp/workspace/.devnet/allocs-l1.json .devnet/allocs-l1.json
             cp /tmp/workspace/.devnet/addresses.json .devnet/addresses.json
-            cp /tmp/workspace/packages/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
-            cp -r /tmp/workspace/packages/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
+            cp /tmp/workspace/packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
+            cp -r /tmp/workspace/packages/tokamak/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
       - run:
           name: print go's available MIPS targets
           command: go tool dist list | grep mips
@@ -970,8 +970,8 @@ jobs:
           paths:
             - ".devnet/allocs-l1.json"
             - ".devnet/addresses.json"
-            - "packages/contracts-bedrock/deploy-config/devnetL1.json"
-            - "packages/contracts-bedrock/deployments/devnetL1"
+            - "packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json"
+            - "packages/tokamak/contracts-bedrock/deployments/devnetL1"
 
   devnet:
     machine:
@@ -1040,8 +1040,8 @@ jobs:
             mkdir -p .devnet
             cp /tmp/workspace/.devnet/allocs-l1.json .devnet/allocs-l1.json
             cp /tmp/workspace/.devnet/addresses.json .devnet/addresses.json
-            cp /tmp/workspace/packages/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
-            cp -r /tmp/workspace/packages/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
+            cp /tmp/workspace/packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json packages/contracts-bedrock/deploy-config/devnetL1.json
+            cp -r /tmp/workspace/packages/tokamak/contracts-bedrock/deployments/devnetL1 packages/contracts-bedrock/deployments/devnetL1
       - run:
           name: Load and tag docker images
           command: |

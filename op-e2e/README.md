@@ -13,7 +13,7 @@ make devnet-allocs
 This will leave artifacts in the `.devnet` directory that will be
 read into `op-e2e` at runtime. The default deploy configuration
 used for starting all `op-e2e` based tests can be found in
-`packages/contracts-bedrock/deploy-config/devnetL1.json`. There
+`packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json`. There
 are some values that are safe to change in memory in `op-e2e` at
 runtime, but others cannot be changed or else it will result in
 broken tests. Any changes to `devnetL1.json` should result in

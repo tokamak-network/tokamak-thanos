@@ -1,5 +1,5 @@
 name: simple test_go
-on: push
+on:
   # push:
   #   paths:
   #     - 'op-node/**'
