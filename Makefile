@@ -114,8 +114,8 @@ pre-devnet:
 .PHONY: pre-devnet
 
 devnet-up: pre-devnet
-	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
-		|| make devnet-allocs
+	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/tokamak/contracts-bedrock \
+|| make devnet-allocs
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=.
 .PHONY: devnet-up
 
