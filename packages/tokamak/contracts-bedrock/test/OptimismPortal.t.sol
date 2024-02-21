@@ -20,7 +20,6 @@ import { SystemConfig } from "src/L1/SystemConfig.sol";
 // Target contract
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
-import "forge-std/console.sol";
 
 contract OptimismPortal_Test is Portal_Initializer {
     event Paused(address);
@@ -734,7 +733,6 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(withdrawalAmount));
         vm.prank(address(op), address(op));
         token.faucet(withdrawalAmount);
-        console.log("balance: ", token.balanceOf(address(op)));
 
         // This number was identified through trial and error.
         uint256 gasLimit = 150_000;
@@ -839,7 +837,6 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     )
         external
     {
-        // console.log(" ---->", address(_sender), address(_target), _value);
         vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_value));
         vm.assume(
             _target != address(op) // Cannot call the optimism portal or a contract
