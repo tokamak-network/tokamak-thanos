@@ -175,7 +175,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         bytes memory message = hex"1111";
 
-        vm.expectRevert("CrossDomainMessenger: value must be zero unless message is from a system address");
+        vm.expectRevert("CrossDomainMessenger: value must be zero");
         L1Messenger.relayMessage{ value: 100 }(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), sender, target, 0, 0, message
         );
