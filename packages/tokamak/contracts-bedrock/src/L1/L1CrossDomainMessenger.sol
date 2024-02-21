@@ -169,6 +169,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         payable
         override
     {
+        require(msg.value == 0, "CrossDomainMessenger: value must be zero");
+
         (, uint16 _nonceVersion) = Encoding.decodeVersionedNonce(_nonce);
         require(_nonceVersion < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
 
@@ -187,15 +189,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         if (_isOtherMessenger()) {
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
-            assert(msg.value == 0);
             assert(!failedMessages[versionedHash]);
-
             if (_value > 0) {
                 IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
             }
         } else {
-            require(msg.value == 0, "CrossDomainMessenger: value must be zero unless message is from a system address");
-
             require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
         }
 
