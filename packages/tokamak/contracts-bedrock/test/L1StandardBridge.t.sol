@@ -436,7 +436,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
     ///      Bridge deposits are updated.
     ///      Emits ERC20DepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Only EOA can call depositERC20.
+    ///      Only EOA can call depositNativeToken.
     function test_depositNativeToken_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
@@ -500,7 +500,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
 }
 
 contract L1StandardBridge_DepositNativeToken_TestFail is Bridge_Initializer {
-    /// @dev Tests that depositing an ERC20 to the bridge reverts
+    /// @dev Tests that depositing native token to the bridge reverts
     ///      if the caller is not an EOA.
     function test_depositNativeToken_notEoa_reverts() external {
         // turn alice into a contract
@@ -513,13 +513,13 @@ contract L1StandardBridge_DepositNativeToken_TestFail is Bridge_Initializer {
 }
 
 contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
-    /// @dev Tests that depositing ERC20 to the bridge succeeds when
+    /// @dev Tests that depositing Nativetoken to the bridge succeeds when
     ///      sent to a different address.
     ///      Bridge deposits are updated.
     ///      Emits ERC20DepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Contracts can call depositERC20.
-    function test_depositERC20To_succeeds() external {
+    ///      Contracts can call depositNativeTokenTo.
+    function test_depositNativeTokenTo_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
