@@ -53,5 +53,5 @@ clean:
 .PHONY: clean
 
 test-user:
-	$(go_test) $(go_test_flags) ./actions/user.go ./e2eutils/... ./actions/user_test.go
+	$(go_test) $(go_test_flags) -run TestCrossLayerUser ./op-e2e/actions
 .PHONY: test-user
