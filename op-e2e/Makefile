@@ -51,3 +51,7 @@ clean:
 	rm -r ../.devnet
 	rm -r ../op-program/bin
 .PHONY: clean
+
+test-user:
+	$(go_test) $(go_test_flags) ./op-e2e/actions/user_test.go
+.PHONY: test-user

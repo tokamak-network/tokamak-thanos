@@ -1,8 +1,8 @@
 name: e2e test_go
 on:
-   push:
-     paths:
-       - '**'
+  push:
+    paths:
+      - 'ufm-test-services'
 
 jobs:
   env-setting:

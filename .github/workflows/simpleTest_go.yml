@@ -1,9 +1,8 @@
 name: simple test_go
 on:
-  # push:
-  #   paths:
-  #     - 'op-node/**'
-  #     - 'packages/tokamak/contracts-bedrock/**'
+  push:
+    paths:
+      - 'ufm-test-services'
 
 jobs:
   env-setting:

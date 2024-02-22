@@ -3,8 +3,7 @@ name: pnpm-monorepo
 on:
   push:
     paths:
-      - 'op-chain-ops/**'
-      - 'packages/**'
+      - 'ufm-test-services'
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest

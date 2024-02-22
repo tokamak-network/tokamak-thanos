@@ -1,12 +1,13 @@
-name: geth unit tests
+name: e2e user-test_go
+
 on:
   push:
     paths:
-      - 'ufm-test-services'
+      - '**'
 
 jobs:
   env-setting:
-    name: run test_go
+    name: run e2e test_go
     runs-on: ubuntu-latest
 
     steps:
@@ -59,10 +60,16 @@ jobs:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - name: Get Cache Location
-        id: cache
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_ENV
+      - name: Build necessary projects
+        run: pnpm run build
 
       - name: Test
-        run: make test
+        run: |
+          make install-geth
+          make cannon-prestate
+          make devnet-allocs
+          cd op-e2e
+          make test-user
+
         continue-on-error: true
+
