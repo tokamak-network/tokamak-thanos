@@ -52,6 +52,7 @@ clean:
 	rm -r ../op-program/bin
 .PHONY: clean
 
+
 test-user:
-	$(go_test) $(go_test_flags) ./actions/user_test.go
+	$(go_test) $(go_test_flags) ./actions/user.go ./actions/user_test.go
 .PHONY: test-user
