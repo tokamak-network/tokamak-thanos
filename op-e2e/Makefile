@@ -53,5 +53,5 @@ clean:
 .PHONY: clean
 
 test-user:
-	$(go_test) $(go_test_flags) -ethLogVerbosity=5 -run TestCrossLayerUser ./actions
+	$(go_test) $(go_test_flags) -run TestCrossLayerUser ./actions
 .PHONY:
