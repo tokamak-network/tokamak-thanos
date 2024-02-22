@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"context"
+	"math/big"
 	"math/rand"
 	"testing"
 
@@ -141,8 +143,24 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	miner.ActL1EndBlock(t)
 	alice.L1.ActCheckReceiptStatusOfLastTx(true)(t)
 
-	// regular Deposit, in new L1 block
+	// ActDeposit 이전에 대상 계정의 잔액 가져오기
+	prevBalance, err := l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
+	require.NoError(t, err)
+
+	// 입금할 양 설정
+	depositAmount := big.NewInt(100) // 예: 100wei
+
+	// regular Deposit, in new L1 block, ActDeposit 호출하여 deposit 실행
 	alice.ActDeposit(t)
+
+	// ActDeposit 이후에 대상 계정의 잔액 가져오기
+	newBalance, err := l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
+	require.NoError(t, err)
+
+	// 잔액 비교
+	expectedBalance := new(big.Int).Add(prevBalance, depositAmount)
+	require.Equal(t, expectedBalance, newBalance)
+
 	miner.ActL1StartBlock(12)(t)
 	miner.ActL1IncludeTx(alice.Address())(t)
 	miner.ActL1EndBlock(t)
