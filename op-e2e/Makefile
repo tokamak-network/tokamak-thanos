@@ -53,5 +53,5 @@ clean:
 .PHONY: clean
 
 test-user:
-	$(go_test) $(go_test_flags) ./op-e2e/actions/user_test.go
+	$(go_test) $(go_test_flags) ./actions/user_test.go
 .PHONY: test-user
