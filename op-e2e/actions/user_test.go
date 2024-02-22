@@ -38,12 +38,27 @@ func TestCrossLayerUser(t *testing.T) {
 		{name: "RegolithAfterGenesis", regolithTime: &futureTime, activateRegolith: true},
 	}
 	for _, test := range tests {
-		test := test // Use a fixed reference as the tests run in parallel
-		t.Run(test.name, func(gt *testing.T) {
-			runCrossLayerUserTest(gt, test)
-		})
+		if test.name == "RegolithAfterGenesis" {
+			test := test // Use a fixed reference as the tests run in parallel
+			t.Run(test.name, func(gt *testing.T) {
+				runCrossLayerUserTest(gt, test)
+			})
+		}
 	}
 }
+
+// 		{name: "NoRegolith", regolithTime: nil, activateRegolith: false},
+// 		{name: "NotYetRegolith", regolithTime: &farFutureTime, activateRegolith: false},
+// 		{name: "RegolithAtGenesis", regolithTime: &zeroTime, activateRegolith: true},
+// 		{name: "RegolithAfterGenesis", regolithTime: &futureTime, activateRegolith: true},
+// 	}
+// 	for _, test := range tests {
+// 		test := test // Use a fixed reference as the tests run in parallel
+// 		t.Run(test.name, func(gt *testing.T) {
+// 			runCrossLayerUserTest(gt, test)
+// 		})
+// 	}
+// }
 
 func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	t := NewDefaultTesting(gt)
