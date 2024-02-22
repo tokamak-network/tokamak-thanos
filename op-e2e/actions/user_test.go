@@ -65,7 +65,7 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	dp := e2eutils.MakeDeployParams(t, defaultRollupTestParams)
 	dp.DeployConfig.L2GenesisRegolithTimeOffset = test.regolithTime
 	sd := e2eutils.Setup(t, dp, defaultAlloc)
-	log := testlog.Logger(t, log.LvlInfo)
+	log := testlog.Logger(t, log.LvlTrace)
 
 	require.Equal(t, dp.Secrets.Addresses().Batcher, dp.DeployConfig.BatchSenderAddress)
 	require.Equal(t, dp.Secrets.Addresses().Proposer, dp.DeployConfig.L2OutputOracleProposer)
