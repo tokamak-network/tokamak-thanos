@@ -14,10 +14,13 @@ import { Constants } from "src/libraries/Constants.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 
 // Target contract
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
+
+import "forge-std/console.sol";
 
 contract L1StandardBridge_Getter_Test is Bridge_Initializer {
     /// @dev Test that the accessors return the correct initialized values.
@@ -417,6 +420,164 @@ contract L1StandardBridge_DepositERC20To_Test is Bridge_Initializer {
         L1Bridge.depositERC20To(address(L1Token), address(L2Token), bob, 1000, 10000, hex"");
 
         assertEq(L1Bridge.deposits(address(L1Token), address(L2Token)), 1000);
+    }
+}
+
+contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
+    using stdStorage for StdStorage;
+
+    // deposit to L2's native tokens
+    // - updates bridge.deposits
+    // - emits ERC20DepositInitiated
+    // - calls optimismPortal.depositTransaction
+    // - only callable by EOA
+
+    /// @dev Tests that depositing L2's native token to the bridge succeeds.
+    ///      Bridge deposits are updated.
+    ///      Emits ERC20DepositInitiated event.
+    ///      Calls depositTransaction on the OptimismPortal.
+    ///      Only EOA can call depositERC20.
+    function test_depositNativeToken_succeeds() external {
+        uint256 nonce = L1Messenger.messageNonce();
+        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
+        ERC20 nativeToken = ERC20(L1Bridge.nativeTokenAddress());
+        // Deal Alice's ERC20 State
+        deal(address(L1Bridge.nativeTokenAddress()), alice, 100000, true);
+        vm.prank(alice, alice);
+        nativeToken.approve(address(L1Bridge), type(uint256).max);
+
+        // The L1Bridge should transfer alice's tokens to itself
+        vm.expectCall(
+            L1Bridge.nativeTokenAddress(), abi.encodeWithSelector(ERC20.transferFrom.selector, alice, address(L1Bridge), 100)
+        );
+
+        bytes memory message = abi.encodeWithSelector(
+            StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex""
+        );
+
+        // the L1 bridge should call L1CrossDomainMessenger.sendMessage
+        vm.expectCall(
+            address(L1Messenger),
+            abi.encodeWithSelector(L1CrossDomainMessenger.sendNativeTokenMessage.selector, address(L2Bridge), 100, message, 10000)
+        );
+
+        bytes memory innerMessage = abi.encodeWithSelector(
+            CrossDomainMessenger.relayMessage.selector, nonce, address(L1Bridge), address(L2Bridge), 100, 10000, message
+        );
+
+        uint64 baseGas = L1Messenger.baseGas(message, 10000);
+        vm.expectCall(
+            address(op),
+            abi.encodeWithSelector(
+                OptimismPortal.depositTransaction.selector, address(L2Messenger), 100, baseGas, false, innerMessage
+            )
+        );
+
+        bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
+
+        vm.expectEmit(true, true, true, true, address(L1Bridge));
+        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+
+        vm.expectEmit(true, true, true, true, address(L1Bridge));
+        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+
+        // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
+        vm.expectEmit(true, true, true, true, address(op));
+        emit TransactionDeposited(l1MessengerAliased, address(L2Messenger), version, opaqueData);
+
+        // SentMessage event emitted by the CrossDomainMessenger
+        vm.expectEmit(true, true, true, true, address(L1Messenger));
+        emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
+
+        // SentMessageExtension1 event emitted by the CrossDomainMessenger
+        vm.expectEmit(true, true, true, true, address(L1Messenger));
+        emit SentMessageExtension1(address(L1Bridge), 100);
+
+        vm.prank(alice, alice);
+        L1Bridge.depositNativeToken(100, 10000, hex"");
+    }
+}
+
+contract L1StandardBridge_DepositNativeToken_TestFail is Bridge_Initializer {
+    /// @dev Tests that depositing an ERC20 to the bridge reverts
+    ///      if the caller is not an EOA.
+    function test_depositNativeToken_notEoa_reverts() external {
+        // turn alice into a contract
+        vm.etch(alice, hex"ffff");
+
+        vm.expectRevert("StandardBridge: function can only be called from an EOA");
+        vm.prank(alice, alice);
+        L1Bridge.depositNativeToken(100, 100, hex"");
+    }
+}
+
+contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
+    /// @dev Tests that depositing ERC20 to the bridge succeeds when
+    ///      sent to a different address.
+    ///      Bridge deposits are updated.
+    ///      Emits ERC20DepositInitiated event.
+    ///      Calls depositTransaction on the OptimismPortal.
+    ///      Contracts can call depositERC20.
+    function test_depositERC20To_succeeds() external {
+        uint256 nonce = L1Messenger.messageNonce();
+        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
+        ERC20 nativeToken = ERC20(L1Bridge.nativeTokenAddress());
+        // Deal Alice's ERC20 State
+        deal(address(L1Bridge.nativeTokenAddress()), alice, 100000, true);
+        vm.prank(alice, alice);
+        nativeToken.approve(address(L1Bridge), type(uint256).max);
+
+        // The L1Bridge should transfer alice's tokens to itself
+        vm.expectCall(
+            L1Bridge.nativeTokenAddress(), abi.encodeWithSelector(ERC20.transferFrom.selector, alice, address(L1Bridge), 100)
+        );
+
+        bytes memory message = abi.encodeWithSelector(
+            StandardBridge.finalizeBridgeETH.selector, alice, bob, 100, hex""
+        );
+
+        // the L1 bridge should call L1CrossDomainMessenger.sendMessage
+        vm.expectCall(
+            address(L1Messenger),
+            abi.encodeWithSelector(L1CrossDomainMessenger.sendNativeTokenMessage.selector, address(L2Bridge), 100, message, 10000)
+        );
+
+        bytes memory innerMessage = abi.encodeWithSelector(
+            CrossDomainMessenger.relayMessage.selector, nonce, address(L1Bridge), address(L2Bridge), 100, 10000, message
+        );
+
+        uint64 baseGas = L1Messenger.baseGas(message, 10000);
+        vm.expectCall(
+            address(op),
+            abi.encodeWithSelector(
+                OptimismPortal.depositTransaction.selector, address(L2Messenger), 100, baseGas, false, innerMessage
+            )
+        );
+
+        bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
+
+        vm.expectEmit(true, true, true, true, address(L1Bridge));
+        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, bob, 100, hex"");
+
+        vm.expectEmit(true, true, true, true, address(L1Bridge));
+        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, bob, 100, hex"");
+
+        // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
+        vm.expectEmit(true, true, true, true, address(op));
+        emit TransactionDeposited(l1MessengerAliased, address(L2Messenger), version, opaqueData);
+
+        // SentMessage event emitted by the CrossDomainMessenger
+        vm.expectEmit(true, true, true, true, address(L1Messenger));
+        emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
+
+        // SentMessageExtension1 event emitted by the CrossDomainMessenger
+        vm.expectEmit(true, true, true, true, address(L1Messenger));
+        emit SentMessageExtension1(address(L1Bridge), 100);
+
+        vm.prank(alice, alice);
+        L1Bridge.depositNativeTokenTo(bob, 100, 10000, hex"");
     }
 }
 
