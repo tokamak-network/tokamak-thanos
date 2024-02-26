@@ -23,7 +23,7 @@
   "l1_chain_id": 11155111,
   "l2_chain_id": 111551116060,
   "regolith_time": 0,
-  "batch_inbox_address": "0xff00000000000000000000000000111551116060",
+  "batch_inbox_address": "0xff00000000000000000000000000111551117070",
   "deposit_contract_address": "0xa9296f10ee6a46cec7cb0faab0e2c3efb942613f",
   "l1_system_config_address": "0x779f68001f6fa9d9cbe6f244ff26a81f98fb889e",
   "protocol_versions_address": "0x0000000000000000000000000000000000000000"
