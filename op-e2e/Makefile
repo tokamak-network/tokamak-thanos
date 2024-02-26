@@ -55,3 +55,7 @@ clean:
 test-user:
 	$(go_test) $(go_test_flags) -run TestCrossLayerUser ./actions
 .PHONY:
+
+test-actions: pre-test
+	$(go_test) $(go_test_flags) ./actions/*_test.go
+.PHONY: test-actions
