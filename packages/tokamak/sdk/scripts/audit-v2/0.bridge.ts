@@ -9,6 +9,7 @@ import { BigNumber, BytesLike, Wallet, ethers } from 'ethers'
 import { CrossChainMessenger, MessageStatus } from '../../src'
 import * as l1StandardBridgeAbi from '../../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import * as l2StandardBridgeAbi from '../../../contracts-bedrock/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
+import { deployERC20, createOptimismMintableERC20 } from '../shared'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
 
@@ -150,10 +151,13 @@ const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
 const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
 const l2_ERC20_ETH = process.env.ETH || ''
 const l2_WTON = process.env.WTON || ''
+const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
 
 let l1Contracts
 let messenger
 let tonContract
+let l1ERC20Token
+let l2ERC20Token
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (l2NativeToken === '') {
@@ -198,17 +202,9 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== depositTON_L1_TO_L2 ====== ')
-  let l1TONBalance = await tonContract
-    .connect(l1Wallet)
-    .balanceOf(l1Wallet.address)
-  console.log('l1 ton balance:', ethers.utils.formatEther(l1TONBalance))
-
-  const l2BalancePrev = await l2Wallet.getBalance()
-  console.log(
-    'l2 native balance prev: ',
-    ethers.utils.formatEther(l2BalancePrev)
-  )
+  console.log('\n==== bridge_1_depositTON_L1_TO_L2  ====== ')
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
 
   const data = ethers.utils.solidityPack(['uint32', 'bytes'], [2000000, '0x'])
 
@@ -223,34 +219,20 @@ const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
     approveAndCallTx.transactionHash,
     MessageStatus.RELAYED
   )
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
 
-  const l2BalanceAfter = await l2Wallet.getBalance()
-  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log(
-    '\nl1 ton balance after: ',
-    ethers.utils.formatEther(l1TONBalance)
-  )
-  console.log('l2 native balance: ', ethers.utils.formatEther(l2BalanceAfter))
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
 
-  console.log(
-    '\n** l2 added native balance: ',
-    ethers.utils.formatEther(l2BalanceAfter.sub(l2BalancePrev))
-  )
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
 }
 
 const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
-  console.log('\n==== withdrawTON_L2_TO_L1 ====== ')
-
-  const l1EthBalancePrev = await l1Wallet.getBalance()
-  console.log(
-    'l1 eth balance prev: ',
-    ethers.utils.formatEther(l1EthBalancePrev)
-  )
-
-  const l1TONBalance = await tonContract
-    .connect(l1Wallet)
-    .balanceOf(l1Wallet.address)
-  console.log('l1 ton balance:', ethers.utils.formatEther(l1TONBalance))
+  console.log('\n==== bridge_2_withdrawTON_L2_TO_L1  ====== ')
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
 
   const l2BridgeContract = new ethers.Contract(
     l2StandardBridge,
@@ -298,54 +280,29 @@ const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
     clearInterval(finalizeInterval)
   }
 
-  let tonBalanceAfter = await tonContract.balanceOf(l1Wallet.address)
-  console.log(
-    'l2 ton token balance in L1: ',
-    ethers.utils.formatEther(tonBalanceAfter)
-  )
-
   const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
   const receipt = await tx.wait()
   console.log('\nFinalized message tx', receipt.transactionHash)
   console.log('Finalized withdrawal')
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
 
-  tonBalanceAfter = await tonContract.balanceOf(l1Wallet.address)
-  console.log('ton balance in L1: ', ethers.utils.formatEther(tonBalanceAfter))
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
 
-  console.log(
-    '\n** withdrawal ton balance from L2 to L1: ',
-    ethers.utils.formatEther(tonBalanceAfter.sub(l1TONBalance))
-  )
-
-  const l1EthBalanceAfter = await l1Wallet.getBalance()
-  console.log(
-    'l1 eth balance after: ',
-    ethers.utils.formatEther(l1EthBalanceAfter)
-  )
-
-  console.log(
-    '\n** l1 eth changed : ',
-    ethers.utils.formatEther(l1EthBalanceAfter.sub(l1EthBalancePrev))
-  )
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
 }
 
 const bridge_3_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== depositETH_L1_TO_L2 ====== ')
-
-  const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
-
-  const l1BalancePrev = await l1Wallet.getBalance()
-  console.log('l1 eth balance prev: ', ethers.utils.formatEther(l1BalancePrev))
-  const l2EthBalancePrev = await l2EthContract.balanceOf(l2Wallet.address)
-  console.log(
-    'l2 eth balance prev: ',
-    ethers.utils.formatEther(l2EthBalancePrev)
-  )
+  console.log('\n==== bridge_3_depositETH_L1_TO_L2  ====== ')
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
 
   const l1BridgeContract = new ethers.Contract(
     l1StandardBridge,
     l1StandardBridgeAbi.abi,
-    l2Wallet
+    l1Wallet
   )
 
   const deposition = await l1BridgeContract
@@ -368,35 +325,19 @@ const bridge_3_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
     MessageStatus.RELAYED
   )
 
-  const l1BalanceAfter = await l1Wallet.getBalance()
-  console.log(
-    '\nl1 eth balance after: ',
-    ethers.utils.formatEther(l1BalanceAfter)
-  )
-  const l2EthBalanceAfter = await l2EthContract.balanceOf(l2Wallet.address)
-  console.log(
-    'l2 eth balance after: ',
-    ethers.utils.formatEther(l2EthBalanceAfter)
-  )
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
 
-  console.log(
-    '\n** l2 deposited eth: ',
-    ethers.utils.formatEther(l2EthBalanceAfter.sub(l2EthBalancePrev))
-  )
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
 }
 
 const bridge_4_withdrawETH_L2_TO_L1 = async (amount: BigNumber) => {
-  console.log('\n==== withdrawETH_L2_TO_L1 ====== ')
-
-  const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
-
-  const l1BalancePrev = await l1Wallet.getBalance()
-  console.log('l1 eth balance prev: ', ethers.utils.formatEther(l1BalancePrev))
-  const l2EthBalancePrev = await l2EthContract.balanceOf(l2Wallet.address)
-  console.log(
-    'l2 eth balance prev: ',
-    ethers.utils.formatEther(l2EthBalancePrev)
-  )
+  console.log('\n==== bridge_4_withdrawETH_L2_TO_L1  ====== ')
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
 
   const l2BridgeContract = new ethers.Contract(
     l2StandardBridge,
@@ -448,30 +389,17 @@ const bridge_4_withdrawETH_L2_TO_L1 = async (amount: BigNumber) => {
   const receipt = await tx.wait()
   console.log('\nFinalized message tx', receipt.transactionHash)
   console.log('Finalized withdrawal')
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
 
-  const l1BalanceAfter = await l1Wallet.getBalance()
-  console.log(
-    '\nl1 eth balance after: ',
-    ethers.utils.formatEther(l1BalanceAfter)
-  )
-  const l2EthBalanceAfter = await l2EthContract.balanceOf(l2Wallet.address)
-  console.log(
-    'l2 eth balance after: ',
-    ethers.utils.formatEther(l2EthBalanceAfter)
-  )
-
-  console.log(
-    '\n** l2 withdrawal eth: ',
-    ethers.utils.formatEther(l2EthBalancePrev.sub(l2EthBalanceAfter))
-  )
-  console.log(
-    '\n** l1 added eth: ',
-    ethers.utils.formatEther(l1BalanceAfter.sub(l1BalancePrev))
-  )
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
 }
 
 const bridge_5_withdrawWTON_L2_TO_L1 = async (amount: BigNumber) => {
-  console.log('\n==== withdrawWTON_L2_TO_L1 ====== ')
+  console.log('\n==== bridge_5_withdrawWTON_L2_TO_L1 ====== ')
 
   const l2WtonContract = new ethers.Contract(l2_WTON, wtonABI, l2Wallet)
   const l2WtonBalanceCur = await l2WtonContract.balanceOf(l2Wallet.address)
@@ -533,46 +461,216 @@ const bridge_5_withdrawWTON_L2_TO_L1 = async (amount: BigNumber) => {
   }
 }
 
-const bridge_6_depositERC20_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== depositERC20_L1_TO_L2 ====== ')
+const bridge_6_depositERC20_L1_TO_L2 = async (
+  hre: HardhatRuntimeEnvironment,
+  amount: BigNumber
+) => {
+  console.log('\n==== bridge_6_depositERC20_L1_TO_L2 ====== ')
+  const name = 'Test'
+  const symbol = 'TST'
+  const initialSupply = ethers.utils.parseEther('100000')
 
-  let l1TONBalance = await tonContract
-    .connect(l1Wallet)
-    .balanceOf(l1Wallet.address)
-  console.log('l1 ton balance:', ethers.utils.formatEther(l1TONBalance))
-
-  const l2BalancePrev = await l2Wallet.getBalance()
-  console.log(
-    'l2 native balance prev: ',
-    ethers.utils.formatEther(l2BalancePrev)
+  l1ERC20Token = await deployERC20(hre, l1Wallet, name, symbol, initialSupply)
+  l2ERC20Token = await createOptimismMintableERC20(hre, l1ERC20Token, l2Wallet)
+  const l1BridgeContract = new ethers.Contract(
+    l1StandardBridge,
+    l1StandardBridgeAbi.abi,
+    l1Wallet
   )
 
-  const data = ethers.utils.solidityPack(['uint32', 'bytes'], [2000000, '0x'])
-
-  const approveAndCallTx = await (
-    await tonContract
+  await (
+    await l1ERC20Token
       .connect(l1Wallet)
-      .approveAndCall(l1Contracts.L1StandardBridge, amount, data)
+      .approve(l1BridgeContract.address, amount)
   ).wait()
-  console.log('\napproveAndCallTx:', approveAndCallTx.transactionHash)
+
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
+  const l1token = await getErc20Balance(l1Wallet, l1ERC20Token)
+  const l2token = await getErc20Balance(l2Wallet, l2ERC20Token)
+
+  const deposition = await l1BridgeContract
+    .connect(l1Wallet)
+    .depositERC20(
+      l1ERC20Token.address,
+      l2ERC20Token.address,
+      amount,
+      20000,
+      '0x'
+    )
+  const depositionTx = await deposition.wait()
+  console.log(
+    '\ndeposit Tx:',
+    depositionTx.transactionHash,
+    ' Block',
+    depositionTx.blockNumber,
+    ' hash',
+    deposition.hash
+  )
 
   await messenger.waitForMessageStatus(
-    approveAndCallTx.transactionHash,
+    depositionTx.transactionHash,
     MessageStatus.RELAYED
   )
 
-  const l2BalanceAfter = await l2Wallet.getBalance()
-  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
-  console.log(
-    '\nl1 ton balance after: ',
-    ethers.utils.formatEther(l1TONBalance)
-  )
-  console.log('l2 native balance: ', ethers.utils.formatEther(l2BalanceAfter))
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
+  const l1token_after = await getErc20Balance(l1Wallet, l1ERC20Token)
+  const l2token_after = await getErc20Balance(l2Wallet, l2ERC20Token)
 
-  console.log(
-    '\n** l2 added native balance: ',
-    ethers.utils.formatEther(l2BalanceAfter.sub(l2BalancePrev))
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
+
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
+
+  await differenceErc20Balance(l1token, l1token_after, 'L1 ERC20 Changed : ')
+  await differenceErc20Balance(l2token, l2token_after, 'L2 ERC20 Changed : ')
+}
+
+const bridge_7_withdrawERC20_L2_TO_L1 = async (amount: BigNumber) => {
+  console.log('\n==== bridge_7_withdrawERC20_L2_TO_L1  ====== ')
+
+  const l1balance = await getL1Balance(l1Wallet)
+  const l2balance = await getL2Balance(l2Wallet)
+  const l1token = await getErc20Balance(l1Wallet, l1ERC20Token)
+  const l2token = await getErc20Balance(l2Wallet, l2ERC20Token)
+
+  const l2BridgeContract = new ethers.Contract(
+    l2StandardBridge,
+    l2StandardBridgeAbi.abi,
+    l2Wallet
   )
+  const withdrawal = await l2BridgeContract
+    .connect(l2Wallet)
+    .withdraw(l2ERC20Token.address, amount, 20000, '0x', {
+      value: amount,
+    })
+  const withdrawalTx = await withdrawal.wait()
+  console.log(
+    '\nwithdrawal Tx:',
+    withdrawalTx.transactionHash,
+    ' Block',
+    withdrawalTx.blockNumber,
+    ' hash',
+    withdrawal.hash
+  )
+
+  await messenger.waitForMessageStatus(
+    withdrawalTx.transactionHash,
+    MessageStatus.READY_TO_PROVE
+  )
+
+  console.log('\nProve the message')
+  const proveTx = await messenger.proveMessage(withdrawalTx.transactionHash)
+  const proveReceipt = await proveTx.wait(3)
+  console.log('Proved the message: ', proveReceipt.transactionHash)
+
+  const finalizeInterval = setInterval(async () => {
+    const currentStatus = await messenger.getMessageStatus(
+      withdrawalTx.transactionHash
+    )
+    console.log('Message status: ', currentStatus)
+  }, 3000)
+
+  try {
+    await messenger.waitForMessageStatus(
+      withdrawalTx.transactionHash,
+      MessageStatus.READY_FOR_RELAY
+    )
+  } finally {
+    clearInterval(finalizeInterval)
+  }
+
+  const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
+  const receipt = await tx.wait()
+  console.log('\nFinalized message tx', receipt.transactionHash)
+  console.log('Finalized withdrawal')
+  const l1balance_after = await getL1Balance(l1Wallet)
+  const l2balance_after = await getL2Balance(l2Wallet)
+  const l1token_after = await getErc20Balance(l1Wallet, l1ERC20Token)
+  const l2token_after = await getErc20Balance(l2Wallet, l2ERC20Token)
+
+  await differenceTonBalance(l1balance, l1balance_after, 'L1 TON Changed : ')
+  await differenceTonBalance(l2balance, l2balance_after, 'L2 TON Changed : ')
+
+  await differenceEthBalance(l1balance, l1balance_after, 'L1 ETH Changed : ')
+  await differenceEthBalance(l2balance, l2balance_after, 'L2 ETH Changed : ')
+
+  await differenceErc20Balance(l1token, l1token_after, 'L1 ERC20 Changed : ')
+  await differenceErc20Balance(l2token, l2token_after, 'L2 ERC20 Changed : ')
+}
+
+const getL1Balance = async (account: Wallet) => {
+  const tonBalance = await tonContract.balanceOf(account.address)
+  const ethBalance = await account.getBalance()
+  return {
+    tonBalance,
+    ethBalance,
+  }
+}
+
+const getL2Balance = async (account: Wallet) => {
+  const tonBalance = await account.getBalance()
+  const ethBalance = await l2EthContract.balanceOf(account.address)
+
+  return {
+    tonBalance,
+    ethBalance,
+  }
+}
+const getErc20Balance = async (account: Wallet, token) => {
+  const balance = await token.balanceOf(account.address)
+  return {
+    balance,
+  }
+}
+
+// const logBalance = async (l1Log: any, l2Log: any) => {
+//   console.log(
+//     'l1 ton balance prev:',
+//     ethers.utils.formatEther(l1Log.tonBalance)
+//   )
+//   console.log(
+//     'l2 ton balance prev:',
+//     ethers.utils.formatEther(l2Log.tonBalance)
+//   )
+
+//   console.log(
+//     'l1 eth balance prev:',
+//     ethers.utils.formatEther(l1Log.ethBalance)
+//   )
+//   console.log(
+//     'l2 eth balance prev:',
+//     ethers.utils.formatEther(l2Log.ethBalance)
+//   )
+// }
+
+// const logErc20Balance = async (l1Log: any, l2Log: any, title: string) => {
+//   console.log(title, ethers.utils.formatEther(l1Log.balance))
+//   console.log(title, ethers.utils.formatEther(l2Log.balance))
+// }
+
+const differenceTonBalance = async (l1Log: any, l2Log: any, title: string) => {
+  console.log(
+    title,
+    ethers.utils.formatEther(l2Log.tonBalance.sub(l1Log.tonBalance))
+  )
+}
+
+const differenceEthBalance = async (l1Log: any, l2Log: any, title: string) => {
+  console.log(
+    title,
+    ethers.utils.formatEther(l2Log.ethBalance.sub(l1Log.ethBalance))
+  )
+}
+
+const differenceErc20Balance = async (
+  l1Log: any,
+  l2Log: any,
+  title: string
+) => {
+  console.log(title, ethers.utils.formatEther(l2Log.balance.sub(l1Log.balance)))
 }
 
 const faucet = async (account: Wallet, amount: BigNumber) => {
@@ -603,6 +701,7 @@ const setup = async () => {
 
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
+  //   console.log('l1ChainId',l1ChainId)
 
   messenger = new CrossChainMessenger({
     bedrock: true,
@@ -631,7 +730,8 @@ const main = async () => {
 
   await bridge_5_withdrawWTON_L2_TO_L1(withdrawAmount)
 
-  await bridge_6_depositERC20_L1_TO_L2(depositAmount)
+  await bridge_6_depositERC20_L1_TO_L2(hardhat, depositAmount)
+  await bridge_7_withdrawERC20_L2_TO_L1(withdrawAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
