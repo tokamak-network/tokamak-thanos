@@ -3,7 +3,7 @@ name: e2e user-test_go
 on:
   push:
     paths:
-      - '**'
+      - 'ufm-test-services'
 
 jobs:
   env-setting:

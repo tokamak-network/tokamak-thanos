@@ -57,5 +57,5 @@ test-user:
 .PHONY:
 
 test-actions: pre-test
-	$(go_test) $(go_test_flags) ./actions/*_test.go
+	$(go_test) $(go_test_flags) ./actions/
 .PHONY: test-actions
