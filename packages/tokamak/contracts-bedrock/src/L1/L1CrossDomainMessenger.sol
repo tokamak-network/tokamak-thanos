@@ -66,12 +66,18 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     //     PORTAL.depositTransaction(_to, 0, _gasLimit, false, _data);
     // }
 
+    function _approve(uint256 _value) internal {
+        if (IERC20(nativeTokenAddress).allowance(address(this), address(PORTAL)) < _value) {
+            IERC20(nativeTokenAddress).approve(address(PORTAL), type(uint256).max);
+        }
+    }
+
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
         if (_value > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
-            IERC20(nativeTokenAddress).approve(address(PORTAL), _value);
+            _approve(_value);
         }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
@@ -95,7 +101,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
         if (_amount > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
-            IERC20(nativeTokenAddress).approve(address(PORTAL), _amount);
+            _approve(_amount);
         }
         PORTAL.depositTransaction(_owner, _amount, _minGasLimit, false, _message);
         return true;
