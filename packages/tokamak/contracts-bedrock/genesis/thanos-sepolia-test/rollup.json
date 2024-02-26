@@ -5,7 +5,7 @@
       "number": 5339329
     },
     "l2": {
-      "hash": "0xe46ef7d8b26854a17858ad9fea3fa64d8b35f3f66e0b434396c6f31d8b94883e",
+      "hash": "0xc39955970de9ba93554d2fbf3f5f0444e4e398ef8745dad6793fc7e3327a49f5",
       "number": 0
     },
     "l2_time": 1708585044,
@@ -24,7 +24,7 @@
   "l2_chain_id": 111551116060,
   "regolith_time": 0,
   "batch_inbox_address": "0xff00000000000000000000000000111551116060",
-  "deposit_contract_address": "0x5f0f2ba6c8cf7170016c86fa71babe4ba7750b37",
-  "l1_system_config_address": "0xc6596905a7876aa4d993ffbd2c7b49b5acaf78f9",
+  "deposit_contract_address": "0xa9296f10ee6a46cec7cb0faab0e2c3efb942613f",
+  "l1_system_config_address": "0x779f68001f6fa9d9cbe6f244ff26a81f98fb889e",
   "protocol_versions_address": "0x0000000000000000000000000000000000000000"
 }
