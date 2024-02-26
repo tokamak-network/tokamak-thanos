@@ -151,6 +151,7 @@ def deploy_contracts(paths):
     log.info('Syncing contracts.')
     run_command([
         'forge', 'script', fqn, '--sig', 'sync()',
+        '--memory-limit', '268435456',
         '--rpc-url', 'http://127.0.0.1:8545'
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
@@ -165,7 +166,7 @@ def devnet_l1_genesis(paths):
     init_devnet_l1_deploy_config(paths)
 
     geth = subprocess.Popen([
-        'geth', '--dev', '--http', '--http.api', 'eth,debug',
+        'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
         '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
         '--rpc.allow-unprotected-txs'
     ])
