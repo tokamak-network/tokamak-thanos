@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	golog "log"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -43,7 +44,9 @@ func TestCrossLayerUser(t *testing.T) {
 		if test.name == "RegolithAfterGenesis" {
 			test := test // Use a fixed reference as the tests run in parallel
 			t.Run(test.name, func(gt *testing.T) {
+				golog.Println("Start testing:", test.name)
 				runCrossLayerUserTest(gt, test)
+				golog.Println("End testing:", test.name)
 			})
 		}
 	}
@@ -67,7 +70,7 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	dp := e2eutils.MakeDeployParams(t, defaultRollupTestParams)
 	dp.DeployConfig.L2GenesisRegolithTimeOffset = test.regolithTime
 	sd := e2eutils.Setup(t, dp, defaultAlloc)
-	log := testlog.Logger(t, log.LvlTrace)
+	log := testlog.Logger(t, log.LvlDebug)
 
 	require.Equal(t, dp.Secrets.Addresses().Batcher, dp.DeployConfig.BatchSenderAddress)
 	require.Equal(t, dp.Secrets.Addresses().Proposer, dp.DeployConfig.L2OutputOracleProposer)
@@ -143,21 +146,21 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	miner.ActL1EndBlock(t)
 	alice.L1.ActCheckReceiptStatusOfLastTx(true)(t)
 
-	// ActDeposit 이전에 대상 계정의 잔액 가져오기
+	//Get the target account's balance before ActDeposit
 	prevBalance, err := l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
 	require.NoError(t, err)
 
-	// 입금할 양 설정
-	depositAmount := big.NewInt(100) // 예: 100wei
+	//Set the amount to deposit
+	depositAmount := big.NewInt(0) // 예: 100wei
 
-	// regular Deposit, in new L1 block, ActDeposit 호출하여 deposit 실행
+	//Call ActDeposit to execute the deposit
 	alice.ActDeposit(t)
 
-	// ActDeposit 이후에 대상 계정의 잔액 가져오기
+	// Get the target account's balance after an ActDeposit
 	newBalance, err := l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
 	require.NoError(t, err)
 
-	// 잔액 비교
+	// Compare balances
 	expectedBalance := new(big.Int).Add(prevBalance, depositAmount)
 	require.Equal(t, expectedBalance, newBalance)
 
@@ -174,6 +177,17 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	}
 	// Now that the L2 chain adopted the latest L1 block, check that we processed the deposit
 	alice.ActCheckDepositStatus(true, true)(t)
+
+	// 	// Get the balance of the target account after ActDeposit
+
+	newBalance, err = l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
+	require.NoError(t, err)
+
+	t.Logf("The deposit was processed successfully. Previous balance: %s, Balance after deposit: %s", prevBalance.String(), newBalance.String())
+
+	// Get the balance before the withdrawal
+	prevBalance, err = l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
+	require.NoError(t, err)
 
 	// regular withdrawal, in new L2 block
 	alice.ActStartWithdrawal(t)
@@ -235,6 +249,13 @@ func runCrossLayerUserTest(gt *testing.T, test regolithScheduledTest) {
 	miner.ActL1EndBlock(t)
 	// check withdrawal succeeded
 	alice.L1.ActCheckReceiptStatusOfLastTx(true)(t)
+
+	//Get your balance after a withdrawal
+	newBalance, err = l1Cl.BalanceAt(context.Background(), alice.Address(), nil)
+	require.NoError(t, err)
+
+	//Log the change in balance
+	t.Logf("The withdrawal was processed successfully. Previous balance: %s, Balance after withdrawal: %s", prevBalance.String(), newBalance.String())
 
 	// Check Regolith wasn't activated during the test unintentionally
 	infoTx, err = l2Cl.TransactionInBlock(t.Ctx(), seq.L2Unsafe().Hash, 0)

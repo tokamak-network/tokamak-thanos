@@ -3,7 +3,6 @@ package actions
 import (
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"math/big"
 	"math/rand"
 
@@ -320,33 +319,45 @@ func (s *CrossLayerUser) ActDeposit(t Testing) {
 		gas, err := s.L2.env.EthCl.EstimateGas(t.Ctx(), ethereum.CallMsg{
 			From:       s.L2.address,
 			To:         &toAddr,
-			Value:      depositTransferValue, // TODO: estimate gas does not support minting yet
+			Value:      depositTransferValue,
 			Data:       s.L2.txCallData,
 			AccessList: nil,
 		})
-		require.NoError(t, err)
+		if err != nil {
+			log.Error("Failed to estimate gas", "error", err)
+			return
+		}
 		depositGas = gas
 	}
 
 	// Finally send TX
 	s.L1.txOpts.GasLimit = 0
 	tx, err := s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, isCreation, s.L2.txCallData)
-	require.Nil(t, err, "with deposit tx")
+	if err != nil {
+		log.Error("Failed to create deposit transaction", "error", err)
+		return
+	}
 
-	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
-	// for buying L2 gas in the portal contracts.
+	// Add 10% padding for the L1 gas limit
 	s.L1.txOpts.GasLimit = tx.Gas() + (tx.Gas() / 10)
 
 	tx, err = s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, isCreation, s.L2.txCallData)
-	require.NoError(t, err, "failed to create deposit tx")
+	if err != nil {
+		log.Error("Failed to create deposit transaction", "error", err)
+		return
+	}
 
 	s.L1.txOpts.GasLimit = 0
 
-	fmt.Printf("Gas limit: %v\n", tx.Gas())
+	log.Info("Gas limit", "value", tx.Gas())
 	// Send the actual tx (since tx opts don't send by default)
 	err = s.L1.env.EthCl.SendTransaction(t.Ctx(), tx)
-	require.NoError(t, err, "must send tx")
+	if err != nil {
+		log.Error("Failed to send transaction", "error", err)
+		return
+	}
 	s.lastL1DepositTxHash = tx.Hash()
+	log.Info("Transaction sent", "hash", tx.Hash().Hex())
 }
 
 func (s *CrossLayerUser) ActCheckDepositStatus(l1Success, l2Success bool) Action {
