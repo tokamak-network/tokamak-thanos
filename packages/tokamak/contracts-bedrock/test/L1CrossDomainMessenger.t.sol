@@ -18,7 +18,7 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 // Target contract
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 
-import { ERC20Detailed } from "src/L1/TON.sol";
+import { ERC20Detailed } from "src/L1/L2NativeToken.sol";
 
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev The receiver address
@@ -209,7 +209,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
 
-        dealL1TON(address(L1Messenger), 2 * value);
+        dealL2NativeToken(address(L1Messenger), 2 * value);
 
 
         vm.expectCall(target, hex"1111");
@@ -230,8 +230,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             hex"1111"
         );
 
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), value);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
@@ -252,8 +252,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             hex"1111"
         );
 
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), 0);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), 2 * value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), 0);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), 2 * value);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -354,7 +354,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
 
-        dealL1TON(address(L1Messenger), 2 * value);
+        dealL2NativeToken(address(L1Messenger), 2 * value);
 
 
         // Compute the message hash.
@@ -393,8 +393,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), value);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
@@ -422,8 +422,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), 0);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), 2*value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), 0);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), 2*value);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -436,7 +436,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
 
-        dealL1TON(address(L1Messenger), value);
+        dealL2NativeToken(address(L1Messenger), value);
 
         // Compute the message hash.
         bytes32 hash = Hashing.hashCrossDomainMessageV1(
@@ -471,8 +471,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), 0);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), 0);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), value);
         assertEq(address(target).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -498,7 +498,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
 
-        dealL1TON(address(L1Messenger), 2 * value);
+        dealL2NativeToken(address(L1Messenger), 2 * value);
 
 
         // Compute the message hash.
@@ -534,8 +534,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), 100);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), value);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), 100);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), value);
         assertEq(address(target).balance, 0);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
@@ -565,8 +565,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         // Message was successfully relayed.
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(L1Messenger)), 0);
-        assertEq(ERC20Detailed(l1TON).balanceOf(address(target)), value * 2);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(L1Messenger)), 0);
+        assertEq(ERC20Detailed(l2NativeToken).balanceOf(address(target)), value * 2);
 
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), true);
