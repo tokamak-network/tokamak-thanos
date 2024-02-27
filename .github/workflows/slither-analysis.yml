@@ -70,4 +70,4 @@ jobs:
       - name: Run analysis
         working-directory: ./packages/tokamak/contracts-bedrock/src/L1
         shell: bash
-        run: pnpm test:slither
+        run: pnpm slither
