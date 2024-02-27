@@ -1,4 +1,4 @@
-name: e2e user-test_go
+name: e2e actions test.go
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   env-setting:
-    name: run e2e test_go
+    name: run actions test.go
     runs-on: ubuntu-latest
 
     steps:
