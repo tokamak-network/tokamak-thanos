@@ -82,6 +82,37 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
+     function unpackOnApproveData1(bytes memory _data) public
+        pure returns (address _to, uint32 _minGasLimit, bytes memory _message) {
+
+        if(_data.length > 23) {
+             assembly {
+                // The layout of a "bytes memory" is:
+                // The first 32 bytes: length of a "bytes memory"
+                // The next 20 bytes: _to
+                // The next 4 bytes: _minGasLimit
+                // The rest: _message
+
+                let _pos := _data
+                // Get _data.length
+                let _length := mload(_pos)
+                // Pass first 32 bytes. Now the pointer "pos" is pointing to _minGasLimit
+                _pos := add(_pos, 32)
+                // Load value from the next 20 bytes
+                // mload() works with 32 bytes so we need shift right 32-20=12(bytes) = 96(bits)
+                _to := shr(96, mload(_pos))
+                // Load value from the next 4 bytes
+                // mload() works with 32 bytes so we need shift right 32-24=8(bytes) = 64(bits)
+                _minGasLimit := shr(64, mload(_pos))
+                if iszero(eq(_length, 24)) {
+                    // Pass 4 bytes to get embedded _message
+                    _message := add(_pos, 24)
+                }
+            }
+        }
+
+    }
+
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
@@ -96,15 +127,86 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         override
         returns (bool)
     {
+        require(_amount != 0, 'zero amount');
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
+        (address _to, uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData1(_data);
 
-        if (_amount > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
-            _approve(_amount);
+        if (_to == address(0)) _to = _owner;
+        if (_minGasLimit == 0) _minGasLimit = 20_000;
+
+        IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
+        _approve(_amount);
+
+        bytes memory _portalData = abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), _owner, _to, _amount, _minGasLimit, _message
+            );
+
+        uint64 _gasLimit = baseGas1(_message, _minGasLimit);
+        PORTAL.depositTransaction(
+            OTHER_MESSENGER,
+            _amount,
+            _gasLimit,
+            false,
+            _portalData
+        );
+
+        emit SentMessage(_to, _owner, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(_owner, _amount);
+
+        unchecked {
+            ++msgNonce;
         }
-        PORTAL.depositTransaction(_owner, _amount, _minGasLimit, false, _message);
+
         return true;
+    }
+
+    function baseGas1(bytes memory _message, uint32 _minGasLimit) public pure returns (uint64) {
+        return
+        // Constant overhead
+        RELAY_CONSTANT_OVERHEAD
+        // Calldata overhead
+        + (uint64(_message.length) * MIN_GAS_CALLDATA_OVERHEAD)
+        // Dynamic overhead (EIP-150)
+        + ((_minGasLimit * MIN_GAS_DYNAMIC_OVERHEAD_NUMERATOR) / MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR)
+        // Gas reserved for the worst-case cost of 3/5 of the `CALL` opcode's dynamic gas
+        // factors. (Conservative)
+        + RELAY_CALL_OVERHEAD
+        // Relay reserved gas (to ensure execution of `relayMessage` completes after the
+        // subcontext finishes executing) (Conservative)
+        + RELAY_RESERVED_GAS
+        // Gas reserved for the execution between the `hasMinGas` check and the `CALL`
+        // opcode. (Conservative)
+        + RELAY_GAS_CHECK_BUFFER;
+    }
+
+    function _sendNativeTokenMessage(
+        address _sender,
+        address _target,
+        uint256 _amount,
+        bytes calldata _message,
+        uint32 _minGasLimit
+    )
+        internal
+    {
+        // Triggers a message to the other messenger. Note that the amount of gas provided to the
+        // message is the amount of gas requested by the user PLUS the base gas value. We want to
+        // guarantee the property that the call to the target contract will always have at least
+        // the minimum gas limit specified by the user.
+        _sendMessage(
+            OTHER_MESSENGER,
+            baseGas(_message, _minGasLimit),
+            _amount,
+            abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), _sender, _target, _amount, _minGasLimit, _message
+            )
+        );
+
+        emit SentMessage(_target, _sender, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(_sender, _amount);
+
+        unchecked {
+            ++msgNonce;
+        }
     }
 
     /// @inheritdoc CrossDomainMessenger
