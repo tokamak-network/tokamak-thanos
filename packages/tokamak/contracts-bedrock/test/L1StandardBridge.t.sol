@@ -20,8 +20,6 @@ import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 // Target contract
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
-import "forge-std/console.sol";
-
 contract L1StandardBridge_Getter_Test is Bridge_Initializer {
     /// @dev Test that the accessors return the correct initialized values.
     function test_getters_succeeds() external view {
