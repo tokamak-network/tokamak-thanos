@@ -2,9 +2,8 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import { Test, StdUtils } from "forge-std/Test.sol";
+import { Test, StdUtils, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
-// import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
@@ -37,14 +36,7 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
-
-contract L2NativeToken is ERC20 {
-    constructor() ERC20("Test", "Test") { }
-
-    function faucet(uint256 _amount) external {
-        _mint(msg.sender, _amount);
-    }
-}
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 
 contract CommonTest is Test {
     address alice = address(128);
@@ -179,20 +171,43 @@ contract L2OutputOracle_Initializer is CommonTest {
     }
 }
 
-contract Portal_Initializer is L2OutputOracle_Initializer {
+
+contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
+    using stdStorage for StdStorage;
+
+    // Test target
+    L2NativeToken internal tokenImpl;
+    L2NativeToken internal token;
+
+
+    function setUp() public virtual override {
+        super.setUp();
+
+
+        vm.prank(multisig);
+        tokenImpl = new L2NativeToken();
+        token = L2NativeToken(address(tokenImpl));
+        vm.label(address(token), "L2NativeToken");
+    }
+
+    function dealL2NativeToken(address _target,uint256 _amount) public {
+        deal(address(token), _target, _amount, true);
+        vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount))); //set total supply
+    }
+}
+
+
+contract Portal_Initializer is L2NativeToken_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
     SystemConfig systemConfig;
-    L2NativeToken token;
 
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
 
     function setUp() public virtual override {
         super.setUp();
-
-        token = new L2NativeToken();
 
         Proxy systemConfigProxy = new Proxy(multisig);
 
