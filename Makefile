@@ -119,8 +119,17 @@ devnet-up: pre-devnet
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=.
 .PHONY: devnet-up
 
+devnet-legacy-up: pre-devnet
+	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
+		|| make devnet-legacy-allocs
+	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --legacy
+.PHONY: devnet-legacy-up
+
 # alias for devnet-up
 devnet-up-deploy: devnet-up
+
+# alias for devnet-legacy-up
+devnet-legacy-up-deploy: devnet-legacy-up
 
 devnet-test: pre-devnet
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --test
@@ -138,8 +147,19 @@ devnet-clean:
 	docker volume ls --filter name=ops-bedrock --format='{{.Name}}' | xargs -r docker volume rm
 .PHONY: devnet-clean
 
+devnet-legacy-clean:
+	rm -rf ./packages/contracts-bedrock/deployments/devnetL1
+	rm -rf ./.devnet
+	cd ./ops-bedrock && docker compose down
+	docker image ls 'ops-bedrock*' --format='{{.Repository}}' | xargs -r docker rmi
+	docker volume ls --filter name=ops-bedrock --format='{{.Name}}' | xargs -r docker volume rm
+.PHONY: devnet-legacy-clean
+
 devnet-allocs: pre-devnet
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --allocs
+
+devnet-legacy-allocs: pre-devnet
+	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --allocs --legacy
 
 devnet-logs:
 	@(cd ./ops-bedrock && docker compose logs -f)
