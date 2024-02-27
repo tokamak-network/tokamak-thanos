@@ -36,7 +36,14 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
-import { L2NativeToken } from "src/L1/L2NativeToken.sol";
+
+contract L2NativeToken is ERC20 {
+    constructor() ERC20("Test", "Test") { }
+
+    function faucet(uint256 _amount) external {
+        _mint(msg.sender, _amount);
+    }
+}
 
 contract CommonTest is Test {
     address alice = address(128);
