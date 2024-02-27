@@ -37,17 +37,17 @@ jobs:
           chmod +x $HOME/bin/*
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Get pnpm cache directory path
+        id: pnpm-cache-dir-path
+        run: echo "::set-output name=dir::$(pnpm store dir)"
 
       - uses: actions/cache@v3
-        id: yarn-cache
+        id: pnpm-cache
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          path: ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-pnpm-
 
       - name: Install Dependencies
         # only install dependencies if there was a change in the deps
@@ -57,7 +57,7 @@ jobs:
           pnpm install
 
       - name: Build
-        run: yarn build
+        run: pnpm run build
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
@@ -70,5 +70,4 @@ jobs:
       - name: Run analysis
         working-directory: ./packages/tokamak/contracts-bedrock/src/L1
         shell: bash
-        run: yarn test:slither
-        continue-on-error: true
+        run: pnpm test:slither
