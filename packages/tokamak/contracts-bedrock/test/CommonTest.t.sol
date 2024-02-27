@@ -178,7 +178,6 @@ contract L2OutputOracle_Initializer is CommonTest {
     }
 }
 
-
 contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
     using stdStorage for StdStorage;
 
@@ -186,10 +185,8 @@ contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
     L2NativeToken internal tokenImpl;
     L2NativeToken internal token;
 
-
     function setUp() public virtual override {
         super.setUp();
-
 
         vm.prank(multisig);
         tokenImpl = new L2NativeToken();
@@ -197,12 +194,11 @@ contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
         vm.label(address(token), "L2NativeToken");
     }
 
-    function dealL2NativeToken(address _target,uint256 _amount) public {
+    function dealL2NativeToken(address _target, uint256 _amount) public {
         deal(address(token), _target, _amount, true);
         vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount))); //set total supply
     }
 }
-
 
 contract Portal_Initializer is L2NativeToken_Initializer {
     // Test target
