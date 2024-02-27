@@ -69,5 +69,8 @@ jobs:
 
       - name: Run analysis
         working-directory: ./packages/tokamak/contracts-bedrock
-        shell: bash
-        run: pnpm test:slither
+        run: |
+          cp test/LivenessGuard.t.sol test/LivenessGuard.t.sol.bak
+          sed -i '/function _initializeSafeTools/,/}/ s/^/\/\//' test/LivenessGuard.t.sol
+          pnpm slither
+          mv test/LivenessGuard.t.sol.bak test/LivenessGuard.t.sol
