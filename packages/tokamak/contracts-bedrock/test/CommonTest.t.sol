@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 // Testing utilities
 import { Test, StdUtils } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+// import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
@@ -36,6 +37,14 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
+
+contract L2NativeToken is ERC20 {
+    constructor() ERC20("Test", "Test") { }
+
+    function faucet(uint256 _amount) external {
+        _mint(msg.sender, _amount);
+    }
+}
 
 contract CommonTest is Test {
     address alice = address(128);
@@ -175,12 +184,15 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
     SystemConfig systemConfig;
+    L2NativeToken token;
 
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
 
     function setUp() public virtual override {
         super.setUp();
+
+        token = new L2NativeToken();
 
         Proxy systemConfigProxy = new Proxy(multisig);
 
@@ -221,7 +233,7 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
         vm.prank(multisig);
         proxy.upgradeToAndCall(
             address(opImpl),
-            abi.encodeCall(OptimismPortal.initialize, (address(0), oracle, guardian, systemConfig, false))
+            abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, guardian, systemConfig, false))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
@@ -280,7 +292,7 @@ contract Messenger_Initializer is Portal_Initializer {
             "OVM_L1CrossDomainMessenger"
         );
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(op, address(0));
+        L1Messenger.initialize(op, address(token));
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger(address(L1Messenger))).code);
 
@@ -373,7 +385,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         vm.stopPrank();
 
         L1Bridge = L1StandardBridge(payable(address(proxy)));
-        L1Bridge.initialize(L1Messenger, address(0));
+        L1Bridge.initialize(L1Messenger, address(token));
 
         vm.label(address(proxy), "L1StandardBridge_Proxy");
         vm.label(address(L1Bridge_Impl), "L1StandardBridge_Impl");
