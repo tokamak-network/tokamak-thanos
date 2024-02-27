@@ -68,6 +68,6 @@ jobs:
         run: pip3 install slither-analyzer
 
       - name: Run analysis
-        working-directory: ./packages/tokamak/contracts-bedrock/src/L1
+        working-directory: ./packages/tokamak/contracts-bedrock
         shell: bash
         run: pnpm slither
