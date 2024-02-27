@@ -18,7 +18,8 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 // Target contract
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 
-import { ERC20Detailed, IERC20 } from "src/L1/L2NativeToken.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev The receiver address
@@ -252,8 +253,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             hex"1111"
         );
 
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -395,8 +396,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
@@ -424,8 +425,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -476,8 +477,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(target).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
@@ -542,8 +543,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(target).balance, 0);
         assertEq(address(L1Messenger).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
@@ -573,8 +574,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         // Message was successfully relayed.
         assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
-        assertEq(ERC20Detailed(token).balanceOf(address(L1Messenger)), value);
-        assertEq(ERC20Detailed(token).balanceOf(address(target)), 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
 
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), true);
