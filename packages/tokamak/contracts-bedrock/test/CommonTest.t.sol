@@ -36,7 +36,14 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
-import { L2NativeToken } from "src/L1/L2NativeToken.sol";
+
+contract L2NativeToken is ERC20 {
+    constructor() ERC20("Test", "Test") { }
+
+    function faucet(uint256 _amount) external {
+        _mint(msg.sender, _amount);
+    }
+}
 
 contract CommonTest is Test {
     address alice = address(128);
@@ -171,7 +178,6 @@ contract L2OutputOracle_Initializer is CommonTest {
     }
 }
 
-
 contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
     using stdStorage for StdStorage;
 
@@ -179,10 +185,8 @@ contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
     L2NativeToken internal tokenImpl;
     L2NativeToken internal token;
 
-
     function setUp() public virtual override {
         super.setUp();
-
 
         vm.prank(multisig);
         tokenImpl = new L2NativeToken();
@@ -190,12 +194,11 @@ contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
         vm.label(address(token), "L2NativeToken");
     }
 
-    function dealL2NativeToken(address _target,uint256 _amount) public {
+    function dealL2NativeToken(address _target, uint256 _amount) public {
         deal(address(token), _target, _amount, true);
         vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount))); //set total supply
     }
 }
-
 
 contract Portal_Initializer is L2NativeToken_Initializer {
     // Test target
