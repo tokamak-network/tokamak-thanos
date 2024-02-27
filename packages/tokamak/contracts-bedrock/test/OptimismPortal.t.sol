@@ -20,7 +20,6 @@ import { SystemConfig } from "src/L1/SystemConfig.sol";
 // Target contract
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
-
 contract OptimismPortal_Test is Portal_Initializer {
     event Paused(address);
     event Unpaused(address);

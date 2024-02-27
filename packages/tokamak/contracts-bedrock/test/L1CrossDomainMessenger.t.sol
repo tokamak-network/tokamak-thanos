@@ -20,7 +20,6 @@ import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev The receiver address
     address recipient = address(0xabbaacdc);
@@ -562,7 +561,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
 
         // Retry the message
         vm.prank(address(sender));
-        L1Messenger.relayMessage  (
+        L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 0 }), // nonce
             sender,
             target,

@@ -629,7 +629,6 @@ contract L1StandardBridge_FinalizeETHWithdrawal_Test is Bridge_Initializer {
         vm.prank(address(28));
         vm.expectRevert("StandardBridge: function can only be called from the other bridge");
         L1Bridge.finalizeBridgeERC20(address(0), Predeploys.ETH, alice, alice, 100, hex"");
-
     }
 
     /// @dev Tests that finalizing an ETH withdrawal revert: not other bridge
