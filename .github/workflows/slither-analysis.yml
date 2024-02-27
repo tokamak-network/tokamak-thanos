@@ -23,6 +23,20 @@ jobs:
         with:
           node-version: '16.x'
 
+      - name: Copy foundry from Docker container
+        run: |
+          container_id=$(docker create onthertech/titan-ci-builder:latest)
+          mkdir -p $HOME/bin
+          docker cp $container_id:/usr/local/bin/cast $HOME/bin/
+          docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
+          docker cp $container_id:/usr/local/bin/forge $HOME/bin/
+          docker rm $container_id
+
+      - name: Set permissions_add PATH
+        run: |
+          chmod +x $HOME/bin/*
+          echo "$HOME/bin" >> $GITHUB_PATH
+
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
