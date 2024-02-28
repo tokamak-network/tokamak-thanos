@@ -7,6 +7,7 @@ import Artifact__OptimismMintableERC20Token from '@eth-optimism/contracts-bedroc
 
 import Artifact__ERC20 from '../../contracts-bedrock/forge-artifacts/MockERC20.sol/MockERC20.json'
 // import Artifact__L2NativeToken from '../../contracts-bedrock/forge-artifacts/L2NativeToken.sol/L2NativeToken.json'
+import Artifact__MockHello from '../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
 
 export const deployERC20 = async (
   hre: HardhatRuntimeEnvironment,
@@ -67,6 +68,24 @@ export const createOptimismMintableERC20 = async (
     Artifact__OptimismMintableERC20Token.abi,
     l2Signer
   )
+}
+
+export const deployHello = async (
+  hre: HardhatRuntimeEnvironment,
+  signer: Wallet
+): Promise<Contract> => {
+  const Factory__Hello = new hre.ethers.ContractFactory(
+    Artifact__MockHello.abi,
+    Artifact__MockHello.bytecode.object,
+    signer
+  )
+
+  console.log('Sending deployment transaction')
+  const hello = await Factory__Hello.deploy()
+  const receipt = await hello.deployTransaction.wait()
+  console.log(`Hello deployed: ${receipt.transactionHash}`)
+
+  return hello
 }
 
 export const getL1Balance = async (account: Wallet, tonContract) => {

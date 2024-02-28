@@ -7,9 +7,11 @@ import * as l1StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-ar
 import * as l2StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import * as l1CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import * as OptimismPortalAbi from '@tokamak-network/titan2-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
+import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
 
+import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import { CrossChainMessenger, MessageStatus } from '../../src'
-// import Artifact__ERC20 from '../../../contracts-bedrock/forge-artifacts/MockERC20.sol/MockERC20.json'
+import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
 import {
   erc20ABI,
   getPortalDepositedAmount,
@@ -19,6 +21,8 @@ import {
   differenceTonBalance,
   differenceEthBalance,
   differenceErc20Balance,
+  deployHello,
+  logEvent,
 } from '../shared'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
@@ -34,12 +38,17 @@ const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
+const l2CrossDomainMessenger =
+  process.env.L2_CROSS_DOMAIN_MESSENGER ||
+  '0x4200000000000000000000000000000000000007'
 let l2NativeToken = process.env.L2NativeToken || ''
 let addressManager = process.env.ADDRESS_MANAGER || ''
 let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
 let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
+const l2ToL1MessagePasser =
+  process.env.L2ToL1MessagePasser || 'L2ToL1MessagePasser'
 
 const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
 const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
@@ -49,10 +58,14 @@ const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
 let l1BridgeContract
 let l1CrossDomainMessengerContract
 let OptomismPortalContract
+let l2CrossDomainMessengerContract
+let l2ToL1MessagePasserContract
 
 let l1Contracts
 let messenger
 let tonContract
+let helloContractL1
+let helloContractL2
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (l2NativeToken === '') {
@@ -146,6 +159,7 @@ const messenger_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
     sendTx.transactionHash,
     MessageStatus.RELAYED
   )
+
   const l1balance_after = await getL1Balance(l1Wallet, tonContract)
   const l2balance_after = await getL2Balance(l2Wallet, l2EthContract)
   const l1BridgeBalance_after = await getL1ContractBalance(
@@ -458,20 +472,23 @@ const messenger_3_createContract_L1_TO_L2 = async () => {
   )
   const portal = await getPortalDepositedAmount(OptomismPortalContract)
 
-  // OptomismPortalContract.connect(l1Wallet).depositTransaction(
-  //   ethers.constants.AddressZero,
-  //   ethers.constants.Zero,
-  //   20000,
-  //   true,
-  //   Artifact__ERC20.bytecode
-  // )
+  // console.log('Artifact__MockHello.bytecode', Artifact__MockHello.bytecode.object)
+  const _byteCode = Artifact__MockHello.bytecode.object
+  let _gasLimit = _byteCode.length * 16 + 21000
+  _gasLimit = 120000
+  console.log('_gasLimit', _gasLimit)
 
-  // const sendTx = await (
-  //   await l1CrossDomainMessengerContract
-  //     .connect(l1Wallet)
-  //     .sendMessage(ethers.constants.AddressZero, _data, 20000)
-  // ).wait()
-  // console.log('\nsendTx:', sendTx.transactionHash)
+  const sendTx = await (
+    await OptomismPortalContract.connect(l1Wallet).depositTransaction(
+      ethers.constants.AddressZero,
+      ethers.constants.Zero,
+      _gasLimit * 3,
+      true,
+      _byteCode
+    )
+  ).wait()
+
+  console.log('\nsendTx:', sendTx.transactionHash)
 
   // const topic = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessage');
   // const topic1 = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessageExtension1');
@@ -485,6 +502,277 @@ const messenger_3_createContract_L1_TO_L2 = async () => {
     sendTx.transactionHash,
     MessageStatus.RELAYED
   )
+  const l1balance_after = await getL1Balance(l1Wallet, tonContract)
+  const l2balance_after = await getL2Balance(l2Wallet, l2EthContract)
+  const l1BridgeBalance_after = await getL1ContractBalance(
+    l1BridgeContract,
+    tonContract
+  )
+  const l1MessengerBalance_after = await getL1ContractBalance(
+    l1CrossDomainMessengerContract,
+    tonContract
+  )
+  const OptomismPortalBalance_after = await getL1ContractBalance(
+    OptomismPortalContract,
+    tonContract
+  )
+  const portal_after = await getPortalDepositedAmount(OptomismPortalContract)
+
+  await differenceTonBalance(
+    l1balance,
+    l1balance_after,
+    'L1 Wallet TON Changed : '
+  )
+  await differenceTonBalance(
+    l2balance,
+    l2balance_after,
+    'L2 Wallet TON Changed : '
+  )
+
+  await differenceEthBalance(
+    l1balance,
+    l1balance_after,
+    'L1 Wallet ETH Changed : '
+  )
+  await differenceEthBalance(
+    l2balance,
+    l2balance_after,
+    'L2 Wallet ETH Changed : '
+  )
+
+  await differenceTonBalance(
+    l1BridgeBalance,
+    l1BridgeBalance_after,
+    'l1BridgeBalance TON Changed : '
+  )
+  await differenceTonBalance(
+    l1MessengerBalance,
+    l1MessengerBalance_after,
+    'l1CrossDomainMessenger TON Changed : '
+  )
+  await differenceTonBalance(
+    OptomismPortalBalance,
+    OptomismPortalBalance_after,
+    'OptomismPortalContract TON Changed : '
+  )
+  await differenceErc20Balance(
+    portal,
+    portal_after,
+    'OptomismPortal depositAmount Changed : '
+  )
+}
+
+const getMessageOfHello = async (helloContract) => {
+  const blockNumber = await helloContract.blockNumber()
+  const message = await helloContract.message()
+
+  return {
+    blockNumber,
+    message,
+  }
+}
+
+const messenger_4_sendMessage_L1_TO_L2 = async () => {
+  console.log('\n==== messenger_4_sendMessage_L1_TO_L2  ====== ')
+  const l1balance = await getL1Balance(l1Wallet, tonContract)
+  const l2balance = await getL2Balance(l2Wallet, l2EthContract)
+
+  const l1BridgeBalance = await getL1ContractBalance(
+    l1BridgeContract,
+    tonContract
+  )
+  const l1MessengerBalance = await getL1ContractBalance(
+    l1CrossDomainMessengerContract,
+    tonContract
+  )
+  const OptomismPortalBalance = await getL1ContractBalance(
+    OptomismPortalContract,
+    tonContract
+  )
+  const portal = await getPortalDepositedAmount(OptomismPortalContract)
+
+  if (helloContractL1 == null) {
+    helloContractL1 = await deployHello(hardhat, l1Wallet)
+  }
+  if (helloContractL2 == null) {
+    helloContractL2 = await deployHello(hardhat, l2Wallet)
+  }
+
+  const hello_prev = await getMessageOfHello(helloContractL1)
+
+  const message = 'hi. from L1:' + hello_prev.blockNumber
+
+  const callData = await helloContractL2.interface.encodeFunctionData('say', [
+    message,
+  ])
+  const _gasLimit = callData.length * 16 + 21000
+  // _gasLimit = 120000;
+  console.log('_gasLimit', _gasLimit)
+
+  const sendTx = await (
+    await l1CrossDomainMessengerContract
+      .connect(l1Wallet)
+      .sendMessage(helloContractL2.address, callData, _gasLimit * 2)
+  ).wait()
+
+  console.log('\nsendTx:', sendTx.transactionHash)
+
+  // const topic = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessage');
+  // const topic1 = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessageExtension1');
+  // const topic2 = OptomismPortalContract.interface.getEventTopic('TransactionDeposited');
+
+  // await logEvent(sendTx, topic, l1CrossDomainMessengerContract , 'SentMessage ' );
+  // await logEvent(sendTx, topic1, l1CrossDomainMessengerContract , 'SentMessageExtension1 ' );
+  // await logEvent(sendTx, topic2, OptomismPortalContract , 'TransactionDeposited ' );
+
+  await messenger.waitForMessageStatus(
+    sendTx.transactionHash,
+    MessageStatus.RELAYED
+  )
+
+  const hello_after = await getMessageOfHello(helloContractL2)
+  console.log(hello_after)
+
+  if (hello_after.message === message) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
+
+  const l1balance_after = await getL1Balance(l1Wallet, tonContract)
+  const l2balance_after = await getL2Balance(l2Wallet, l2EthContract)
+  const l1BridgeBalance_after = await getL1ContractBalance(
+    l1BridgeContract,
+    tonContract
+  )
+  const l1MessengerBalance_after = await getL1ContractBalance(
+    l1CrossDomainMessengerContract,
+    tonContract
+  )
+  const OptomismPortalBalance_after = await getL1ContractBalance(
+    OptomismPortalContract,
+    tonContract
+  )
+  const portal_after = await getPortalDepositedAmount(OptomismPortalContract)
+
+  await differenceTonBalance(
+    l1balance,
+    l1balance_after,
+    'L1 Wallet TON Changed : '
+  )
+  await differenceTonBalance(
+    l2balance,
+    l2balance_after,
+    'L2 Wallet TON Changed : '
+  )
+
+  await differenceEthBalance(
+    l1balance,
+    l1balance_after,
+    'L1 Wallet ETH Changed : '
+  )
+  await differenceEthBalance(
+    l2balance,
+    l2balance_after,
+    'L2 Wallet ETH Changed : '
+  )
+
+  await differenceTonBalance(
+    l1BridgeBalance,
+    l1BridgeBalance_after,
+    'l1BridgeBalance TON Changed : '
+  )
+  await differenceTonBalance(
+    l1MessengerBalance,
+    l1MessengerBalance_after,
+    'l1CrossDomainMessenger TON Changed : '
+  )
+  await differenceTonBalance(
+    OptomismPortalBalance,
+    OptomismPortalBalance_after,
+    'OptomismPortalContract TON Changed : '
+  )
+  await differenceErc20Balance(
+    portal,
+    portal_after,
+    'OptomismPortal depositAmount Changed : '
+  )
+}
+
+const messenger_5_sendMessage_L2_TO_L1 = async () => {
+  console.log('\n==== messenger_5_sendMessage_L2_TO_L1  ====== ')
+  const l1balance = await getL1Balance(l1Wallet, tonContract)
+  const l2balance = await getL2Balance(l2Wallet, l2EthContract)
+
+  const l1BridgeBalance = await getL1ContractBalance(
+    l1BridgeContract,
+    tonContract
+  )
+  const l1MessengerBalance = await getL1ContractBalance(
+    l1CrossDomainMessengerContract,
+    tonContract
+  )
+  const OptomismPortalBalance = await getL1ContractBalance(
+    OptomismPortalContract,
+    tonContract
+  )
+  const portal = await getPortalDepositedAmount(OptomismPortalContract)
+
+  if (helloContractL1 == null) {
+    helloContractL1 = await deployHello(hardhat, l1Wallet)
+  }
+  if (helloContractL2 == null) {
+    helloContractL2 = await deployHello(hardhat, l2Wallet)
+  }
+
+  const hello_prev = await getMessageOfHello(helloContractL2)
+
+  const message = 'nice to meet you. from L2:' + hello_prev.blockNumber
+
+  const callData = await helloContractL1.interface.encodeFunctionData('say', [
+    message,
+  ])
+  const _gasLimit = callData.length * 16 + 21000
+  console.log('_gasLimit', _gasLimit)
+
+  const sendTx = await (
+    await l2CrossDomainMessengerContract
+      .connect(l2Wallet)
+      .sendMessage(helloContractL1.address, callData, _gasLimit * 10)
+  ).wait()
+
+  console.log('\nsendTx:', sendTx.transactionHash)
+
+  const topic =
+    l2CrossDomainMessengerContract.interface.getEventTopic('SentMessage')
+  const topic1 = l2CrossDomainMessengerContract.interface.getEventTopic(
+    'SentMessageExtension1'
+  )
+  const topic2 =
+    l2ToL1MessagePasserContract.interface.getEventTopic('MessagePassed')
+
+  await logEvent(sendTx, topic, l1CrossDomainMessengerContract, 'SentMessage ')
+  await logEvent(
+    sendTx,
+    topic1,
+    l1CrossDomainMessengerContract,
+    'SentMessageExtension1 '
+  )
+  await logEvent(sendTx, topic2, l2ToL1MessagePasserContract, 'MessagePassed ')
+
+  await messenger.waitForMessageStatus(
+    sendTx.transactionHash,
+    MessageStatus.RELAYED
+  )
+
+  const hello_after = await getMessageOfHello(helloContractL1)
+
+  if (hello_after.message === message) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
+
   const l1balance_after = await getL1Balance(l1Wallet, tonContract)
   const l2balance_after = await getL2Balance(l2Wallet, l2EthContract)
   const l1BridgeBalance_after = await getL1ContractBalance(
@@ -589,6 +877,18 @@ const setup = async () => {
     l1Wallet
   )
 
+  l2CrossDomainMessengerContract = new ethers.Contract(
+    l2CrossDomainMessenger,
+    l2CrossDomainMessengerAbi.abi,
+    l2Wallet
+  )
+
+  l2ToL1MessagePasserContract = new ethers.Contract(
+    l2ToL1MessagePasser,
+    l2ToL1MessagePasserAbi.abi,
+    l2Wallet
+  )
+
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
   //   console.log('l1ChainId',l1ChainId)
@@ -617,6 +917,7 @@ const main = async () => {
   // 3. send create contract message L1 to L2
   // 4. send message L1 to L2
   // 5. send message L2 to L1
+
   // 6. deposit ETH L1 to L2
   // 7. withdraw ETH L2 to L1
   // 8. deposit ERC20 L2 to L1
@@ -627,8 +928,10 @@ const main = async () => {
   await messenger_2_depositTON_L1_TO_L2(depositAmount)
 
   await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
-
   await messenger_3_createContract_L1_TO_L2()
+
+  await messenger_4_sendMessage_L1_TO_L2()
+  await messenger_5_sendMessage_L2_TO_L1()
 }
 
 // We recommend this pattern to be able to use async/await everywhere
