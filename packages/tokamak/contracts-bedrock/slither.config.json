@@ -6,5 +6,6 @@
   "exclude_optimization": true,
   "fail_on": "none",
   "filter_paths": "(src/vendor|src/cannon/MIPS.sol|src/EAS/EAS.sol)",
-  "foundry_out_directory": "artifacts"
+  "foundry_out_directory": "artifacts",
+  "filter_contracts": ["LivenessGuard_TestInit"]
 }
