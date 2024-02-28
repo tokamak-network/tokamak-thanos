@@ -70,12 +70,5 @@ jobs:
       - name: Run analysis
         working-directory: ./packages/tokamak/contracts-bedrock
         run: |
-          #  cp test/LivenessGuard.t.sol test/LivenessGuard.t.sol.bak
-          #  cp test/safe-tools/SafeTestTools.sol test/safe-tools/SafeTestTools.sol.bak
-          #  sed -i '/function _initializeSafeTools/,/}/ s/^/\/\//' test/LivenessGuard.t.sol
-          #  sed -i '/function _initializeSafeTools/,/}/ s/^/\/\//' test/safe-tools/SafeTestTools.sol
-          #  sed -i '/slitherConstructorVariables/,/}/ s/^/\/\//' test/LivenessGuard.t.sol
-          pnpm slither
-          #  mv test/LivenessGuard.t.sol.bak test/LivenessGuard.t.sol
-          #  mv test/safe-tools/SafeTestTools.sol.bak test/safe-tools/SafeTestTools.sol
+          slither src/L1
           continue-on-error: true
