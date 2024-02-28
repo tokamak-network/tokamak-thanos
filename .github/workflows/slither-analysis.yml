@@ -76,9 +76,6 @@ jobs:
       - name: Set solc version and Run analysis  # solc 버전을 설정하고 분석을 실행합니다.
         working-directory: ./packages/tokamak/contracts-bedrock
         run: |
-          npm install -g solc-select  # solc-select를 설치합니다.
-          solc-select install 0.8.15  # solc 0.8.15를 설치합니다.
-          solc-select use 0.8.15  # solc 0.8.15를 사용하도록 설정합니다.
           export SOLC_VERSION=0.8.15  # SOLC_VERSION 환경 변수를 설정합니다.
           slither src/L1  # 분석을 실행합니다.
         continue-on-error: true  # 오류 발생 시에도 계속 진행합니다.
