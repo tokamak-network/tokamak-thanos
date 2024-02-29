@@ -66,18 +66,23 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install solc
+      - name: Install solc-select and solc
         run: |
-          echo "SOLC_VERSION=0.8.15" >> $GITHUB_ENV
-          wget https://github.com/ethereum/solidity/releases/download/v0.8.15/solc-static-linux
-          chmod +x solc-static-linux
-          sudo mv solc-static-linux /usr/bin/solc
+            pip3 install solc-select
+            solc-select install 0.8.15
+            echo "SOLC_VERSION=0.8.15" >> $GITHUB_ENV
+            solc-select use 0.8.15
+
+      - name: Compile contracts with Foundry
+        run: |
+          npm install -g foundry
+          foundry compile
 
       - name: Install Slither
         run: pip3 install slither-analyzer
 
 
-      - name: Run Slither
+      - name: Run Slither.
         uses: crytic/slither-action@v0.3.1
         id: slither
         with:
