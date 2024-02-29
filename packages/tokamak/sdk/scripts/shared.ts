@@ -88,6 +88,87 @@ export const deployHello = async (
   return hello
 }
 
+export const differenceLog = async (prevBalance, afterBalance) => {
+  await differenceTonBalance(
+    prevBalance.l1Balance,
+    afterBalance.l1Balance,
+    'L1 Wallet TON Changed : '
+  )
+  await differenceTonBalance(
+    prevBalance.l2Balance,
+    afterBalance.l2Balance,
+    'L2 Wallet TON Changed : '
+  )
+
+  await differenceEthBalance(
+    prevBalance.l1Balance,
+    afterBalance.l1Balance,
+    'L1 Wallet ETH Changed : '
+  )
+  await differenceEthBalance(
+    prevBalance.l2Balance,
+    afterBalance.l2Balance,
+    'L2 Wallet ETH Changed : '
+  )
+
+  await differenceTonBalance(
+    prevBalance.l1BridgeBalance,
+    afterBalance.l1BridgeBalance,
+    'l1BridgeBalance TON Changed : '
+  )
+  await differenceTonBalance(
+    prevBalance.l1MessengerBalance,
+    afterBalance.l1MessengerBalance,
+    'l1CrossDomainMessenger TON Changed : '
+  )
+  await differenceTonBalance(
+    prevBalance.OptomismPortalBalance,
+    afterBalance.OptomismPortalBalance,
+    'OptomismPortalContract TON Changed : '
+  )
+  await differenceErc20Balance(
+    prevBalance.portal,
+    afterBalance.portal,
+    'OptomismPortal depositAmount Changed : '
+  )
+}
+
+export const getBalances = async (
+  l1wallet,
+  l2wallet,
+  tonContract,
+  l2EthContract,
+  l1BridgeContract,
+  l1CrossDomainMessengerContract,
+  OptomismPortalContract
+) => {
+  const l1Balance = await getL1Balance(l1wallet, tonContract)
+  const l2Balance = await getL2Balance(l2wallet, l2EthContract)
+
+  const l1BridgeBalance = await getL1ContractBalance(
+    l1BridgeContract,
+    tonContract
+  )
+  const l1MessengerBalance = await getL1ContractBalance(
+    l1CrossDomainMessengerContract,
+    tonContract
+  )
+  const OptomismPortalBalance = await getL1ContractBalance(
+    OptomismPortalContract,
+    tonContract
+  )
+  const portal = await getPortalDepositedAmount(OptomismPortalContract)
+
+  return {
+    l1Balance,
+    l2Balance,
+    l1BridgeBalance,
+    l1MessengerBalance,
+    OptomismPortalBalance,
+    portal,
+  }
+}
+
 export const getL1Balance = async (account: Wallet, tonContract) => {
   const tonBalance = await tonContract.balanceOf(account.address)
   const ethBalance = await account.getBalance()
