@@ -18,13 +18,11 @@ jobs:
       - name: Fetch history
         run: git fetch
 
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.x'
+      - name: Set up Node
+        uses: actions/setup-node@v4
 
-      - name: Update npm
-        run: npm install -g npm@latest
+      - name: Install Yarn
+        run: npm install --global y
 
       - name: Copy foundry from Docker container
         run: |
