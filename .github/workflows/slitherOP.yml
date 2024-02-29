@@ -66,12 +66,12 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install solc-select and solc
+      - name: Install solc
         run: |
-          pip3 install solc-select
-          solc-select install 0.8.15
           echo "SOLC_VERSION=0.8.15" >> $GITHUB_ENV
-          solc-select use 0.8.15
+          wget https://github.com/ethereum/solidity/releases/download/v0.8.15/solc-static-linux
+          chmod +x solc-static-linux
+          sudo mv solc-static-linux /usr/bin/solc
 
       - name: Install Slither
         run: pip3 install slither-analyzer
