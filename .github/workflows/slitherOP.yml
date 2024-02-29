@@ -71,6 +71,7 @@ jobs:
           pip3 install solc-select
           solc-select install 0.8.15
           solc-select use 0.8.15
+          echo "SOLC_VERSION=0.8.15" >> $GITHUB_ENV
 
       - name: Install Slither
         run: pip3 install slither-analyzer
