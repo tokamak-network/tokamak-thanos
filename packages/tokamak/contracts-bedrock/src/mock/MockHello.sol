@@ -9,9 +9,17 @@ contract MockHello {
     constructor() {
     }
 
+    receive() external payable {
+
+    }
+
     function say(string memory _msg) external {
         message = _msg;
         blockNumber = block.number;
     }
 
+    function sayPayable(string memory _msg) external payable {
+        message = _msg;
+        blockNumber = block.number;
+    }
 }

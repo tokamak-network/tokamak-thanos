@@ -138,7 +138,12 @@ const messenger_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
   const sendTx = await (
     await l1CrossDomainMessengerContract
       .connect(l1Wallet)
-      .sendNativeTokenMessage(l1Wallet.address, amount, '0x', 20000)
+      ['sendNativeTokenMessage(address,uint256,bytes,uint32)'](
+        l1Wallet.address,
+        amount,
+        '0x',
+        20000
+      )
   ).wait()
   console.log('\nsendTx:', sendTx.transactionHash)
 
@@ -541,9 +546,14 @@ const messenger_6_sendNativeTokenMessage_L1_TO_L2 = async (
     ).wait()
   }
 
-  const callData = await helloContractL2.interface.encodeFunctionData('say', [
-    message,
-  ])
+  const tonBalanceHelloL2_prev = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
+
+  const callData = await helloContractL2.interface.encodeFunctionData(
+    'sayPayable',
+    [message]
+  )
   const _gasLimit = callData.length * 16 + 21000
   // _gasLimit = 120000;
   console.log('_gasLimit', _gasLimit)
@@ -551,7 +561,7 @@ const messenger_6_sendNativeTokenMessage_L1_TO_L2 = async (
   const sendTx = await (
     await l1CrossDomainMessengerContract
       .connect(l1Wallet)
-      .sendNativeTokenMessage(
+      ['sendNativeTokenMessage(address,uint256,bytes,uint32)'](
         helloContractL2.address,
         amount,
         callData,
@@ -570,6 +580,10 @@ const messenger_6_sendNativeTokenMessage_L1_TO_L2 = async (
     console.log('\nerror', e)
     console.log('\n')
   }
+
+  const tonBalanceHelloL2_after = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
 
   const afterBalances = await getBalances(
     l1Wallet,
@@ -593,10 +607,121 @@ const messenger_6_sendNativeTokenMessage_L1_TO_L2 = async (
   } else {
     console.log('.. fail sendMessage !! ')
   }
+
+  console.log(
+    'L2 Contract Native TON Changed : ',
+    ethers.utils.formatEther(
+      tonBalanceHelloL2_after.sub(tonBalanceHelloL2_prev)
+    )
+  )
 }
 
-const messenger_6_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== messenger_6_depositETH_L1_TO_L2  ====== ')
+const messenger_7_sendNativeTokenMessages_L1_TO_L2 = async (
+  amount: BigNumber
+) => {
+  console.log('\n==== messenger_7_sendNativeTokenMessages_L1_TO_L2  ====== ')
+  console.log('\n amount: ', ethers.utils.formatEther(amount))
+  const tAmount = amount.add(amount.mul(ethers.BigNumber.from('2')))
+
+  const beforeBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  const hello_prev = await getMessageOfHello(helloContractL1)
+  const message = 'hi. from L1:' + hello_prev.blockNumber
+
+  const allowanceAmount = await tonContract.allowance(
+    l1Wallet.address,
+    l1CrossDomainMessenger
+  )
+  if (allowanceAmount < tAmount) {
+    await (
+      await tonContract
+        .connect(l1Wallet)
+        .approve(l1CrossDomainMessenger, tAmount)
+    ).wait()
+  }
+
+  const tonBalanceHelloL2_prev = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
+
+  const callData1 = helloContractL2.interface.encodeFunctionData('sayPayable', [
+    message,
+  ])
+
+  const callData = ['0x', callData1]
+  const _gasLimit = [200000, (callData1.length * 16 + 21000) * 10]
+
+  // _gasLimit = 120000;
+  // console.log('_gasLimit', _gasLimit)
+
+  const sendTx = await (
+    await l1CrossDomainMessengerContract
+      .connect(l1Wallet)
+      ['sendNativeTokenMessage(address[],uint256[],bytes[],uint32[])'](
+        [l2Wallet.address, helloContractL2.address],
+        [amount, amount.mul(ethers.BigNumber.from('2'))],
+        callData,
+        _gasLimit
+      )
+  ).wait()
+
+  console.log('\nsendTx:', sendTx.transactionHash)
+
+  try {
+    await messenger.waitForMessageStatus(
+      sendTx.transactionHash,
+      MessageStatus.RELAYED
+    )
+  } catch (e) {
+    console.log('\nerror', e)
+    console.log('\n')
+  }
+
+  const tonBalanceHelloL2_after = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
+
+  const afterBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  await differenceLog(beforeBalances, afterBalances)
+
+  const hello_after = await getMessageOfHello(helloContractL2)
+
+  console.log('hello_after.message', hello_after.message)
+  console.log('message', message)
+
+  if (hello_after.message.localeCompare(message) === 0) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
+
+  console.log(
+    'L2 Contract Native TON Changed : ',
+    ethers.utils.formatEther(
+      tonBalanceHelloL2_after.sub(tonBalanceHelloL2_prev)
+    )
+  )
+}
+
+const messenger_8_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
+  console.log('\n==== messenger_8_depositETH_L1_TO_L2  ====== ')
 
   let err = true
   try {
@@ -620,53 +745,8 @@ const messenger_6_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
   }
 }
 
-const bridge_3_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== bridge_3_depositETH_L1_TO_L2  ====== ')
-
-  const beforeBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-  const deposition = await l1BridgeContract
-    .connect(l1Wallet)
-    .depositETH(20000, '0x', {
-      value: amount,
-    })
-  const depositionTx = await deposition.wait()
-  console.log(
-    '\ndeposit Tx:',
-    depositionTx.transactionHash,
-    ' Block',
-    depositionTx.blockNumber,
-    ' hash',
-    deposition.hash
-  )
-
-  await messenger.waitForMessageStatus(
-    depositionTx.transactionHash,
-    MessageStatus.RELAYED
-  )
-
-  const afterBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-
-  await differenceLog(beforeBalances, afterBalances)
-}
-
-const messenger_7_withdrawETH_L2_TO_L1 = async (amount: BigNumber) => {
-  console.log('\n==== messenger_7_withdrawETH_L2_TO_L1  ====== ')
+const messenger_9_withdrawNativeToken_L2_TO_L1 = async (amount: BigNumber) => {
+  console.log('\n==== messenger_9_withdrawNativeToken_L2_TO_L1  ====== ')
 
   const beforeBalances = await getBalances(
     l1Wallet,
@@ -678,63 +758,41 @@ const messenger_7_withdrawETH_L2_TO_L1 = async (amount: BigNumber) => {
     OptomismPortalContract
   )
 
-  const l2BridgeContract = new ethers.Contract(
-    l2StandardBridge,
-    l2StandardBridgeAbi.abi,
-    l2Wallet
-  )
+  const sendTx = await (
+    await l2CrossDomainMessengerContract
+      .connect(l2Wallet)
+      .sendMessage(l2Wallet.address, '0x', 20000, { value: amount })
+  ).wait()
 
-  const localToken = l2_ERC20_ETH
-  const remoteToken = ethers.constants.AddressZero
-  const from = l2Wallet.address
-  const to = l2Wallet.address
-
-  const callData = await l2BridgeContract.interface.encodeFunctionData(
-    'finalizeBridgeERC20',
-    [localToken, remoteToken, from, to, amount, '0x']
-  )
-
-  const withdrawal = await l2CrossDomainMessengerContract
-    .connect(l2Wallet)
-    .sendMessage(l1StandardBridge, callData, 20000)
-
-  const withdrawalTx = await withdrawal.wait()
-  console.log(
-    '\nwithdrawal Tx:',
-    withdrawalTx.transactionHash,
-    ' Block',
-    withdrawalTx.blockNumber,
-    ' hash',
-    withdrawal.hash
-  )
+  console.log('\nsendTx:', sendTx.transactionHash)
 
   await messenger.waitForMessageStatus(
-    withdrawalTx.transactionHash,
+    sendTx.transactionHash,
     MessageStatus.READY_TO_PROVE
   )
 
   console.log('\nProve the message')
-  const proveTx = await messenger.proveMessage(withdrawalTx.transactionHash)
+  const proveTx = await messenger.proveMessage(sendTx.transactionHash)
   const proveReceipt = await proveTx.wait(3)
   console.log('Proved the message: ', proveReceipt.transactionHash)
 
   const finalizeInterval = setInterval(async () => {
     const currentStatus = await messenger.getMessageStatus(
-      withdrawalTx.transactionHash
+      sendTx.transactionHash
     )
     console.log('Message status: ', currentStatus)
   }, 3000)
 
   try {
     await messenger.waitForMessageStatus(
-      withdrawalTx.transactionHash,
+      sendTx.transactionHash,
       MessageStatus.READY_FOR_RELAY
     )
   } finally {
     clearInterval(finalizeInterval)
   }
 
-  const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
+  const tx = await messenger.finalizeMessage(sendTx.transactionHash)
   const receipt = await tx.wait()
   console.log('\nFinalized message tx', receipt.transactionHash)
   console.log('Finalized withdrawal')
@@ -802,9 +860,6 @@ const setup = async () => {
     l2Wallet
   )
 
-  helloContractL1 = await deployHello(hardhat, l1Wallet)
-  helloContractL2 = await deployHello(hardhat, l2Wallet)
-
   // const name = 'Test'
   // const symbol = 'TST'
   // const initialSupply = ethers.utils.parseEther('100000')
@@ -849,13 +904,15 @@ const main = async () => {
   // 3. send create contract message L1 to L2
   // 4. send message L1 to L2
   // 5. send message L2 to L1
-
   // 6. sendNativeTokenMessage
-
-  // 7. deposit ETH L1 to L2 -> L1에서 이더 입력 못함. 리버트
-  // 8. withdraw ETH L2 to L1 -> 되어야 함.
+  // 7. suggestion : multi sendNativeTokenMessage
+  // 8. deposit ETH L1 to L2 -> Ether input failed in L1. check revert
+  // 9. withdraw nativeToken L2 to L1
 
   await messenger_1_depositTON_L1_TO_L2(depositAmount)
+
+  helloContractL1 = await deployHello(hardhat, l1Wallet)
+  helloContractL2 = await deployHello(hardhat, l2Wallet)
 
   await messenger_2_depositTON_L1_TO_L2(depositAmount)
 
@@ -867,10 +924,10 @@ const main = async () => {
 
   await messenger_6_sendNativeTokenMessage_L1_TO_L2(depositAmount)
   await messenger_6_sendNativeTokenMessage_L1_TO_L2(ethers.constants.Zero)
+  await messenger_7_sendNativeTokenMessages_L1_TO_L2(depositAmount)
 
-  await messenger_6_depositETH_L1_TO_L2(depositAmount)
-  await bridge_3_depositETH_L1_TO_L2(depositAmount)
-  await messenger_7_withdrawETH_L2_TO_L1(withdrawAmount)
+  await messenger_8_depositETH_L1_TO_L2(depositAmount)
+  await messenger_9_withdrawNativeToken_L2_TO_L1(depositAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

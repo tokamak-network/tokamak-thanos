@@ -233,7 +233,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         bytes calldata _message,
         uint32 _minGasLimit
     )
-        external
+        public
     {
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
@@ -255,6 +255,27 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             ++msgNonce;
         }
     }
+
+    function sendNativeTokenMessage(
+        address[] memory _targets,
+        uint256[] memory _amount,
+        bytes[] calldata _message,
+        uint32[] memory _minGasLimit
+    )
+        external
+    {
+        require(
+            _targets.length !=0 &&
+            _targets.length == _amount.length &&
+            _targets.length == _message.length &&
+            _targets.length == _minGasLimit.length , 'wrong array length'
+        );
+
+        for(uint i = 0; i < _targets.length; i++) {
+            sendNativeTokenMessage(_targets[i], _amount[i], _message[i], _minGasLimit[i]);
+        }
+    }
+
 
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
     ///         be executed via cross-chain call from the other messenger OR if the message was
