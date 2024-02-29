@@ -37,7 +37,7 @@ import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
-contract L2NativeToken is ERC20 {
+contract NativeToken is ERC20 {
     constructor() ERC20("Test", "Test") { }
 
     function faucet(uint256 _amount) external {
@@ -178,19 +178,19 @@ contract L2OutputOracle_Initializer is CommonTest {
     }
 }
 
-contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
+contract NativeToken_Initializer is L2OutputOracle_Initializer {
     using stdStorage for StdStorage;
 
     // Test target
-    L2NativeToken internal tokenImpl;
-    L2NativeToken internal token;
+    NativeToken internal tokenImpl;
+    NativeToken internal token;
 
     function setUp() public virtual override {
         super.setUp();
 
         vm.prank(multisig);
-        tokenImpl = new L2NativeToken();
-        token = L2NativeToken(address(tokenImpl));
+        tokenImpl = new NativeToken();
+        token = NativeToken(address(tokenImpl));
         vm.label(address(token), "L2NativeToken");
     }
 
@@ -200,7 +200,7 @@ contract L2NativeToken_Initializer is L2OutputOracle_Initializer {
     }
 }
 
-contract Portal_Initializer is L2NativeToken_Initializer {
+contract Portal_Initializer is NativeToken_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
