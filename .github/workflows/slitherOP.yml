@@ -84,7 +84,7 @@ jobs:
           fail-on: config
           slither-version: dev-triage-db
           slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
-
+          ignore-compile: true
 
 
 
