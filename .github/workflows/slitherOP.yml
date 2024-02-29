@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: '16.x'
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Copy foundry from Docker container
         run: |
           container_id=$(docker create onthertech/titan-ci-builder:latest)
