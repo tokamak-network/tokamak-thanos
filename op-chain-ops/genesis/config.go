@@ -390,6 +390,7 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 	d.L1ERC721BridgeProxy = deployments.L1ERC721BridgeProxy
 	d.SystemConfigProxy = deployments.SystemConfigProxy
 	d.OptimismPortalProxy = deployments.OptimismPortalProxy
+	d.NativeTokenAddress = deployments.L2NativeToken
 }
 
 // GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
@@ -575,6 +576,7 @@ type L1Deployments struct {
 	SystemConfigProxy                 common.Address `json:"SystemConfigProxy"`
 	ProtocolVersions                  common.Address `json:"ProtocolVersions"`
 	ProtocolVersionsProxy             common.Address `json:"ProtocolVersionsProxy"`
+	L2NativeToken                     common.Address `json:"L2NativeToken"`
 }
 
 // GetName will return the name of the contract given an address.
