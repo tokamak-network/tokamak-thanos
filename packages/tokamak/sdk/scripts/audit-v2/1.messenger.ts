@@ -13,13 +13,7 @@ import * as l2OutputOracleAbi from '@tokamak-network/titan2-contracts/forge-arti
 import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import { CrossChainMessenger, MessageStatus } from '../../src'
 import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
-import {
-  erc20ABI,
-  deployHello,
-  logEvent,
-  getBalances,
-  differenceLog,
-} from '../shared'
+import { erc20ABI, deployHello, getBalances, differenceLog } from '../shared'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
 
@@ -56,8 +50,8 @@ let l1BridgeContract
 let l1CrossDomainMessengerContract
 let OptomismPortalContract
 let l2CrossDomainMessengerContract
-let l2ToL1MessagePasserContract
-let l2OutputOracleContract
+// let l2ToL1MessagePasserContract
+// let l2OutputOracleContract
 
 let l1Contracts
 let messenger
@@ -381,7 +375,6 @@ const messenger_4_sendMessage_L1_TO_L2 = async () => {
   }
 
   const hello_prev = await getMessageOfHello(helloContractL1)
-
   const message = 'hi. from L1:' + hello_prev.blockNumber
 
   const callData = await helloContractL2.interface.encodeFunctionData('say', [
@@ -412,15 +405,6 @@ const messenger_4_sendMessage_L1_TO_L2 = async () => {
     MessageStatus.RELAYED
   )
 
-  const hello_after = await getMessageOfHello(helloContractL2)
-  console.log(hello_after)
-
-  if (hello_after.message === message) {
-    console.log('.. success sendMessage !! ')
-  } else {
-    console.log('.. fail sendMessage !! ')
-  }
-
   const afterBalances = await getBalances(
     l1Wallet,
     l2Wallet,
@@ -432,6 +416,14 @@ const messenger_4_sendMessage_L1_TO_L2 = async () => {
   )
 
   await differenceLog(beforeBalances, afterBalances)
+
+  const hello_after = await getMessageOfHello(helloContractL2)
+
+  if (hello_after.message.localeCompare(message) === 0) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
 }
 
 const messenger_5_sendMessage_L2_TO_L1 = async () => {
@@ -472,40 +464,58 @@ const messenger_5_sendMessage_L2_TO_L1 = async () => {
 
   console.log('\nsendTx:', sendTx.transactionHash)
 
-  const topic =
-    l2CrossDomainMessengerContract.interface.getEventTopic('SentMessage')
-  const topic1 = l2CrossDomainMessengerContract.interface.getEventTopic(
-    'SentMessageExtension1'
-  )
-  const topic2 =
-    l2ToL1MessagePasserContract.interface.getEventTopic('MessagePassed')
+  // const topic =
+  //   l2CrossDomainMessengerContract.interface.getEventTopic('SentMessage')
+  // const topic1 = l2CrossDomainMessengerContract.interface.getEventTopic(
+  //   'SentMessageExtension1'
+  // )
+  // const topic2 =
+  //   l2ToL1MessagePasserContract.interface.getEventTopic('MessagePassed')
 
-  await logEvent(sendTx, topic, l1CrossDomainMessengerContract, 'SentMessage ')
-  await logEvent(
-    sendTx,
-    topic1,
-    l1CrossDomainMessengerContract,
-    'SentMessageExtension1 '
-  )
-  await logEvent(sendTx, topic2, l2ToL1MessagePasserContract, 'MessagePassed ')
+  // await logEvent(sendTx, topic, l1CrossDomainMessengerContract, 'SentMessage ')
+  // await logEvent(
+  //   sendTx,
+  //   topic1,
+  //   l1CrossDomainMessengerContract,
+  //   'SentMessageExtension1 '
+  // )
+  // await logEvent(sendTx, topic2, l2ToL1MessagePasserContract, 'MessagePassed ')
 
-  const l2Outputs_latestBlockNumber =
-    await l2OutputOracleContract.latestBlockNumber()
-  console.log('\nl2Outputs_latestBlockNumber:', l2Outputs_latestBlockNumber)
-  console.log('\nsendTx.blockNumber in L2 :', sendTx.blockNumber)
+  // const l2Outputs_latestBlockNumber =
+  //   await l2OutputOracleContract.latestBlockNumber()
+  // console.log('\nl2Outputs_latestBlockNumber:', l2Outputs_latestBlockNumber)
+  // console.log('\nsendTx.blockNumber in L2 :', sendTx.blockNumber)
 
   await messenger.waitForMessageStatus(
     sendTx.transactionHash,
-    MessageStatus.RELAYED
+    MessageStatus.READY_TO_PROVE
   )
 
-  const hello_after = await getMessageOfHello(helloContractL1)
+  console.log('\nProve the message')
+  const proveTx = await messenger.proveMessage(sendTx.transactionHash)
+  const proveReceipt = await proveTx.wait(3)
+  console.log('Proved the message: ', proveReceipt.transactionHash)
 
-  if (hello_after.message === message) {
-    console.log('.. success sendMessage !! ')
-  } else {
-    console.log('.. fail sendMessage !! ')
+  const finalizeInterval = setInterval(async () => {
+    const currentStatus = await messenger.getMessageStatus(
+      sendTx.transactionHash
+    )
+    console.log('Message status: ', currentStatus)
+  }, 3000)
+
+  try {
+    await messenger.waitForMessageStatus(
+      sendTx.transactionHash,
+      MessageStatus.READY_FOR_RELAY
+    )
+  } finally {
+    clearInterval(finalizeInterval)
   }
+
+  const tx = await messenger.finalizeMessage(sendTx.transactionHash)
+  const receipt = await tx.wait()
+  console.log('\nFinalized message tx', receipt.transactionHash)
+  console.log('Finalized withdrawal')
 
   const afterBalances = await getBalances(
     l1Wallet,
@@ -518,6 +528,13 @@ const messenger_5_sendMessage_L2_TO_L1 = async () => {
   )
 
   await differenceLog(beforeBalances, afterBalances)
+  const hello_after = await getMessageOfHello(helloContractL1)
+
+  if (hello_after.message.localeCompare(message) === 0) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
 }
 
 const faucet = async (account: Wallet, amount: BigNumber) => {
@@ -583,7 +600,6 @@ const setup = async () => {
   )
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  //   console.log('l1ChainId',l1ChainId)
 
   messenger = new CrossChainMessenger({
     bedrock: true,
@@ -608,7 +624,7 @@ const main = async () => {
   // 2. withdraw TON L2 to L1
   // 3. send create contract message L1 to L2
   // 4. send message L1 to L2
-  // 5. send message L2 to L1
+  // 5. send message L2 to L1 -> propose is not work well
 
   // 6. deposit ETH L1 to L2
   // 7. withdraw ETH L2 to L1
