@@ -185,7 +185,6 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
   console.log('Native token address:', l2NativeToken)
 
-
   const l1CrossDomainMessengerContract = new ethers.Contract(
     l1CrossDomainMessenger,
     Artifact__L1CrossDomainMessenger.abi,
@@ -241,11 +240,19 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
 
-  const approveTx = await l2NativeTokenContract.approve(l1CrossDomainMessenger, amount)
+  const approveTx = await l2NativeTokenContract.approve(
+    l1CrossDomainMessenger,
+    amount
+  )
   await approveTx.wait()
   console.log('approveTx:', approveTx.hash)
 
-  const depositTx = await l1CrossDomainMessengerContract.sendNativeTokenMessage(l2Wallet.address, amount, '0x', 21000)
+  const depositTx = await l1CrossDomainMessengerContract.sendNativeTokenMessage(
+    l2Wallet.address,
+    amount,
+    '0x',
+    21000
+  )
   await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
