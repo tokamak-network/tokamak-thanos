@@ -417,8 +417,6 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     {
         IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
         IERC20(nativeTokenAddress).approve(address(messenger), _amount);
-        deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] =
-            deposits[nativeTokenAddress][Predeploys.LEGACY_ERC20_ETH] + _amount;
 
         _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
 
@@ -556,7 +554,9 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
             } else {
                 IERC20(_localToken).safeTransfer(_to, _amount);
             }
-            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
+            if (nativeTokenAddress != _localToken) {
+                deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
+            }
         }
 
         // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
