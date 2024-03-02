@@ -33,13 +33,13 @@ jobs:
           docker cp $container_id:/usr/local/bin/forge $HOME/bin/
           docker rm $container_id
 
-      - name: Build the contracts
-        run: forge build --build-info
-
       - name: Set permissions_add PATH
         run: |
           chmod +x $HOME/bin/*
           echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Build the contracts
+        run: forge build --build-info
 
       - name: Get pnpm cache directory path
         id: pnpm-cache-dir-path
