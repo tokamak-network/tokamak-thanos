@@ -7,6 +7,7 @@ on:
 
 env:
   PYTEST_ADDOPTS: "--color=yes"
+  SOLCVER: 0.8.15
 
 jobs:
   slither:
