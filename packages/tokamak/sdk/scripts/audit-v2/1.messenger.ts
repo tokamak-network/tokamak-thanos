@@ -7,11 +7,11 @@ import * as l1StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-ar
 import * as l2StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import * as OptimismPortalAbi from '@tokamak-network/titan2-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
 import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
-// import * as l2OutputOracleAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
 
+// import * as l2OutputOracleAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
 // import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import { CrossChainMessenger, MessageStatus } from '../../src'
-import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
+// import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
 import l1CrossDomainMessengerAbi from '../../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import {
   erc20ABI,
@@ -287,63 +287,6 @@ const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
   const receipt = await tx.wait()
   console.log('\nFinalized message tx', receipt.transactionHash)
   console.log('Finalized withdrawal')
-
-  const afterBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-
-  await differenceLog(beforeBalances, afterBalances)
-}
-
-const messenger_3_createContract_L1_TO_L2 = async () => {
-  console.log('\n==== messenger_3_createContract_L1_TO_L2  ====== ')
-
-  const beforeBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-
-  // console.log('Artifact__MockHello.bytecode', Artifact__MockHello.bytecode.object)
-  const _byteCode = Artifact__MockHello.bytecode.object
-  let _gasLimit = _byteCode.length * 16 + 21000
-  _gasLimit = 120000
-  console.log('_gasLimit', _gasLimit)
-
-  const sendTx = await (
-    await OptomismPortalContract.connect(l1Wallet).depositTransaction(
-      ethers.constants.AddressZero,
-      ethers.constants.Zero,
-      _gasLimit * 3,
-      true,
-      _byteCode
-    )
-  ).wait()
-
-  console.log('\nsendTx:', sendTx.transactionHash)
-
-  // const topic = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessage');
-  // const topic1 = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessageExtension1');
-  // const topic2 = OptomismPortalContract.interface.getEventTopic('TransactionDeposited');
-
-  // await logEvent(sendTx, topic, l1CrossDomainMessengerContract , 'SentMessage ' );
-  // await logEvent(sendTx, topic1, l1CrossDomainMessengerContract , 'SentMessageExtension1 ' );
-  // await logEvent(sendTx, topic2, OptomismPortalContract , 'TransactionDeposited ' );
-
-  await messenger.waitForMessageStatus(
-    sendTx.transactionHash,
-    MessageStatus.RELAYED
-  )
 
   const afterBalances = await getBalances(
     l1Wallet,
@@ -994,13 +937,13 @@ const main = async () => {
 
   // 1. deposit TON L1 to L2
   // 2. withdraw TON L2 to L1
-  // 3. send create contract message L1 to L2
   // 4. send message L1 to L2
   // 5. send message L2 to L1
   // 6. sendNativeTokenMessage
   // 7. suggestion : multi sendNativeTokenMessage
   // 8. deposit ETH L1 to L2 -> Ether input failed in L1. check revert
   // 9. withdraw nativeToken L2 to L1
+  // 10. functionCallWithNativeToken with OnApprove L2 to L1
 
   await messenger_1_depositTON_L1_TO_L2(depositAmount)
 
@@ -1010,7 +953,6 @@ const main = async () => {
   await messenger_2_depositTON_L1_TO_L2(depositAmount)
 
   await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
-  await messenger_3_createContract_L1_TO_L2()
 
   await messenger_4_sendMessage_L1_TO_L2()
   await messenger_5_sendMessage_L2_TO_L1()
