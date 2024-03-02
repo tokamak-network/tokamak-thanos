@@ -5,7 +5,6 @@ import 'hardhat-deploy'
 import { BigNumber, BytesLike, Wallet, ethers } from 'ethers'
 import * as l1StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import * as l2StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
-import * as l1CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import * as OptimismPortalAbi from '@tokamak-network/titan2-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
 import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
 // import * as l2OutputOracleAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
@@ -13,6 +12,7 @@ import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/fo
 // import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import { CrossChainMessenger, MessageStatus } from '../../src'
 import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
+import l1CrossDomainMessengerAbi from '../../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import {
   erc20ABI,
   deployHello,
@@ -810,6 +810,99 @@ const messenger_9_withdrawNativeToken_L2_TO_L1 = async (amount: BigNumber) => {
   await differenceLog(beforeBalances, afterBalances)
 }
 
+const messenger_10_approveAndCallWithMessage_L1_TO_L2 = async (
+  amount: BigNumber
+) => {
+  console.log('\n==== messenger_10_approveAndCallWithMessage_L1_TO_L2  ====== ')
+
+  const beforeBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  const hello_prev = await getMessageOfHello(helloContractL1)
+  const message = 'hi. from L1:' + hello_prev.blockNumber
+
+  const tonBalanceHelloL2_prev = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
+
+  const callData = await helloContractL2.interface.encodeFunctionData(
+    'sayPayable',
+    [message]
+  )
+
+  const _gasLimit = callData.length * 16 + 21000
+  console.log('_gasLimit', _gasLimit)
+
+  const data = ethers.utils.solidityPack(
+    ['address', 'uint32', 'bytes'],
+    [helloContractL2.address, _gasLimit * 3, callData]
+  )
+
+  // const unpackOnApproveData1 = await l1CrossDomainMessengerContract["unpackOnApproveData1(bytes)"](data)
+  // console.log('unpackOnApproveData1', unpackOnApproveData1)
+
+  const sendTx = await (
+    await tonContract
+      .connect(l1Wallet)
+      .approveAndCall(l1CrossDomainMessenger, amount, data)
+  ).wait()
+  console.log('\napproveAndCallTx:', sendTx.transactionHash)
+
+  // // const topic = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessage');
+  // // const topic1 = l1CrossDomainMessengerContract.interface.getEventTopic('SentMessageExtension1');
+  // // const topic2 = OptomismPortalContract.interface.getEventTopic('TransactionDeposited');
+
+  // // await logEvent(sendTx, topic, l1CrossDomainMessengerContract , 'SentMessage ' );
+  // // await logEvent(sendTx, topic1, l1CrossDomainMessengerContract , 'SentMessageExtension1 ' );
+  // // await logEvent(sendTx, topic2, OptomismPortalContract , 'TransactionDeposited ' );
+
+  await messenger.waitForMessageStatus(
+    sendTx.transactionHash,
+    MessageStatus.RELAYED
+  )
+
+  const afterBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  await differenceLog(beforeBalances, afterBalances)
+
+  const hello_after = await getMessageOfHello(helloContractL2)
+
+  console.log('hello_after.message', hello_after.message)
+  console.log('message', message)
+
+  if (hello_after.message.localeCompare(message) === 0) {
+    console.log('.. success sendMessage !! ')
+  } else {
+    console.log('.. fail sendMessage !! ')
+  }
+
+  const tonBalanceHelloL2_after = await l2Wallet.provider.getBalance(
+    helloContractL2.address
+  )
+
+  console.log(
+    'L2 ContracT TON Changed : ',
+    ethers.utils.formatEther(
+      tonBalanceHelloL2_after.sub(tonBalanceHelloL2_prev)
+    )
+  )
+}
+
 const faucet = async (account: Wallet, amount: BigNumber) => {
   await (await tonContract.connect(account).faucet(amount)).wait()
 
@@ -928,6 +1021,8 @@ const main = async () => {
 
   await messenger_8_depositETH_L1_TO_L2(depositAmount)
   await messenger_9_withdrawNativeToken_L2_TO_L1(depositAmount)
+
+  await messenger_10_approveAndCallWithMessage_L1_TO_L2(depositAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

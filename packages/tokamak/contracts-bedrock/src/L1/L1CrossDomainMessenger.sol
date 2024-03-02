@@ -13,6 +13,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { OnApprove } from "./OnApprove.sol";
+import { Bytes } from "src/libraries/Bytes.sol";
 
 /// @custom:proxied
 /// @title L1CrossDomainMessenger
@@ -21,6 +22,7 @@ import { OnApprove } from "./OnApprove.sol";
 ///         interface instead of interacting with lower-level contracts directly.
 contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     using SafeERC20 for IERC20;
+    using Bytes for bytes;
 
     /// @notice Address of the OptimismPortal. The public getter for this
     ///         is legacy and will be removed in the future. Use `portal()` instead.
@@ -82,8 +84,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
     }
 
-     function unpackOnApproveData1(bytes memory _data) public
+    function unpackOnApproveData1(bytes calldata data_) public
         pure returns (address _to, uint32 _minGasLimit, bytes memory _message) {
+        bytes memory _data = data_;
 
         if(_data.length > 23) {
              assembly {
@@ -104,11 +107,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
                 // Load value from the next 4 bytes
                 // mload() works with 32 bytes so we need shift right 32-24=8(bytes) = 64(bits)
                 _minGasLimit := shr(64, mload(_pos))
-                if iszero(eq(_length, 24)) {
-                    // Pass 4 bytes to get embedded _message
-                    _message := add(_pos, 24)
-                }
             }
+            _message =  data_[24:];
         }
 
     }
@@ -142,6 +142,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             );
 
         uint64 _gasLimit = baseGas1(_message, _minGasLimit);
+
         PORTAL.depositTransaction(
             OTHER_MESSENGER,
             _amount,
