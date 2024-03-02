@@ -7,6 +7,8 @@ on:
 
 env:
   PYTEST_ADDOPTS: "--color=yes"
+  SOLCVER: 0.8.15
+
 
 jobs:
   slither:
@@ -69,11 +71,11 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install solc-select and solc
-        run: |
-          pip3 install solc-select
-          solc-select install 0.8.15
-          solc-select use 0.8.15
+      # - name: Install solc-select and solc
+      #   run: |
+      #     pip3 install solc-select
+      #     solc-select install 0.8.15
+      #     solc-select use 0.8.15
 
       - name: Install Slither
         run: pip3 install slither-analyzer
