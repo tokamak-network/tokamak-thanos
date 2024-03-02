@@ -33,6 +33,9 @@ jobs:
           docker cp $container_id:/usr/local/bin/forge $HOME/bin/
           docker rm $container_id
 
+      - name: Build the contracts
+        run: forge build --build-info
+
       - name: Set permissions_add PATH
         run: |
           chmod +x $HOME/bin/*
@@ -68,19 +71,12 @@ jobs:
 
       - name: Install solc-select and solc
         run: |
-            pip3 install solc-select
-            solc-select install 0.8.15
-            echo "SOLC_VERSION=0.8.15" >> $GITHUB_ENV
-            solc-select use 0.8.15
-
-      - name: Compile contracts with Foundry
-        run: |
-          npm install -g foundry
-          foundry compile
+          pip3 install solc-select
+          solc-select install 0.8.15
+          solc-select use 0.8.15
 
       - name: Install Slither
         run: pip3 install slither-analyzer
-
 
       - name: Run Slither.
         uses: crytic/slither-action@v0.3.1
