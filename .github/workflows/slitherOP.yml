@@ -94,15 +94,11 @@ jobs:
         uses: crytic/slither-action@v0.3.1
         id: slither
         with:
-          target: packages/tokamak/contracts-bedrock/src/L1
+          target: packages/tokamak/contracts-bedrock
           slither-config: packages/tokamak/contracts-bedrock/slither.config.json
           fail-on: config
           slither-version: dev-triage-db
-          slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
+          slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json --filter-paths packages/tokamak/contracts-bedrock/src/L1 --ignore-paths packages/tokamak/contracts-bedrock/scripts packages/tokamak/contracts-bedrock/test
           ignore-compile: true
-          continue-on-error: true
-
-
-
-
+          continue-on-error:
 
