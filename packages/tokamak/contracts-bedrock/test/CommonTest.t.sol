@@ -221,7 +221,7 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
         vm.prank(multisig);
         proxy.upgradeToAndCall(
             address(opImpl),
-            abi.encodeCall(OptimismPortal.initialize, (address(0), oracle, guardian, systemConfig, false))
+            abi.encodeCall(OptimismPortal.initialize, (address(0), address(oracle), guardian, address(systemConfig), false))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");

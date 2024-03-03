@@ -5,8 +5,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
+// import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
+// import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
@@ -15,14 +15,33 @@ import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Constants } from "src/libraries/Constants.sol";
-import { OnApprove } from "./OnApprove.sol";
+// import { OnApprove } from "./OnApprove.sol";
+
+import { ERC165Storage } from "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
+
+import { IL2OutputOracle } from "src/interfaces/IL2OutputOracle.sol";
+import { ISystemConfig } from "src/interfaces/ISystemConfig.sol";
+
+interface OnApprove {
+    // function supportsInterface(bytes4 interfaceId) external pure returns (bool);
+
+    function onApprove(
+        address _owner,
+        address _spender,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        returns (bool);
+}
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+// contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, ISemver, ERC165Storage {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -59,11 +78,13 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
     /// @notice Address of the L2OutputOracle contract.
     /// @custom:network-specific
-    L2OutputOracle public l2Oracle;
+    // L2OutputOracle public l2Oracle;
+    address public l2Oracle;
 
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
-    SystemConfig public systemConfig;
+    // SystemConfig public systemConfig;
+    address public systemConfig;
 
     /// @notice Address that has the ability to pause and unpause withdrawals.
     /// @custom:network-specific
@@ -113,26 +134,44 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     string public constant version = "1.10.0";
 
     /// @notice Constructs the OptimismPortal contract.
+    // constructor() {
+    //     initialize({
+    //         _nativeTokenAddress: address(0),
+    //         _l2Oracle: L2OutputOracle(address(0)),
+    //         _guardian: address(0),
+    //         _systemConfig: SystemConfig(address(0)),
+    //         _paused: true
+    //     });
+    // }
+
     constructor() {
         initialize({
             _nativeTokenAddress: address(0),
-            _l2Oracle: L2OutputOracle(address(0)),
+            _l2Oracle: address(0),
             _guardian: address(0),
-            _systemConfig: SystemConfig(address(0)),
+            _systemConfig: address(0),
             _paused: true
         });
     }
+
 
     /// @notice Initializer.
     /// @param _l2Oracle Address of the L2OutputOracle contract.
     /// @param _guardian Address that can pause withdrawals.
     /// @param _paused Sets the contract's pausability state.
     /// @param _systemConfig Address of the SystemConfig contract.
+    // function initialize(
+    //     address _nativeTokenAddress,
+    //     L2OutputOracle _l2Oracle,
+    //     address _guardian,
+    //     SystemConfig _systemConfig,
+    //     bool _paused
+    // )
     function initialize(
         address _nativeTokenAddress,
-        L2OutputOracle _l2Oracle,
+        address _l2Oracle,
         address _guardian,
-        SystemConfig _systemConfig,
+        address _systemConfig,
         bool _paused
     )
         public
@@ -145,17 +184,24 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         guardian = _guardian;
         paused = _paused;
         __ResourceMetering_init();
+        _registerInterface(OnApprove.onApprove.selector);
     }
 
     /// @notice Getter for the L2OutputOracle
     /// @custom:legacy
-    function L2_ORACLE() external view returns (L2OutputOracle) {
+    // function L2_ORACLE() external view returns (L2OutputOracle) {
+    //     return L2OutputOracle(l2Oracle);
+    // }
+    function L2_ORACLE() external view returns (address) {
         return l2Oracle;
     }
 
     /// @notice Getter for the SystemConfig
     /// @custom:legacy
-    function SYSTEM_CONFIG() external view returns (SystemConfig) {
+    // function SYSTEM_CONFIG() external view returns (SystemConfig) {
+    //     return systemConfig;
+    // }
+    function SYSTEM_CONFIG() external view returns (address) {
         return systemConfig;
     }
 
@@ -212,7 +258,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         The SystemConfig is the source of truth for the resource config.
     /// @return ResourceMetering ResourceConfig
     function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory) {
-        return systemConfig.resourceConfig();
+        return ISystemConfig(systemConfig).resourceConfig();
     }
 
     /// @notice Proves a withdrawal transaction.
@@ -236,7 +282,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
         // Get the output root and load onto the stack to prevent multiple mloads. This will
         // revert if there is no output root for the given block number.
-        bytes32 outputRoot = l2Oracle.getL2Output(_l2OutputIndex).outputRoot;
+        bytes32 outputRoot = IL2OutputOracle(l2Oracle).getL2Output(_l2OutputIndex).outputRoot;
 
         // Verify that the output root can be generated with the elements in the proof.
         require(
@@ -255,7 +301,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // output index has been updated.
         require(
             provenWithdrawal.timestamp == 0
-                || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
+                || IL2OutputOracle(l2Oracle).getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
             "OptimismPortal: withdrawal hash has already been proven"
         );
 
@@ -316,7 +362,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // starting timestamp inside the L2OutputOracle. Not strictly necessary but extra layer of
         // safety against weird bugs in the proving step.
         require(
-            provenWithdrawal.timestamp >= l2Oracle.startingTimestamp(),
+            provenWithdrawal.timestamp >= IL2OutputOracle(l2Oracle).startingTimestamp(),
             "OptimismPortal: withdrawal timestamp less than L2 Oracle starting timestamp"
         );
 
@@ -331,7 +377,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
         // Grab the OutputProposal from the L2OutputOracle, will revert if the output that
         // corresponds to the given index has not been proposed yet.
-        Types.OutputProposal memory proposal = l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex);
+        Types.OutputProposal memory proposal = IL2OutputOracle(l2Oracle).getL2Output(provenWithdrawal.l2OutputIndex);
 
         // Check that the output root that was used to prove the withdrawal is the same as the
         // current output root for the given output index. An output root may change if it is
@@ -389,6 +435,47 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         }
     }
 
+    // function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+    //     return interfaceId == OnApprove.onApprove.selector  ;
+    // }
+
+    function unpackOnApproveData2(bytes calldata data_) public
+        pure returns (address _to, uint32 _minGasLimit, bool _isCreate, bytes memory _message) {
+        bytes memory _data = data_;
+
+        if(_data.length > 23) {
+             assembly {
+                // The layout of a "bytes memory" is:
+                // The first 32 bytes: length of a "bytes memory"
+                // The next 20 bytes: _to
+                // The next 4 bytes: _minGasLimit
+                // The rest: _message
+
+                let _pos := _data
+                // Get _data.length
+                // let _length := mload(_pos)
+                // Pass first 32 bytes. Now the pointer "pos" is pointing to _minGasLimit
+                _pos := add(_pos, 32)
+                // Load value from the next 20 bytes
+                // mload() works with 32 bytes so we need shift right 32-20=12(bytes) = 96(bits)
+                _to := shr(96, mload(_pos))
+                // Load value from the next 4 bytes
+                // mload() works with 32 bytes so we need shift right 32-24=8(bytes) = 64(bits)
+                _minGasLimit := shr(64, mload(_pos))
+            }
+        }
+
+        if(_data.length > 24) {
+            assembly {
+                let _pos := _data
+                // Load value from the next 4 bytes
+                // mload() works with 32 bytes so we need shift right 32-25=7(bytes) = 56(bits)
+                _isCreate :=  shr(56, mload(_pos))
+            }
+            _message =  data_[25:];
+        }
+    }
+
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
@@ -400,12 +487,17 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         bytes calldata _data
     )
         external
-        override
         returns (bool)
     {
+        require(_amount != 0, 'zero amount');
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-        _depositTransaction(_owner, _owner, _amount, _minGasLimit, false, _message);
+
+        (address _to, uint32 _minGasLimit, bool _isCreate, bytes memory _message) = unpackOnApproveData2(_data);
+
+        if (_to == address(0)) _to = _owner;
+        if (_minGasLimit == 0) _minGasLimit = 20_000;
+
+        _depositTransaction(_owner, _to, _amount, _minGasLimit, _isCreate, _message);
         return true;
     }
 
@@ -498,7 +590,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @param _l2OutputIndex Index of the L2 output to check.
     /// @return Whether or not the output is finalized.
     function isOutputFinalized(uint256 _l2OutputIndex) external view returns (bool) {
-        return _isFinalizationPeriodElapsed(l2Oracle.getL2Output(_l2OutputIndex).timestamp);
+        return _isFinalizationPeriodElapsed(IL2OutputOracle(l2Oracle).getL2Output(_l2OutputIndex).timestamp);
     }
 
     /// @notice Determines whether the finalization period has elapsed with respect to
@@ -506,6 +598,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @param _timestamp Timestamp to check.
     /// @return Whether or not the finalization period has elapsed.
     function _isFinalizationPeriodElapsed(uint256 _timestamp) internal view returns (bool) {
-        return block.timestamp > _timestamp + l2Oracle.FINALIZATION_PERIOD_SECONDS();
+        return block.timestamp > _timestamp + IL2OutputOracle(l2Oracle).FINALIZATION_PERIOD_SECONDS();
     }
 }

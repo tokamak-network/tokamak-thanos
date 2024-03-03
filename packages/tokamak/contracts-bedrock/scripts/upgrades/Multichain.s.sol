@@ -443,9 +443,9 @@ contract Multichain is SafeBuilder {
                             OptimismPortal.initialize,
                             (
                                 address(0),
-                                L2OutputOracle(prox.L2OutputOracle),
+                                prox.L2OutputOracle,
                                 cfg.portalGuardian(),
-                                SystemConfig(prox.SystemConfig),
+                                prox.SystemConfig,
                                 false
                             )
                         )

@@ -18,6 +18,7 @@ import {
   deployHello,
   getBalances,
   differenceLog,
+  getMessageOfHello,
   // deployERC20,
   // createOptimismMintableERC20,
 } from '../shared'
@@ -301,15 +302,15 @@ const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
   await differenceLog(beforeBalances, afterBalances)
 }
 
-const getMessageOfHello = async (helloContract) => {
-  const blockNumber = await helloContract.blockNumber()
-  const message = await helloContract.message()
+// const getMessageOfHello = async (helloContract) => {
+//   const blockNumber = await helloContract.blockNumber()
+//   const message = await helloContract.message()
 
-  return {
-    blockNumber,
-    message,
-  }
-}
+//   return {
+//     blockNumber,
+//     message,
+//   }
+// }
 
 const messenger_4_sendMessage_L1_TO_L2 = async () => {
   console.log('\n==== messenger_4_sendMessage_L1_TO_L2  ====== ')

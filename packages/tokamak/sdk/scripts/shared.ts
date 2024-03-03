@@ -88,6 +88,16 @@ export const deployHello = async (
   return hello
 }
 
+export const getMessageOfHello = async (helloContract) => {
+  const blockNumber = await helloContract.blockNumber()
+  const message = await helloContract.message()
+
+  return {
+    blockNumber,
+    message,
+  }
+}
+
 export const differenceLog = async (prevBalance, afterBalance) => {
   await differenceTonBalance(
     prevBalance.l1Balance,

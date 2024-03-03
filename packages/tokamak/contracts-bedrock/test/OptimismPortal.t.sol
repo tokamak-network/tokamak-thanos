@@ -498,12 +498,12 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         vm.store(address(op), slot, bytes32(0));
 
         // Fetch the output proposal at `_proposedOutputIndex` from the L2OutputOracle
-        Types.OutputProposal memory proposal = op.L2_ORACLE().getL2Output(_proposedOutputIndex);
+        Types.OutputProposal memory proposal = L2OutputOracle(op.L2_ORACLE()).getL2Output(_proposedOutputIndex);
 
         // Propose the same output root again, creating the same output at a different index + l2BlockNumber.
-        vm.startPrank(op.L2_ORACLE().PROPOSER());
-        op.L2_ORACLE().proposeL2Output(
-            proposal.outputRoot, op.L2_ORACLE().nextBlockNumber(), blockhash(block.number), block.number
+        vm.startPrank(L2OutputOracle(op.L2_ORACLE()).PROPOSER());
+        L2OutputOracle(op.L2_ORACLE()).proposeL2Output(
+            proposal.outputRoot, L2OutputOracle(op.L2_ORACLE()).nextBlockNumber(), blockhash(block.number), block.number
         );
         vm.stopPrank();
 
@@ -921,8 +921,8 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(payable(proxy)).initialize({
             _nativeTokenAddress: address(0),
-            _l2Oracle: L2OutputOracle(address(0)),
-            _systemConfig: SystemConfig(address(0)),
+            _l2Oracle: address(0),
+            _systemConfig: address(0),
             _guardian: address(0),
             _paused: false
         });
@@ -933,8 +933,8 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(opImpl).initialize({
             _nativeTokenAddress: address(0),
-            _l2Oracle: L2OutputOracle(address(0)),
-            _systemConfig: SystemConfig(address(0)),
+            _l2Oracle: address(0),
+            _systemConfig: address(0),
             _guardian: address(0),
             _paused: false
         });

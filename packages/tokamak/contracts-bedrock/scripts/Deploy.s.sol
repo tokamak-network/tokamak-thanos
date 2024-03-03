@@ -957,9 +957,9 @@ contract Deploy is Deployer {
                 OptimismPortal.initialize,
                 (
                     cfg.nativeTokenAddress(),
-                    L2OutputOracle(l2OutputOracleProxy),
+                    l2OutputOracleProxy,
                     guardian,
-                    SystemConfig(systemConfigProxy),
+                    systemConfigProxy,
                     false
                 )
                 )
