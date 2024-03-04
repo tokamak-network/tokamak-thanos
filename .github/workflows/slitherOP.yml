@@ -71,7 +71,6 @@ jobs:
         with:
           python-version: '3.8'
 
-
       - name: Install Slither
         run: pip3 install slither-analyzer
 
@@ -79,7 +78,7 @@ jobs:
         uses: crytic/slither-action@v0.3.1
         id: slither
         with:
-          target: ./
+          target: packages/tokamak/contracts-bedrock
           slither-config: packages/tokamak/contracts-bedrock/slither.config.json
           fail-on: config
           slither-version: dev-triage-db
