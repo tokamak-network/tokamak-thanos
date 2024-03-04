@@ -79,7 +79,7 @@ jobs:
         uses: crytic/slither-action@v0.3.1
         id: slither
         with:
-          target: packages/tokamak/contracts-bedrock
+          target: ./
           slither-config: packages/tokamak/contracts-bedrock/slither.config.json
           fail-on: config
           slither-version: dev-triage-db
