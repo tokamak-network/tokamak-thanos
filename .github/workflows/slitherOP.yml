@@ -60,6 +60,7 @@ jobs:
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: |
           npm install -g pnpm@latest
+          cd packages/tokamak/contracts-bedrock
           pnpm install
 
       - name: Build
@@ -69,6 +70,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.8'
+
 
       - name: Install Slither
         run: pip3 install slither-analyzer
