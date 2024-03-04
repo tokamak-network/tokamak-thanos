@@ -5,69 +5,15 @@ on:
     paths:
       - '**'
 
-env:
-  PYTEST_ADDOPTS: "--color=yes"
-  SOLCVER: 0.8.15
-
-
 jobs:
   slither:
     name: Slither run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Fetch history
-        run: git fetch
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-
-      - name: Update npm
-        run: npm install -g npm@latest
-
-      - name: Copy foundry from Docker container
-        run: |
-          container_id=$(docker create onthertech/titan-ci-builder:latest)
-          mkdir -p $HOME/bin
-          docker cp $container_id:/usr/local/bin/cast $HOME/bin/
-          docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
-          docker cp $container_id:/usr/local/bin/forge $HOME/bin/
-          docker rm $container_id
-
-      - name: Set permissions_add PATH
-        run: |
-          chmod +x $HOME/bin/*
-          echo "$HOME/bin" >> $GITHUB_PATH
-
-      - name: Build the contracts
-        run: forge build --build-info
-
-      - name: Get pnpm cache directory path
-        id: pnpm-cache-dir-path
-        run: echo "::set-output name=dir::$(pnpm store dir)"
-
-      - uses: actions/cache@v3
-        id: pnpm-cache
-        with:
-          path: ${{ steps.pnpm-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
-
-      - name: Install Dependencies
-        # only install dependencies if there was a change in the deps
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: |
-          npm install -g pnpm@latest
-          cd packages/tokamak/contracts-bedrock
-          pnpm install
-
-      - name: Build
-        run: pnpm run build
+      - uses: actions/checkout@v2
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: '3.8'
 
@@ -84,4 +30,3 @@ jobs:
           slither-version: dev-triage-db
           slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
           continue-on-error: true
-
