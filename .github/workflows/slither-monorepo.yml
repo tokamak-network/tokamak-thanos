@@ -20,6 +20,20 @@ jobs:
     - name: Install pnpm
       run: npm install --global pnpm
 
+    - name: Copy foundry from Docker container
+      run: |
+        container_id=$(docker create onthertech/titan-ci-builder:latest)
+        mkdir -p $HOME/bin
+        docker cp $container_id:/usr/local/bin/cast $HOME/bin/
+        docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
+        docker cp $container_id:/usr/local/bin/forge $HOME/bin/
+        docker rm $container_id
+
+    - name: Set permissions_add PATH
+      run: |
+        chmod +x $HOME/bin/*
+        echo "$HOME/bin" >> $GITHUB_PATH
+
     - name: Get pnpm cache directory path
       run: echo "::set-output name=dir::$(pnpm config get cache)"
       id: pnpm-cache-dir-path
