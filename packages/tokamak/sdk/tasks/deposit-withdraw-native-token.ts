@@ -5,15 +5,9 @@ import 'hardhat-deploy'
 import { predeploys } from '@eth-optimism/core-utils'
 import { BytesLike, ethers } from 'ethers'
 
-import {
-  CrossChainMessenger,
-  MessageStatus,
-  NativeTokenBridgeAdapter,
-  NumberLike,
-} from '../src'
-
-// import * as OptimismPortalABI from '../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
-// import * as L1StandardBridgeABI from '../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
+import { CrossChainMessenger, MessageStatus, NativeTokenBridgeAdapter, NumberLike } from '../src'
+import * as OptimismPortalABI from '../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
+import * as L1StandardBridgeABI from '../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 
 // const OptimismPortalABI = require("../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json")
 // const L1StandardBridgeABI = require("../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json")
