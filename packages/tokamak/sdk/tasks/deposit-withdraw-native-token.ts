@@ -12,6 +12,12 @@ import {
   NumberLike,
 } from '../src'
 
+// import * as OptimismPortalABI from '../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
+// import * as L1StandardBridgeABI from '../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
+
+// const OptimismPortalABI = require("../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json")
+// const L1StandardBridgeABI = require("../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json")
+
 console.log('Setup task...')
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
@@ -23,7 +29,7 @@ const l2Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L2_URL
 )
 const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-console.log("l1Wallet :", l1Wallet.address);
+console.log('l1Wallet :', l1Wallet.address)
 const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
 
 const erc20ABI = [
@@ -55,8 +61,8 @@ const erc20ABI = [
 
 const ETH = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
 
-const oneETH = ethers.utils.parseUnits("1", 18);
-const twoETH = ethers.utils.parseUnits("2", 18);
+const oneETH = ethers.utils.parseUnits('1', 18)
+const twoETH = ethers.utils.parseUnits('2', 18)
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
@@ -119,6 +125,18 @@ const depositNativeToken = async (amount: NumberLike) => {
     l1Wallet
   )
 
+  const OptimismPortalContract = new ethers.Contract(
+    optimismPortal,
+    OptimismPortalABI.abi,
+    l1Wallet
+  )
+
+  const L1StandardBridgeContract = new ethers.Contract(
+    l1StandardBridge,
+    L1StandardBridgeABI.abi,
+    l1Wallet
+  )
+
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
     CanonicalTransactionChain: zeroAddr,
@@ -129,7 +147,7 @@ const depositNativeToken = async (amount: NumberLike) => {
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
   }
-  console.log('l1 contracts:', l1Contracts)
+  // console.log('l1 contracts:', l1Contracts)
 
   const bridges = {
     NativeToken: {
@@ -164,8 +182,14 @@ const depositNativeToken = async (amount: NumberLike) => {
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
 
+  let optimismPortalStorage = await OptimismPortalContract.depositedAmount()
+  console.log('optimismPortalStorage: ', optimismPortalStorage.toString())
+
+  let standardStorage = await L1StandardBridgeContract.deposits(l2NativeToken,predeploys.LegacyERC20ETH)
+  console.log('standardStorage: ', standardStorage.toString())
+
   if (Number(l2NativeTokenBalance.toString()) === 0) {
-    console.log("faucet")
+    console.log('start faucet')
     const tx = await l2NativeTokenContract.connect(l1Wallet).faucet(amount)
     await tx.wait()
     const l2NativeTokenBalance2 = await l2NativeTokenContract.balanceOf(
@@ -193,6 +217,12 @@ const depositNativeToken = async (amount: NumberLike) => {
     'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
+
+  optimismPortalStorage = await OptimismPortalContract.depositedAmount()
+  console.log('optimismPortalStorage: ', optimismPortalStorage.toString())
+
+  standardStorage = await L1StandardBridgeContract.deposits(l2NativeToken,predeploys.LegacyERC20ETH)
+  console.log('standardStorage: ', standardStorage.toString())
 }
 
 const withdrawNativeToken = async (amount: NumberLike) => {
@@ -201,6 +231,18 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   const l2NativeTokenContract = new ethers.Contract(
     l2NativeToken,
     erc20ABI,
+    l1Wallet
+  )
+
+  const OptimismPortalContract = new ethers.Contract(
+    optimismPortal,
+    OptimismPortalABI.abi,
+    l1Wallet
+  )
+
+  const L1StandardBridgeContract = new ethers.Contract(
+    l1StandardBridge,
+    L1StandardBridgeABI.abi,
     l1Wallet
   )
 
@@ -250,6 +292,12 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   console.log('l1 native balance: ', l1Balance.toString())
   let l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
+
+  let optimismPortalStorage = await OptimismPortalContract.depositedAmount()
+  console.log('optimismPortalStorage: ', optimismPortalStorage.toString())
+
+  let standardStorage = await L1StandardBridgeContract.deposits(l2NativeToken,predeploys.LegacyERC20ETH)
+  console.log('standardStorage: ', standardStorage.toString())
 
   const withdrawal = await messenger.withdrawETH(amount)
   const withdrawalTx = await withdrawal.wait()
@@ -310,6 +358,11 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
+  optimismPortalStorage = await OptimismPortalContract.depositedAmount()
+  console.log('optimismPortalStorage: ', optimismPortalStorage.toString())
+
+  standardStorage = await L1StandardBridgeContract.deposits(l2NativeToken,predeploys.LegacyERC20ETH)
+  console.log('standardStorage: ', standardStorage.toString())
 }
 
 task('deposit-native-token', 'Deposits L2NativeToken to L2.')
