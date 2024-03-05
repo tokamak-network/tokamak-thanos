@@ -231,6 +231,11 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('TON address:', TON)
 
   const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const wtonContract = new ethers.Contract(
+    predeploys.WETH9,
+    erc20ABI,
+    l2Wallet
+  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -267,13 +272,13 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  let l1TONBalance = await tonContract
-    .connect(l1Wallet)
-    .balanceOf(l1Wallet.address)
+  let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance:', l1TONBalance.toString())
 
-  const l2BalancePrev = await l2Wallet.getBalance()
-  console.log('l2 native balance prev: ', l2BalancePrev.toString())
+  const l2CDMBalancePrev = await wtonContract.balanceOf(
+    predeploys.L2CrossDomainMessenger
+  )
+  console.log('l2cdm wton balance: ', l2CDMBalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
     ['address', 'uint32', 'bytes'],
@@ -297,14 +302,16 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
     MessageStatus.RELAYED
   )
 
-  const l2BalanceAfter = await l2Wallet.getBalance()
+  const l2CDMBalanceAfter = await wtonContract.balanceOf(
+    predeploys.L2CrossDomainMessenger
+  )
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance after: ', l1TONBalance.toString())
-  console.log('l2 native balance: ', l2BalanceAfter.toString())
+  console.log('l2cdm wton balance: ', l2CDMBalanceAfter.toString())
 
   console.log(
-    'l2 added native balance: ',
-    l2BalanceAfter.sub(l2BalancePrev).toString()
+    'added wton balance: ',
+    l2CDMBalanceAfter.sub(l2CDMBalancePrev).toString()
   )
 }
 
