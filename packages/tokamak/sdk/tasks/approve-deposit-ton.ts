@@ -226,9 +226,98 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   )
 }
 
+const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
+  console.log('Deposit TON via CDM:', amount)
+  console.log('TON address:', TON)
+
+  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+
+  const l1Contracts = {
+    StateCommitmentChain: zeroAddr,
+    CanonicalTransactionChain: zeroAddr,
+    BondManager: zeroAddr,
+    AddressManager: addressManager,
+    L1CrossDomainMessenger: l1CrossDomainMessenger,
+    L1StandardBridge: l1StandardBridge,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  console.log('l1 contracts:', l1Contracts)
+
+  const bridges = {
+    TON: {
+      l1Bridge: l1Contracts.L1StandardBridge,
+      l2Bridge: predeploys.L2StandardBridge,
+      Adapter: NativeTokenBridgeAdapter,
+    },
+  }
+
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const messenger = new CrossChainMessenger({
+    bedrock: true,
+    contracts: {
+      l1: l1Contracts,
+    },
+    bridges,
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  let l1TONBalance = await tonContract
+    .connect(l1Wallet)
+    .balanceOf(l1Wallet.address)
+  console.log('l1 ton balance:', l1TONBalance.toString())
+
+  const l2BalancePrev = await l2Wallet.getBalance()
+  console.log('l2 native balance prev: ', l2BalancePrev.toString())
+
+  const data = ethers.utils.solidityPack(
+    ['address', 'uint32', 'bytes'],
+    [predeploys.WETH9, 200000, '0xd0e30db0']
+  )
+
+  console.log('Approve and Call via CDM: ', data)
+  const approveAndCallTx = await (
+    await tonContract
+      .connect(l1Wallet)
+      .approveAndCall(
+        l1Contracts.L1CrossDomainMessenger,
+        ethers.BigNumber.from('' + amount),
+        data
+      )
+  ).wait()
+  console.log('approveAndCallTx:', approveAndCallTx.transactionHash)
+
+  await messenger.waitForMessageStatus(
+    approveAndCallTx.transactionHash,
+    MessageStatus.RELAYED
+  )
+
+  const l2BalanceAfter = await l2Wallet.getBalance()
+  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  console.log('l1 ton balance after: ', l1TONBalance.toString())
+  console.log('l2 native balance: ', l2BalanceAfter.toString())
+
+  console.log(
+    'l2 added native balance: ',
+    l2BalanceAfter.sub(l2BalancePrev).toString()
+  )
+}
+
 task('approve-deposit-ton', 'Deposits ERC20-TON to L2.')
   .addParam('amount', 'Deposit amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await approveAndDepositTON(args.amount)
+  })
+
+task('approve-deposit-ton-cdm', 'Deposits ERC20-TON to L2.')
+  .addParam('amount', 'Deposit amount', '1', types.string)
+  .setAction(async (args, hre) => {
+    await updateAddresses(hre)
+    await approveAndDepositTONViaCDM(args.amount)
   })
