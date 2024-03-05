@@ -107,6 +107,26 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
+    /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data) public pure returns (uint32 _minGasLimit, bytes calldata _message) {
+        if (_data.length < 4) {
+            _minGasLimit = 200_000;
+            _message = _data.length == 0 ? _data : _data[_data.length:];
+        }else {
+            assembly {
+                // The layout of a "bytes calldata" is:
+                // The next 4 bytes: _minGasLimit
+                // The rest: _message
+
+                // Get _data.length
+                _minGasLimit := shr(224, calldataload(_data.offset))
+                _message.offset := add(_data.offset, 4)
+                _message.length := sub(_data.length, 4)
+            }
+        }
+    }
+
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
