@@ -20,19 +20,23 @@ jobs:
     - name: Install pnpm
       run: npm install --global pnpm
 
-    - name: Install Nix
-      uses: cachix/install-nix-action@v25
+    - name: Get pnpm cache directory path
+      run: echo "::set-output name=dir::$(pnpm config get cache)"
+      id: pnpm-cache-dir-path
 
-    - name: Configure Cachix
-      uses: cachix/cachix-action@v14
+    - name: Cache pnpm modules
+      uses: actions/cache@v3
       with:
-        name: dapp
+        path: ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-
 
     - name: Install dependencies
-      run: nix-shell --run 'pnpm install'
+      run: pnpm install
 
     - name: Build the contracts
-      run: nix-shell --run 'pnpm run build'
+      run: pnpm run build
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
