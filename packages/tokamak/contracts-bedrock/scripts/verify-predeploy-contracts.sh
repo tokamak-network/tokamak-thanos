@@ -11,6 +11,7 @@ declare -A network_list
 
 network_list+=(
   ["titan-sepolia-test"]=111551115050
+  ["thanos-sepolia-test"]=111551118080
 )
 
 function help() {
@@ -95,7 +96,6 @@ for network in ${!network_list[@]}; do
   fi
 done
 
-
 if [ -z $CHAIN_ID ]; then
   echo -e "${RED}error${RESET}: please enter an network value(${BOLD}required${NORMAL})\n"
   echo -e "${BOLD}argument:${NORMAL}\n"
@@ -133,26 +133,27 @@ fi
 # value(string) : implementation contract address
 declare -A contracts
 
-contracts+=( ["4200000000000000000000000000000000000001"]=""  # Proxy
-             ["4200000000000000000000000000000000000016"]=""  # L2ToL1MessagePasser
-             ["4200000000000000000000000000000000000002"]=""  # DeployerWhitelist
-             ["4200000000000000000000000000000000000006"]=""  # WTON : No Proxy
-             ["4200000000000000000000000000000000000007"]=""  # L2CrossDomainMessenger
-             ["4200000000000000000000000000000000000010"]=""  # L2StandardBridge
-             ["4200000000000000000000000000000000000011"]=""  # SequencerFeeVault
-             ["4200000000000000000000000000000000000012"]=""  # OptimismMintableERC20Factory
-             ["4200000000000000000000000000000000000013"]=""  # L1BlockNumber
-             ["420000000000000000000000000000000000000f"]=""  # GasPriceOracle
-             ["4200000000000000000000000000000000000015"]=""  # L1Block
-             ["4200000000000000000000000000000000000000"]=""  # LegacyMessagePasser
-             ["4200000000000000000000000000000000000014"]=""  # L2ERC721Bridge
-             ["4200000000000000000000000000000000000017"]=""  # OptimismMintableERC721Factory
-             ["4200000000000000000000000000000000000018"]=""  # ProxyAdmin
-             ["4200000000000000000000000000000000000019"]=""  # BaseFeeVault
-             ["420000000000000000000000000000000000001a"]=""  # L1FeeVault
-             ["4200000000000000000000000000000000000020"]=""  # SchemaRegistry
-             ["4200000000000000000000000000000000000021"]=""  # EAS
-             ["4200000000000000000000000000000000000486"]=""  # ETH (TOKAMAK)
+contracts+=(
+  ["4200000000000000000000000000000000000001"]="" # Proxy
+  ["4200000000000000000000000000000000000016"]="" # L2ToL1MessagePasser
+  ["4200000000000000000000000000000000000002"]="" # DeployerWhitelist
+  ["4200000000000000000000000000000000000006"]="" # WTON : No Proxy
+  ["4200000000000000000000000000000000000007"]="" # L2CrossDomainMessenger
+  ["4200000000000000000000000000000000000010"]="" # L2StandardBridge
+  ["4200000000000000000000000000000000000011"]="" # SequencerFeeVault
+  ["4200000000000000000000000000000000000012"]="" # OptimismMintableERC20Factory
+  ["4200000000000000000000000000000000000013"]="" # L1BlockNumber
+  ["420000000000000000000000000000000000000f"]="" # GasPriceOracle
+  ["4200000000000000000000000000000000000015"]="" # L1Block
+  ["4200000000000000000000000000000000000000"]="" # LegacyMessagePasser
+  ["4200000000000000000000000000000000000014"]="" # L2ERC721Bridge
+  ["4200000000000000000000000000000000000017"]="" # OptimismMintableERC721Factory
+  ["4200000000000000000000000000000000000018"]="" # ProxyAdmin
+  ["4200000000000000000000000000000000000019"]="" # BaseFeeVault
+  ["420000000000000000000000000000000000001a"]="" # L1FeeVault
+  ["4200000000000000000000000000000000000020"]="" # SchemaRegistry
+  ["4200000000000000000000000000000000000021"]="" # EAS
+  ["4200000000000000000000000000000000000486"]="" # ETH (TOKAMAK)
 )
 
 IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
@@ -189,13 +190,13 @@ BASE_FEE_VAULT_PATH=${BASE_PATH}/src/L2/BaseFeeVault.sol
 L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
-ETH_PATH=
+ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
 
 function run() {
   verify_proxy
   verify_L2ToL1MessagePasser
   verify_DeployerWhitelist
-  #verify_WTON
+  verify_WTON
   verify_L2CrossDomainMessenger
   verify_L2StandardBridge
   verify_SequencerFeeVault
@@ -211,7 +212,7 @@ function run() {
   verify_L1FeeVault
   verify_SchemaRegistry
   verify_EAS
-  #verify_ETH
+  verify_ETH
 }
 
 # Verify contract
@@ -252,8 +253,8 @@ function verify_DeployerWhitelist() {
 
 function verify_WTON() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000006"]}
-  COMPILER_VERSION=
-  # TODO : Verify WTON in future
+  COMPILER_VERSION=v0.4.25+commit.59dbf8f1
+  verfy_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WTON_PATH}:WTON"
 }
 
 function verify_L2CrossDomainMessenger() {
@@ -356,9 +357,10 @@ function verify_EAS() {
 }
 
 function verify_ETH() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor()")
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000486"]}
-  # TODO : Verify ETH in future
+  COMPILER_VERSION=v0.8.15+commit.e14f2714
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${ETH_PATH}:ETH"
 }
-
 
 run
