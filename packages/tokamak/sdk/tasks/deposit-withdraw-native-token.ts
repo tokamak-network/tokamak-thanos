@@ -55,6 +55,9 @@ const erc20ABI = [
 
 const ETH = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
 
+const oneETH = ethers.utils.parseUnits("1", 18);
+const twoETH = ethers.utils.parseUnits("2", 18);
+
 const zeroAddr = '0x'.padEnd(42, '0')
 
 let l2NativeToken = process.env.NATIVE_TOKEN || ''
@@ -154,7 +157,7 @@ const depositNativeToken = async (amount: NumberLike) => {
   let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
     l1Wallet.address
   )
-  console.log('l2 native token balance in L1:', Number(l2NativeTokenBalance.toString()))
+  console.log('native token(TON) balance in L1:', Number(l2NativeTokenBalance.toString()))
 
   let l1Balance = await l1Wallet.getBalance()
   console.log('l1 native balance: ', l1Balance.toString())
@@ -187,10 +190,9 @@ const depositNativeToken = async (amount: NumberLike) => {
   console.log('l2 native balance: ', l2Balance.toString())
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'l2 native token balance in L1: ',
+    'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
-  console.log('l2 native balance: ', l2Balance.toString())
 }
 
 const withdrawNativeToken = async (amount: NumberLike) => {
@@ -240,7 +242,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     l1Wallet.address
   )
   console.log(
-    'l2 native token balance in L1: ',
+    'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
 
@@ -294,7 +296,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
 
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'l2 native token balance in L1: ',
+    'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
 
@@ -305,20 +307,20 @@ const withdrawNativeToken = async (amount: NumberLike) => {
 
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'l2 native token balance in L1: ',
+    'native token(TON) balance in L1: ',
     l2NativeTokenBalance.toString()
   )
 }
 
 task('deposit-native-token', 'Deposits L2NativeToken to L2.')
-  .addParam('amount', 'Deposit amount', '1', types.string)
+  .addParam('amount', 'Deposit amount', twoETH.toString(), types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await depositNativeToken(args.amount)
   })
 
 task('withdraw-native-token', 'Withdraw native token from L2.')
-  .addParam('amount', 'Withdrawal amount', '1', types.string)
+  .addParam('amount', 'Withdrawal amount', oneETH.toString(), types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await withdrawNativeToken(args.amount)
