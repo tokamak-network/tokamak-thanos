@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'packages/tokamak/contracts-bedrock/**'
-      - '**'
 
 jobs:
   slither:

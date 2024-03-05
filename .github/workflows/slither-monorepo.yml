@@ -1,0 +1,40 @@
+name: slither analysis
+
+on:
+  push:
+    paths:
+      - '**'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: recursive
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+
+    - name: Install pnpm
+      run: npm install --global pnpm
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v25
+
+    - name: Configure Cachix
+      uses: cachix/cachix-action@v14
+      with:
+        name: dapp
+
+    - name: Install dependencies
+      run: nix-shell --run 'pnpm install'
+
+    - name: Build the contracts
+      run: nix-shell --run 'pnpm run build'
+
+    - name: Run Slither
+      uses: crytic/slither-action@v0.3.1
+      with:
+        ignore-compile: true
