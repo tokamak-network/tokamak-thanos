@@ -24,6 +24,8 @@ bytecode_hash = 'none'
 build_info = true
 build_info_path = 'artifacts/build-info'
 
+evmVersion = "london"
+
 # Test / Script Runner Settings
 ffi = true
 fs_permissions = [
