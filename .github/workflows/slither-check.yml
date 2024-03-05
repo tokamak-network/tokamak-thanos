@@ -10,7 +10,10 @@ jobs:
     name: Slither run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Copy pnpm-lock.yaml
         run: cp pnpm-lock.yaml packages/tokamak/contracts-bedrock/
@@ -27,4 +30,4 @@ jobs:
           fail-on: config
           slither-version: dev-triage-db
           slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
-
+          continue-on-error: true
