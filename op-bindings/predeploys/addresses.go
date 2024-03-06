@@ -58,6 +58,7 @@ func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
 	case WTONAddr:
 	case GovernanceTokenAddr:
+	case ETHAddr:
 	default:
 		return true
 	}
