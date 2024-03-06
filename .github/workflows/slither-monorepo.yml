@@ -50,7 +50,10 @@ jobs:
       run: pnpm install
 
     - name: Build the contracts
-      run: pnpm run build
+      run: |
+        pnpm run build
+        forge build --build-info --skip 'packages/tokamak/contracts-bedrock/scripts' 'packages/contracts-bedrock/test'
+
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
