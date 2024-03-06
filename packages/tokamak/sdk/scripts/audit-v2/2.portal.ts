@@ -7,12 +7,13 @@ import * as l1StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-ar
 import * as l2StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import * as OptimismPortalAbi from '@tokamak-network/titan2-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
 // import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
-import { sleep } from '@eth-optimism/core-utils'
+import { sleep, toRpcHexString } from '@eth-optimism/core-utils'
 
-// import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
+import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import { CrossChainMessenger, MessageStatus } from '../../src'
 import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
 import l1CrossDomainMessengerAbi from '../../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
+import { makeStateTrieProof, hashMessageHash } from '../../src/utils'
 import {
   erc20ABI,
   deployHello,
@@ -44,9 +45,9 @@ let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
 let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
-// const l2ToL1MessagePasser =
-//   process.env.L2ToL1MessagePasser ||
-//   '0x4200000000000000000000000000000000000016'
+const l2ToL1MessagePasser =
+  process.env.L2ToL1MessagePasser ||
+  '0x4200000000000000000000000000000000000016'
 
 const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
 const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
@@ -57,7 +58,7 @@ let l1BridgeContract
 let l1CrossDomainMessengerContract
 let OptomismPortalContract
 // let l2CrossDomainMessengerContract
-// let l2ToL1MessagePasserContract
+let l2ToL1MessagePasserContract
 // let l2OutputOracleContract
 
 let l1Contracts
@@ -405,6 +406,133 @@ const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
   await differenceLog(beforeBalances, afterBalances)
 }
 
+const passer_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
+  console.log('\n==== passer_withdrawTON_L2_TO_L1  ====== ')
+
+  const beforeBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  // const l2ToL1MessagePasserContract = new ethers.Contract(
+  //   l2ToL1MessagePasser,
+  //   l2ToL1MessagePasserAbi.abi,
+  //   l2Wallet
+  // )
+
+  const withdrawal = await l2ToL1MessagePasserContract
+    .connect(l2Wallet)
+    .initiateWithdrawal(l1Wallet.address, 21000, '0x', {
+      value: amount,
+    })
+  const withdrawalTx = await withdrawal.wait()
+  console.log(
+    '\nwithdrawal Tx:',
+    withdrawalTx.transactionHash,
+    ' Block',
+    withdrawalTx.blockNumber,
+    ' hash',
+    withdrawal.hash
+  )
+
+  const messagePassedEvent = withdrawalTx.events[0]
+  await sleep(60000)
+
+  const l2OutputIndex =
+    await messenger.contracts.l1.L2OutputOracle.getL2OutputIndexAfter(
+      withdrawalTx.blockNumber
+    )
+
+  // Now pull the proposal out given the output index. Should always work as long as the above
+  // codepath completed successfully.
+  const proposal = await messenger.contracts.l1.L2OutputOracle.getL2Output(
+    l2OutputIndex
+  )
+
+  const l2_BlockNumber = proposal.l2BlockNumber.toNumber()
+
+  const stateTrieProof = await makeStateTrieProof(
+    messenger.l2Provider as ethers.providers.JsonRpcProvider,
+    l2_BlockNumber,
+    messenger.contracts.l2.BedrockMessagePasser.address,
+    hashMessageHash(messagePassedEvent.args.withdrawalHash)
+  )
+
+  const block = await (
+    messenger.l2Provider as ethers.providers.JsonRpcProvider
+  ).send('eth_getBlockByNumber', [toRpcHexString(l2_BlockNumber), false])
+
+  const proof = {
+    outputRootProof: {
+      version: ethers.constants.HashZero,
+      stateRoot: block.stateRoot,
+      messagePasserStorageRoot: stateTrieProof.storageRoot,
+      latestBlockhash: block.hash,
+    },
+    withdrawalProof: stateTrieProof.storageProof,
+    l2OutputIndex,
+  }
+
+  const args = [
+    [
+      messagePassedEvent.args.nonce,
+      messagePassedEvent.args.sender,
+      messagePassedEvent.args.target,
+      messagePassedEvent.args.value,
+      messagePassedEvent.args.gasLimit,
+      messagePassedEvent.args.data,
+    ],
+    proof.l2OutputIndex,
+    [
+      proof.outputRootProof.version,
+      proof.outputRootProof.stateRoot,
+      proof.outputRootProof.messagePasserStorageRoot,
+      proof.outputRootProof.latestBlockhash,
+    ],
+    proof.withdrawalProof,
+    {},
+  ] as const
+
+  const sendTx = await (
+    await OptomismPortalContract.connect(l1Wallet).proveWithdrawalTransaction(
+      ...args
+    )
+  ).wait()
+  console.log('Proved the message: ', sendTx.transactionHash)
+
+  await sleep(10000)
+
+  const tx =
+    await messenger.contracts.l1.OptimismPortal.finalizeWithdrawalTransaction([
+      messagePassedEvent.args.nonce,
+      messagePassedEvent.args.sender,
+      messagePassedEvent.args.target,
+      messagePassedEvent.args.value,
+      messagePassedEvent.args.gasLimit,
+      messagePassedEvent.args.data,
+    ])
+  const receipt = await tx.wait()
+  console.log('\nFinalized message tx', receipt.transactionHash)
+  console.log('Finalized withdrawal')
+
+  const afterBalances = await getBalances(
+    l1Wallet,
+    l2Wallet,
+    tonContract,
+    l2EthContract,
+    l1BridgeContract,
+    l1CrossDomainMessengerContract,
+    OptomismPortalContract
+  )
+
+  await differenceLog(beforeBalances, afterBalances)
+}
+
 const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   console.log('\n==== portal_3_createContract_L1_TO_L2  ====== ')
 
@@ -673,11 +801,11 @@ const setup = async () => {
     l1Wallet
   )
 
-  // l2ToL1MessagePasserContract = new ethers.Contract(
-  //   l2ToL1MessagePasser,
-  //   l2ToL1MessagePasserAbi.abi,
-  //   l2Wallet
-  // )
+  l2ToL1MessagePasserContract = new ethers.Contract(
+    l2ToL1MessagePasser,
+    l2ToL1MessagePasserAbi.abi,
+    l2Wallet
+  )
 
   // l2CrossDomainMessengerContract = new ethers.Contract(
   //   l2CrossDomainMessenger,
@@ -733,6 +861,8 @@ const main = async () => {
   helloContractL2 = await deployHello(hardhat, l2Wallet)
 
   await portal_5_approveAndCallWithMessage_L1_TO_L2(depositAmount)
+
+  await passer_withdrawTON_L2_TO_L1(withdrawAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
