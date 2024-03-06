@@ -12,6 +12,7 @@ import {
   NumberLike,
   asL2Provider,
 } from '../src'
+import Artifact__L1CrossDomainMessenger from '../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 
 console.log('Setup task...')
 
@@ -180,6 +181,95 @@ const depositNativeToken = async (amount: NumberLike) => {
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
+const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
+  console.log('Deposit Native token:', amount)
+  console.log('Native token address:', l2NativeToken)
+
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
+  const l1CrossDomainMessengerContract = new ethers.Contract(
+    l1CrossDomainMessenger,
+    Artifact__L1CrossDomainMessenger.abi,
+    l1Wallet
+  )
+
+  const l2NativeTokenContract = new ethers.Contract(
+    l2NativeToken,
+    erc20ABI,
+    l1Wallet
+  )
+
+  const l1Contracts = {
+    StateCommitmentChain: zeroAddr,
+    CanonicalTransactionChain: zeroAddr,
+    BondManager: zeroAddr,
+    AddressManager: addressManager,
+    L1CrossDomainMessenger: l1CrossDomainMessenger,
+    L1StandardBridge: l1StandardBridge,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  console.log('l1 contracts:', l1Contracts)
+
+  const bridges = {
+    NativeToken: {
+      l1Bridge: l1Contracts.L1StandardBridge,
+      l2Bridge: predeploys.L2StandardBridge,
+      Adapter: NativeTokenBridgeAdapter,
+    },
+  }
+
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const messenger = new CrossChainMessenger({
+    bedrock: true,
+    contracts: {
+      l1: l1Contracts,
+    },
+    bridges,
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
+    l1Wallet.address
+  )
+  console.log('l2 native token balance in L1:', l2NativeTokenBalance.toString())
+
+  let l2Balance = await l2Wallet.getBalance()
+  console.log('l2 native balance: ', l2Balance.toString())
+
+  const approveTx = await l2NativeTokenContract.approve(
+    l1CrossDomainMessenger,
+    amount
+  )
+  await approveTx.wait()
+  console.log('approveTx:', approveTx.hash)
+
+  const depositTx = await l1CrossDomainMessengerContract.sendNativeTokenMessage(
+    l2Wallet.address,
+    amount,
+    '0x',
+    21000
+  )
+  await depositTx.wait()
+  console.log('depositTx:', depositTx.hash)
+
+  await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
+
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
+  console.log(
+    'l2 native token balance in L1: ',
+    l2NativeTokenBalance.toString()
+  )
+  l2Balance = await l2Wallet.getBalance()
+  console.log('l2 native balance: ', l2Balance.toString())
+}
+
 const withdrawNativeToken = async (amount: NumberLike) => {
   console.log('Withdraw Native token:', amount)
 
@@ -308,6 +398,13 @@ task('deposit-native-token', 'Deposits L2NativeToken to L2.')
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await depositNativeToken(args.amount)
+  })
+
+task('deposit-native-token-via-messenger', 'Deposits L2NativeToken to L2.')
+  .addParam('amount', 'Deposit amount', '1', types.string)
+  .setAction(async (args, hre) => {
+    await updateAddresses(hre)
+    await depositNativeTokenViaMessenger(args.amount)
   })
 
 task('withdraw-native-token', 'Withdraw native token from L2.')
