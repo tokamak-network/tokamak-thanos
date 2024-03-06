@@ -560,6 +560,7 @@ const passer_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
 
 const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   console.log('\n==== portal_3_createContract_L1_TO_L2  ====== ')
+  console.log('amount', ethers.utils.formatEther(amount))
 
   const beforeBalances = await getBalances(
     l1Wallet,
@@ -617,11 +618,14 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   const rawTxL2 = '0x7e' + remove0x(ethers.utils.RLP.encode(txData))
   const txHashL2 = ethers.utils.keccak256(rawTxL2)
 
+  let newContract = null
+
   while (true) {
     const l2Tx = await l2Wallet.provider.getTransactionReceipt(txHashL2)
     if (l2Tx) {
       console.log('\nl2Tx')
       console.log(l2Tx)
+      newContract = l2Tx.contractAddress
       break
     }
 
@@ -639,6 +643,17 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   )
 
   await differenceLog(beforeBalances, afterBalances)
+
+  console.log('l2Tx.contractAddress : ', newContract)
+
+  if (newContract != null) {
+    const balanceContract = await l2Wallet.provider.getBalance(newContract)
+
+    console.log(
+      'L2 newContract TON Changed : ',
+      ethers.utils.formatEther(balanceContract)
+    )
+  }
 }
 
 const portal_4_onApproveDepositTon_L1_TO_L2 = async (amount: BigNumber) => {
@@ -883,8 +898,6 @@ const main = async () => {
   await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
   await passer_withdrawTON_L2_TO_L1(withdrawAmount)
 
-  await portal_3_createContract_L1_TO_L2(ethers.constants.Zero) // on holding : I can't check the tx on L2 (create contract)
-
   await portal_4_onApproveDepositTon_L1_TO_L2(depositAmount)
 
   helloContractL1 = await deployHello(hardhat, l1Wallet)
@@ -892,7 +905,11 @@ const main = async () => {
 
   await portal_5_approveAndCallWithMessage_L1_TO_L2(depositAmount)
 
-  // await passer_withdrawTON_L2_TO_L1(withdrawAmount)
+  await passer_withdrawTON_L2_TO_L1(withdrawAmount)
+
+  await portal_3_createContract_L1_TO_L2(ethers.constants.Zero)
+
+  await portal_3_createContract_L1_TO_L2(depositAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
