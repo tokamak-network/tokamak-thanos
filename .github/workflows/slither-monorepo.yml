@@ -54,6 +54,11 @@ jobs:
         pnpm run build
         forge build --build-info --skip 'packages/tokamak/contracts-bedrock/scripts' 'packages/contracts-bedrock/test'
 
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
     - name: Install solc-select and solc
       run: |
         pip3 install solc-select
