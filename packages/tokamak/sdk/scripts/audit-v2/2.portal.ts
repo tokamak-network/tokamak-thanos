@@ -3,17 +3,18 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { BigNumber, BytesLike, Wallet, ethers } from 'ethers'
+import {
+  sleep,
+  toRpcHexString,
+  remove0x,
+  toHexString,
+} from '@eth-optimism/core-utils'
 import * as l1StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import * as l2StandardBridgeAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import * as OptimismPortalAbi from '@tokamak-network/titan2-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
-// import * as l2CrossDomainMessengerAbi from '@tokamak-network/titan2-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
-import { sleep, toRpcHexString } from '@eth-optimism/core-utils'
 
-import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
-import { CrossChainMessenger, MessageStatus } from '../../src'
-import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
-import l1CrossDomainMessengerAbi from '../../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import { makeStateTrieProof, hashMessageHash } from '../../src/utils'
+import { CrossChainMessenger, MessageStatus } from '../../src'
 import {
   erc20ABI,
   deployHello,
@@ -23,13 +24,17 @@ import {
   // deployERC20,
   // createOptimismMintableERC20,
 } from '../shared'
+import Artifact__MockHello from '../../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
+import l1CrossDomainMessengerAbi from '../../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
+import * as l2ToL1MessagePasserAbi from '../../../contracts-bedrock/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
+
 const privateKey = process.env.PRIVATE_KEY as BytesLike
 
 const l1Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L1_URL
+  process.env.L1_URL || 'http://localhost:8545'
 )
 const l2Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L2_URL
+  process.env.L2_URL || 'http://localhost:9545'
 )
 const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
 const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
@@ -51,7 +56,8 @@ const l2ToL1MessagePasser =
 
 const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
 const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
-const l2_ERC20_ETH = process.env.ETH || ''
+const l2_ERC20_ETH =
+  process.env.ETH || '0x4200000000000000000000000000000000000486'
 const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
 
 let l1BridgeContract
@@ -62,12 +68,31 @@ let l2ToL1MessagePasserContract
 // let l2OutputOracleContract
 
 let l1Contracts
-let messenger
+let messenger: CrossChainMessenger
 let tonContract
 let helloContractL1
 let helloContractL2
 // let l1ERC20Token
 // let l2ERC20Token
+
+const calculateSourceHash = (l1BlockHash, logIndex) => {
+  const input = ethers.utils.concat([
+    ethers.utils.arrayify(l1BlockHash),
+    ethers.utils.hexZeroPad(ethers.BigNumber.from(logIndex).toHexString(), 32),
+  ])
+  const depositIDHash = ethers.utils.keccak256(input)
+
+  const domainInput = ethers.utils.concat([
+    ethers.utils.hexZeroPad(ethers.BigNumber.from(0).toHexString(), 32),
+    ethers.utils.arrayify(depositIDHash),
+  ])
+
+  return ethers.utils.keccak256(domainInput)
+}
+const toMinimumEvenHex = (hexString) => {
+  hexString = ethers.utils.hexStripZeros(hexString)
+  return hexString.length % 2 === 0 ? hexString : `0x0${hexString.slice(2)}`
+}
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (l2NativeToken === '') {
@@ -558,33 +583,49 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
     ).wait()
   }
 
-  const l2_block_number_prev = await l2Wallet.provider.getBlock('latest')
-  console.log('l2_block_number_prev', l2_block_number_prev)
-
   const callData = Artifact__MockHello.bytecode.object
   const _gasLimit = (callData.length * 16 + 21000) * 3
 
-  try {
-    const sendTx = await (
-      await OptomismPortalContract.connect(l1Wallet).depositTransaction(
-        ethers.constants.AddressZero,
-        amount,
-        _gasLimit,
-        true,
-        callData
-      )
-    ).wait()
-    console.log('\nsendTx:', sendTx.transactionHash)
-
-    await messenger.waitForMessageStatus(
-      sendTx.transactionHash,
-      MessageStatus.RELAYED
+  const sendTx = await (
+    await OptomismPortalContract.connect(l1Wallet).depositTransaction(
+      ethers.constants.AddressZero,
+      amount,
+      _gasLimit,
+      true,
+      callData
     )
-  } catch (e) {
-    console.log(e)
+  ).wait()
 
-    console.log('\n sleep ... ')
-    await sleep(12000)
+  console.log('\nsendTx:', sendTx.transactionHash)
+
+  const sourceHash = calculateSourceHash(
+    sendTx.blockHash,
+    sendTx.events[0].logIndex
+  )
+
+  const txData = [
+    sourceHash, // sourceHash
+    l1Wallet.address, // from
+    '0x', // to, in case of contract creation, it is "0x"
+    toMinimumEvenHex(amount.toHexString()), // mint
+    toMinimumEvenHex(amount.toHexString()), // value
+    toMinimumEvenHex(toHexString(_gasLimit)), // gasLimit
+    '0x', // isSystemTx, always "0x"
+    callData, // callData
+  ]
+
+  const rawTxL2 = '0x7e' + remove0x(ethers.utils.RLP.encode(txData))
+  const txHashL2 = ethers.utils.keccak256(rawTxL2)
+
+  while (true) {
+    const l2Tx = await l2Wallet.provider.getTransactionReceipt(txHashL2)
+    if (l2Tx) {
+      console.log('\nl2Tx')
+      console.log(l2Tx)
+      break
+    }
+
+    sleep(1000)
   }
 
   const afterBalances = await getBalances(
@@ -598,18 +639,6 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   )
 
   await differenceLog(beforeBalances, afterBalances)
-
-  const l2_block_number_after = await l2Wallet.provider.getBlock('latest')
-  console.log('l2_block_number_after', l2_block_number_after)
-
-  let i = 0
-  for (i = 0; i < l2_block_number_after.transactions.length; i++) {
-    const tx = await l2Wallet.provider.getTransactionReceipt(
-      l2_block_number_after.transactions[i]
-    )
-    console.log('\transactions', l2_block_number_after.transactions[i])
-    console.log('\n', tx)
-  }
 }
 
 const portal_4_onApproveDepositTon_L1_TO_L2 = async (amount: BigNumber) => {
@@ -852,6 +881,7 @@ const main = async () => {
 
   await portal_2_sendMessage_L1_TO_L2(depositAmount)
   await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
+  await passer_withdrawTON_L2_TO_L1(withdrawAmount)
 
   await portal_3_createContract_L1_TO_L2(ethers.constants.Zero) // on holding : I can't check the tx on L2 (create contract)
 
@@ -862,7 +892,7 @@ const main = async () => {
 
   await portal_5_approveAndCallWithMessage_L1_TO_L2(depositAmount)
 
-  await passer_withdrawTON_L2_TO_L1(withdrawAmount)
+  // await passer_withdrawTON_L2_TO_L1(withdrawAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
