@@ -245,9 +245,17 @@ const withdrawNativeToken = async (amount: NumberLike) => {
 
   const l1Cost = withdrawalTx['l1Fee'].mul(withdrawalTx['l1FeeScalar'])
   console.log('   l1 gas cost   ', l1Cost.toString())
-  console.log('   l2 gas cost   ', withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).toString())
+  console.log(
+    '   l2 gas cost   ',
+    withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).toString()
+  )
   console.log('withdrawal amount', amount.toString())
-  console.log('   spent amount  ', l1Cost.add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount)).toString())
+  console.log(
+    '   spent amount  ',
+    l1Cost
+      .add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount))
+      .toString()
+  )
   console.log(' balance changed ', l2Balance.sub(updatedL2Balance).toString())
 
   // // Check ready for prove
