@@ -35,9 +35,7 @@ jobs:
         echo "$HOME/bin" >> $GITHUB_PATH
 
     - name: Get pnpm cache directory path
-      run: |
-        cache_dir=$(pnpm config get cache || echo "./.pnpm-cache")
-        echo "::set-output name=dir::$cache_dir"
+      run: echo "::set-output name=dir::$(pnpm config get cache)"
       id: pnpm-cache-dir-path
 
     - name: Cache pnpm modules
@@ -56,6 +54,11 @@ jobs:
         pnpm run build
         forge build --build-info --skip 'packages/tokamak/contracts-bedrock/scripts' 'packages/contracts-bedrock/test'
 
+    - name: Install solc-select and solc
+      run: |
+        pip3 install solc-select
+        solc-select install 0.8.15
+        solc-select use 0.8.15
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
