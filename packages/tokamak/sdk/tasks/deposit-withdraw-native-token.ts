@@ -10,6 +10,7 @@ import {
   MessageStatus,
   NativeTokenBridgeAdapter,
   NumberLike,
+  asL2Provider,
 } from '../src'
 
 console.log('Setup task...')
@@ -22,8 +23,6 @@ const l1Provider = new ethers.providers.StaticJsonRpcProvider(
 const l2Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L2_URL
 )
-const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
 
 const erc20ABI = [
   {
@@ -109,10 +108,13 @@ const depositNativeToken = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
   console.log('Native token address:', l2NativeToken)
 
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
   const l2NativeTokenContract = new ethers.Contract(
     l2NativeToken,
     erc20ABI,
-    l1Wallet
+    l1Provider
   )
 
   const l1Contracts = {
@@ -168,17 +170,21 @@ const depositNativeToken = async (amount: NumberLike) => {
 
   await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
 
-  l2Balance = await l2Wallet.getBalance()
+  console.log('Verify balances')
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
     'l2 native token balance in L1: ',
     l2NativeTokenBalance.toString()
   )
+  l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
 const withdrawNativeToken = async (amount: NumberLike) => {
   console.log('Withdraw Native token:', amount)
+
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, asL2Provider(l2Provider))
 
   const l2NativeTokenContract = new ethers.Contract(
     l2NativeToken,
@@ -228,22 +234,21 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     l2NativeTokenBalance.toString()
   )
 
-  let l2Balance = await l2Wallet.getBalance()
+  const l2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance: ', l2Balance.toString())
 
   const withdrawal = await messenger.withdrawETH(amount)
   const withdrawalTx = await withdrawal.wait()
-  console.log(
-    'withdrawal Tx:',
-    withdrawalTx.transactionHash,
-    ' Block',
-    withdrawalTx.blockNumber,
-    ' hash',
-    withdrawal.hash
-  )
 
-  l2Balance = await l2Wallet.getBalance()
-  console.log('l2 native balance:', l2Balance.toString())
+  const updatedL2Balance = await l2Wallet.getBalance()
+  console.log('l2 native balance:', updatedL2Balance.toString())
+
+  const l1Cost = withdrawalTx['l1Fee'].mul(withdrawalTx['l1FeeScalar'])
+  console.log('   l1 gas cost   ', l1Cost.toString())
+  console.log('   l2 gas cost   ', withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).toString())
+  console.log('withdrawal amount', amount.toString())
+  console.log('   spent amount  ', l1Cost.add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount)).toString())
+  console.log(' balance changed ', l2Balance.sub(updatedL2Balance).toString())
 
   // // Check ready for prove
   await messenger.waitForMessageStatus(
