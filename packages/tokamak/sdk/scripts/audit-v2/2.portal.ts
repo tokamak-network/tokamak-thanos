@@ -595,7 +595,6 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
       callData
     )
   ).wait()
-
   console.log('\nsendTx:', sendTx.transactionHash)
 
   const sourceHash = calculateSourceHash(
