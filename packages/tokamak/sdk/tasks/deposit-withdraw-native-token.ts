@@ -185,6 +185,9 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
   console.log('Native token address:', l2NativeToken)
 
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
   const l1CrossDomainMessengerContract = new ethers.Contract(
     l1CrossDomainMessenger,
     Artifact__L1CrossDomainMessenger.abi,
