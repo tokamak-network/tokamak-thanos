@@ -103,7 +103,7 @@ let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (TON === '') {
-    const Deployment__TON = await hre.deployments.get('TON')
+    const Deployment__TON = await hre.deployments.get('L2NativeToken')
     TON = Deployment__TON.address
   }
 
