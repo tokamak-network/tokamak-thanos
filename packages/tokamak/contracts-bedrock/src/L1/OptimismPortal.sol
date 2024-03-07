@@ -391,23 +391,26 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
     /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
-    function unpackOnApproveData(bytes calldata _data) public pure returns (uint32 _minGasLimit, bytes calldata _message) {
-        if (_data.length < 4) {
-            _minGasLimit = 200_000;
-            _message = _data.length == 0 ? _data : _data[_data.length:];
-        }else {
-            assembly {
+    function unpackOnApproveData(bytes calldata _data) public pure returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bool _isCreation, bytes calldata _message) {
+        require(_data.length >= 77, "On approve data for OptimismPortal is too short");
+        assembly {
                 // The layout of a "bytes calldata" is:
-                // The next 4 bytes: _minGasLimit
+                // The first 20 bytes: _from
+                // The next 20 bytes: _to
+                // The next 32 bytes: _amount
+                // The next 4 bytes: _gasLimit
+                // The next 1 byte: _isCreation
                 // The rest: _message
-
-                // Get _data.length
-                _minGasLimit := shr(224, calldataload(_data.offset))
-                _message.offset := add(_data.offset, 4)
-                _message.length := sub(_data.length, 4)
+                _from := shr(96, calldataload(_data.offset))
+                _to := shr(96, calldataload(add(_data.offset, 20)))
+                _amount := shr(96, calldataload(add(_data.offset, 40)))
+                _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
+                _isCreation := shr(248, calldataload(add(_data.offset, 76)))
+                _message.offset := add(_data.offset, 77)
+                _message.length := sub(_data.length, 77)
             }
-        }
     }
+
 
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
@@ -424,8 +427,10 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         returns (bool)
     {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-        _depositTransaction(_owner, _owner, _amount, _minGasLimit, false, _message);
+        (address from, address to, uint256 amount, uint32 gasLimit , bool isCreation, bytes memory message) = unpackOnApproveData(_data);
+        require(_owner == from, "invalid encoded data: from");
+        require(_amount == amount, "invalid encoded data: amount");
+        _depositTransaction(from, to, amount, gasLimit, isCreation, message);
         return true;
     }
 
