@@ -196,7 +196,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         otherwise any deposited funds will be lost due to address aliasing.
     // solhint-disable-next-line ordering
     receive() external payable {
-        revert("Only allow ERC20");
+        revert("Only allow native token");
         // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 

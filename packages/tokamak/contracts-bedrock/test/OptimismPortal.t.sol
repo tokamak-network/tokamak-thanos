@@ -97,7 +97,7 @@ contract OptimismPortal_Test is Portal_Initializer {
 
     /// @dev Tests that `receive` reverted deposits ETH.
     function test_receive_reverts() external {
-        vm.expectRevert("Not allow deposit to ERC-20: ETH");
+        vm.expectRevert("Only allow native token");
         vm.deal(alice, 2 ** 64);
         vm.prank(alice, alice);
         (bool s,) = address(op).call{ value: 100 }(hex"");
@@ -108,7 +108,7 @@ contract OptimismPortal_Test is Portal_Initializer {
     ///      for a contract creation deposit.
     function test_depositTransaction_contractCreation_reverts() external {
         // contract creation must have a target of address(0)
-        vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
+        vm.expectRevert("OptimismPortal: _to should be address(0) when creating a contract");
         op.depositTransaction(address(1), 0, 0, true, hex"");
     }
 
@@ -415,7 +415,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `proveWithdrawalTransaction` reverts when the target is the portal contract.
     function test_proveWithdrawalTransaction_onSelfCall_reverts() external {
         _defaultTx.target = address(op);
-        vm.expectRevert("OptimismPortal: you cannot send messages to the portal contract");
+        vm.expectRevert("OptimismPortal: cannot send messages to this");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
@@ -443,7 +443,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
-        vm.expectRevert("OptimismPortal: withdrawal hash has already been proven");
+        vm.expectRevert("OptimismPortal: already been proven");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
