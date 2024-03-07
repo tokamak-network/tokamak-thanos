@@ -44,17 +44,17 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Build the contracts
-      run: |
-        cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/**' '*/scripts/**'
-        cd ../..
 
     - name: Save PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: ~/.pnpm-store
         key: pnpm-packages-v4-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Build the contracts
+      run: |
+        cd packages/tokamak/contracts-bedrock
+        forge build --build-info --skip '*/test/**' '*/scripts/**'
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
