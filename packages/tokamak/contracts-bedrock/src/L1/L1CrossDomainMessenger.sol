@@ -74,22 +74,26 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
     /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
-    function unpackOnApproveData(bytes calldata _data) public pure returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message) {
+    function unpackOnApproveData(bytes calldata _data)
+        public
+        pure
+        returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
+    {
         require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
         assembly {
-                // The layout of a "bytes calldata" is:
-                // The first 20 bytes: _from
-                // The next 20 bytes: _to
-                // The next 32 bytes: _amount
-                // The next 4 bytes: _minGasLimit
-                // The rest: _message
-                _from := shr(96, calldataload(_data.offset))
-                _to := shr(96, calldataload(add(_data.offset, 20)))
-                _amount := calldataload(add(_data.offset, 40))
-                _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
-                _message.offset := add(_data.offset, 76)
-                _message.length := sub(_data.length, 76)
-            }
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _from
+            // The next 20 bytes: _to
+            // The next 32 bytes: _amount
+            // The next 4 bytes: _minGasLimit
+            // The rest: _message
+            _from := shr(96, calldataload(_data.offset))
+            _to := shr(96, calldataload(add(_data.offset, 20)))
+            _amount := calldataload(add(_data.offset, 40))
+            _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
+            _message.offset := add(_data.offset, 76)
+            _message.length := sub(_data.length, 76)
+        }
     }
 
     /// @notice ERC20 onApprove callback
@@ -107,7 +111,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         returns (bool)
     {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) =
+            unpackOnApproveData(_data);
         require(_owner == from, "invalid encoded data: from");
         require(_amount == amount, "invalid encoded data: amount");
         _sendNativeTokenMessage(from, to, amount, minGasLimit, message);
@@ -147,7 +152,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         _sendNativeTokenMessage(msg.sender, _target, _amount, _minGasLimit, _message);
     }
 
-    /// @notice Sends a deposit native token message internally to some target address on the other chain. Note that if the call
+    /// @notice Sends a deposit native token message internally to some target address on the other chain. Note that if
+    /// the call
     ///         always reverts, then the message will be unrelayable, and any ETH sent will be
     ///         permanently locked. The same will occur if the target on the other chain is
     ///         considered unsafe (see the _isUnsafeTarget() function).
