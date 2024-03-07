@@ -197,8 +197,8 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   const l2BalancePrev = await l2Wallet.getBalance()
   console.log('l2 native balance prev: ', l2BalancePrev.toString())
 
-  const data = ethers.utils.solidityPack(['uint32', 'bytes'], [2000000, '0x'])
-
+  const data = ethers.utils.solidityPack(['address', 'address', 'uint256', 'uint32', 'bytes'], [l1Wallet.address, l1Wallet.address, amount, 200000, '0x'])
+  console.log('encoded data', data, data.length)
   const approveAndCallTx = await (
     await tonContract
       .connect(l1Wallet)
@@ -277,8 +277,8 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('l2cdm wton balance: ', l2CDMBalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'uint32', 'bytes'],
-    [predeploys.WETH9, 200000, '0xd0e30db0']
+    ['address', 'address', 'uint256' ,'uint32', 'bytes'],
+    [l1Wallet.address, predeploys.WETH9, amount, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via CDM: ', data)
