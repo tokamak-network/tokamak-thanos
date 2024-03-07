@@ -2,7 +2,7 @@ import { task, types } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
-import { predeploys } from '@eth-optimism/core-utils'
+import { predeploys, sleep } from '@eth-optimism/core-utils'
 import { BytesLike, ethers } from 'ethers'
 
 import {
@@ -197,8 +197,10 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   const l2BalancePrev = await l2Wallet.getBalance()
   console.log('l2 native balance prev: ', l2BalancePrev.toString())
 
-  const data = ethers.utils.solidityPack(['address', 'address', 'uint256', 'uint32', 'bytes'], [l1Wallet.address, l1Wallet.address, amount, 200000, '0x'])
-  console.log('encoded data', data, data.length)
+  const data = ethers.utils.solidityPack(
+    ['address', 'address', 'uint256', 'uint32', 'bytes'],
+    [l1Wallet.address, l1Wallet.address, amount, 200000, '0x']
+  )
   const approveAndCallTx = await (
     await tonContract
       .connect(l1Wallet)
@@ -277,7 +279,7 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('l2cdm wton balance: ', l2CDMBalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256' ,'uint32', 'bytes'],
+    ['address', 'address', 'uint256', 'uint32', 'bytes'],
     [l1Wallet.address, predeploys.WETH9, amount, 200000, '0xd0e30db0']
   )
 
@@ -311,6 +313,60 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   )
 }
 
+const approveAndDepositTONViaOP = async (amount: NumberLike) => {
+  console.log('Deposit TON via Portal:', amount)
+  console.log('TON address:', TON)
+
+  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const wtonContract = new ethers.Contract(predeploys.WETH9, erc20ABI, l2Wallet)
+
+  const l1Contracts = {
+    StateCommitmentChain: zeroAddr,
+    CanonicalTransactionChain: zeroAddr,
+    BondManager: zeroAddr,
+    AddressManager: addressManager,
+    L1CrossDomainMessenger: l1CrossDomainMessenger,
+    L1StandardBridge: l1StandardBridge,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  console.log('l1 contracts:', l1Contracts)
+
+  let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  console.log('l1 ton balance:', l1TONBalance.toString())
+
+  const l2BalancePrev = await wtonContract.balanceOf(l1Wallet.address)
+  console.log('l2 wton balance: ', l2BalancePrev.toString())
+
+  const data = ethers.utils.solidityPack(
+    ['address', 'address', 'uint256', 'uint32', 'bool', 'bytes'],
+    [l1Wallet.address, predeploys.WETH9, amount, 200000, false, '0xd0e30db0']
+  )
+
+  console.log('Approve and Call via Portal: ', data)
+  const approveAndCallTx = await (
+    await tonContract
+      .connect(l1Wallet)
+      .approveAndCall(optimismPortal, ethers.BigNumber.from(amount),data)
+  ).wait()
+  console.log('approveAndCallTx:', approveAndCallTx.transactionHash)
+  l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  console.log('l1 ton balance after: ', l1TONBalance.toString())
+  while (true) {
+    const l2BalanceAfter = await wtonContract.balanceOf(l1Wallet.address)
+    if (l2BalanceAfter.eq(l2BalancePrev)) {
+      await sleep(1000)
+      continue
+    }
+    console.log('l2 wton balance: ', l2BalanceAfter.toString())
+    console.log(
+      'added wton balance: ',
+      l2BalanceAfter.sub(l2BalancePrev).toString()
+    )
+    break
+  }
+}
+
 task('approve-deposit-ton', 'Deposits ERC20-TON to L2.')
   .addParam('amount', 'Deposit amount', '1', types.string)
   .setAction(async (args, hre) => {
@@ -323,4 +379,11 @@ task('approve-deposit-ton-cdm', 'Deposits ERC20-TON to L2.')
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await approveAndDepositTONViaCDM(args.amount)
+  })
+
+task('approve-deposit-ton-portal', 'Deposits ERC20-TON to L2.')
+  .addParam('amount', 'Deposit amount', '1', types.string)
+  .setAction(async (args, hre) => {
+    await updateAddresses(hre)
+    await approveAndDepositTONViaOP(args.amount)
   })
