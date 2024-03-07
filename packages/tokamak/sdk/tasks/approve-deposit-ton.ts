@@ -347,7 +347,7 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   const approveAndCallTx = await (
     await tonContract
       .connect(l1Wallet)
-      .approveAndCall(optimismPortal, ethers.BigNumber.from(amount),data)
+      .approveAndCall(optimismPortal, ethers.BigNumber.from(amount), data)
   ).wait()
   console.log('approveAndCallTx:', approveAndCallTx.transactionHash)
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
