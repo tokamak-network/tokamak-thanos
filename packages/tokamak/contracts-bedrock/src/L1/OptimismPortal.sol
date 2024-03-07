@@ -232,7 +232,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
+        require(_tx.target != address(this), "OptimismPortal: cannot send messages to the portal contract");
 
         // Get the output root and load onto the stack to prevent multiple mloads. This will
         // revert if there is no output root for the given block number.
@@ -256,7 +256,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         require(
             provenWithdrawal.timestamp == 0
                 || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
-            "OptimismPortal: withdrawal hash has already been proven"
+            "OptimismPortal: already been proven"
         );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
@@ -389,27 +389,27 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         }
     }
 
-    /// @notice unpack onApprove data
-    /// @param _data     Data used in OnApprove contract
-    function unpackOnApproveData(bytes calldata _data) public pure returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bool _isCreation, bytes calldata _message) {
-        require(_data.length >= 77, "On approve data for OptimismPortal is too short");
-        assembly {
-                // The layout of a "bytes calldata" is:
-                // The first 20 bytes: _from
-                // The next 20 bytes: _to
-                // The next 32 bytes: _amount
-                // The next 4 bytes: _gasLimit
-                // The next 1 byte: _isCreation
-                // The rest: _message
-                _from := shr(96, calldataload(_data.offset))
-                _to := shr(96, calldataload(add(_data.offset, 20)))
-                _amount := shr(96, calldataload(add(_data.offset, 40)))
-                _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
-                _isCreation := shr(248, calldataload(add(_data.offset, 76)))
-                _message.offset := add(_data.offset, 77)
-                _message.length := sub(_data.length, 77)
-            }
-    }
+    // /// @notice unpack onApprove data
+    // /// @param _data     Data used in OnApprove contract
+    // function unpackOnApproveData(bytes calldata _data) public pure returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bool _isCreation, bytes calldata _message) {
+    //     require(_data.length >= 77, "On approve data for OptimismPortal is too short");
+    //     assembly {
+    //             // The layout of a "bytes calldata" is:
+    //             // The first 20 bytes: _from
+    //             // The next 20 bytes: _to
+    //             // The next 32 bytes: _amount
+    //             // The next 4 bytes: _gasLimit
+    //             // The next 1 byte: _isCreation
+    //             // The rest: _message
+    //             _from := shr(96, calldataload(_data.offset))
+    //             _to := shr(96, calldataload(add(_data.offset, 20)))
+    //             _amount := shr(96, calldataload(add(_data.offset, 40)))
+    //             _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
+    //             _isCreation := shr(248, calldataload(add(_data.offset, 76)))
+    //             _message.offset := add(_data.offset, 77)
+    //             _message.length := sub(_data.length, 77)
+    //         }
+    // }
 
 
     /// @notice ERC20 onApprove callback
@@ -426,11 +426,11 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (address from, address to, uint256 amount, uint32 gasLimit , bool isCreation, bytes memory message) = unpackOnApproveData(_data);
-        require(_owner == from, "invalid encoded data: from");
-        require(_amount == amount, "invalid encoded data: amount");
-        _depositTransaction(from, to, amount, gasLimit, isCreation, message);
+        // require(msg.sender == address(nativeTokenAddress), "not native token");
+        // (address from, address to, uint256 amount, uint32 gasLimit , bool isCreation, bytes memory message) = unpackOnApproveData(_data);
+        // require(_owner == from, "invalid data: from");
+        // require(_amount == amount, "invalid data: amount");
+        // _depositTransaction(from, to, amount, gasLimit, isCreation, message);
         return true;
     }
 
