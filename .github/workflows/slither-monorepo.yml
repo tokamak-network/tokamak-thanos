@@ -52,12 +52,7 @@ jobs:
     - name: Build the contracts
       run: |
         cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '/test/**' '/scripts/**'
-
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.8'
+        forge build --build-info --skip '*/test/**' '*/scripts/**'
 
     - name: Install solc-select and solc
       run: |
