@@ -85,7 +85,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
                 // The rest: _message
                 _from := shr(96, calldataload(_data.offset))
                 _to := shr(96, calldataload(add(_data.offset, 20)))
-                _amount := shr(96, calldataload(add(_data.offset, 40)))
+                _amount := calldataload(add(_data.offset, 40))
                 _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
                 _message.offset := add(_data.offset, 76)
                 _message.length := sub(_data.length, 76)
