@@ -51,8 +51,8 @@ jobs:
 
     - name: Build the contracts
       run: |
-        pnpm run build
-        forge build --build-info --skip 'packages/tokamak/contracts-bedrock/scripts' 'packages/contracts-bedrock/test'
+        cd packages/tokamak/contracts-bedrock
+        forge build --build-info --skip '/test/**' '/scripts/**'
 
     - name: Set up Python 3.8
       uses: actions/setup-python@v4
