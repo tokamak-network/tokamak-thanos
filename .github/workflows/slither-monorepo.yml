@@ -10,15 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-          submodules: recursive
+      uses: actions/checkout@v3
+
+    - name: Add repo to git safe directories
+      run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
     - name: Set up Node
       uses: actions/setup-node@v4
 
     - name: Install pnpm
       run: npm install --global pnpm
+
+    - name: Restore PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.pnpm-store
+        key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Copy foundry from Docker container
       run: |
@@ -34,17 +41,6 @@ jobs:
         chmod +x $HOME/bin/*
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Get pnpm cache directory path
-      run: echo "PNPM_CACHE_DIR=$(pnpm config get cache)" >> $GITHUB_ENV
-
-    - name: Cache pnpm modules
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.PNPM_CACHE_DIR }}
-        key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-
-
     - name: Install dependencies
       run: pnpm install
 
@@ -52,12 +48,13 @@ jobs:
       run: |
         cd packages/tokamak/contracts-bedrock
         forge build --build-info --skip '*/test/**' '*/scripts/**'
+        cd ../..
 
-    - name: Install solc-select and solc
-      run: |
-        pip3 install solc-select
-        solc-select install 0.8.15
-        solc-select use 0.8.15
+    - name: Save PNPM Package Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.pnpm-store
+        key: pnpm-packages-v4-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
