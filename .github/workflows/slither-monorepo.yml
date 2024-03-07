@@ -35,13 +35,12 @@ jobs:
         echo "$HOME/bin" >> $GITHUB_PATH
 
     - name: Get pnpm cache directory path
-      run: echo "::set-output name=dir::$(pnpm config get cache)"
-      id: pnpm-cache-dir-path
+      run: echo "PNPM_CACHE_DIR=$(pnpm config get cache)" >> $GITHUB_ENV
 
     - name: Cache pnpm modules
       uses: actions/cache@v3
       with:
-        path: ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+        path: ${{ env.PNPM_CACHE_DIR }}
         key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-
