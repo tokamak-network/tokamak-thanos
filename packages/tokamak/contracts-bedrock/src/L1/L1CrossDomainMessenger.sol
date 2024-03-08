@@ -69,11 +69,31 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
-        if (_value > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _value);
-            IERC20(nativeTokenAddress).approve(address(PORTAL), _value);
-        }
         PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
+    }
+
+    /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data)
+        public
+        pure
+        returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
+    {
+        require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
+        assembly {
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _from
+            // The next 20 bytes: _to
+            // The next 32 bytes: _amount
+            // The next 4 bytes: _minGasLimit
+            // The rest: _message
+            _from := shr(96, calldataload(_data.offset))
+            _to := shr(96, calldataload(add(_data.offset, 20)))
+            _amount := calldataload(add(_data.offset, 40))
+            _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
+            _message.offset := add(_data.offset, 76)
+            _message.length := sub(_data.length, 76)
+        }
     }
 
     /// @notice ERC20 onApprove callback
@@ -91,13 +111,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         returns (bool)
     {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-
-        if (_amount > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
-            IERC20(nativeTokenAddress).approve(address(PORTAL), _amount);
-        }
-        PORTAL.depositTransaction(_owner, _amount, _minGasLimit, false, _message);
+        (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) =
+            unpackOnApproveData(_data);
+        require(_owner == from, "invalid encoded data: from");
+        require(_amount == amount, "invalid encoded data: amount");
+        _sendNativeTokenMessage(from, to, amount, minGasLimit, message);
         return true;
     }
 
@@ -131,17 +149,49 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
         // the minimum gas limit specified by the user.
+        _sendNativeTokenMessage(msg.sender, _target, _amount, _minGasLimit, _message);
+    }
+
+    /// @notice Sends a deposit native token message internally to some target address on the other chain. Note that if
+    /// the call
+    ///         always reverts, then the message will be unrelayable, and any ETH sent will be
+    ///         permanently locked. The same will occur if the target on the other chain is
+    ///         considered unsafe (see the _isUnsafeTarget() function).
+    /// @param _sender      Sender address.
+    /// @param _target      Target contract or wallet address.
+    /// @param _amount      Amount of deposit native token.
+    /// @param _message     Message to trigger the target address with.
+    /// @param _minGasLimit Minimum gas limit that the message can be executed with.
+    function _sendNativeTokenMessage(
+        address _sender,
+        address _target,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _message
+    )
+        internal
+    {
+        // Collect native token
+        if (_amount > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
+            IERC20(nativeTokenAddress).approve(address(PORTAL), _amount);
+        }
+
+        // Triggers a message to the other messenger. Note that the amount of gas provided to the
+        // message is the amount of gas requested by the user PLUS the base gas value. We want to
+        // guarantee the property that the call to the target contract will always have at least
+        // the minimum gas limit specified by the user.
         _sendMessage(
             OTHER_MESSENGER,
             baseGas(_message, _minGasLimit),
             _amount,
             abi.encodeWithSelector(
-                this.relayMessage.selector, messageNonce(), msg.sender, _target, _amount, _minGasLimit, _message
+                this.relayMessage.selector, messageNonce(), _sender, _target, _amount, _minGasLimit, _message
             )
         );
 
-        emit SentMessage(_target, msg.sender, _message, messageNonce(), _minGasLimit);
-        emit SentMessageExtension1(msg.sender, _amount);
+        emit SentMessage(_target, _sender, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(_sender, _amount);
 
         unchecked {
             ++msgNonce;
