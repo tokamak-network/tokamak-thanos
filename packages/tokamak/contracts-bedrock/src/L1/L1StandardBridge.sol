@@ -107,6 +107,30 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         _initiateETHDeposit(msg.sender, msg.sender, RECEIVE_DEFAULT_GAS_LIMIT, bytes(""));
     }
 
+    /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data)
+        public
+        pure
+        returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
+    {
+        require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
+        assembly {
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _from
+            // The next 20 bytes: _to
+            // The next 32 bytes: _amount
+            // The next 4 bytes: _minGasLimit
+            // The rest: _message
+            _from := shr(96, calldataload(_data.offset))
+            _to := shr(96, calldataload(add(_data.offset, 20)))
+            _amount := calldataload(add(_data.offset, 40))
+            _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
+            _message.offset := add(_data.offset, 76)
+            _message.length := sub(_data.length, 76)
+        }
+    }
+
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
@@ -122,8 +146,11 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         returns (bool)
     {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-        _initiateBridgeNativeToken(_owner, _owner, _amount, _minGasLimit, _message);
+        (address from, address to, uint256 amount, uint32 minGasLimit, bytes memory message) =
+            unpackOnApproveData(_data);
+        require(_owner == from, "invalid encoded data: from");
+        require(_amount == amount, "invalid encoded data: amount");
+        _initiateBridgeNativeToken(from, to, amount, minGasLimit, message);
         return true;
     }
 
