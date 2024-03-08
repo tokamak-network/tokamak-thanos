@@ -196,7 +196,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         otherwise any deposited funds will be lost due to address aliasing.
     // solhint-disable-next-line ordering
     receive() external payable {
-        revert("Not allow deposit to ERC-20: ETH");
+        revert("Only allow native token");
         // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 
@@ -232,7 +232,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
+        require(_tx.target != address(this), "OptimismPortal: cannot send messages to this");
 
         // Get the output root and load onto the stack to prevent multiple mloads. This will
         // revert if there is no output root for the given block number.
@@ -256,7 +256,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         require(
             provenWithdrawal.timestamp == 0
                 || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
-            "OptimismPortal: withdrawal hash has already been proven"
+            "OptimismPortal: already been proven"
         );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
@@ -360,7 +360,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
                 IERC20(nativeTokenAddress).approve(
                     _tx.target, _tx.value + IERC20(nativeTokenAddress).allowance(address(this), _tx.target)
                 ),
-                "Optimism approved token failed"
+                "Optimism approve failed"
             );
             depositedAmount -= _tx.value;
         }
@@ -389,6 +389,39 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         }
     }
 
+    /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data)
+        public
+        pure
+        returns (
+            address _from,
+            address _to,
+            uint256 _amount,
+            uint32 _gasLimit,
+            bool _isCreation,
+            bytes calldata _message
+        )
+    {
+        require(_data.length >= 77, "invalid onApprove data");
+        assembly {
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _from
+            // The next 20 bytes: _to
+            // The next 32 bytes: _amount
+            // The next 4 bytes: _gasLimit
+            // The next 1 byte: _isCreation
+            // The rest: _message
+            _from := shr(96, calldataload(_data.offset))
+            _to := shr(96, calldataload(add(_data.offset, 20)))
+            _amount := calldataload(add(_data.offset, 40))
+            _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
+            _isCreation := shr(248, calldataload(add(_data.offset, 76)))
+            _message.offset := add(_data.offset, 77)
+            _message.length := sub(_data.length, 77)
+        }
+    }
+
     /// @notice ERC20 onApprove callback
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
@@ -403,10 +436,14 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
-        (uint32 _minGasLimit, bytes memory _message) = unpackOnApproveData(_data);
-        _depositTransaction(_owner, _owner, _amount, _minGasLimit, false, _message);
-        return true;
+        (address from, address to, uint256 amount, uint32 gasLimit, bool isCreation, bytes calldata message) =
+            unpackOnApproveData(_data);
+        if (msg.sender == nativeTokenAddress && _owner == from && _amount == amount) {
+            _depositTransaction(from, to, amount, gasLimit, isCreation, message, true);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // @notice Public interface for Accepting deposits of L1's ERC20 as L2's native token and data, and emits a
@@ -425,11 +462,11 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
-        bytes memory _data
+        bytes calldata _data
     )
         external
     {
-        _depositTransaction(msg.sender, _to, _value, _gasLimit, _isCreation, _data);
+        _depositTransaction(msg.sender, _to, _value, _gasLimit, _isCreation, _data, false);
     }
 
     // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
@@ -449,7 +486,8 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
-        bytes memory _data
+        bytes calldata _data,
+        bool isOnApproveTrigger
     )
         internal
         metered(_gasLimit)
@@ -463,7 +501,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation) {
-            require(_to == address(0), "OptimismPortal: must send to address(0) when creating a contract");
+            require(_to == address(0), "OptimismPortal: _to should be address(0) when creating a contract");
         }
 
         // Prevent depositing transactions that have too small of a gas limit. Users should pay
@@ -477,9 +515,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from = msg.sender;
-        if (msg.sender != tx.origin) {
-            from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+        address from = _sender;
+        if (_sender != tx.origin && !isOnApproveTrigger) {
+            from = AddressAliasHelper.applyL1ToL2Alias(_sender);
         }
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
