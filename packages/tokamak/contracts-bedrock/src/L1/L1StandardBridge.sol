@@ -148,8 +148,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (address from, address to, uint256 amount, uint32 minGasLimit, bytes memory message) =
             unpackOnApproveData(_data);
-        require(_owner == from, "invalid encoded data: from");
-        require(_amount == amount, "invalid encoded data: amount");
+        require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
         _initiateBridgeNativeToken(from, to, amount, minGasLimit, message);
         return true;
     }
@@ -546,7 +545,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
-        IERC20(nativeTokenAddress).transferFrom(address(messenger), address(this), _amount);
+        IERC20(nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
