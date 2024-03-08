@@ -11,7 +11,6 @@ import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
-import { Constants } from "src/libraries/Constants.sol";
 import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
@@ -52,7 +51,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         PORTAL = _portal;
         nativeTokenAddress = _nativeTokenAddress;
         __CrossDomainMessenger_init();
-        if (address(PORTAL) != address(0) && address(nativeTokenAddress) != address(0)) { }
     }
 
     /// @notice Getter for the OptimismPortal address.
@@ -113,8 +111,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) =
             unpackOnApproveData(_data);
-        require(_owner == from, "invalid encoded data: from");
-        require(_amount == amount, "invalid encoded data: amount");
+        require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
         _sendNativeTokenMessage(from, to, amount, minGasLimit, message);
         return true;
     }
@@ -287,7 +284,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
-        if (_value != 0) {
+        if (_value != 0 && !success) {
             approvalStatus = IERC20(nativeTokenAddress).approve(_target, 0);
         }
 
