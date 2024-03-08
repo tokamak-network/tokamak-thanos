@@ -579,14 +579,14 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
                 _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
             } else {
                 IERC20(_localToken).safeTransfer(_to, _amount);
+
+                // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
+                // contracts may override this function in order to emit legacy events as well.
+                _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
             }
             if (nativeTokenAddress != _localToken) {
                 deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
             }
         }
-
-        // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 }
