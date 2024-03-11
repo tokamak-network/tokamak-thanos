@@ -5,6 +5,7 @@ if [ -z $1 ]; then
 fi
 
 DEPLOYMENTS_PATH=$(cd $(dirname $0)/../deployments && pwd -P)
+ADDRESS_FILE_PATH=$(cd $(dirname $0)/../genesis && pwd -P)
 ARTIFACTS_PATH=${DEPLOYMENTS_PATH}/$1
 
 if [ ! -d "$ARTIFACTS_PATH" ]; then
@@ -48,3 +49,26 @@ echo "ProtocolVersionsProxy: $ProtocolVersionsProxy"
 echo "ProxyAdmin: $ProxyAdmin"
 echo "SystemConfig: $SystemConfig"
 echo "SystemConfigProxy: $SystemConfigProxy"
+
+cat << EOF > ${ADDRESS_FILE_PATH}/$1/address.json
+{
+  "AddressManager": $AddressManager,
+  "L1CrossDomainMessenger": $L1CrossDomainMessenger,
+  "L1CrossDomainMessengerProxy": $L1CrossDomainMessengerProxy,
+  "L1ERC721Bridge": $L1ERC721Bridge,
+  "L1ERC721BridgeProxy": $L1ERC721BridgeProxy,
+  "L1StandardBridge": $L1StandardBridge,
+  "L1StandardBridgeProxy": $L1StandardBridgeProxy,
+  "L2OutputOracle": $L2OutputOracle,
+  "L2OutputOracleProxy": $L2OutputOracleProxy,
+  "OptimismMintableERC20Factory": $OptimismMintableERC20Factory,
+  "OptimismMintableERC20FactoryProxy": $OptimismMintableERC20FactoryProxy,
+  "OptimismPortal": $OptimismPortal,
+  "OptimismPortalProxy": $OptimismPortalProxy,
+  "ProtocolVersions": $ProtocolVersions,
+  "ProtocolVersionsProxy": $ProtocolVersionsProxy,
+  "ProxyAdmin": $ProxyAdmin,
+  "SystemConfig": $SystemConfig,
+  "SystemConfigProxy": $SystemConfigProxy
+}
+EOF
