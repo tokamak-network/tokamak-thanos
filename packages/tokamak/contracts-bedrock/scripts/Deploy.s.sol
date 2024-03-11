@@ -240,6 +240,40 @@ contract Deploy is Deployer {
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
 
+    function upgradeL2OutputOracle(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployL2OutputOracle();
+        upgradeL2OutputOracleLogic();
+        sync();
+    }
+
+    function upgradeL2OutputOracleLogic() public broadcast {
+        address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
+        address l2OutputOracle = mustGetAddress("L2OutputOracle");
+
+        _upgradeViaSafe({
+            _proxy: payable(l2OutputOracleProxy),
+            _implementation: l2OutputOracle
+        });
+
+        L2OutputOracle oracle = L2OutputOracle(l2OutputOracleProxy);
+        string memory version = oracle.version();
+        console.log("L2OutputOracle version: %s", version);
+
+        require(oracle.SUBMISSION_INTERVAL() == cfg.l2OutputOracleSubmissionInterval());
+        require(oracle.submissionInterval() == cfg.l2OutputOracleSubmissionInterval());
+        require(oracle.L2_BLOCK_TIME() == cfg.l2BlockTime());
+        require(oracle.l2BlockTime() == cfg.l2BlockTime());
+        require(oracle.PROPOSER() == cfg.l2OutputOracleProposer());
+        require(oracle.proposer() == cfg.l2OutputOracleProposer());
+        require(oracle.CHALLENGER() == cfg.l2OutputOracleChallenger());
+        require(oracle.challenger() == cfg.l2OutputOracleChallenger());
+        require(oracle.FINALIZATION_PERIOD_SECONDS() == cfg.finalizationPeriodSeconds());
+        require(oracle.finalizationPeriodSeconds() == cfg.finalizationPeriodSeconds());
+        require(oracle.startingBlockNumber() == cfg.l2OutputOracleStartingBlockNumber());
+        require(oracle.startingTimestamp() == cfg.l2OutputOracleStartingTimestamp());
+    }
+
     /// @notice Deploy the Safe
     function deploySafe() public broadcast returns (address addr_) {
         (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
