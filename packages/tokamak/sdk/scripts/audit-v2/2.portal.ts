@@ -599,7 +599,7 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
 
   const sourceHash = calculateSourceHash(
     sendTx.blockHash,
-    sendTx.events[0].logIndex
+    sendTx.events.find((e: { event: string })=> e.event === "TransactionDeposited").logIndex
   )
 
   const txData = [
@@ -882,7 +882,7 @@ const main = async () => {
   await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
   await passer_withdrawTON_L2_TO_L1(withdrawAmount)
 
-  await portal_3_createContract_L1_TO_L2(ethers.constants.Zero) // on holding : I can't check the tx on L2 (create contract)
+  await portal_3_createContract_L1_TO_L2(depositAmount) // on holding : I can't check the tx on L2 (create contract)
 
   await portal_4_onApproveDepositTon_L1_TO_L2(depositAmount)
 
