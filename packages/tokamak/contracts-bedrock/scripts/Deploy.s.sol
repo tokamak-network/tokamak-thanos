@@ -247,7 +247,7 @@ contract Deploy is Deployer {
         sync();
     }
 
-    function upgradeL2OutputOracleLosic() public broadcast {
+    function upgradeL2OutputOracleLogic() public broadcast {
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address l2OutputOracle = mustGetAddress("L2OutputOracle");
 
