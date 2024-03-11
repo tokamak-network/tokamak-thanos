@@ -584,7 +584,7 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   }
 
   const callData = Artifact__MockHello.bytecode.object
-  const _gasLimit = (callData.length * 16 + 21000) * 3
+  const _gasLimit = (callData.length * 16 + 21000) * 3 + 200000
 
   const sendTx = await (
     await OptomismPortalContract.connect(l1Wallet).depositTransaction(

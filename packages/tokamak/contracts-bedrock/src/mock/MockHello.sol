@@ -6,7 +6,7 @@ contract MockHello {
     uint256 public blockNumber ;
     string public message ;
 
-    constructor() {
+    constructor() payable {
     }
 
     receive() external payable {
