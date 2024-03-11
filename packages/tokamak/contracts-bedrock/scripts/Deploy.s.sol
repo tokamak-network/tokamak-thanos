@@ -243,7 +243,7 @@ contract Deploy is Deployer {
     function upgradeL2OutputOracle(address safeOwner) public {
         insert("SystemOwnerSafe", safeOwner);
         deployL2OutputOracle();
-        upgradeL2OutputOracleLosic();
+        upgradeL2OutputOracleLogic();
         sync();
     }
 
