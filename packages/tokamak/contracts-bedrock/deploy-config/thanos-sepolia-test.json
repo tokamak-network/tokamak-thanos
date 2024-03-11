@@ -13,7 +13,7 @@
   "p2pSequencerAddress": "0xa5Ba0109De7BE1a3E89D8eF0430104717D7879bf",
   "batchInboxAddress": "0xff00000000000000000000000000111551118080",
   "batchSenderAddress": "0x92546dE8ebC70E236C8F27f0B0aE254309B84332",
-  "l2OutputOracleSubmissionInterval": 300,
+  "l2OutputOracleSubmissionInterval": 30,
   "l2OutputOracleStartingBlockNumber": 0,
   "l2OutputOracleStartingTimestamp": 1709530848,
   "l2OutputOracleProposer": "0xe9b04f9a46d1C73Cf501966B393935DAB639254b",
