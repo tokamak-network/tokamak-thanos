@@ -3,7 +3,7 @@ name: slither analysis
 on:
   push:
     paths:
-      - '**'
+      - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
   analyze:
@@ -14,7 +14,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Add the repository to git's list of safe directories
+    # Add the repository to safe directories
     - name: Add repo to git safe directories
       run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
