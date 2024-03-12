@@ -8,25 +8,29 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+
     steps:
+    # Checkout the repository
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # Add the repository to git's list of safe directories
     - name: Add repo to git safe directories
       run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+    # Setup Node.js environment
     - name: Set up Node
       uses: actions/setup-node@v4
 
-    - name: Install pnpm
-      run: npm install --global pnpm
 
+    # Restore pnpm package cache
     - name: Restore PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: ~/.pnpm-store
         key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
 
+    # Copy necessary tools from Docker container
     - name: Copy foundry from Docker container
       run: |
         container_id=$(docker create onthertech/titan-ci-builder:latest)
@@ -36,26 +40,33 @@ jobs:
         docker cp $container_id:/usr/local/bin/forge $HOME/bin/
         docker rm $container_id
 
-    - name: Set permissions_add PATH
+    # Set permissions for the copied tools and add them to the PATH
+    - name: Set permissions and add PATH
       run: |
         chmod +x $HOME/bin/*
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Install dependencies
-      run: pnpm install
+    # Install pnpm and dependencies
+    - name: Install pnpm and dependencies
+      run: |
+        npm install --global pnpm
+        pnpm install
 
-
+    # Save pnpm package cache for future runs
     - name: Save PNPM Package Cache
       uses: actions/cache@v3
       with:
         path: ~/.pnpm-store
-        key: pnpm-packages-v4-${{ hashFiles('pnpm-lock.yaml') }}
+        # Ensure cache key consistency
+        key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
 
+    # Build smart contracts
     - name: Build the contracts
       run: |
         cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/safe-tools/SafeTestTools.sol' '*/scripts/libraries/LibSort.sol'
+        forge build --build-info --skip '*/test/**' '*/scripts/**'
 
+    # Analyze smart contracts with Slither
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
       with:
