@@ -67,7 +67,6 @@ contract CrossDomainOwnableThroughPortal_Test is Portal_Initializer {
             _to: address(setter),
             _value: 0,
             _gasLimit: 30_000,
-            _isCreation: false,
             _data: abi.encodeWithSelector(XDomainSetter.set.selector, 1)
         });
 

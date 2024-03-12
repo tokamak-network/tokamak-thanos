@@ -87,12 +87,11 @@ contract CommonTest is Test {
         uint256 _mint,
         uint256 _value,
         uint64 _gasLimit,
-        bool _isCreation,
         bytes memory _data
     )
         internal
     {
-        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
+        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, bool(_to == address(0)), _data));
     }
 }
 
