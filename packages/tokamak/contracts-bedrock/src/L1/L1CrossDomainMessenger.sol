@@ -67,7 +67,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
-        PORTAL.depositTransaction(_to, _value, _gasLimit, false, _data);
+        PORTAL.depositTransaction(_to, _value, _gasLimit, _data);
     }
 
     /// @notice unpack onApprove data
@@ -77,7 +77,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         pure
         returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
     {
-        require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
+        require(_data.length >= 76, "Invalid onApprove data for L1CrossDomainMessenger");
         assembly {
             // The layout of a "bytes calldata" is:
             // The first 20 bytes: _from
