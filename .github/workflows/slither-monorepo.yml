@@ -54,7 +54,7 @@ jobs:
     - name: Build the contracts
       run: |
         cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/**' '*/scripts/**'
+        forge build --build-info --skip '*/test/safe-tools/SafeTestTools.sol' '*/scripts/libraries/LibSort.sol'
 
     - name: Run Slither
       uses: crytic/slither-action@v0.3.1
