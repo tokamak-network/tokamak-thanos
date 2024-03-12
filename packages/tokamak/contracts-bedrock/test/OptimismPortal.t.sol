@@ -104,14 +104,6 @@ contract OptimismPortal_Test is Portal_Initializer {
         assert(s);
     }
 
-    /// @dev Tests that `depositTransaction` reverts when the destination address is non-zero
-    ///      for a contract creation deposit.
-    function test_depositTransaction_contractCreation_reverts() external {
-        // contract creation must have a target of address(0)
-        vm.expectRevert("OptimismPortal: _to should be address(0) when creating a contract");
-        op.depositTransaction(address(1), 0, 0, true, hex"");
-    }
-
     /// @dev Tests that `depositTransaction` reverts when the data is too large.
     ///      This places an upper bound on unsafe blocks sent over p2p.
     function test_depositTransaction_largeData_reverts() external {
@@ -122,7 +114,6 @@ contract OptimismPortal_Test is Portal_Initializer {
             _to: address(0),
             _value: 0,
             _gasLimit: gasLimit,
-            _isCreation: false,
             _data: new bytes(size)
         });
     }
@@ -130,7 +121,7 @@ contract OptimismPortal_Test is Portal_Initializer {
     /// @dev Tests that `depositTransaction` reverts when the gas limit is too small.
     function test_depositTransaction_smallGasLimit_reverts() external {
         vm.expectRevert("OptimismPortal: gas limit too small");
-        op.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
+        op.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _data: hex"" });
     }
 
     /// @dev Tests that `depositTransaction` succeeds for small,
@@ -144,7 +135,7 @@ contract OptimismPortal_Test is Portal_Initializer {
             vm.expectRevert("OptimismPortal: gas limit too small");
         }
 
-        op.depositTransaction({ _to: address(0x40), _value: 0, _gasLimit: gasLimit, _isCreation: false, _data: _data });
+        op.depositTransaction({ _to: address(0x40), _value: 0, _gasLimit: gasLimit, _data: _data });
     }
 
     /// @dev Tests that `minimumGasLimit` succeeds for small calldata sizes.
@@ -162,10 +153,10 @@ contract OptimismPortal_Test is Portal_Initializer {
         vm.prank(address(this), address(this));
         vm.expectEmit(true, true, false, true);
         emitTransactionDeposited(
-            address(this), NON_ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+            address(this), NON_ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
         );
 
-        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with 0 value.
@@ -177,11 +168,10 @@ contract OptimismPortal_Test is Portal_Initializer {
             ZERO_VALUE,
             ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            false,
             NON_ZERO_DATA
         );
 
-        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA
@@ -192,10 +182,10 @@ contract OptimismPortal_Test is Portal_Initializer {
 
         vm.expectEmit(true, true, false, true);
         emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA
+            address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
         );
 
-        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract
@@ -208,11 +198,10 @@ contract OptimismPortal_Test is Portal_Initializer {
             ZERO_VALUE,
             ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            true,
             NON_ZERO_DATA
         );
-
-        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        // console.log(abi.encodePacked(ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, bool(ZERO_ADDRESS == address(0)), NON_ZERO_DATA));
+        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with Native token.
@@ -224,10 +213,10 @@ contract OptimismPortal_Test is Portal_Initializer {
 
         vm.expectEmit(true, true, true, true);
         emitTransactionDeposited(
-            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
         );
         vm.prank(address(this), address(this));
-        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
         assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
@@ -244,11 +233,10 @@ contract OptimismPortal_Test is Portal_Initializer {
             NON_ZERO_VALUE,
             NON_ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            false,
             NON_ZERO_DATA
         );
         vm.prank(address(this), address(alice));
-        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with native token.
@@ -260,10 +248,10 @@ contract OptimismPortal_Test is Portal_Initializer {
 
         vm.expectEmit(true, true, true, true);
         emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
+            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex""
         );
         vm.prank(address(this), address(this));
-        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex"");
         assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
@@ -280,11 +268,10 @@ contract OptimismPortal_Test is Portal_Initializer {
             NON_ZERO_VALUE,
             NON_ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            true,
             NON_ZERO_DATA
         );
         vm.prank(address(this), address(alice));
-        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
         assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
@@ -1058,7 +1045,6 @@ contract OptimismPortalResourceFuzz_Test is Portal_Initializer {
             _to: address(0x20),
             _value: depositAmount,
             _gasLimit: _gasLimit,
-            _isCreation: false,
             _data: hex""
         });
     }

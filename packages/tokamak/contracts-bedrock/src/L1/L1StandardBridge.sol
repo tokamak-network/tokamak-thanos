@@ -114,7 +114,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         pure
         returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
     {
-        require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
+        require(_data.length >= 76, "Invalid onApprove data for L1StandardBridge");
         assembly {
             // The layout of a "bytes calldata" is:
             // The first 20 bytes: _from
