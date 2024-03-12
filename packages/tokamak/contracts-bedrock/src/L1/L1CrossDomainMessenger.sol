@@ -34,11 +34,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:semver 1.7.1
     string public constant version = "1.7.1";
 
-    /// @notice Additional event data to emit
-    /// @param sender Address of the sender of the message.
-    /// @param value  NativeToken value sent along with the message to the recipient.
-    event SentNativeTokenMessageExtension1(address indexed sender, uint256 value);
-
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
         initialize({ _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
@@ -193,7 +188,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         );
 
         emit SentMessage(_target, _sender, _message, messageNonce(), _minGasLimit);
-        emit SentNativeTokenMessageExtension1(_sender, _amount);
+        emit SentMessageExtension1(_sender, _amount);
 
         unchecked {
             ++msgNonce;
