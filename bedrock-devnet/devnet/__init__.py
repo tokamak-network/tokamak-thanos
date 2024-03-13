@@ -9,10 +9,12 @@ import datetime
 import time
 import shutil
 import http.client
+import codecs
+import ecdsa
+from Crypto.Hash import keccak
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
-
 
 import devnet.log_setup
 
@@ -23,6 +25,7 @@ parser.add_argument('--monorepo-dir', help='Directory of the monorepo', default=
 parser.add_argument('--allocs', help='Only create the allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--test', help='Tests the deployment, must already be deployed', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--legacy', help='Legacy(using eth) or not(apply native token)', type=bool, action=argparse.BooleanOptionalAction)
+parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 
 log = logging.getLogger()
 
@@ -84,8 +87,12 @@ def main():
       allocs_path=pjoin(devnet_dir, 'allocs-l1.json'),
       addresses_json_path=pjoin(devnet_dir, 'addresses.json'),
       sdk_addresses_json_path=pjoin(devnet_dir, 'sdk-addresses.json'),
-      rollup_config_path=pjoin(devnet_dir, 'rollup.json')
+      rollup_config_path=pjoin(devnet_dir, 'rollup.json'),
+      admin_key=args.admin_key
     )
+
+    if paths.admin_key is not None :
+      verify_admin_key(paths)
 
     if args.test:
       log.info('Testing deployed devnet')
@@ -117,7 +124,6 @@ def main():
     log.info('Devnet starting')
     devnet_deploy(paths)
 
-
 def deploy_contracts(paths):
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
@@ -125,7 +131,6 @@ def deploy_contracts(paths):
 
     response = json.loads(res)
     account = response['result'][0]
-    log.info(f'Deploying with {account}')
 
     # send some ether to the create2 deployer account
     run_command([
@@ -141,11 +146,31 @@ def deploy_contracts(paths):
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
     fqn = 'scripts/Deploy.s.sol:Deploy'
-    run_command([
-        'forge', 'script', fqn, '--sender', account,
-        '--rpc-url', 'http://127.0.0.1:8545', '--broadcast',
-        '--unlocked'
-    ], env={}, cwd=paths.contracts_bedrock_dir)
+
+    if paths.admin_key is not None:
+      deploy_config = read_json(paths.devnet_config_template_path)
+      admin = deploy_config['finalSystemOwner']
+      log.info(f'Deploying with {admin}')
+
+      # send some ether to admin
+      run_command([
+        'cast', 'send', '--from', account,
+        '--rpc-url', 'http://127.0.0.1:8545',
+        '--unlocked', '--value', '1ether', admin
+      ], env={}, cwd=paths.contracts_bedrock_dir)
+
+      run_command([
+          'forge', 'script', fqn, '--private-key', paths.admin_key,
+          '--rpc-url', 'http://127.0.0.1:8545', '--broadcast',
+      ], env={}, cwd=paths.contracts_bedrock_dir)
+
+    else:
+      log.info(f'Deploying with {account}')
+      run_command([
+          'forge', 'script', fqn, '--sender', account,
+          '--rpc-url', 'http://127.0.0.1:8545', '--broadcast',
+          '--unlocked'
+      ], env={}, cwd=paths.contracts_bedrock_dir)
 
     shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
 
@@ -407,3 +432,21 @@ def write_json(path, data):
 def read_json(path):
     with open(path, 'r') as f:
         return json.load(f)
+
+def verify_admin_key(paths):
+    admin_key=paths.admin_key
+
+    private_key_bytes = codecs.decode(admin_key[2:], 'hex')
+    pulbic_key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1).verifying_key
+    public_key_bytes = pulbic_key.to_string()
+    keccak_hash = keccak.new(digest_bits=256)
+    keccak_hash.update(public_key_bytes)
+    keccak_digest = keccak_hash.hexdigest()
+    wallet_len = 40
+    wallet = '0x' + keccak_digest[-wallet_len:]
+
+    deploy_config = read_json(paths.devnet_config_template_path)
+    finalSystemOwner = deploy_config['finalSystemOwner']
+
+    if wallet.lower() != finalSystemOwner.lower():
+        raise Exception("the admin key is invalid.")
