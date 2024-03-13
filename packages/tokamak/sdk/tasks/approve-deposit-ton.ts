@@ -339,8 +339,8 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('l2 wton balance: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bool', 'bytes'],
-    [l1Wallet.address, predeploys.WETH9, amount, 200000, false, '0xd0e30db0']
+    ['address', 'address', 'uint256', 'uint32', 'bytes'],
+    [l1Wallet.address, predeploys.WETH9, amount, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via Portal: ', data)
