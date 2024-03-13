@@ -114,7 +114,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         pure
         returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
     {
-        require(_data.length >= 76, "On approve data for L1StandardBridge is too short");
+        require(_data.length >= 76, "Invalid onApprove data for L1StandardBridge");
         assembly {
             // The layout of a "bytes calldata" is:
             // The first 20 bytes: _from
@@ -148,8 +148,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
         (address from, address to, uint256 amount, uint32 minGasLimit, bytes memory message) =
             unpackOnApproveData(_data);
-        require(_owner == from, "invalid encoded data: from");
-        require(_amount == amount, "invalid encoded data: amount");
+        require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
         _initiateBridgeNativeToken(from, to, amount, minGasLimit, message);
         return true;
     }
@@ -546,7 +545,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
-        IERC20(nativeTokenAddress).transferFrom(address(messenger), address(this), _amount);
+        IERC20(nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
@@ -580,14 +579,14 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
                 _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
             } else {
                 IERC20(_localToken).safeTransfer(_to, _amount);
+
+                // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
+                // contracts may override this function in order to emit legacy events as well.
+                _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
             }
             if (nativeTokenAddress != _localToken) {
                 deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
             }
         }
-
-        // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 }
