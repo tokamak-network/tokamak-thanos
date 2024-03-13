@@ -306,11 +306,8 @@ func NewCrossLayerUser(log log.Logger, priv *ecdsa.PrivateKey, rng *rand.Rand) *
 }
 
 func (s *CrossLayerUser) ActDeposit(t Testing) {
-	isCreation := false
 	toAddr := common.Address{}
-	if s.L2.txToAddr == nil {
-		isCreation = true
-	} else {
+	if s.L2.txToAddr != nil {
 		toAddr = *s.L2.txToAddr
 	}
 	depositTransferValue := s.L2.TxValue()
