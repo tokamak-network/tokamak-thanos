@@ -91,7 +91,9 @@ contract CommonTest is Test {
     )
         internal
     {
-        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, bool(_to == address(0)), _data));
+        emit TransactionDeposited(
+            _from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, bool(_to == address(0)), _data)
+        );
     }
 }
 

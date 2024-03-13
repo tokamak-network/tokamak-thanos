@@ -110,12 +110,7 @@ contract OptimismPortal_Test is Portal_Initializer {
         uint256 size = 120_001;
         uint64 gasLimit = op.minimumGasLimit(uint64(size));
         vm.expectRevert("OptimismPortal: data too large");
-        op.depositTransaction({
-            _to: address(0),
-            _value: 0,
-            _gasLimit: gasLimit,
-            _data: new bytes(size)
-        });
+        op.depositTransaction({ _to: address(0), _value: 0, _gasLimit: gasLimit, _data: new bytes(size) });
     }
 
     /// @dev Tests that `depositTransaction` reverts when the gas limit is too small.
@@ -181,9 +176,7 @@ contract OptimismPortal_Test is Portal_Initializer {
         vm.prank(address(this), address(this));
 
         vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
-        );
+        emitTransactionDeposited(address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
 
         op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
@@ -200,7 +193,8 @@ contract OptimismPortal_Test is Portal_Initializer {
             NON_ZERO_GASLIMIT,
             NON_ZERO_DATA
         );
-        // console.log(abi.encodePacked(ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, bool(ZERO_ADDRESS == address(0)), NON_ZERO_DATA));
+        // console.log(abi.encodePacked(ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, bool(ZERO_ADDRESS == address(0)),
+        // NON_ZERO_DATA));
         op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
@@ -247,9 +241,7 @@ contract OptimismPortal_Test is Portal_Initializer {
         token.approve(address(op), type(uint256).max);
 
         vm.expectEmit(true, true, true, true);
-        emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex""
-        );
+        emitTransactionDeposited(address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex"");
         vm.prank(address(this), address(this));
         op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex"");
         assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
@@ -1041,11 +1033,6 @@ contract OptimismPortalResourceFuzz_Test is Portal_Initializer {
         token.approve(address(op), depositAmount);
 
         // Do a deposit, should not revert
-        op.depositTransaction({
-            _to: address(0x20),
-            _value: depositAmount,
-            _gasLimit: _gasLimit,
-            _data: hex""
-        });
+        op.depositTransaction({ _to: address(0x20), _value: depositAmount, _gasLimit: _gasLimit, _data: hex"" });
     }
 }
