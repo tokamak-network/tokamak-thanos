@@ -300,10 +300,7 @@ contract Deploy is Deployer {
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address l2OutputOracle = mustGetAddress("L2OutputOracle");
 
-        _upgradeViaSafe({
-            _proxy: payable(l2OutputOracleProxy),
-            _implementation: l2OutputOracle
-        });
+        _upgradeViaSafe({ _proxy: payable(l2OutputOracleProxy), _implementation: l2OutputOracle });
 
         L2OutputOracle oracle = L2OutputOracle(l2OutputOracleProxy);
         string memory version = oracle.version();
