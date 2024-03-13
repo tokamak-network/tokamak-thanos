@@ -14,7 +14,6 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
-import { Constants } from "src/libraries/Constants.sol";
 import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
@@ -394,31 +393,22 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     function unpackOnApproveData(bytes calldata _data)
         public
         pure
-        returns (
-            address _from,
-            address _to,
-            uint256 _amount,
-            uint32 _gasLimit,
-            bool _isCreation,
-            bytes calldata _message
-        )
+        returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bytes calldata _message)
     {
-        require(_data.length >= 77, "invalid onApprove data");
+        require(_data.length >= 76, "invalid onApprove data");
         assembly {
             // The layout of a "bytes calldata" is:
             // The first 20 bytes: _from
             // The next 20 bytes: _to
             // The next 32 bytes: _amount
             // The next 4 bytes: _gasLimit
-            // The next 1 byte: _isCreation
             // The rest: _message
             _from := shr(96, calldataload(_data.offset))
             _to := shr(96, calldataload(add(_data.offset, 20)))
             _amount := calldataload(add(_data.offset, 40))
             _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
-            _isCreation := shr(248, calldataload(add(_data.offset, 76)))
-            _message.offset := add(_data.offset, 77)
-            _message.length := sub(_data.length, 77)
+            _message.offset := add(_data.offset, 76)
+            _message.length := sub(_data.length, 76)
         }
     }
 
@@ -436,10 +426,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        (address from, address to, uint256 amount, uint32 gasLimit, bool isCreation, bytes calldata message) =
-            unpackOnApproveData(_data);
+        (address from, address to, uint256 amount, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == nativeTokenAddress && _owner == from && _amount == amount) {
-            _depositTransaction(from, to, amount, gasLimit, isCreation, message, true);
+            _depositTransaction(from, to, amount, gasLimit, message, true);
             return true;
         } else {
             return false;
@@ -455,18 +444,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @param _to         Target address on L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(
-        address _to,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes calldata _data
-    )
-        external
-    {
-        _depositTransaction(msg.sender, _to, _value, _gasLimit, _isCreation, _data, false);
+    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
+        _depositTransaction(msg.sender, _to, _value, _gasLimit, _data, false);
     }
 
     // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
@@ -478,14 +458,12 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @param _to         Target address on L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
     function _depositTransaction(
         address _sender,
         address _to,
         uint256 _value,
         uint64 _gasLimit,
-        bool _isCreation,
         bytes calldata _data,
         bool isOnApproveTrigger
     )
@@ -496,12 +474,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         if (_value > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
             depositedAmount += _value;
-        }
-
-        // Just to be safe, make sure that people specify address(0) as the target when doing
-        // contract creations.
-        if (_isCreation) {
-            require(_to == address(0), "OptimismPortal: _to should be address(0) when creating a contract");
         }
 
         // Prevent depositing transactions that have too small of a gas limit. Users should pay
@@ -523,7 +495,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, _isCreation, _data);
+        bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, (_to == address(0)), _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
