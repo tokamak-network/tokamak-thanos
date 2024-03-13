@@ -553,7 +553,7 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         vm.expectCall(
             address(op),
             abi.encodeWithSelector(
-                OptimismPortal.depositTransaction.selector, address(L2Messenger), 100, baseGas, false, innerMessage
+                OptimismPortal.depositTransaction.selector, address(L2Messenger), 100, baseGas, innerMessage
             )
         );
 
