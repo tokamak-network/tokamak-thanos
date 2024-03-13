@@ -330,14 +330,14 @@ func (s *CrossLayerUser) ActDeposit(t Testing) {
 
 	// Finally send TX
 	s.L1.txOpts.GasLimit = 0
-	tx, err := s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, isCreation, s.L2.txCallData)
+	tx, err := s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, s.L2.txCallData)
 	require.Nil(t, err, "with deposit tx")
 
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
 	s.L1.txOpts.GasLimit = tx.Gas() + (tx.Gas() / 10)
 
-	tx, err = s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, isCreation, s.L2.txCallData)
+	tx, err = s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, s.L2.txCallData)
 	require.NoError(t, err, "failed to create deposit tx")
 
 	s.L1.txOpts.GasLimit = 0
