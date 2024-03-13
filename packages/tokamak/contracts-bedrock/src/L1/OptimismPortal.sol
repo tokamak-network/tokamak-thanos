@@ -393,13 +393,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     function unpackOnApproveData(bytes calldata _data)
         public
         pure
-        returns (
-            address _from,
-            address _to,
-            uint256 _amount,
-            uint32 _gasLimit,
-            bytes calldata _message
-        )
+        returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bytes calldata _message)
     {
         require(_data.length >= 76, "invalid onApprove data");
         assembly {
@@ -432,8 +426,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        (address from, address to, uint256 amount, uint32 gasLimit, bytes calldata message) =
-            unpackOnApproveData(_data);
+        (address from, address to, uint256 amount, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == nativeTokenAddress && _owner == from && _amount == amount) {
             _depositTransaction(from, to, amount, gasLimit, message, true);
             return true;
@@ -452,14 +445,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(
-        address _to,
-        uint256 _value,
-        uint64 _gasLimit,
-        bytes calldata _data
-    )
-        external
-    {
+    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
         _depositTransaction(msg.sender, _to, _value, _gasLimit, _data, false);
     }
 
