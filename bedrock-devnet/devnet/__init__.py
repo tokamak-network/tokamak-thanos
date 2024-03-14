@@ -442,11 +442,11 @@ def verify_admin_key(paths):
     keccak_hash = keccak.new(digest_bits=256)
     keccak_hash.update(public_key_bytes)
     keccak_digest = keccak_hash.hexdigest()
-    wallet_len = 40
-    wallet = '0x' + keccak_digest[-wallet_len:]
+    admin_len = 40
+    admin = '0x' + keccak_digest[-admin_len:]
 
     deploy_config = read_json(paths.devnet_config_template_path)
     finalSystemOwner = deploy_config['finalSystemOwner']
 
-    if wallet.lower() != finalSystemOwner.lower():
+    if admin.lower() != finalSystemOwner.lower():
         raise Exception("the admin key is invalid.")
