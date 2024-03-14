@@ -10,6 +10,7 @@
   "GasPriceOracle",
   "L2CrossDomainMessenger",
   "L2StandardBridge",
+  "L2NativeToken",
   "L2ERC721Bridge",
   "L1ERC721Bridge",
   "OptimismMintableERC721Factory",
