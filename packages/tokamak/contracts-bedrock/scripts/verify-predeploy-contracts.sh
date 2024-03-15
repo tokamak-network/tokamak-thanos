@@ -10,8 +10,8 @@ NORMAL=$(tput sgr0)
 declare -A network_list
 
 network_list+=(
-  ["titan-sepolia-test"]=111551115050
   ["thanos-sepolia-test"]=111551118080
+  ["devnetL1"]=901
 )
 
 function help() {
@@ -137,7 +137,7 @@ contracts+=(
   ["4200000000000000000000000000000000000001"]="" # Proxy
   ["4200000000000000000000000000000000000016"]="" # L2ToL1MessagePasser
   ["4200000000000000000000000000000000000002"]="" # DeployerWhitelist
-  ["4200000000000000000000000000000000000006"]="" # WTON : No Proxy
+  ["4200000000000000000000000000000000000006"]="" # WNativeToken : No Proxy
   ["4200000000000000000000000000000000000007"]="" # L2CrossDomainMessenger
   ["4200000000000000000000000000000000000010"]="" # L2StandardBridge
   ["4200000000000000000000000000000000000011"]="" # SequencerFeeVault
@@ -174,7 +174,7 @@ BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
 PROXY_PATH=${BASE_PATH}/src/universal/Proxy.sol
 L2_TO_L1_MESSAGE_PASSER_PATH=${BASE_PATH}/src/L2/L2ToL1MessagePasser.sol
 DEPLOYER_WHITE_LIST_PATH=${BASE_PATH}/src/legacy/DeployerWhitelist.sol
-WTON_PATH=${BASE_PATH}/vendor/WTON.sol
+WNativeToken_PATH=${BASE_PATH}/src/vendor/WNativeToken.sol
 L2_CROSS_DOMAIN_MESSENGER_PATH=${BASE_PATH}/src/L2/L2CrossDomainMessenger.sol
 L2_STANDARD_BRIDGE_PATH=${BASE_PATH}/src/L2/L2StandardBridge.sol
 SEQUENCER_FEE_VAULT_PATH=${BASE_PATH}/src/L2/SequencerFeeVault.sol
@@ -196,7 +196,7 @@ function run() {
   verify_proxy
   verify_L2ToL1MessagePasser
   verify_DeployerWhitelist
-  verify_WTON
+  verify_WNativeToken
   verify_L2CrossDomainMessenger
   verify_L2StandardBridge
   verify_SequencerFeeVault
@@ -251,10 +251,10 @@ function verify_DeployerWhitelist() {
   verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${DEPLOYER_WHITE_LIST_PATH}:DeployerWhitelist"
 }
 
-function verify_WTON() {
+function verify_WNativeToken() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000006"]}
-  COMPILER_VERSION=v0.4.25+commit.59dbf8f1
-  verfy_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WTON_PATH}:WTON"
+  COMPILER_VERSION=v0.5.17+commit.d19bba13
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WNativeToken_PATH}:WNativeToken"
 }
 
 function verify_L2CrossDomainMessenger() {

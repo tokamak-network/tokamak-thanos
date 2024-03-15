@@ -170,8 +170,8 @@ def deploy_contracts(paths):
         '--rpc-url', 'http://127.0.0.1:8545'
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
-def init_devnet_l1_deploy_config(paths, update_timestamp=False):
-    deploy_config = read_json(paths.devnet_config_template_path)
+def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
+    deploy_config = read_json(paths.devnet_config_template_path) if temp else read_json(paths.devnet_config_path)
     if update_timestamp:
         deploy_config['l1GenesisBlockTimestamp'] = '{:#x}'.format(int(time.time()))
     write_json(paths.devnet_config_path, deploy_config)
@@ -229,7 +229,7 @@ def devnet_deploy(paths):
         # function.  But, without it, CI flakes on this test rather consistently.
         # If someone reads this comment and understands why this is being done, please
         # update this comment to explain.
-        init_devnet_l1_deploy_config(paths, update_timestamp=True)
+        init_devnet_l1_deploy_config(paths, update_timestamp=True, temp=False)
         outfile_l1 = pjoin(paths.devnet_dir, 'genesis-l1.json')
         run_command([
             'go', 'run', 'cmd/main.go', 'genesis', 'l1',

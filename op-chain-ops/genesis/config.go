@@ -45,6 +45,10 @@ type DeployConfig struct {
 	// with this.
 	L1StartingBlockTag *MarshalableRPCBlockNumberOrHash `json:"l1StartingBlockTag"`
 	// L1Token is the L1's address of the L2 chain's native token.
+	NativeTokenName string `json:"nativeTokenName"`
+	// L1Token is the L1's address of the L2 chain's native token.
+	NativeTokenSymbol string `json:"nativeTokenSymbol"`
+	// L1Token is the L1's address of the L2 chain's native token.
 	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
 	// L1ChainID is the chain ID of the L1 chain.
 	L1ChainID uint64 `json:"l1ChainID"`
@@ -720,7 +724,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
-	immutable["WETH"] = immutables.ImmutableValues{}
+	immutable["ETH"] = immutables.ImmutableValues{}
 
 	return immutable, nil
 }
@@ -765,9 +769,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_name":   "Ether",
 		"_symbol": "ETH",
 	}
-	storage["WTON"] = state.StorageValues{
-		"name":     "Wrapped TON",
-		"symbol":   "WTON",
+	storage["WNativeToken"] = state.StorageValues{
+		"name":     "Wrapped " + config.NativeTokenName,
+		"symbol":   "W" + config.NativeTokenSymbol,
 		"decimals": 18,
 	}
 	if config.EnableGovernance {
