@@ -189,6 +189,8 @@ def init_admin_geth(paths):
 
     genesis = read_json(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
 
+    genesis["config"]["chainId"] = 900
+
     alloc = genesis['alloc']
     alloc[admin_address] = {
         "balance": "10000000000000000000"
