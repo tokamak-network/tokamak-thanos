@@ -1,0 +1,7 @@
+FROM ghcr.io/foundry-rs/foundry:latest
+
+RUN apk add --no-cache jq
+
+COPY entrypoint-fork-l1.sh /entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
