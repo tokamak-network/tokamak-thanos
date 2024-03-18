@@ -3,7 +3,8 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "forge-std/Test.sol";
 import "scripts/libraries/LibSort.sol";
-import { Safe as GnosisSafe, OwnerManager, ModuleManager, GuardManager } from "safe-contracts/Safe.sol";
+import "safe-contracts/Safe.sol";
+import "./CompatibilityFallbackHandler_1_3_0.sol";
 import { SafeProxyFactory as GnosisSafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 import { SignMessageLib } from "safe-contracts/libraries/SignMessageLib.sol";
@@ -28,7 +29,7 @@ contract OwnerSimulator is OwnerManager {
 }
 
 /// @dev collapsed interface that includes comapatibilityfallback handler calls
-abstract contract DeployedSafe is GnosisSafe, CompatibilityFallbackHandler { }
+abstract contract DeployedSafe is GnosisSafe, CompatibilityFallbackHandler_1_3_0 { }
 
 struct AdvancedSafeInitParams {
     bool includeFallbackHandler;

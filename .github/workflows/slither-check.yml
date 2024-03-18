@@ -3,7 +3,7 @@ name: slither analysis
 on:
   push:
     paths:
-      - 'packages/tokamak/contracts-bedrock/**'
+      - '**'
 
 jobs:
   analyze:
@@ -64,7 +64,9 @@ jobs:
     - name: Build the contracts
       run: |
         cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/**' '*/scripts/**'
+        forge build
+# forge build --build-info --skip '*/test/**' '*/scripts/**'
+
 
     # Analyze smart contracts with Slither
     - name: Run Slither
