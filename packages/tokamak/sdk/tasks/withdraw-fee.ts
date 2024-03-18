@@ -169,7 +169,8 @@ const withdrawFee = async () => {
   const sequencerFeeVaultBalance = await l2Provider.getBalance(
     predeploys.SequencerFeeVault
   )
-  console.log('sequencerFeeVault native balance on L2: ',
+  console.log(
+    'sequencerFeeVault native balance on L2: ',
     sequencerFeeVaultBalance.toString()
   )
 
@@ -179,7 +180,8 @@ const withdrawFee = async () => {
   const updatedSequencerFeeVaultBalance = await l2Provider.getBalance(
     predeploys.SequencerFeeVault
   )
-  console.log('updated sequencerFeeVault native balance on L2:',
+  console.log(
+    'updated sequencerFeeVault native balance on L2:',
     updatedSequencerFeeVaultBalance.toString()
   )
 
