@@ -9,11 +9,8 @@ import datetime
 import time
 import shutil
 import http.client
-import codecs
-import ecdsa
 import glob
 import shutil
-from Crypto.Hash import keccak
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
@@ -94,11 +91,6 @@ def main():
       bedrock_devnet_path=bedrock_devnet_dir,
       admin_key=args.admin_key
     )
-
-    if paths.admin_key is not None :
-      verify_admin_key(paths)
-      if not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')):
-        init_admin_geth(paths)
 
     if args.test:
       log.info('Testing deployed devnet')
@@ -230,6 +222,9 @@ def geth_init(paths):
 def devnet_l1_genesis(paths):
     log.info('Generating L1 genesis state')
     init_devnet_l1_deploy_config(paths)
+
+    if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
+        init_admin_geth(paths)
 
     geth = subprocess.Popen([
         'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
@@ -482,21 +477,3 @@ def write_file(path, data):
 
 def delete_file(path):
     os.remove(path)
-
-def verify_admin_key(paths):
-    admin_key=paths.admin_key
-
-    private_key_bytes = codecs.decode(admin_key[2:], 'hex')
-    pulbic_key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1).verifying_key
-    public_key_bytes = pulbic_key.to_string()
-    keccak_hash = keccak.new(digest_bits=256)
-    keccak_hash.update(public_key_bytes)
-    keccak_digest = keccak_hash.hexdigest()
-    admin_len = 40
-    admin = '0x' + keccak_digest[-admin_len:]
-
-    deploy_config = read_json(paths.devnet_config_template_path)
-    finalSystemOwner = deploy_config['finalSystemOwner']
-
-    if admin.lower() != finalSystemOwner.lower():
-        raise Exception("the admin key is invalid.")
