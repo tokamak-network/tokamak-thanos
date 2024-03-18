@@ -4,7 +4,7 @@
   "exclude_informational": true,
   "exclude_low": true,
   "exclude_optimization": true,
-  "fail_on": "none",
+  "fail_on": "high",
   "filter_paths": "(src/vendor|src/cannon/MIPS.sol|src/EAS/EAS.sol|test/safe-tools/SafeTestTools.sol|scripts/libraries/LibSort.sol)",
   "foundry_out_directory": "artifacts"
 }

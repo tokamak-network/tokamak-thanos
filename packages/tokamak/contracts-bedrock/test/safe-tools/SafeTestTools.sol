@@ -3,8 +3,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "forge-std/Test.sol";
 import "scripts/libraries/LibSort.sol";
-import "safe-contracts/Safe.sol";
-import "./CompatibilityFallbackHandler_1_3_0.sol";
+import { Safe as GnosisSafe, OwnerManager, ModuleManager, GuardManager } from "safe-contracts/Safe.sol";
 import { SafeProxyFactory as GnosisSafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 import { SignMessageLib } from "safe-contracts/libraries/SignMessageLib.sol";
@@ -19,7 +18,7 @@ import "./CompatibilityFallbackHandler_1_3_0.sol";
 ///      after an owner is removed.
 contract OwnerSimulator is OwnerManager {
     constructor(address[] memory _owners, uint256 _threshold) {
-        setupOwners(_owners, _threshold);
+        setupOwners(_owners, _threshold);z
     }
 
     /// @dev Exposes the OwnerManager's removeOwner function so that anyone may call without needing auth
@@ -29,7 +28,7 @@ contract OwnerSimulator is OwnerManager {
 }
 
 /// @dev collapsed interface that includes comapatibilityfallback handler calls
-abstract contract DeployedSafe is GnosisSafe, CompatibilityFallbackHandler_1_3_0 { }
+abstract contract DeployedSafe is GnosisSafe, CompatibilityFallbackHandler { }
 
 struct AdvancedSafeInitParams {
     bool includeFallbackHandler;
