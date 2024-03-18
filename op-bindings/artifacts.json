@@ -24,7 +24,7 @@
   "ProxyAdmin",
   "LegacyMessagePasser",
   "ERC20",
-  "WTON",
+  "WNativeToken",
   "ETH",
   "DeployerWhitelist",
   "L1BlockNumber",

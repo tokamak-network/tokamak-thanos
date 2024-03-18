@@ -145,7 +145,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the Safe
     function deployL2NativeToken() public onlyDevnet broadcast {
         address addr_ = getL2NativeToken();
-        cfg.setNativeTokenAddress(addr_);
+        cfg.setNativeTokenAddress(addr_, string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json"));
         console.log("Native token deployed at", addr_);
         save("L2NativeToken", addr_);
     }
