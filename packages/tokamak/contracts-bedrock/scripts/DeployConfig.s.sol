@@ -103,8 +103,9 @@ contract DeployConfig is Script {
         }
     }
 
-    function setNativeTokenAddress(address _nativeTokenAddress) public {
+    function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
         nativeTokenAddress = _nativeTokenAddress;
+        stdJson.write(vm.toString(_nativeTokenAddress), _path, "$.nativeTokenAddress");
     }
 
     function l1StartingBlockTag() public returns (bytes32) {
