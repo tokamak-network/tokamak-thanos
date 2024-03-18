@@ -9,9 +9,12 @@ import time
 import shutil
 import http.client
 import gzip
+import glob
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
+
+import devnet.log_setup
 
 pjoin = os.path.join
 
@@ -27,6 +30,7 @@ parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=
 parser.add_argument('--from-block-number', help='From block number', type=int, default=os.environ.get('FROM_BLOCK_NUMBER'))
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--legacy', help='Legacy(using eth) or not(apply native token)', type=bool, action=argparse.BooleanOptionalAction)
+parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 
 log = logging.getLogger()
 
@@ -71,6 +75,7 @@ def main():
     devnet_config_template_path = pjoin(deploy_config_dir, 'devnetL1-template.json')
     ops_chain_ops = pjoin(monorepo_dir, 'op-chain-ops')
     sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk') if not args.legacy else pjoin(monorepo_dir, 'packages', 'sdk')
+    bedrock_devnet_dir = pjoin(monorepo_dir, 'bedrock-devnet')
 
     paths = Bunch(
       mono_repo_dir=monorepo_dir,
@@ -95,6 +100,8 @@ def main():
       l1_rpc_url = args.l1_rpc_url,
       l2_native_token = args.l2_native_token,
       from_block_number = args.from_block_number,
+      bedrock_devnet_path=bedrock_devnet_dir,
+      admin_key=args.admin_key
     )
 
     if args.test:
@@ -105,8 +112,8 @@ def main():
     os.makedirs(devnet_dir, exist_ok=True)
 
     if args.allocs:
-        devnet_l1_genesis(paths)
-        return
+      devnet_l1_genesis(paths)
+      return
 
     git_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     git_date = subprocess.run(['git', 'show', '-s', "--format=%ct"], capture_output=True, text=True).stdout.strip()
@@ -127,14 +134,13 @@ def main():
     log.info('Devnet starting')
     devnet_deploy(paths)
 
-
 def deploy_contracts(paths):
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
     res = eth_accounts('127.0.0.1:8545')
 
     response = json.loads(res)
-    account = response['result'][0]
+    account = response['result'][0 if paths.admin_key is None else 1]
     log.info(f'Deploying with {account}')
 
     # Proxy exists on the fork public network(used by anvil)
@@ -142,11 +148,13 @@ def deploy_contracts(paths):
     # https://book.getfoundry.sh/tutorials/create2-tutorial
     if not paths.fork_public_network:
         # send some ether to the create2 deployer account
-        run_command([
-          'cast', 'send', '--from', account,
-          '--rpc-url', 'http://127.0.0.1:8545',
-          '--unlocked', '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
-        ], env={}, cwd=paths.contracts_bedrock_dir)
+        cmd = [
+            'cast', 'send',
+            '--rpc-url', 'http://127.0.0.1:8545',
+            '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
+        ]
+        cmd.extend(['--from', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--password', '1234'])
+        run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
 
         # deploy the create2 deployer
         run_command([
@@ -155,11 +163,12 @@ def deploy_contracts(paths):
         ], env={}, cwd=paths.contracts_bedrock_dir)
 
     fqn = 'scripts/Deploy.s.sol:Deploy'
-    run_command([
-        'forge', 'script', fqn, '--sender', account,
-        '--rpc-url', 'http://127.0.0.1:8545', '--broadcast',
-        '--unlocked'
-    ], env={}, cwd=paths.contracts_bedrock_dir)
+    cmd = [
+        'forge', 'script', fqn,
+        '--rpc-url', 'http://127.0.0.1:8545', '--broadcast'
+    ]
+    cmd.extend(['--sender', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--private-key', paths.admin_key])
+    run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
 
     shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
 
@@ -176,6 +185,56 @@ def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
         deploy_config['l1GenesisBlockTimestamp'] = '{:#x}'.format(int(time.time()))
     write_json(paths.devnet_config_path, deploy_config)
 
+def init_admin_geth(paths):
+    deploy_config = read_json(paths.devnet_config_template_path)
+    admin_address = deploy_config['finalSystemOwner']
+
+    f = open(pjoin(paths.bedrock_devnet_path, 'genesis.json'), "w+")
+    run_command([
+        'geth', '--dev', 'dumpgenesis'
+    ], cwd=paths.bedrock_devnet_path, stdout=f)
+    f.close()
+
+    genesis = read_json(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
+
+    genesis["config"]["chainId"] = 900
+
+    alloc = genesis['alloc']
+    alloc[admin_address] = {
+        "balance": "10000000000000000000"
+    }
+    genesis['alloc'] = alloc
+
+    write_file(pjoin(paths.bedrock_devnet_path, 'keystore'), paths.admin_key[2:])
+    write_file(pjoin(paths.bedrock_devnet_path, 'password'), '1234')
+
+    write_json(pjoin(paths.bedrock_devnet_path, 'genesis.json'), genesis)
+    geth_init(paths)
+    os.environ.setdefault(
+        key = 'GETH_DATADIR',
+        value = 'data',
+    )
+
+    key_store = pjoin(paths.bedrock_devnet_path, 'data', 'keystore')
+    key_file = glob.glob(f"{key_store}/*{admin_address[2:].lower()}*")
+    os.environ.setdefault(
+        key = 'ETH_KEYSTORE',
+        value = pjoin(paths.bedrock_devnet_path, 'data', 'keystore', key_file[0])
+    )
+
+
+def geth_init(paths):
+    run_command([
+        'geth', '--dev', '--datadir', 'data', 'init', 'genesis.json'
+    ], cwd=paths.bedrock_devnet_path)
+
+    run_command([
+        'geth', '--datadir', 'data', '--password', 'password', 'account', 'import', 'keystore'
+    ], cwd=paths.bedrock_devnet_path)
+    delete_file(pjoin(paths.bedrock_devnet_path, 'keystore'))
+    delete_file(pjoin(paths.bedrock_devnet_path, 'password'))
+    delete_file(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
+
 def devnet_l1_genesis(paths):
     log.info('Generating L1 genesis state')
     init_devnet_l1_deploy_config(paths)
@@ -188,12 +247,14 @@ def devnet_l1_genesis(paths):
         ])
         time.sleep(30)
     else:
+        if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
+            init_admin_geth(paths)
+
         geth = subprocess.Popen([
             'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
             '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
             '--rpc.allow-unprotected-txs'
-        ])
-
+        ], cwd=pjoin(paths.mono_repo_dir, 'bedrock-devnet'))
 
     try:
         forge = ChildProcess(deploy_contracts, paths)
@@ -286,6 +347,8 @@ def devnet_deploy(paths):
         'PWD': paths.ops_bedrock_dir
     })
 
+    shutil.rmtree(pjoin(paths.bedrock_devnet_path, 'data'), ignore_errors=True)
+
     log.info('Devnet ready.')
 
 
@@ -299,7 +362,6 @@ def eth_accounts(url):
     data = response.read().decode()
     conn.close()
     return data
-
 
 def debug_dumpBlock(url):
     log.info(f'Fetch debug_dumpBlock {url}')
@@ -395,7 +457,7 @@ def run_command_preset(command: CommandPreset):
     return proc.returncode
 
 
-def run_command(args, check=True, shell=False, cwd=None, env=None, timeout=None):
+def run_command(args, check=True, shell=False, cwd=None, env=None, timeout=None, stdout=None):
     env = env if env else {}
     return subprocess.run(
         args,
@@ -406,7 +468,8 @@ def run_command(args, check=True, shell=False, cwd=None, env=None, timeout=None)
             **env
         },
         cwd=cwd,
-        timeout=timeout
+        timeout=timeout,
+        stdout=stdout
     )
 
 
@@ -489,3 +552,10 @@ def convert_anvil_dump(dump):
 def pad_hex(input):
     return '0x' + input.replace('0x', '').zfill(64)
 
+def write_file(path, data):
+    f = open(path, 'w+')
+    f.write(data)
+    f.close()
+
+def delete_file(path):
+    os.remove(path)
