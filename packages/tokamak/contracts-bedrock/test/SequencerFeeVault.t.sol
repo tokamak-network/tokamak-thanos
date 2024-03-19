@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 // Testing utilities
 import { FeeVault_Initializer, Reverter } from "test/CommonTest.t.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
+import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -72,7 +73,9 @@ contract SequencerFeeVault_Test is FeeVault_Initializer {
         vm.expectCall(
             Predeploys.L2_STANDARD_BRIDGE,
             address(vault).balance,
-            abi.encodeWithSelector(StandardBridge.bridgeETHTo.selector, vault.l1FeeWallet(), 35_000, bytes(""))
+            abi.encodeWithSelector(
+                L2StandardBridge.withdrawNativeTokenTo.selector, vault.l1FeeWallet(), 35_000, bytes("")
+            )
         );
 
         vault.withdraw();
