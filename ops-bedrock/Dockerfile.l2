@@ -1,4 +1,4 @@
-FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:optimism
+FROM onthertech/titan-op-geth:nightly
 
 RUN apk add --no-cache jq
 
