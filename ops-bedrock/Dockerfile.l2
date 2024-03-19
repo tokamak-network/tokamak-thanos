@@ -1,4 +1,6 @@
-FROM onthertech/titan-op-geth:nightly
+ARG L2_IMAGE=onthertech/titan-op-geth:nightly
+
+FROM ${L2_IMAGE}
 
 RUN apk add --no-cache jq
 

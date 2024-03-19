@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.l2
+      args:
+        L2_IMAGE: ${L2_IMAGE}
     ports:
       - "9545:8545"
       - "8060:6060"
