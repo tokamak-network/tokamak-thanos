@@ -9,11 +9,11 @@ GAS_LIMIT_VALUE=$(echo "GAS_LIMIT" | awk '{ printf("%d", $0) }')
 RPC_PORT="${RPC_PORT:-8545}"
 WS_PORT="${WS_PORT:-8546}"
 L1_RPC="${L1_RPC:-https://eth-pokt.nodies.app}"
-BLOCK_NUMBER=${BLOCK_NUMBER:-19472106}
+FROM_BLOCK_NUMBER=${FROM_BLOCK_NUMBER}
 
 exec anvil \
   --fork-url "$L1_RPC" \
-  --fork-block-number "$BLOCK_NUMBER" \
+  --fork-block-number "$FROM_BLOCK_NUMBER" \
   --host "0.0.0.0" \
   --port "$RPC_PORT" \
   --base-fee "1" \

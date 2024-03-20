@@ -122,14 +122,17 @@ def main():
         log.info('Skipping docker images build')
     else:
         log.info(f'Building docker images for git commit {git_commit} ({git_date})')
-        run_command(['docker', 'compose', 'build', '--progress', 'plain',
+        if args.fork_public_network:
+          run_command(['docker', 'compose', '-f', 'fork.docker-compose.yml', 'build', '--progress', 'plain',
                      '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'],
                     cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
-            'L2_IMAGE': args.l2_image,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
-            'COMPOSE_DOCKER_CLI_BUILD': '1'  # use the docker cache
-        })
+            'COMPOSE_DOCKER_CLI_BUILD': '1',  # use the docker cache
+            'L1_RPC': paths.l1_rpc_url,
+            'L2_IMAGE': args.l2_image,
+            'FROM_BLOCK_NUMBER': str(paths.from_block_number)
+          })
 
     log.info('Devnet starting')
     devnet_deploy(paths, args)
