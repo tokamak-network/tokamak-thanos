@@ -28,9 +28,11 @@ services:
     ports:
       - "8545:8545"
     volumes:
-      - "../.devnet/genesis-l1.json:/genesis.json"
+      - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
     environment:
       GETH_MINER_RECOMMIT: 100ms
+      L1_RPC: ${L1_RPC}
+      FROM_BLOCK_NUMBER: ${FROM_BLOCK_NUMBER}
 
   fork-l1:
     depends_on:
@@ -42,7 +44,7 @@ services:
 
     volumes:
       - "./allocate-fork-public-network.py:/allocate-fork-public-network.py"
-      - "../.devnet/genesis-l1.json:/genesis.json"
+      - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
 
   l2:
     build:
