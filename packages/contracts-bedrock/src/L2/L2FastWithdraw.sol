@@ -35,10 +35,10 @@ contract L2FastWithdraw is L2FastWithdrawStorage {
     function applicationFW(
         address _l2Token,
         uint256 _amount,
-        uint256 _minAmount
+        uint256 _minAmount,
+        uint32 _minGasLimit
     ) external {
         //make the extraData (msg.sender, amount)
-        //check minGasLimit
         IL2StandardBridge(L2StandradBridge).withdrawTo(_l2Token, L1fwContract, _amount, _minGasLimit, _extraData);
 
         //sendMessage to L1FwContract;
