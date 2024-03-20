@@ -103,6 +103,18 @@ contract Deploy is Deployer {
         return keccak256(bytes(vm.envOr("IMPL_SALT", string("ethers phoenix"))));
     }
 
+    function getL2NativeToken() public returns (address) {
+        bool isForkPublicNetwork = vm.envOr("FORK_PUBLIC_NETWORK", false);
+        if (isForkPublicNetwork) {
+            address addr_ = vm.envAddress("L2_NATIVE_TOKEN");
+            return addr_;
+        } else {
+            L2NativeToken token = new L2NativeToken{ salt: implSalt() }();
+            address addr_ = address(token);
+            return addr_;
+        }
+    }
+
     /// @notice Modifier that wraps a function in broadcasting.
     modifier broadcast() {
         vm.startBroadcast();
@@ -132,15 +144,16 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the Safe
     function deployL2NativeToken() public onlyDevnet broadcast {
+        string memory path = string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json");
         address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
         // If L2NativeToken is already existing on the network, we don't deploy the new contract.
         if (setupAddr_ != address(0)) {
-            cfg.setNativeTokenAddress(setupAddr_);
+            cfg.setNativeTokenAddress(setupAddr_, path);
             console.log("Native token deployed at", setupAddr_);
             return;
         }
         address addr_ = getL2NativeToken();
-        cfg.setNativeTokenAddress(addr_, string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json"));
+        cfg.setNativeTokenAddress(addr_, path);
         console.log("Native token deployed at", addr_);
         save("L2NativeToken", addr_);
     }
