@@ -62,10 +62,10 @@ def main():
   data = read_data(data_path)
 
   for addr, acc in data["alloc"].items():
-    balance = acc["balance"]
-    code = acc["code"]
-    nonce = acc["nonce"]
-    storage = acc["storage"]
+    balance = acc.get("balance")
+    code = acc.get("code")
+    nonce = acc.get("nonce")
+    storage = acc.get("storage")
     if balance is not None:
       payload = json.dumps({
         "jsonrpc": "2.0",

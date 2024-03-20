@@ -23,7 +23,7 @@ services:
 
   l1:
     build:
-      context: ./
+      context: .
       dockerfile: Dockerfile.l1-fork
     ports:
       - "8545:8545"
@@ -35,8 +35,6 @@ services:
   fork-l1:
     depends_on:
       - l1
-    build:
-      context: .
     image: python:3.9
     command: >
       python ./allocate-fork-public-network.py
@@ -77,7 +75,7 @@ services:
     image: onthertech/titan-op-node:${IMAGE_TAG:-latest}
     command: >
       op-node
-      --l1=ws://l1:8545
+      --l1=http://l1:8545
       --l2=http://l2:8551
       --l2.jwt-secret=/config/test-jwt-secret.txt
       --sequencer.enabled
@@ -182,16 +180,3 @@ services:
     security_opt:
       - "no-new-privileges:true"
 
-  stateviz:
-    build:
-      context: ../
-      dockerfile: ./ops-bedrock/Dockerfile.stateviz
-    command:
-      - stateviz
-      - -addr=0.0.0.0:8080
-      - -snapshot=/op_log/snapshot.log
-      - -refresh=10s
-    ports:
-      - "9090:8080"
-    volumes:
-      - op_log:/op_log:ro
