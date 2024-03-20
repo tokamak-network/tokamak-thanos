@@ -243,7 +243,7 @@ def devnet_l1_genesis(paths):
         log.info('Start to fork the public network. Wait to warm up the fork public network.')
         geth = subprocess.Popen([
             'anvil', '--fork-url', paths.l1_rpc_url, '--fork-block-number', str(paths.from_block_number),
-            '--chain-id', '1337', '--disable-block-gas-limit',
+            '--chain-id', '900', '--disable-block-gas-limit',
             '--gas-price', '0', '--base-fee', '1', '--block-time', '1'
         ])
         time.sleep(30)
