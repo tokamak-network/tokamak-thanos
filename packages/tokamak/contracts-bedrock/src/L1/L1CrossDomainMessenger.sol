@@ -188,7 +188,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         );
 
         emit SentMessage(_target, _sender, _message, messageNonce(), _minGasLimit);
-        emit SentMessageExtension1(_sender, _amount);
 
         unchecked {
             ++msgNonce;

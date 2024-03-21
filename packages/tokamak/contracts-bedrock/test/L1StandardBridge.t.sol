@@ -124,10 +124,6 @@ contract PreBridgeETH is Bridge_Initializer {
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 50000);
 
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 0);
-
         vm.prank(alice, alice);
     }
 }
@@ -222,10 +218,6 @@ contract PreBridgeETHTo is Bridge_Initializer {
         // // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 60000);
-
-        // // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 0);
 
         // deposit eth to bob
         vm.prank(alice, alice);
@@ -328,10 +320,6 @@ contract L1StandardBridge_DepositERC20_Test is Bridge_Initializer {
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
 
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 0);
-
         vm.prank(alice);
         L1Bridge.depositERC20(address(L1Token), address(L2Token), 100, 10000, hex"");
         assertEq(L1Bridge.deposits(address(L1Token), address(L2Token)), 100);
@@ -393,10 +381,6 @@ contract L1StandardBridge_DepositERC20To_Test is Bridge_Initializer {
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
-
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 0);
 
         // the L1 bridge should call L1CrossDomainMessenger.sendMessage
         vm.expectCall(
@@ -490,10 +474,6 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
 
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 100);
-
         vm.prank(alice, alice);
         L1Bridge.depositNativeToken(100, 10000, hex"");
     }
@@ -572,10 +552,6 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(true, true, true, true, address(L1Messenger));
         emit SentMessage(address(L2Bridge), address(L1Bridge), message, nonce, 10000);
-
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L1Messenger));
-        emit SentMessageExtension1(address(L1Bridge), 100);
 
         vm.prank(alice, alice);
         L1Bridge.depositNativeTokenTo(bob, 100, 10000, hex"");

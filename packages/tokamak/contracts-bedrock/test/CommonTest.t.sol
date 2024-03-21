@@ -266,8 +266,6 @@ contract Messenger_Initializer is Portal_Initializer {
 
     event SentMessage(address indexed target, address sender, bytes message, uint256 messageNonce, uint256 gasLimit);
 
-    event SentMessageExtension1(address indexed sender, uint256 value);
-
     event MessagePassed(
         uint256 indexed nonce,
         address indexed sender,

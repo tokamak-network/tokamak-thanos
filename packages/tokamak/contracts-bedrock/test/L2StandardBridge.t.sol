@@ -72,10 +72,6 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.expectEmit(true, true, true, true, address(L2Messenger));
         emit SentMessage(address(L1Bridge), address(L2Bridge), message, nonce, 200_000);
 
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L2Messenger));
-        emit SentMessageExtension1(address(L2Bridge), 100);
-
         vm.expectCall(
             address(L2Messenger),
             abi.encodeWithSelector(
@@ -205,10 +201,6 @@ contract PreBridgeERC20 is Bridge_Initializer {
         vm.expectEmit(true, true, true, true);
         emit SentMessage(address(L1Bridge), address(L2Bridge), message, nonce, 1000);
 
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true);
-        emit SentMessageExtension1(address(L2Bridge), 0);
-
         vm.prank(alice, alice);
     }
 }
@@ -298,10 +290,6 @@ contract PreBridgeERC20To is Bridge_Initializer {
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(true, true, true, true, address(L2Messenger));
         emit SentMessage(address(L1Bridge), address(L2Bridge), message, nonce, 1000);
-
-        // SentMessageExtension1 event emitted by the CrossDomainMessenger
-        vm.expectEmit(true, true, true, true, address(L2Messenger));
-        emit SentMessageExtension1(address(L2Bridge), 0);
 
         if (_isLegacy) {
             vm.expectCall(

@@ -290,21 +290,6 @@ export class CrossChainMessenger {
         return parsed.name === 'SentMessage'
       })
       .map((log) => {
-        // Try to pull out the value field, but only if the very next log is a SentMessageExtension1
-        // event which was introduced in the Bedrock upgrade.
-        let value = ethers.BigNumber.from(0)
-        const next = receipt.logs.find((l) => {
-          return (
-            l.logIndex === log.logIndex + 1 && l.address === messenger.address
-          )
-        })
-        if (next) {
-          const nextParsed = messenger.interface.parseLog(next)
-          if (nextParsed.name === 'SentMessageExtension1') {
-            value = nextParsed.args.value
-          }
-        }
-
         // Convert each SentMessage log into a message object
         const parsed = messenger.interface.parseLog(log)
         return {
@@ -313,7 +298,7 @@ export class CrossChainMessenger {
           sender: parsed.args.sender,
           message: parsed.args.message,
           messageNonce: parsed.args.messageNonce,
-          value,
+          value: ethers.BigNumber.from(0),
           minGasLimit: parsed.args.gasLimit,
           logIndex: log.logIndex,
           blockNumber: log.blockNumber,
