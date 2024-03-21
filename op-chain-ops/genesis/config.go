@@ -816,7 +816,7 @@ func (m *MarshalableRPCBlockNumberOrHash) UnmarshalJSON(b []byte) error {
 	var r rpc.BlockNumberOrHash
 	if err := json.Unmarshal(b, &r); err != nil {
 		return err
-	}
+	}``
 
 	asMarshalable := MarshalableRPCBlockNumberOrHash(r)
 	*m = asMarshalable
@@ -857,6 +857,21 @@ func TRANSFER_PROXY_ADMIN(state *state.State, ownerAddress common.Address) error
 
 	// Change ProxyAdmin owner
 	state.ProxyAdminOwner = ownerAddress
+
+	// Return nil if successfully changed
+	return nil
+}
+
+// Definition of TRANSFER_V3_CORE_FACTORY_OWNER function
+func TRANSFER_V3_CORE_FACTORY_OWNER(state *state.State, ownerAddress common.Address) error {
+	// Get the UniswapV3Factory address from the state
+	v3CoreFactoryAddress := state.V3CoreFactoryAddress
+	if v3CoreFactoryAddress == nil {
+		return errors.New("UniswapV3Factory address is not set")
+	}
+
+	// Change the owner of the UniswapV3Factory
+	state.V3CoreFactoryOwner = ownerAddress
 
 	// Return nil if successfully changed
 	return nil
