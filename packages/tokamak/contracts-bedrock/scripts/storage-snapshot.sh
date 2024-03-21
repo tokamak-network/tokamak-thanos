@@ -27,7 +27,7 @@ contracts=(
   src/L2/BaseFeeVault.sol:BaseFeeVault
   src/L2/L1FeeVault.sol:L1FeeVault
   src/L2/L2ERC721Bridge.sol:L2ERC721Bridge
-  src/vendor/WETH9.sol:WETH9
+  src/vendor/WNativeToken.sol:WNativeToken
   src/universal/ProxyAdmin.sol:ProxyAdmin
   src/universal/Proxy.sol:Proxy
   src/legacy/L1ChugSplashProxy.sol:L1ChugSplashProxy
