@@ -567,7 +567,7 @@ importers:
       '@eth-optimism/core-utils':
         specifier: workspace:*
         version: link:../../core-utils
-      '@tokamak-network/titan2-contracts':
+      '@tokamak-network/thanos-contracts':
         specifier: workspace:*
         version: link:../contracts-bedrock
       lodash:

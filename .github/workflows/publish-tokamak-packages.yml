@@ -50,7 +50,7 @@ jobs:
         id: filter-packages
         run: |
           # Define the package names to publish
-          PACKAGES_TO_PUBLISH=("@tokamak-network/titan2-sdk @tokamak-network/titan2-contracts")
+          PACKAGES_TO_PUBLISH=("@tokamak-network/thanos-sdk @tokamak-network/thanos-contracts")
           # Set the output variables for packages to publish
           echo "packages-to-publish=${PACKAGES_TO_PUBLISH[@]}" >> $GITHUB_OUTPUT
 
