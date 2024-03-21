@@ -31,6 +31,7 @@ parser.add_argument('--from-block-number', help='From block number', type=int, d
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--legacy', help='Legacy(using eth) or not(apply native token)', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
+parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/titan-op-geth:nightly')
 
 log = logging.getLogger()
 
@@ -117,7 +118,6 @@ def main():
 
     git_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     git_date = subprocess.run(['git', 'show', '-s', "--format=%ct"], capture_output=True, text=True).stdout.strip()
-
     # CI loads the images from workspace, and does not otherwise know the images are good as-is
     if os.getenv('DEVNET_NO_BUILD') == "true":
         log.info('Skipping docker images build')
@@ -127,12 +127,13 @@ def main():
                      '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'],
                     cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
+            'L2_IMAGE': args.l2_image,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
             'COMPOSE_DOCKER_CLI_BUILD': '1'  # use the docker cache
         })
 
     log.info('Devnet starting')
-    devnet_deploy(paths)
+    devnet_deploy(paths, args)
 
 def deploy_contracts(paths):
     wait_up(8545)
@@ -277,7 +278,7 @@ def devnet_l1_genesis(paths):
 
 
 # Bring up the devnet where the contracts are deployed to L1
-def devnet_deploy(paths):
+def devnet_deploy(paths, args):
     if os.path.exists(paths.genesis_l1_path):
         log.info('L1 genesis already generated.')
     else:
@@ -302,7 +303,7 @@ def devnet_deploy(paths):
 
     log.info('Starting L1.')
     run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
     })
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
@@ -325,7 +326,8 @@ def devnet_deploy(paths):
 
     log.info('Bringing up L2.')
     run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
+         'L2_IMAGE': args.l2_image
     })
     wait_up(9545)
     wait_for_rpc_server('127.0.0.1:9545')
