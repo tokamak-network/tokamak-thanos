@@ -556,6 +556,58 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
 
+  packages/tokamak/core-utils:
+    dependencies:
+      '@ethersproject/abi':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/abstract-provider':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/address':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/bignumber':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/bytes':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/constants':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/contracts':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/keccak256':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/properties':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/rlp':
+        specifier: ^5.7.0
+        version: 5.7.0
+      '@ethersproject/web':
+        specifier: ^5.7.1
+        version: 5.7.1
+      chai:
+        specifier: ^4.3.10
+        version: 4.3.10
+      ethers:
+        specifier: ^5.7.2
+        version: 5.7.2
+      node-fetch:
+        specifier: ^2.6.7
+        version: 2.6.12
+    devDependencies:
+      '@types/node':
+        specifier: ^20.8.9
+        version: 20.8.9
+      mocha:
+        specifier: ^10.2.0
+        version: 10.2.0
+
   packages/tokamak/sdk:
     dependencies:
       '@eth-optimism/contracts':
@@ -564,9 +616,9 @@ importers:
       '@eth-optimism/contracts-bedrock':
         specifier: workspace:*
         version: link:../../contracts-bedrock
-      '@eth-optimism/core-utils':
+      '@tokamak-network/core-utils':
         specifier: workspace:*
-        version: link:../../core-utils
+        version: link:../core-utils
       '@tokamak-network/thanos-contracts':
         specifier: workspace:*
         version: link:../contracts-bedrock

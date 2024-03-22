@@ -2,7 +2,7 @@ import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
-import { predeploys } from '@eth-optimism/core-utils'
+import { predeploys } from '@tokamak-network/core-utils'
 import { BytesLike, ethers } from 'ethers'
 
 import {

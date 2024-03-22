@@ -3,6 +3,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { BytesLike, ethers } from 'ethers'
+import { predeploys } from '@tokamak-network/core-utils'
 
 import {
   CrossChainMessenger,
@@ -10,7 +11,6 @@ import {
   NativeTokenBridgeAdapter,
   NumberLike,
 } from '../src'
-import { predeploys } from '../../../core-utils'
 
 console.log('Setup task...')
 

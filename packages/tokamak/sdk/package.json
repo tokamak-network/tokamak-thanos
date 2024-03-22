@@ -64,7 +64,7 @@
     "@eth-optimism/contracts": "0.6.0",
     "@eth-optimism/contracts-bedrock": "workspace:*",
     "@tokamak-network/thanos-contracts": "workspace:*",
-    "@eth-optimism/core-utils": "workspace:*",
+    "@tokamak-network/core-utils": "workspace:*",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.3.10",
     "rlp": "^2.2.7"
