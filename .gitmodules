@@ -36,6 +36,3 @@
 	path = packages/tokamak/contracts-bedrock/lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
 	branch = v1.4.0
-[submodule "packages/tokamak/contracts-bedrock/lib/v3-periphery"]
-	path = packages/tokamak/contracts-bedrock/lib/v3-periphery
-	url = https://github.com/Uniswap/v3-periphery.git
