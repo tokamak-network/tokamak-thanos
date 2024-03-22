@@ -1,4 +1,4 @@
-import { predeploys } from '@eth-optimism/core-utils'
+import { predeploys } from '@tokamak-network/core-utils'
 import { ethers } from 'ethers'
 import portalArtifactsMainnet from '@eth-optimism/contracts-bedrock/deployments/mainnet/OptimismPortalProxy.json'
 import portalArtifactsGoerli from '@eth-optimism/contracts-bedrock/deployments/goerli/OptimismPortalProxy.json'

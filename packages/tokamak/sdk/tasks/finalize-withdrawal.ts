@@ -1,7 +1,7 @@
 import { task, types } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { Wallet, providers } from 'ethers'
-import { predeploys } from '@eth-optimism/core-utils'
+import { predeploys } from '@tokamak-network/core-utils'
 import 'hardhat-deploy'
 import '@nomiclabs/hardhat-ethers'
 
