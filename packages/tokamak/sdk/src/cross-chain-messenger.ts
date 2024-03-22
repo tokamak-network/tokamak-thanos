@@ -29,7 +29,7 @@ import {
   getChainId,
   hashCrossDomainMessagev0,
   hashCrossDomainMessagev1,
-} from '@eth-optimism/core-utils'
+} from '@tokamak-network/core-utils'
 import { getContractInterface, predeploys } from '@eth-optimism/contracts'
 import * as rlp from 'rlp'
 

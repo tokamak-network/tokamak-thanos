@@ -1,5 +1,8 @@
 import { Provider } from '@ethersproject/abstract-provider'
-import { expectApprox, hashCrossDomainMessage } from '@eth-optimism/core-utils'
+import {
+  expectApprox,
+  hashCrossDomainMessage,
+} from '@tokamak-network/core-utils'
 import { predeploys } from '@eth-optimism/contracts'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'

@@ -29,7 +29,6 @@ parser.add_argument('--fork-public-network',
 parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=os.environ.get('L1_RPC'))
 parser.add_argument('--from-block-number', help='From block number', type=int, default=os.environ.get('FROM_BLOCK_NUMBER'))
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
-parser.add_argument('--legacy', help='Legacy(using eth) or not(apply native token)', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/titan-op-geth:nightly')
 
@@ -67,7 +66,7 @@ def main():
 
     monorepo_dir = os.path.abspath(args.monorepo_dir)
     devnet_dir = pjoin(monorepo_dir, '.devnet')
-    contracts_bedrock_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'contracts-bedrock') if not args.legacy else pjoin(monorepo_dir, 'packages', 'contracts-bedrock')
+    contracts_bedrock_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'contracts-bedrock')
     deployment_dir = pjoin(contracts_bedrock_dir, 'deployments', 'devnetL1')
     op_node_dir = pjoin(args.monorepo_dir, 'op-node')
     ops_bedrock_dir = pjoin(monorepo_dir, 'ops-bedrock')
@@ -75,7 +74,7 @@ def main():
     devnet_config_path = pjoin(deploy_config_dir, 'devnetL1.json')
     devnet_config_template_path = pjoin(deploy_config_dir, 'devnetL1-template.json')
     ops_chain_ops = pjoin(monorepo_dir, 'op-chain-ops')
-    sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk') if not args.legacy else pjoin(monorepo_dir, 'packages', 'sdk')
+    sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk')
     bedrock_devnet_dir = pjoin(monorepo_dir, 'bedrock-devnet')
 
     paths = Bunch(
