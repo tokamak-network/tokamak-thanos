@@ -2,7 +2,7 @@
 import { ethers, Overrides, BigNumber } from 'ethers'
 import { TransactionRequest, BlockTag } from '@ethersproject/abstract-provider'
 import { predeploys } from '@eth-optimism/contracts'
-import { hexStringEquals } from '@eth-optimism/core-utils'
+import { hexStringEquals } from '@tokamak-network/core-utils'
 
 import {
   NumberLike,
