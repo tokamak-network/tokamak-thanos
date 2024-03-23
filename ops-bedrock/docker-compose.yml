@@ -24,7 +24,7 @@ services:
   l1:
     build:
       context: .
-      dockerfile: Dockerfile.l1
+      dockerfile: ${L1_DOCKER_FILE:-Dockerfile.l1}
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -35,6 +35,8 @@ services:
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
+      FROM_BLOCK_NUMBER: ${FROM_BLOCK_NUMBER}
+      L1_RPC: ${L1_RPC}
 
   l2:
     build:
@@ -69,7 +71,7 @@ services:
     image: onthertech/titan-op-node:${IMAGE_TAG:-latest}
     command: >
       op-node
-      --l1=ws://l1:8546
+      --l1=http://l1:8545
       --l2=http://l2:8551
       --l2.jwt-secret=/config/test-jwt-secret.txt
       --sequencer.enabled

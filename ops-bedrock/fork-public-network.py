@@ -48,15 +48,7 @@ def make_req(url, payload):
 def main():
   l1_rpc = args.l1_rpc
 
-  # wait until the fork public network is ready
-  payload = json.dumps({
-    "method": "eth_chainId",
-    "params": [],
-    "id": 1,
-    "jsonrpc": "2.0"
-  })
-  while not make_req(l1_rpc, payload):
-    time.sleep(10)
+  print(f"Connected to RPC node: {l1_rpc}")
 
   data_path = "./genesis.json"
   data = read_data(data_path)
