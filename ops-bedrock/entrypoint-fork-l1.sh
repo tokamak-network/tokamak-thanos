@@ -19,5 +19,16 @@ exec anvil \
   --base-fee "1" \
   --gas-limit "$GAS_LIMIT_VALUE" \
   --chain-id "$CHAIN_ID" \
-  "$@"
+  "$@" &
 
+LONG_LIVED_PID=$!
+
+# Wait for the long-lived service to be ready
+while ! nc -z localhost "$RPC_PORT"; do
+  sleep 1
+done
+echo "Long-lived service is up and running."
+
+python3 main.py --l1-rpc http://localhost:${RPC_PORT} &
+
+wait $LONG_LIVED_PID
