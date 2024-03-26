@@ -444,7 +444,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
         IERC20(nativeTokenAddress).approve(address(messenger), _amount);
 
-        _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+        _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
 
         L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
             address(OTHER_BRIDGE),
@@ -549,7 +549,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
-        finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
+        finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
     }
 
     function finalizeBridgeERC20(

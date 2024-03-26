@@ -42,10 +42,10 @@ library Predeploys {
     address internal constant DEPLOYER_WHITELIST = 0x4200000000000000000000000000000000000002;
 
     /// @custom:legacy
-    /// @notice Address of the LegacyERC20ETH predeploy. Deprecated. Balances are migrated to the
+    /// @notice Address of the LegacyERC20NativeToken predeploy. Deprecated. Balances are migrated to the
     ///         state trie as of the Bedrock upgrade. Contract has been locked and write functions
     ///         can no longer be accessed.
-    address internal constant LEGACY_ERC20_ETH = 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000;
+    address internal constant LEGACY_ERC20_NATIVE_TOKEN = 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000;
 
     /// @custom:legacy
     /// @notice Address of the L1BlockNumber predeploy. Deprecated. Use the L1Block predeploy

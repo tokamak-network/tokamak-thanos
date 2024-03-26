@@ -477,10 +477,10 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
@@ -560,10 +560,10 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, bob, 100, hex"");
+        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_ETH, alice, bob, 100, hex"");
+        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
@@ -720,7 +720,7 @@ contract L1StandardBridge_FinalizeBridgeTON_Test is Bridge_Initializer {
         uint256 depositSlotIndex = 2;
         bytes32 innerSlotIndex = keccak256(abi.encodePacked(uint256(uint160(address(nativeToken))), depositSlotIndex));
         bytes32 depositAmountSlotIndex =
-            keccak256(abi.encodePacked(uint256(uint160(Predeploys.LEGACY_ERC20_ETH)), uint256(innerSlotIndex)));
+            keccak256(abi.encodePacked(uint256(uint160(Predeploys.LEGACY_ERC20_NATIVE_TOKEN)), uint256(innerSlotIndex)));
 
         vm.store(address(L1Bridge), bytes32(depositAmountSlotIndex), bytes32(uint256(100)));
         deal(L1Bridge.nativeTokenAddress(), messenger, 100, true);
@@ -748,7 +748,7 @@ contract L1StandardBridge_FinalizeBridgeTON_TestFail is Bridge_Initializer {
         uint256 depositSlotIndex = 2;
         bytes32 innerSlotIndex = keccak256(abi.encodePacked(uint256(uint160(address(nativeToken))), depositSlotIndex));
         bytes32 depositAmountSlotIndex =
-            keccak256(abi.encodePacked(uint256(uint160(Predeploys.LEGACY_ERC20_ETH)), uint256(innerSlotIndex)));
+            keccak256(abi.encodePacked(uint256(uint160(Predeploys.LEGACY_ERC20_NATIVE_TOKEN)), uint256(innerSlotIndex)));
 
         vm.store(address(L1Bridge), bytes32(depositAmountSlotIndex), bytes32(uint256(100)));
         deal(L1Bridge.nativeTokenAddress(), messenger, 100, true);
