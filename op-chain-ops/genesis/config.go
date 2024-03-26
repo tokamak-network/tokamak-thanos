@@ -765,9 +765,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"l1FeeOverhead":  config.GasPriceOracleOverhead,
 		"l1FeeScalar":    config.GasPriceOracleScalar,
 	}
-	storage["LegacyERC20ETH"] = state.StorageValues{
-		"_name":   "Ether",
-		"_symbol": "ETH",
+	storage["LegacyERC20NativeToken"] = state.StorageValues{
+		"_name":   config.NativeTokenName,
+		"_symbol": config.NativeTokenSymbol,
 	}
 	storage["WNativeToken"] = state.StorageValues{
 		"name":     "Wrapped " + config.NativeTokenName,

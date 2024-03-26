@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ETHTokenPair = TokenPair{LocalTokenAddress: predeploys.LegacyERC20ETHAddr, RemoteTokenAddress: predeploys.LegacyERC20ETHAddr}
+	ETHTokenPair = TokenPair{LocalTokenAddress: predeploys.LegacyERC20NativeTokenAddr, RemoteTokenAddress: predeploys.LegacyERC20NativeTokenAddr}
 )
 
 /**
@@ -154,7 +154,7 @@ func (db *bridgeTransfersDB) L1BridgeDepositsByAddress(address common.Address, c
 		cursorClause = fmt.Sprintf("l1_transaction_deposits.timestamp <= %d", txDeposit.Tx.Timestamp)
 	}
 
-	ethAddressString := predeploys.LegacyERC20ETHAddr.String()
+	ethAddressString := predeploys.LegacyERC20NativeTokenAddr.String()
 
 	// Coalesce l1 transaction deposits that are simply ETH sends
 	ethTransactionDeposits := db.gorm.Model(&L1TransactionDeposit{})
@@ -278,7 +278,7 @@ func (db *bridgeTransfersDB) L2BridgeWithdrawalsByAddress(address common.Address
 	//   - (B) Bridge withdrawals from L2 to L1
 
 	// TODO join with l1_bridged_tokens and l2_bridged_tokens
-	ethAddressString := predeploys.LegacyERC20ETHAddr.String()
+	ethAddressString := predeploys.LegacyERC20NativeTokenAddr.String()
 
 	// Coalesce l2 transaction withdrawals that are simply ETH sends
 	ethTransactionWithdrawals := db.gorm.Model(&L2TransactionWithdrawal{})

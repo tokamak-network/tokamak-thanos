@@ -186,16 +186,16 @@
 | msgNonce     | uint240                  | 1    | 0      | 30    | src/L2/L2ToL1MessagePasser.sol:L2ToL1MessagePasser |
 
 =======================
-➡ src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH
+➡ src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken
 =======================
 
-| Name         | Type                                            | Slot | Offset | Bytes | Contract                                     |
-|--------------|-------------------------------------------------|------|--------|-------|----------------------------------------------|
-| _balances    | mapping(address => uint256)                     | 0    | 0      | 32    | src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH |
-| _allowances  | mapping(address => mapping(address => uint256)) | 1    | 0      | 32    | src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH |
-| _totalSupply | uint256                                         | 2    | 0      | 32    | src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH |
-| _name        | string                                          | 3    | 0      | 32    | src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH |
-| _symbol      | string                                          | 4    | 0      | 32    | src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH |
+| Name         | Type                                            | Slot | Offset | Bytes | Contract                                                     |
+|--------------|-------------------------------------------------|------|--------|-------|--------------------------------------------------------------|
+| _balances    | mapping(address => uint256)                     | 0    | 0      | 32    | src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken |
+| _allowances  | mapping(address => mapping(address => uint256)) | 1    | 0      | 32    | src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken |
+| _totalSupply | uint256                                         | 2    | 0      | 32    | src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken |
+| _name        | string                                          | 3    | 0      | 32    | src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken |
+| _symbol      | string                                          | 4    | 0      | 32    | src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken |
 
 =======================
 ➡ src/L2/SequencerFeeVault.sol:SequencerFeeVault
