@@ -197,7 +197,8 @@ contract NativeToken_Initializer is L2OutputOracle_Initializer {
 
     function dealL2NativeToken(address _target, uint256 _amount) public {
         deal(address(token), _target, _amount, true);
-        vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount))); //set total supply
+        vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount) + token.totalSupply())); //set total
+            // supply
     }
 }
 

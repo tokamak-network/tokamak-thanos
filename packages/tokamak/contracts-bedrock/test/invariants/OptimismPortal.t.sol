@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { StdUtils } from "forge-std/Test.sol";
+import { StdUtils, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
@@ -15,7 +15,17 @@ import { Portal_Initializer } from "test/CommonTest.t.sol";
 import { EIP1967Helper } from "test/CommonTest.t.sol";
 import { Types } from "src/libraries/Types.sol";
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "forge-std/console.sol";
+
+interface NativeToken is IERC20 {
+    function faucet(uint256 _amount) external;
+}
+
 contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
+    using stdStorage for StdStorage;
+
     Vm internal vm;
     OptimismPortal internal portal;
     bool public failedToComplete;
@@ -39,39 +49,43 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
         return rcfg;
     }
 
-    // // A test intended to identify any unexpected halting conditions
-    // function depositTransactionCompletes(
-    //     address _to,
-    //     uint256 _value,
-    //     uint64 _gasLimit,
-    //     bool _isCreation,
-    //     bytes memory _data
-    // )
-    //     public
-    //     payable
-    // {
-    //     vm.assume((!_isCreation || _to == address(0)) && _data.length <= 120_000);
+    // A test intended to identify any unexpected halting conditions
+    function depositTransactionCompletes(
+        address _to,
+        uint256 _value,
+        uint64 _gasLimit,
+        bytes memory _data
+    )
+        public
+        payable
+    {
+        address nativeTokenAddress = portal.nativeTokenAddress();
+        console.log(nativeTokenAddress);
 
-    //     uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
-    //     // Give the depositor some ether
-    //     vm.deal(address(this), preDepositvalue);
-    //     // cache the contract's eth balance
-    //     uint256 preDepositBalance = address(this).balance;
-    //     uint256 value = bound(preDepositvalue, 0, preDepositBalance);
+        uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
+        // Give the depositor some ether
+        vm.deal(address(this), preDepositvalue);
+        NativeToken(nativeTokenAddress).faucet(preDepositvalue);
 
-    //     (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
-    //     ResourceMetering.ResourceConfig memory rcfg = resourceConfig();
-    //     uint256 maxResourceLimit = uint64(rcfg.maxResourceLimit);
-    //     uint64 gasLimit = uint64(
-    //         bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
-    //     );
+        // cache the contract's native token balance
+        uint256 preDepositBalance = NativeToken(nativeTokenAddress).balanceOf(address(this));
+        uint256 value = bound(preDepositvalue, 0, preDepositBalance);
 
-    //     try portal.depositTransaction{ value: value }(_to, value, gasLimit, _isCreation, _data) {
-    //         // Do nothing; Call succeeded
-    //     } catch {
-    //         failedToComplete = true;
-    //     }
-    // }
+        NativeToken(nativeTokenAddress).approve(address(portal), value);
+
+        (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
+        ResourceMetering.ResourceConfig memory rcfg = resourceConfig();
+        uint256 maxResourceLimit = uint64(rcfg.maxResourceLimit);
+        uint64 gasLimit = uint64(
+            bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
+        );
+
+        try portal.depositTransaction(_to, value, gasLimit, _data) {
+            // Do nothing; Call succeeded
+        } catch {
+            failedToComplete = true;
+        }
+    }
 }
 
 contract OptimismPortal_Invariant_Harness is Portal_Initializer {
@@ -86,6 +100,8 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
     bytes32 _withdrawalHash;
     bytes[] _withdrawalProof;
     Types.OutputRootProof internal _outputRootProof;
+
+    uint256 immutable depositedAmountSlotIndex = 57;
 
     function setUp() public virtual override {
         super.setUp();
@@ -112,6 +128,9 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
         _proposedBlockNumber = oracle.nextBlockNumber();
         _proposedOutputIndex = oracle.nextOutputIndex();
 
+        // setup value for total deposit amount
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_defaultTx.value));
+
         // Configure the oracle to return the output root we've prepared.
         vm.warp(oracle.computeL2Timestamp(_proposedBlockNumber) + 1);
         vm.prank(oracle.PROPOSER());
@@ -127,27 +146,27 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
 contract OptimismPortal_Deposit_Invariant is Portal_Initializer {
     OptimismPortal_Depositor internal actor;
 
-    // function setUp() public override {
-    //     super.setUp();
-    //     // Create a deposit actor.
-    //     actor = new OptimismPortal_Depositor(vm, op);
+    function setUp() public override {
+        super.setUp();
+        // Create a deposit actor.
+        actor = new OptimismPortal_Depositor(vm, op);
 
-    //     targetContract(address(actor));
+        targetContract(address(actor));
 
-    //     bytes4[] memory selectors = new bytes4[](1);
-    //     selectors[0] = actor.depositTransactionCompletes.selector;
-    //     FuzzSelector memory selector = FuzzSelector({ addr: address(actor), selectors: selectors });
-    //     targetSelector(selector);
-    // }
+        bytes4[] memory selectors = new bytes4[](1);
+        selectors[0] = actor.depositTransactionCompletes.selector;
+        FuzzSelector memory selector = FuzzSelector({ addr: address(actor), selectors: selectors });
+        targetSelector(selector);
+    }
 
     /// @custom:invariant Deposits of any value should always succeed unless
     ///                   `_to` = `address(0)` or `_isCreation` = `true`.
     ///
     ///                   All deposits, barring creation transactions and transactions
     ///                   sent to `address(0)`, should always succeed.
-    // function invariant_deposit_completes() external {
-    //     assertEq(actor.failedToComplete(), false);
-    // }
+    function invariant_deposit_completes() external {
+        assertEq(actor.failedToComplete(), false);
+    }
 }
 
 contract OptimismPortal_CannotTimeTravel is OptimismPortal_Invariant_Harness {
@@ -175,33 +194,33 @@ contract OptimismPortal_CannotTimeTravel is OptimismPortal_Invariant_Harness {
 }
 
 contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness {
-// function setUp() public override {
-//     super.setUp();
+    function setUp() public override {
+        super.setUp();
 
-//     // Prove the withdrawal transaction
-//     op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+        // Prove the withdrawal transaction
+        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
-//     // Warp past the finalization period.
-//     vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        // Warp past the finalization period.
+        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
 
-//     // Finalize the withdrawal transaction.
-//     op.finalizeWithdrawalTransaction(_defaultTx);
+        // Finalize the withdrawal transaction.
+        op.finalizeWithdrawalTransaction(_defaultTx);
 
-//     // Set the target contract to the portal proxy
-//     targetContract(address(op));
-//     // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
-//     excludeSender(EIP1967Helper.getAdmin(address(op)));
-// }
+        // Set the target contract to the portal proxy
+        targetContract(address(op));
+        // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
+        excludeSender(EIP1967Helper.getAdmin(address(op)));
+    }
 
-// /// @custom:invariant `finalizeWithdrawalTransaction` should revert if the withdrawal
-// ///                   has already been finalized.
-// ///
-// ///                   Ensures that there is no chain of calls that can be made that
-// ///                   allows a withdrawal to be finalized twice.
-// function invariant_cannotFinalizeTwice() external {
-//     vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
-//     op.finalizeWithdrawalTransaction(_defaultTx);
-// }
+    /// @custom:invariant `finalizeWithdrawalTransaction` should revert if the withdrawal
+    ///                   has already been finalized.
+    ///
+    ///                   Ensures that there is no chain of calls that can be made that
+    ///                   allows a withdrawal to be finalized twice.
+    function invariant_cannotFinalizeTwice() external {
+        vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
+        op.finalizeWithdrawalTransaction(_defaultTx);
+    }
 }
 
 contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant_Harness {
@@ -227,11 +246,16 @@ contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant
     ///                   be made that will prevent a withdrawal from being finalized
     ///                   exactly `FINALIZATION_PERIOD_SECONDS` after it was successfully
     ///                   proven.
-    // function invariant_canAlwaysFinalize() external {
-    //     uint256 bobBalanceBefore = address(bob).balance;
+    function invariant_canAlwaysFinalize() external {
+        uint256 bobBalanceBefore = token.balanceOf(address(bob));
 
-    //     op.finalizeWithdrawalTransaction(_defaultTx);
+        op.finalizeWithdrawalTransaction(_defaultTx);
 
-    //     assertEq(address(bob).balance, bobBalanceBefore + _defaultTx.value);
-    // }
+        dealL2NativeToken(address(op), _defaultTx.value);
+
+        vm.prank(address(bob), address(bob));
+        token.transferFrom(address(op), address(bob), _defaultTx.value);
+
+        assertEq(token.balanceOf(address(bob)), bobBalanceBefore + _defaultTx.value);
+    }
 }
