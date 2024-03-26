@@ -90,8 +90,8 @@ func _standardBridgeInitiatedEvents[BridgeEventType bindings.StandardBridgeETHBr
 		// If an ETH bridge, lets fill in the needed fields
 		switch any(eventType).(type) {
 		case bindings.StandardBridgeETHBridgeInitiated:
-			erc20Bridge.LocalToken = predeploys.LegacyERC20ETHAddr
-			erc20Bridge.RemoteToken = predeploys.LegacyERC20ETHAddr
+			erc20Bridge.LocalToken = predeploys.LegacyERC20NativeTokenAddr
+			erc20Bridge.RemoteToken = predeploys.LegacyERC20NativeTokenAddr
 		}
 
 		standardBridgeInitiatedEvents[i] = StandardBridgeInitiatedEvent{
@@ -150,8 +150,8 @@ func _standardBridgeFinalizedEvents[BridgeEventType bindings.StandardBridgeETHBr
 		// If an ETH bridge, lets fill in the needed fields
 		switch any(eventType).(type) {
 		case bindings.StandardBridgeETHBridgeFinalized:
-			erc20Bridge.LocalToken = predeploys.LegacyERC20ETHAddr
-			erc20Bridge.RemoteToken = predeploys.LegacyERC20ETHAddr
+			erc20Bridge.LocalToken = predeploys.LegacyERC20NativeTokenAddr
+			erc20Bridge.RemoteToken = predeploys.LegacyERC20NativeTokenAddr
 		}
 
 		standardBridgeFinalizedEvents[i] = StandardBridgeFinalizedEvent{

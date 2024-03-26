@@ -41,6 +41,9 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		return nil, err
 	}
 
+	// Set up the LegacyERC20NativeToken
+	db.CreateAccount(predeploys.LegacyERC20NativeTokenAddr)
+
 	// Set up the proxies
 	err = setProxies(db, predeploys.ProxyAdminAddr, BigL2PredeployNamespace, 2048)
 	if err != nil {

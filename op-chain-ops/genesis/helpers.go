@@ -74,6 +74,10 @@ func AddressToCodeNamespace(addr common.Address) (common.Address, error) {
 }
 
 func IsL2DevPredeploy(addr common.Address) bool {
+	if addr == common.HexToAddress("0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000") {
+		return true
+	}
+
 	return bytes.Equal(addr[0:2], []byte{0x42, 0x00})
 }
 

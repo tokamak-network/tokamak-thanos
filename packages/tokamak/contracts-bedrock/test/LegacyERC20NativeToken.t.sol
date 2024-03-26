@@ -8,15 +8,15 @@ import { CommonTest } from "test/CommonTest.t.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Target contract
-import { LegacyERC20ETH } from "src/legacy/LegacyERC20ETH.sol";
+import { LegacyERC20NativeToken } from "src/legacy/LegacyERC20NativeToken.sol";
 
-contract LegacyERC20ETH_Test is CommonTest {
-    LegacyERC20ETH eth;
+contract LegacyERC20NativeToken_Test is CommonTest {
+    LegacyERC20NativeToken eth;
 
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
         super.setUp();
-        eth = new LegacyERC20ETH();
+        eth = new LegacyERC20NativeToken();
     }
 
     /// @dev Tests that the default metadata was set correctly.
@@ -34,43 +34,43 @@ contract LegacyERC20ETH_Test is CommonTest {
 
     /// @dev Tests that `transfer` reverts since it does not exist.
     function test_transfer_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: transfer is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: transfer is disabled");
         eth.transfer(alice, 100);
     }
 
     /// @dev Tests that `approve` reverts since it does not exist.
     function test_approve_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: approve is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: approve is disabled");
         eth.approve(alice, 100);
     }
 
     /// @dev Tests that `transferFrom` reverts since it does not exist.
     function test_transferFrom_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: transferFrom is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: transferFrom is disabled");
         eth.transferFrom(bob, alice, 100);
     }
 
     /// @dev Tests that `increaseAllowance` reverts since it does not exist.
     function test_increaseAllowance_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: increaseAllowance is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: increaseAllowance is disabled");
         eth.increaseAllowance(alice, 100);
     }
 
     /// @dev Tests that `decreaseAllowance` reverts since it does not exist.
     function test_decreaseAllowance_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: decreaseAllowance is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: decreaseAllowance is disabled");
         eth.decreaseAllowance(alice, 100);
     }
 
     /// @dev Tests that `mint` reverts since it does not exist.
     function test_mint_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: mint is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: mint is disabled");
         eth.mint(alice, 100);
     }
 
     /// @dev Tests that `burn` reverts since it does not exist.
     function test_burn_doesNotExist_reverts() external {
-        vm.expectRevert("LegacyERC20ETH: burn is disabled");
+        vm.expectRevert("LegacyERC20NativeToken: burn is disabled");
         eth.burn(alice, 100);
     }
 }
