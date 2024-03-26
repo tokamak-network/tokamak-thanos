@@ -56,6 +56,7 @@ var (
 // IsProxied returns true for predeploys that will sit behind a proxy contract
 func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
+	case LegacyERC20NativeTokenAddr:
 	case WNativeTokenAddr:
 	case GovernanceTokenAddr:
 	case ETHAddr:
@@ -66,6 +67,7 @@ func IsProxied(predeployAddr common.Address) bool {
 }
 
 func init() {
+	Predeploys["LegacyERC20NativeToken"] = &LegacyERC20NativeTokenAddr
 	Predeploys["L2ToL1MessagePasser"] = &L2ToL1MessagePasserAddr
 	Predeploys["DeployerWhitelist"] = &DeployerWhitelistAddr
 	Predeploys["WNativeToken"] = &WNativeTokenAddr

@@ -134,6 +134,7 @@ fi
 declare -A contracts
 
 contracts+=(
+  ["deaddeaddeaddeaddeaddeaddeaddeaddead0000"]="" # LegacyERC20NativeToken
   ["4200000000000000000000000000000000000001"]="" # Proxy
   ["4200000000000000000000000000000000000016"]="" # L2ToL1MessagePasser
   ["4200000000000000000000000000000000000002"]="" # DeployerWhitelist
@@ -171,10 +172,11 @@ echo "Successfully getting contracts addresses!"
 
 # Path of contracts
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
+LEGACY_ERC20_NATIVE_TOKEN_PATH=${BASE_PATH}/src/legacy/LegacyERC20NativeToken.sol
 PROXY_PATH=${BASE_PATH}/src/universal/Proxy.sol
 L2_TO_L1_MESSAGE_PASSER_PATH=${BASE_PATH}/src/L2/L2ToL1MessagePasser.sol
 DEPLOYER_WHITE_LIST_PATH=${BASE_PATH}/src/legacy/DeployerWhitelist.sol
-WNativeToken_PATH=${BASE_PATH}/src/vendor/WNativeToken.sol
+WNATIVE_TOKEN_PATH=${BASE_PATH}/src/vendor/WNativeToken.sol
 L2_CROSS_DOMAIN_MESSENGER_PATH=${BASE_PATH}/src/L2/L2CrossDomainMessenger.sol
 L2_STANDARD_BRIDGE_PATH=${BASE_PATH}/src/L2/L2StandardBridge.sol
 SEQUENCER_FEE_VAULT_PATH=${BASE_PATH}/src/L2/SequencerFeeVault.sol
@@ -193,6 +195,7 @@ EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
 
 function run() {
+  verify_LegacyERC20NativeToken
   verify_proxy
   verify_L2ToL1MessagePasser
   verify_DeployerWhitelist
@@ -232,6 +235,12 @@ function verify_contract() {
     $4
 }
 
+function verify_LegacyERC20NativeToken() {
+  CONTRACT_ADDR=${contracts["deaddeaddeaddeaddeaddeaddeaddeaddead0000"]}
+  COMPILER_VERSION=v0.8.15+commit.e14f2714
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${LEGACY_ERC20_NATIVE_TOKEN_PATH}:LegacyERC20NativeToken"
+}
+
 function verify_proxy() {
   CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 0x4200000000000000000000000000000000000001)
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000001"]}
@@ -254,7 +263,7 @@ function verify_DeployerWhitelist() {
 function verify_WNativeToken() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000006"]}
   COMPILER_VERSION=v0.5.17+commit.d19bba13
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WNativeToken_PATH}:WNativeToken"
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WNATIVE_TOKEN_PATH}:WNativeToken"
 }
 
 function verify_L2CrossDomainMessenger() {
