@@ -326,7 +326,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     bytes[] _withdrawalProof;
     Types.OutputRootProof internal _outputRootProof;
 
-    uint256 depositedAmountSlotIndex = 57;
+    uint256 immutable depositedAmountSlotIndex = 57;
 
     // Use a constructor to set the storage vars above, so as to minimize the number of ffi calls.
     constructor() {
