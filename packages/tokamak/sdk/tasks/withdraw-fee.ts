@@ -4,6 +4,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { predeploys } from '@tokamak-network/core-utils'
 import { BytesLike, ethers } from 'ethers'
+import Artifact__SequencerFeeVault from '@tokamak-network/thanos-contracts/forge-artifacts/SequencerFeeVault.sol/SequencerFeeVault.json'
 
 import {
   CrossChainMessenger,
@@ -11,7 +12,6 @@ import {
   NativeTokenBridgeAdapter,
   asL2Provider,
 } from '../src'
-import Artifact__SequencerFeeVault from '../../contracts-bedrock/forge-artifacts/SequencerFeeVault.sol/SequencerFeeVault.json'
 
 console.log('Setup task...')
 
