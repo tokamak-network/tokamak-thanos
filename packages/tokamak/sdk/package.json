@@ -62,7 +62,6 @@
   },
   "dependencies": {
     "@eth-optimism/contracts": "0.6.0",
-    "@eth-optimism/contracts-bedrock": "workspace:*",
     "@tokamak-network/thanos-contracts": "workspace:*",
     "@tokamak-network/core-utils": "workspace:*",
     "lodash": "^4.17.21",
