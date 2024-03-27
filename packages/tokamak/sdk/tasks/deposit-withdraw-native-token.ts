@@ -4,6 +4,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { predeploys } from '@tokamak-network/core-utils'
 import { BytesLike, ethers } from 'ethers'
+import Artifact__L1CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 
 import {
   CrossChainMessenger,
@@ -12,7 +13,6 @@ import {
   NumberLike,
   asL2Provider,
 } from '../src'
-import Artifact__L1CrossDomainMessenger from '../../contracts-bedrock/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 
 console.log('Setup task...')
 

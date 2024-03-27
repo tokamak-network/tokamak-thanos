@@ -613,9 +613,6 @@ importers:
       '@eth-optimism/contracts':
         specifier: 0.6.0
         version: 0.6.0(ethers@5.7.2)
-      '@eth-optimism/contracts-bedrock':
-        specifier: workspace:*
-        version: link:../../contracts-bedrock
       '@tokamak-network/core-utils':
         specifier: workspace:*
         version: link:../core-utils
