@@ -11,6 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract RelayActor is StdUtils {
     // Storage slot of the l2Sender
@@ -56,7 +57,7 @@ contract RelayActor is StdUtils {
 
         // If the message should succeed, supply it `baseGas`. If not, supply it an amount of
         // gas that is too low to complete the call.
-        uint256 gas = doFail ? bound(minGasLimit, 60_000, 80_000) : xdm.baseGas(_message, minGasLimit);
+        uint256 gas = doFail ? bound(minGasLimit, 80_000, 90_000) : xdm.baseGas(_message, minGasLimit);
 
         // Compute the cross domain message hash and store it in `hashes`.
         // The `relayMessage` function will always encode the message as a version 1
@@ -76,7 +77,7 @@ contract RelayActor is StdUtils {
         if (!doFail) {
             vm.expectCallMinGas(address(0x04), _value, minGasLimit, _message);
         }
-        try xdm.relayMessage{ gas: gas, value: _value }(
+        try xdm.relayMessage{ gas: gas }(
             Encoding.encodeVersionedNonce(0, _version), sender, target, _value, minGasLimit, _message
         ) { } catch {
             // If any of these calls revert, set `reverted` to true to fail the invariant test.
@@ -99,7 +100,11 @@ contract XDM_MinGasLimits is Messenger_Initializer {
         actor = new RelayActor(op, L1Messenger, vm, doFail);
 
         // Give the portal some ether to send to `relayMessage`
-        vm.deal(address(op), type(uint128).max);
+        // vm.deal(address(op), type(uint128).max);
+        dealL2NativeToken(address(op), type(uint128).max);
+
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
 
         // Target the `RelayActor` contract
         targetContract(address(actor));
@@ -120,30 +125,30 @@ contract XDM_MinGasLimits_Succeeds is XDM_MinGasLimits {
         super.init(false);
     }
 
-    // /// @custom:invariant A call to `relayMessage` should succeed if at least the minimum gas limit
-    // ///                   can be supplied to the target context, there is enough gas to complete
-    // ///                   execution of `relayMessage` after the target context's execution is
-    // ///                   finished, and the target context did not revert.
-    // ///
-    // ///                   There are two minimum gas limits here:
-    // ///
-    // ///                   - The outer min gas limit is for the call from the `OptimismPortal` to the
-    // ///                     `L1CrossDomainMessenger`,  and it can be retrieved by calling the xdm's
-    // ///                     `baseGas` function with the `message` and inner limit.
-    // ///
-    // ///                   - The inner min gas limit is for the call from the
-    // ///                     `L1CrossDomainMessenger` to the target contract.
-    // function invariant_minGasLimits() external {
-    //     uint256 length = actor.numHashes();
-    //     for (uint256 i = 0; i < length; ++i) {
-    //         bytes32 hash = actor.hashes(i);
-    //         // The message hash is set in the successfulMessages mapping
-    //         assertTrue(L1Messenger.successfulMessages(hash));
-    //         // The message hash is not set in the failedMessages mapping
-    //         assertFalse(L1Messenger.failedMessages(hash));
-    //     }
-    //     assertFalse(actor.reverted());
-    // }
+    /// @custom:invariant A call to `relayMessage` should succeed if at least the minimum gas limit
+    ///                   can be supplied to the target context, there is enough gas to complete
+    ///                   execution of `relayMessage` after the target context's execution is
+    ///                   finished, and the target context did not revert.
+    ///
+    ///                   There are two minimum gas limits here:
+    ///
+    ///                   - The outer min gas limit is for the call from the `OptimismPortal` to the
+    ///                     `L1CrossDomainMessenger`,  and it can be retrieved by calling the xdm's
+    ///                     `baseGas` function with the `message` and inner limit.
+    ///
+    ///                   - The inner min gas limit is for the call from the
+    ///                     `L1CrossDomainMessenger` to the target contract.
+    function invariant_minGasLimits() external {
+        uint256 length = actor.numHashes();
+        for (uint256 i = 0; i < length; ++i) {
+            bytes32 hash = actor.hashes(i);
+            // The message hash is set in the successfulMessages mapping
+            assertTrue(L1Messenger.successfulMessages(hash));
+            // The message hash is not set in the failedMessages mapping
+            assertFalse(L1Messenger.failedMessages(hash));
+        }
+        assertFalse(actor.reverted());
+    }
 }
 
 contract XDM_MinGasLimits_Reverts is XDM_MinGasLimits {
@@ -152,29 +157,29 @@ contract XDM_MinGasLimits_Reverts is XDM_MinGasLimits {
         super.init(true);
     }
 
-    // /// @custom:invariant A call to `relayMessage` should assign the message hash to the
-    // ///                   `failedMessages` mapping if not enough gas is supplied to forward
-    // ///                   `minGasLimit` to the target context or if there is not enough gas to
-    // ///                   complete execution of `relayMessage` after the target context's execution
-    // ///                   is finished.
-    // ///
-    // ///                   There are two minimum gas limits here:
-    // ///
-    // ///                   - The outer min gas limit is for the call from the `OptimismPortal` to the
-    // ///                     `L1CrossDomainMessenger`,  and it can be retrieved by calling the xdm's
-    // ///                     `baseGas` function with the `message` and inner limit.
-    // ///
-    // ///                   - The inner min gas limit is for the call from the
-    // ///                     `L1CrossDomainMessenger` to the target contract.
-    // function invariant_minGasLimits() external {
-    //     uint256 length = actor.numHashes();
-    //     for (uint256 i = 0; i < length; ++i) {
-    //         bytes32 hash = actor.hashes(i);
-    //         // The message hash is not set in the successfulMessages mapping
-    //         assertFalse(L1Messenger.successfulMessages(hash));
-    //         // The message hash is set in the failedMessages mapping
-    //         assertTrue(L1Messenger.failedMessages(hash));
-    //     }
-    //     assertFalse(actor.reverted());
-    // }
+    /// @custom:invariant A call to `relayMessage` should assign the message hash to the
+    ///                   `failedMessages` mapping if not enough gas is supplied to forward
+    ///                   `minGasLimit` to the target context or if there is not enough gas to
+    ///                   complete execution of `relayMessage` after the target context's execution
+    ///                   is finished.
+    ///
+    ///                   There are two minimum gas limits here:
+    ///
+    ///                   - The outer min gas limit is for the call from the `OptimismPortal` to the
+    ///                     `L1CrossDomainMessenger`,  and it can be retrieved by calling the xdm's
+    ///                     `baseGas` function with the `message` and inner limit.
+    ///
+    ///                   - The inner min gas limit is for the call from the
+    ///                     `L1CrossDomainMessenger` to the target contract.
+    function invariant_minGasLimits() external {
+        uint256 length = actor.numHashes();
+        for (uint256 i = 0; i < length; ++i) {
+            bytes32 hash = actor.hashes(i);
+            // The message hash is not set in the successfulMessages mapping
+            assertFalse(L1Messenger.successfulMessages(hash));
+            // The message hash is set in the failedMessages mapping
+            assertTrue(L1Messenger.failedMessages(hash));
+        }
+        assertFalse(actor.reverted());
+    }
 }
