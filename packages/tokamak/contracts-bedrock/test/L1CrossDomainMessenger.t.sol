@@ -36,6 +36,63 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev Tests that the sendMessage function is able to send a single message.
     /// TODO: this same test needs to be done with the legacy message type
     ///       by setting the message version to 0
+    function test_sendNativeTokenMessage_succeeds() external {
+        // faucet to alice's balance
+        dealL2NativeToken(alice, NON_ZERO_VALUE);
+
+        vm.prank(alice);
+        token.approve(address(L1Messenger), NON_ZERO_VALUE);
+
+        // deposit transaction on the optimism portal should be called
+        vm.expectCall(
+            address(op),
+            abi.encodeWithSelector(
+                OptimismPortal.depositTransaction.selector,
+                Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+                NON_ZERO_VALUE,
+                L1Messenger.baseGas(hex"ff", 100),
+                Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff")
+            )
+        );
+
+        // TransactionDeposited event
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(
+            AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger)),
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+            NON_ZERO_VALUE,
+            NON_ZERO_VALUE,
+            L1Messenger.baseGas(hex"ff", 100),
+            Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff")
+        );
+
+        // SentMessage event
+        vm.expectEmit(true, true, true, true);
+        emit SentMessage(recipient, alice, hex"ff", L1Messenger.messageNonce(), 100);
+
+        // SentMessageExtension1 event
+        vm.expectEmit(true, true, true, true);
+        emit SentMessageExtension1(alice, NON_ZERO_VALUE);
+
+        vm.prank(alice);
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"ff", uint32(100));
+    }
+
+    /// @dev Tests that the sendMessage function is able to send
+    ///      the same message twice.
+    function test_sendNativeTokenMessage_twice_succeeds() external {
+        dealL2NativeToken(address(this), NON_ZERO_VALUE * 2);
+        token.approve(address(L1Messenger), NON_ZERO_VALUE * 2);
+        uint256 nonce = L1Messenger.messageNonce();
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"aa", uint32(500_000));
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"aa", uint32(500_000));
+        // the nonce increments for each message sent
+        assertEq(nonce + 2, L1Messenger.messageNonce());
+    }
+
+    /// @dev Tests that the sendMessage function is able to send a single message.
+    /// TODO: this same test needs to be done with the legacy message type
+    ///       by setting the message version to 0
     function test_sendMessage_succeeds() external {
         // deposit transaction on the optimism portal should be called
         vm.expectCall(
