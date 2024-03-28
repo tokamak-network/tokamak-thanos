@@ -34,6 +34,26 @@ type data struct {
 	DeployedSourceMap string
 }
 
+// HardhatArtifact는 Hardhat으로 생성된 artifacts의 구조체를 나타냅니다.
+type HardhatArtifact struct {
+	ContractName string          `json:"contractName"`
+	ABI          json.RawMessage `json:"abi"`
+	Bytecode     string          `json:"bytecode"`
+	// 필요에 따라 추가 필드를 포함할 수 있습니다.
+}
+
+// LoadHardhatArtifact 함수는 Hardhat 아티팩트 파일을 로드하는 데 사용됩니다.
+// 이 함수는 아티팩트 파일의 경로를 받아 해당 파일을 읽고 파싱한 후 반환합니다.
+func LoadHardhatArtifact(artifactPath string) (HardhatArtifact, error) {
+	var artifact HardhatArtifact
+	data, err := os.ReadFile(artifactPath)
+	if err != nil {
+		return artifact, err
+	}
+	err = json.Unmarshal(data, &artifact)
+	return artifact, err
+}
+
 func main() {
 	var f flags
 	flag.StringVar(&f.ForgeArtifacts, "forge-artifacts", "", "Forge artifacts directory, to load sourcemaps from, if available")
@@ -118,9 +138,49 @@ func main() {
 			artifactPath = artifactPaths[name]
 			forgeArtifactData, err = os.ReadFile(artifactPath)
 			if errors.Is(err, os.ErrNotExist) {
-				log.Fatalf("cannot find forge-artifact of %q\n", name)
+				// Trying hardhat artifact path
+				hardhatArtifactPath := path.Join("hardhat-artifacts", "contracts", name+".sol", name+".json")
+				log.Printf("trying hardhat-artifact for %s at %s\n", name, hardhatArtifactPath)
+				hardhatArtifact, err := LoadHardhatArtifact(hardhatArtifactPath)
+				if err != nil {
+					log.Fatalf("cannot find artifact of %q in both Forge and Hardhat directories\n", name)
+				}
+				// If hardhat artifact is used, proceed to the next processing step.
+				goto ProcessArtifact
 			}
 		}
+		if err := json.Unmarshal(forgeArtifactData, &artifact); err != nil {
+			log.Fatalf("failed to parse forge artifact of %q: %v\n", name, err)
+		}
+
+		}
+	}
+
+ProcessArtifact:
+	// Artifact processing logic
+	// Example: generating ABI file
+	var rawAbi json.RawMessage
+	if artifact.Abi != nil {
+		rawAbi = artifact.Abi
+	} else {
+		rawAbi = hardhatArtifact.ABI
+	}
+	abiFile := path.Join(dir, name+".abi")
+	if err := os.WriteFile(abiFile, rawAbi, 0o600); err != nil {
+		log.Fatalf("error writing ABI file: %v\n", err)
+	}
+
+	// Example: generating bytecode file
+	var rawBytecode string
+	if artifact.Bytecode.Object != "" {
+		rawBytecode = artifact.Bytecode.Object.String()
+	} else {
+		rawBytecode = hardhatArtifact.Bytecode
+	}
+	bytecodeFile := path.Join(dir, name+".bin")
+	if err := os.WriteFile(bytecodeFile, []byte(rawBytecode), 0o600); err != nil {
+		log.Fatalf("error writing bytecode file: %v\n", err)
+	}
 
 		log.Printf("using forge-artifact %s\n", artifactPath)
 		var artifact foundry.Artifact

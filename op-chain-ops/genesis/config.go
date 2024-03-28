@@ -816,7 +816,7 @@ func (m *MarshalableRPCBlockNumberOrHash) UnmarshalJSON(b []byte) error {
 	var r rpc.BlockNumberOrHash
 	if err := json.Unmarshal(b, &r); err != nil {
 		return err
-	}``
+	}
 
 	asMarshalable := MarshalableRPCBlockNumberOrHash(r)
 	*m = asMarshalable
