@@ -69,7 +69,12 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
     receive() external payable override onlyEOA {
         _initiateWithdrawal(
-            Predeploys.LEGACY_ERC20_NATIVE_TOKEN, msg.sender, msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, bytes("")
+            Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
+            msg.sender,
+            msg.sender,
+            msg.value,
+            RECEIVE_DEFAULT_GAS_LIMIT,
+            bytes("")
         );
     }
 
@@ -79,7 +84,9 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
     /// @param _extraData   Extra data attached to the withdrawal.
     function withdrawNativeToken(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
-        _initiateWithdrawal(Predeploys.LEGACY_ERC20_NATIVE_TOKEN, msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
+        _initiateWithdrawal(
+            Predeploys.LEGACY_ERC20_NATIVE_TOKEN, msg.sender, msg.sender, msg.value, _minGasLimit, _extraData
+        );
     }
 
     /// @notice Initiates a withdrawal native token from L2 to L1 to a target account on L1.

@@ -710,9 +710,9 @@ contract L1StandardBridge_FinalizeERC20Withdrawal_TestFail is Bridge_Initializer
     }
 }
 
-contract L1StandardBridge_FinalizeBridgeTON_Test is Bridge_Initializer {
-    /// @dev Tests that finalizing bridged TON succeeds.
-    function test_finalizeBridgeTON_succeeds() external {
+contract L1StandardBridge_FinalizeBridgeNativeToken_Test is Bridge_Initializer {
+    /// @dev Tests that finalizing bridged Native token succeeds.
+    function test_finalizeBridgeNativeToken_succeeds() external {
         ERC20 nativeToken = ERC20(L1Bridge.nativeTokenAddress());
         address messenger = address(L1Bridge.messenger());
         uint256 beforeBalance = nativeToken.balanceOf(address(alice));
@@ -739,9 +739,9 @@ contract L1StandardBridge_FinalizeBridgeTON_Test is Bridge_Initializer {
     }
 }
 
-contract L1StandardBridge_FinalizeBridgeTON_TestFail is Bridge_Initializer {
-    /// @dev Tests that finalizing bridged TON reverts if the amount is incorrect.
-    function test_finalizeBridgeTON_incorrectValue_reverts() external {
+contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializer {
+    /// @dev Tests that finalizing bridged NativeToken reverts if the amount is incorrect.
+    function test_finalizeBridgeNativeToken_incorrectValue_reverts() external {
         ERC20 nativeToken = ERC20(L1Bridge.nativeTokenAddress());
         address messenger = address(L1Bridge.messenger());
 
@@ -766,7 +766,7 @@ contract L1StandardBridge_FinalizeBridgeTON_TestFail is Bridge_Initializer {
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the L1 bridge.
-    function test_finalizeBridgeTON_sendToSelf_reverts() external {
+    function test_finalizeBridgeNativeToken_sendToSelf_reverts() external {
         address messenger = address(L1Bridge.messenger());
 
         vm.mockCall(
@@ -780,7 +780,7 @@ contract L1StandardBridge_FinalizeBridgeTON_TestFail is Bridge_Initializer {
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the messenger.
-    function test_finalizeBridgeTON_sendToMessenger_reverts() external {
+    function test_finalizeBridgeNativeToken_sendToMessenger_reverts() external {
         address messenger = address(L1Bridge.messenger());
 
         vm.mockCall(
