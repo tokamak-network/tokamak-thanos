@@ -128,10 +128,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         emit ETHBridgeInitiated({ from: alice, to: alice, amount: 100, data: hex"" });
 
         vm.prank(alice, alice);
-        L2Bridge.withdrawNativeToken{ value: 100 }({
-            _minGasLimit: 1000,
-            _extraData: hex""
-        });
+        L2Bridge.withdrawNativeToken{ value: 100 }({ _minGasLimit: 1000, _extraData: hex"" });
 
         assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 100);
     }
@@ -140,10 +137,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
     function test_withdraw_native_token_reverted() external {
         vm.expectRevert();
         vm.prank(alice, alice);
-        L2Bridge.withdrawNativeToken{ value: 1 << 17 }({
-            _minGasLimit: 1000,
-            _extraData: hex""
-        });
+        L2Bridge.withdrawNativeToken{ value: 1 << 17 }({ _minGasLimit: 1000, _extraData: hex"" });
         assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 0);
     }
 
@@ -167,11 +161,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         emit ETHBridgeInitiated({ from: alice, to: bob, amount: 100, data: hex"" });
 
         vm.prank(alice, alice);
-        L2Bridge.withdrawNativeTokenTo{ value: 100 }({
-            _to: bob,
-            _minGasLimit: 1000,
-            _extraData: hex""
-        });
+        L2Bridge.withdrawNativeTokenTo{ value: 100 }({ _to: bob, _minGasLimit: 1000, _extraData: hex"" });
 
         assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 100);
     }
