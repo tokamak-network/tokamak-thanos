@@ -108,6 +108,64 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         L2Bridge.withdraw(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 100, 1000, hex"");
     }
 
+    /// @dev Tests that the `withdrawNativeToken` interface on the L2StandardBridge
+    ///      successfully initiates a withdrawal.
+    function test_withdraw_native_token_succeeds() external {
+        assertTrue(alice.balance >= 100);
+        assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 0);
+
+        vm.expectEmit(true, true, true, true, address(L2Bridge));
+        emit WithdrawalInitiated({
+            l1Token: address(0),
+            l2Token: Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
+            from: alice,
+            to: alice,
+            amount: 100,
+            data: hex""
+        });
+
+        vm.expectEmit(true, true, true, true, address(L2Bridge));
+        emit ETHBridgeInitiated({ from: alice, to: alice, amount: 100, data: hex"" });
+
+        vm.prank(alice, alice);
+        L2Bridge.withdrawNativeToken{ value: 100 }({ _minGasLimit: 1000, _extraData: hex"" });
+
+        assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 100);
+    }
+
+    /// @dev Tests that the `withdrawNativeToken` reverted due out of balance
+    function test_withdraw_native_token_reverted() external {
+        vm.expectRevert();
+        vm.prank(alice, alice);
+        L2Bridge.withdrawNativeToken{ value: 1 << 17 }({ _minGasLimit: 1000, _extraData: hex"" });
+        assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 0);
+    }
+
+    /// @dev Tests that the `withdrawNativeTokenTo` interface on the L2StandardBridge
+    ///      successfully initiates a withdrawal.
+    function test_withdraw_native_token_to_succeeds() external {
+        assertTrue(alice.balance >= 100);
+        assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 0);
+
+        vm.expectEmit(true, true, true, true, address(L2Bridge));
+        emit WithdrawalInitiated({
+            l1Token: address(0),
+            l2Token: Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
+            from: alice,
+            to: bob,
+            amount: 100,
+            data: hex""
+        });
+
+        vm.expectEmit(true, true, true, true, address(L2Bridge));
+        emit ETHBridgeInitiated({ from: alice, to: bob, amount: 100, data: hex"" });
+
+        vm.prank(alice, alice);
+        L2Bridge.withdrawNativeTokenTo{ value: 100 }({ _to: bob, _minGasLimit: 1000, _extraData: hex"" });
+
+        assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, 100);
+    }
+
     /// @dev Tests that the legacy `withdraw` interface on the L2StandardBridge
     ///      successfully initiates a withdrawal.
     function test_withdraw_ether_succeeds() external {
