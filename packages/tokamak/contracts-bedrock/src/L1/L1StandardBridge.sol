@@ -444,7 +444,9 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
         IERC20(nativeTokenAddress).approve(address(messenger), _amount);
 
-        _emitERC20BridgeInitiated(nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        _emitERC20BridgeInitiated(
+            nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData
+        );
 
         L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
             address(OTHER_BRIDGE),

@@ -51,7 +51,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
                 Predeploys.L2_CROSS_DOMAIN_MESSENGER,
                 NON_ZERO_VALUE,
                 L1Messenger.baseGas(hex"ff", 100),
-                Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff")
+                Encoding.encodeCrossDomainMessage(
+                    L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
+                )
             )
         );
 
@@ -63,7 +65,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             NON_ZERO_VALUE,
             NON_ZERO_VALUE,
             L1Messenger.baseGas(hex"ff", 100),
-            Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff")
+            Encoding.encodeCrossDomainMessage(
+                L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
+            )
         );
 
         // SentMessage event
