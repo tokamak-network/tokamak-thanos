@@ -257,7 +257,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     }
 
     /// @dev Tests that relayMessage should successfully call the target contract after
-    ///      the first message fails and TON is stuck, but the second message succeeds
+    ///      the first message fails and NativeToken is stuck, but the second message succeeds
     ///      with a version 1 message.
     function test_relayMessage_retryAfterFailure_succeeds() external {
         address target = address(0xabcd);
