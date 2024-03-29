@@ -5,7 +5,6 @@ import { ERC1967Proxy } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC19
 import { ERC1967Utils } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC1967Utils.sol";
 import { L2UsdcBridgeStorage } from "./L2UsdcBridgeStorage.sol";
 
-// import "hardhat/console.sol";
 
 contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
 
