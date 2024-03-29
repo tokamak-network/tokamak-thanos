@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import { IERC20 } from "@openzeppelin/contracts_v5.0.1/token/ERC20/IERC20.sol";
-import { Address } from "../libraries/Address.sol";
+import { Address } from "../../../libraries/Address.sol";
 import { SafeERC20 } from "@openzeppelin/contracts_v5.0.1/token/ERC20/utils/SafeERC20.sol";
 
 import { ERC1967Utils } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC1967Utils.sol";
