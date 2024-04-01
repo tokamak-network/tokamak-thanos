@@ -362,8 +362,8 @@ const withdrawERC20Token = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  l1MockAddress = '0xBD20Cd677066ced4099A479feBD2A416686917BB'
-  l2MockAddress = '0x2957d6E10BC45CcE14c4FfC256dCb11E267d2D06'
+  l1MockAddress = '0x8d727e0727d3D1fa36E479b7dAAF2AC8b9ff7776'
+  l2MockAddress = '0x246A16e718977f4468cd6594F11820cC90ceA32d'
 
   MockERC20 = new ethers.Contract(
     l1MockAddress,

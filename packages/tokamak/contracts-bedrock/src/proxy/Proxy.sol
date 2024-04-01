@@ -178,10 +178,6 @@ contract Proxy is ProxyStorage, AccessibleCommon, IProxyEvent, IProxyAction
         uint256 _index,
         bool _alive
     ) internal {
-        require(
-            _isContract(newImplementation),
-            "Proxy: not contract address"
-        );
         if (_alive) proxyImplementation[_index] = newImplementation;
         _setAliveImplementation2(newImplementation, _alive);
     }

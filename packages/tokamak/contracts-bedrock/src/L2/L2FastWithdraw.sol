@@ -13,11 +13,29 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
 
     using SafeERC20 for IERC20;
 
+    constructor () {
+    }
+
     //=======modifier========
 
     modifier onlyEOA() {
         require(!_isContract(msg.sender), "L2FW: function can only be called from an EOA");
         _;
+    }
+
+    //=======initialize========
+    function initialize(
+        address _crossDomainMessenger,
+        address _l1fastWithdraw,
+        address _legacyERC20,
+        address _l1legacyERC20
+    )
+        public
+    {
+        crossDomainMessenger = _crossDomainMessenger;
+        l1fastWithdrawContract = _l1fastWithdraw;
+        LEGACY_ERC20_ETH = _legacyERC20;
+        LEGACY_l1token = _l1legacyERC20;
     }
 
     //=======external========
