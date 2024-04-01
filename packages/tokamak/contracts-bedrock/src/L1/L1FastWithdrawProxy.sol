@@ -2,12 +2,13 @@
 pragma solidity 0.8.15;
 
 import { Proxy } from "../proxy/Proxy.sol";
-import { L2FastWithdrawStorage } from "./L2FastWithdrawStorage.sol";
+import { L1FastWithdrawStorage } from "./L1FastWithdrawStorage.sol";
 
-contract L2FastWithdrawProxy is Proxy, L2FastWithdrawStorage {
+contract L1FastWithdrawProxy is Proxy, L1FastWithdrawStorage {
+
     function initialize(
         address _crossDomainMessenger,
-        address _l1fastWithdraw,
+        address _l2fastWithdraw,
         address _legacyERC20,
         address _l1legacyERC20
     )
@@ -15,7 +16,7 @@ contract L2FastWithdrawProxy is Proxy, L2FastWithdrawStorage {
         onlyOwner
     {
         crossDomainMessenger = _crossDomainMessenger;
-        l1fastWithdrawContract = _l1fastWithdraw;
+        l2fastWithdrawContract = _l2fastWithdraw;
         LEGACY_ERC20_ETH = _legacyERC20;
         LEGACY_l1token = _l1legacyERC20;
     }

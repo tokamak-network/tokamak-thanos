@@ -4,7 +4,7 @@ pragma solidity ^0.8.15;
 import "./ProxyStorage.sol";
 import { AccessibleCommon } from "../common/AccessibleCommon.sol";
 
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+// import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import "../interfaces/IProxyEvent.sol";
 import "../interfaces/IProxyAction.sol";
@@ -20,7 +20,7 @@ contract Proxy is ProxyStorage, AccessibleCommon, IProxyEvent, IProxyAction
 
     constructor () {
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-        _setupRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
 
@@ -179,7 +179,7 @@ contract Proxy is ProxyStorage, AccessibleCommon, IProxyEvent, IProxyAction
         bool _alive
     ) internal {
         require(
-            Address.isContract(newImplementation),
+            _isContract(newImplementation),
             "Proxy: not contract address"
         );
         if (_alive) proxyImplementation[_index] = newImplementation;
@@ -195,5 +195,10 @@ contract Proxy is ProxyStorage, AccessibleCommon, IProxyEvent, IProxyAction
         aliveImplementation[newImplementation] = _alive;
         emit SetAliveImplementation(newImplementation, _alive);
     }
+
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
+    }
+
 
 }
