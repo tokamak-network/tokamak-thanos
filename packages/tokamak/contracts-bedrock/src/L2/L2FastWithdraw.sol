@@ -7,7 +7,7 @@ import { AccessibleCommon } from "../common/AccessibleCommon.sol";
 import { L2FastWithdrawStorage } from "./L2FastWithdrawStorage.sol";
 import { IOptimismMintableERC20, ILegacyMintableERC20 } from "../interfaces/IOptimismMintableERC20.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
 
@@ -55,7 +55,6 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
     {
         // address l1token = enteringToken[_l2token];
         // require(checkToken[l1token][_l2token], "not entering token");
-
         ++salecount;
 
         if (dealData[salecount].l2token == LEGACY_ERC20_ETH) {
@@ -84,7 +83,7 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
         external
         payable
     {
-        console.log("msg.sender: ", msg.sender);
+        // console.log("msg.sender: ", msg.sender);
         require(dealData[_saleCount].requester == _to, "not match the seller");
         require(dealData[_saleCount].fwAmount <= _amount, "need to over minAmount");
         dealData[_saleCount].provider = _from;
