@@ -1,0 +1,27 @@
+name: slither analysis without ignore-compile
+
+on:
+  push:
+    paths:
+      - 'packages/tokamak/contracts-bedrock/**'
+      - '**'
+
+jobs:
+  slither:
+    name: Slither run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Copy pnpm-lock.yaml
+        run: cp pnpm-lock.yaml packages/tokamak/contracts-bedrock/
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.1
+        id: slither
+        with:
+          target: packages/tokamak/contracts-bedrock
+          slither-config: packages/tokamak/contracts-bedrock/slither.config.json
+          fail-on: config
+          slither-version: dev-triage-db
+          slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
