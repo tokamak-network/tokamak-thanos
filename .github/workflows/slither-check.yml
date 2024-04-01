@@ -3,7 +3,7 @@ name: slither analysis
 on:
   push:
     paths:
-      - 'packages/tokamak/contracts-bedrock/**'
+      - '**'
 
 jobs:
   analyze:
