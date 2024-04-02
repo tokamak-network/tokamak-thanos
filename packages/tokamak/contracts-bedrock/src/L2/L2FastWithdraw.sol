@@ -111,7 +111,7 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
             (bool sent, ) = payable(_from).call{value: dealData[_saleCount].totalAmount}("");
             require(sent, "claim fail");
         } else {
-            IERC20(dealData[_saleCount].l2token).safeTransferFrom(address(this),_from,dealData[_saleCount].totalAmount);
+            IERC20(dealData[_saleCount].l2token).transfer(_from,dealData[_saleCount].totalAmount);
         }
     }
 

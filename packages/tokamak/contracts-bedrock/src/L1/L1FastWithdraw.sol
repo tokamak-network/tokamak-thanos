@@ -58,7 +58,13 @@ contract L1FastWithdraw is AccessibleCommon, L1FastWithdrawStorage {
         // );
 
         //need to approve
-        IERC20(_l1token).safeTransferFrom(msg.sender, _to, _amount);
+        if (LEGACY_l1token == _l1token) {
+            IERC20(_l1token).transferFrom(msg.sender, address(this), _amount);
+            IERC20(_l1token).transfer(_to,_amount);
+        } else {
+            IERC20(_l1token).transferFrom(msg.sender, _to, _amount);
+        }
+
 
         IL1CrossDomainMessenger(crossDomainMessenger).sendMessage(
             l2fastWithdrawContract,
