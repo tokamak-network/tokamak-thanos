@@ -12,6 +12,7 @@ import {
   hexConcat,
   zeroPad,
 } from '@ethersproject/bytes'
+import { Log } from '@ethersproject/abstract-provider'
 
 const formatBoolean = (value: boolean): Uint8Array => {
   return value ? new Uint8Array([1]) : new Uint8Array([])
@@ -260,5 +261,50 @@ export class DepositTx {
 
   static fromL1Event(event: Event): DepositTx {
     return new this({}).fromL1Event(event)
+  }
+
+  fromL1Log(log: Log): DepositTx {
+    if (typeof log.topics[1] === 'undefined') {
+      throw new Error('"from" undefined')
+    }
+    this.from = log.topics[1].substring(26)
+
+    if (typeof log.topics[2] === 'undefined') {
+      throw new Error('"to" undefined')
+    }
+    this.to = log.topics[2].substring(26)
+
+    if (typeof log.topics[3] === 'undefined') {
+      throw new Error(`"verison" undefined`)
+    }
+    if (!BigNumber.from(log.topics[3]).eq(0)) {
+      throw new Error(`Unsupported version ${log.topics[2].substring(2)}`)
+    }
+
+    const opaqueData = log.data
+
+    let offset = BigNumber.from(hexDataSlice(opaqueData, 0, 32)).toNumber()
+    const metadataLength = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 32)).toNumber()
+    offset += 32
+    this.mint = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 32))
+    offset += 32
+    this.value = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 32))
+    offset += 32
+    this.gas = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 8))
+    offset += 8
+    // bypass isCreation
+    offset += 1
+
+    const length = (metadataLength + 64) - offset
+    this.isSystemTransaction = false
+    this.data = hexDataSlice(opaqueData, offset, offset + length)
+    this.domain = SourceHashDomain.UserDeposit
+    this.l1BlockHash = log.blockHash
+    this.logIndex = log.logIndex
+    return this
+  }
+
+  static fromL1Log(log: Log): DepositTx {
+    return new this({}).fromL1Log(log)
   }
 }
