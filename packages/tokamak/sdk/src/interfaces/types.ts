@@ -176,6 +176,13 @@ export enum MessageDirection {
   L2_TO_L1,
 }
 
+export interface DepositTransactionRequest {
+  to: AddressLike
+  value: BigNumber
+  gasLimit: BigNumber
+  data: string
+}
+
 /**
  * Partial message that needs to be signed and executed by a specific signer.
  */
