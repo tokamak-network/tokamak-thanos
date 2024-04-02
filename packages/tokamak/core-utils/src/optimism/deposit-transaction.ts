@@ -301,6 +301,7 @@ export class DepositTx {
     this.domain = SourceHashDomain.UserDeposit
     this.l1BlockHash = log.blockHash
     this.logIndex = log.logIndex
+    this.sourceHash()
     return this
   }
 
