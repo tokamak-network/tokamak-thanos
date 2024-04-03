@@ -14,7 +14,7 @@ type Deployment struct {
 	Name             string
 	Abi              abi.ABI            `json:"abi"`
 	Address          common.Address     `json:"address"`
-	Args             []any              `json:"args"`
+	Args             interface{}        `json:"args"`
 	Bytecode         hexutil.Bytes      `json:"bytecode"`
 	DeployedBytecode hexutil.Bytes      `json:"deployedBytecode"`
 	Devdoc           json.RawMessage    `json:"devdoc"`

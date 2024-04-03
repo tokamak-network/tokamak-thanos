@@ -1,13 +1,24 @@
 import argparse
-import time
 import http.client
 import json
 import urllib
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 parser = argparse.ArgumentParser(description="Your script description")
 parser.add_argument("--l1-rpc", type=str, required=True, help="L1 RPC")
 
 args = parser.parse_args()
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+  def do_GET(self):
+    self.send_response(200)
+    self.end_headers()
+    self.wfile.write(b"OK")
+
+def health_check_l1(server_class=HTTPServer, handler_class=Handler, port=9999):
+  server_address = ('', port)
+  httpd = server_class(server_address, handler_class)
+  httpd.serve_forever()
 
 
 def read_data(filename):
@@ -115,6 +126,9 @@ def main():
         is_success = make_req(l1_rpc, payload)
         if not is_success:
           print(f"failed to set storage, addr: {addr}, slot: {slot}, val: {val}")
+
+  health_check_l1()
+
 
 
 
