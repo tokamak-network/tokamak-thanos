@@ -106,7 +106,7 @@ def main():
       addresses_json_path=pjoin(devnet_dir, 'addresses.json'),
       sdk_addresses_json_path=pjoin(devnet_dir, 'sdk-addresses.json'),
       rollup_config_path=pjoin(devnet_dir, 'rollup.json'),
-      fork_public_network = args.fork_public_network,
+      fork_public_network=args.fork_public_network,
       l1_rpc_url=args.l1_rpc_url,
       block_number=block_number,
       l2_native_token=args.l2_native_token,
