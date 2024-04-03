@@ -1,5 +1,120 @@
 [
     {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AccessDenied",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AlreadyRevoked",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AlreadyRevokedOffchain",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AlreadyTimestamped",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "DeadlineExpired",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientValue",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAttestation",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAttestations",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidExpirationTime",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidLength",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidNonce",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidOffset",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidRegistry",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidRevocation",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidRevocations",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSchema",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidVerifier",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Irrevocable",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotFound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotPayable",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "WrongSchema",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -28,6 +143,25 @@
         }
       ],
       "name": "Attested",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldNonce",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "NonceIncreased",
       "type": "event"
     },
     {
@@ -264,6 +398,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getAttestTypeHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "bytes32",
@@ -335,6 +482,51 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getDomainSeparator",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getName",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "getNonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -360,6 +552,19 @@
     },
     {
       "inputs": [],
+      "name": "getRevokeTypeHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "getSchemaRegistry",
       "outputs": [
         {
@@ -368,7 +573,7 @@
           "type": "address"
         }
       ],
-      "stateMutability": "view",
+      "stateMutability": "pure",
       "type": "function"
     },
     {
@@ -388,6 +593,19 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "increaseNonce",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -853,6 +1071,19 @@
         }
       ],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ]

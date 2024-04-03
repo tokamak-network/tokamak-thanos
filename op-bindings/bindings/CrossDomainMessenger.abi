@@ -16,118 +16,13 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "nonce",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "sender",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "target",
-          "type": "address"
-        },
-        {
           "indexed": false,
-          "internalType": "uint256",
-          "name": "value",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "gasLimit",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes32",
-          "name": "withdrawalHash",
-          "type": "bytes32"
+          "internalType": "uint8",
+          "name": "version",
+          "type": "uint8"
         }
       ],
-      "name": "MessagePassed",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "outputRoot",
-          "type": "bytes32"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "l2OutputIndex",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "l2BlockNumber",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "l1Timestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "OutputProposed",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "prevNextOutputIndex",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "newNextOutputIndex",
-          "type": "uint256"
-        }
-      ],
-      "name": "OutputsDeleted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "previousOwner",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "OwnershipTransferred",
+      "name": "Initialized",
       "type": "event"
     },
     {
@@ -200,515 +95,248 @@
       "type": "event"
     },
     {
-      "anonymous": false,
-      "inputs": [
+      "inputs": [],
+      "name": "MESSAGE_VERSION",
+      "outputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "from",
-          "type": "address"
-        },
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "MIN_GAS_CALLDATA_OVERHEAD",
+      "outputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "to",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "mint",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "value",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
           "internalType": "uint64",
-          "name": "gasLimit",
+          "name": "",
           "type": "uint64"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "isCreation",
-          "type": "bool"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
         }
       ],
-      "name": "TransactionDeposited",
-      "type": "event"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-      "anonymous": false,
-      "inputs": [
+      "inputs": [],
+      "name": "MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR",
+      "outputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "from",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "to",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "version",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes",
-          "name": "opaqueData",
-          "type": "bytes"
-        }
-      ],
-      "name": "TransactionDeposited",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes",
-          "name": "returndata",
-          "type": "bytes"
-        }
-      ],
-      "name": "WhatHappened",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "withdrawalHash",
-          "type": "bytes32"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "name": "WithdrawalFinalized",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "bytes32",
-          "name": "withdrawalHash",
-          "type": "bytes32"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "from",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "to",
-          "type": "address"
-        }
-      ],
-      "name": "WithdrawalProven",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
+          "internalType": "uint64",
           "name": "",
-          "type": "string"
+          "type": "uint64"
         }
       ],
-      "name": "log",
-      "type": "event"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-      "anonymous": false,
-      "inputs": [
+      "inputs": [],
+      "name": "MIN_GAS_DYNAMIC_OVERHEAD_NUMERATOR",
+      "outputs": [
         {
-          "indexed": false,
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "OTHER_MESSENGER",
+      "outputs": [
+        {
           "internalType": "address",
           "name": "",
           "type": "address"
         }
       ],
-      "name": "log_address",
-      "type": "event"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-      "anonymous": false,
-      "inputs": [
+      "inputs": [],
+      "name": "RELAY_CALL_OVERHEAD",
+      "outputs": [
         {
-          "indexed": false,
-          "internalType": "uint256[]",
-          "name": "val",
-          "type": "uint256[]"
-        }
-      ],
-      "name": "log_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "int256[]",
-          "name": "val",
-          "type": "int256[]"
-        }
-      ],
-      "name": "log_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "val",
-          "type": "address[]"
-        }
-      ],
-      "name": "log_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "bytes",
+          "internalType": "uint64",
           "name": "",
-          "type": "bytes"
+          "type": "uint64"
         }
       ],
-      "name": "log_bytes",
-      "type": "event"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-      "anonymous": false,
+      "inputs": [],
+      "name": "RELAY_CONSTANT_OVERHEAD",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "RELAY_GAS_CHECK_BUFFER",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "RELAY_RESERVED_GAS",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
-          "indexed": false,
+          "internalType": "bytes",
+          "name": "_message",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_minGasLimit",
+          "type": "uint32"
+        }
+      ],
+      "name": "baseGas",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
           "name": "",
           "type": "bytes32"
         }
       ],
-      "name": "log_bytes32",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
+      "name": "failedMessages",
+      "outputs": [
         {
-          "indexed": false,
-          "internalType": "int256",
+          "internalType": "bool",
           "name": "",
-          "type": "int256"
+          "type": "bool"
         }
       ],
-      "name": "log_int",
-      "type": "event"
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-      "anonymous": false,
+      "inputs": [],
+      "name": "messageNonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "_nonce",
+          "type": "uint256"
         },
         {
-          "indexed": false,
           "internalType": "address",
-          "name": "val",
+          "name": "_sender",
           "type": "address"
-        }
-      ],
-      "name": "log_named_address",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
         },
         {
-          "indexed": false,
-          "internalType": "uint256[]",
-          "name": "val",
-          "type": "uint256[]"
-        }
-      ],
-      "name": "log_named_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
+          "internalType": "address",
+          "name": "_target",
+          "type": "address"
         },
         {
-          "indexed": false,
-          "internalType": "int256[]",
-          "name": "val",
-          "type": "int256[]"
-        }
-      ],
-      "name": "log_named_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "_value",
+          "type": "uint256"
         },
         {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "val",
-          "type": "address[]"
-        }
-      ],
-      "name": "log_named_array",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "_minGasLimit",
+          "type": "uint256"
         },
         {
-          "indexed": false,
           "internalType": "bytes",
-          "name": "val",
+          "name": "_message",
           "type": "bytes"
         }
       ],
-      "name": "log_named_bytes",
-      "type": "event"
+      "name": "relayMessage",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
     },
     {
-      "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
+          "internalType": "address",
+          "name": "_target",
+          "type": "address"
         },
         {
-          "indexed": false,
+          "internalType": "bytes",
+          "name": "_message",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint32",
+          "name": "_minGasLimit",
+          "type": "uint32"
+        }
+      ],
+      "name": "sendMessage",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
-          "name": "val",
+          "name": "",
           "type": "bytes32"
         }
       ],
-      "name": "log_named_bytes32",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "int256",
-          "name": "val",
-          "type": "int256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "decimals",
-          "type": "uint256"
-        }
-      ],
-      "name": "log_named_decimal_int",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "val",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "decimals",
-          "type": "uint256"
-        }
-      ],
-      "name": "log_named_decimal_uint",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "int256",
-          "name": "val",
-          "type": "int256"
-        }
-      ],
-      "name": "log_named_int",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "val",
-          "type": "string"
-        }
-      ],
-      "name": "log_named_string",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "val",
-          "type": "uint256"
-        }
-      ],
-      "name": "log_named_uint",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "name": "log_string",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "log_uint",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
-        }
-      ],
-      "name": "logs",
-      "type": "event"
-    },
-    {
-      "inputs": [],
-      "name": "IS_TEST",
+      "name": "successfulMessages",
       "outputs": [
         {
           "internalType": "bool",
@@ -721,233 +349,15 @@
     },
     {
       "inputs": [],
-      "name": "excludeArtifacts",
+      "name": "xDomainMessageSender",
       "outputs": [
         {
-          "internalType": "string[]",
-          "name": "excludedArtifacts_",
-          "type": "string[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "excludeContracts",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "excludedContracts_",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "excludeSenders",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "excludedSenders_",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "failed",
-      "outputs": [
-        {
-          "internalType": "bool",
+          "internalType": "address",
           "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "proposeAnotherOutput",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "setUp",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "targetArtifactSelectors",
-      "outputs": [
-        {
-          "components": [
-            {
-              "internalType": "address",
-              "name": "addr",
-              "type": "address"
-            },
-            {
-              "internalType": "bytes4[]",
-              "name": "selectors",
-              "type": "bytes4[]"
-            }
-          ],
-          "internalType": "struct StdInvariant.FuzzSelector[]",
-          "name": "targetedArtifactSelectors_",
-          "type": "tuple[]"
+          "type": "address"
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "targetArtifacts",
-      "outputs": [
-        {
-          "internalType": "string[]",
-          "name": "targetedArtifacts_",
-          "type": "string[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "targetContracts",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "targetedContracts_",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "targetSelectors",
-      "outputs": [
-        {
-          "components": [
-            {
-              "internalType": "address",
-              "name": "addr",
-              "type": "address"
-            },
-            {
-              "internalType": "bytes4[]",
-              "name": "selectors",
-              "type": "bytes4[]"
-            }
-          ],
-          "internalType": "struct StdInvariant.FuzzSelector[]",
-          "name": "targetedSelectors_",
-          "type": "tuple[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "targetSenders",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "targetedSenders_",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_messageVersion_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_relayMessage_retry_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_relayMessage_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_relayMessage_toSystemContract_reverts",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_relayMessage_v2_reverts",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_sendMessage_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_sendMessage_twice_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_xDomainMessageSender_reset_succeeds",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "test_xDomainSender_senderNotSet_reverts",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "_nextBlockNumber",
-          "type": "uint256"
-        }
-      ],
-      "name": "warpToProposeTime",
-      "outputs": [],
-      "stateMutability": "nonpayable",
       "type": "function"
     }
   ]

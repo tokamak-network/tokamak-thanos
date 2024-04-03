@@ -16,7 +16,8 @@ import (
 type flags struct {
 	ForgeArtifacts   string
 	HardhatArtifacts string
-	Contracts        string
+	ForgeContracts   string
+	HardhatContracts string
 	SourceMaps       string
 	OutDir           string
 	Package          string
@@ -36,7 +37,8 @@ func main() {
 	flag.StringVar(&f.ForgeArtifacts, "forge-artifacts", "", "Forge artifacts directory")
 	flag.StringVar(&f.HardhatArtifacts, "hardhat-artifacts", "", "Hardhat artifacts directory")
 	flag.StringVar(&f.OutDir, "out", "", "Output directory to put generated code in")
-	flag.StringVar(&f.Contracts, "contracts", "", "Path to file containing list of contracts to generate bindings for")
+	flag.StringVar(&f.ForgeContracts, "forge-contracts", "", "Path to file containing list of contracts to generate bindings for from forge-artifacts")
+	flag.StringVar(&f.HardhatContracts, "hardhat-contracts", "", "Path to file containing list of contracts to generate bindings for from hardhat-artifacts")
 	flag.StringVar(&f.SourceMaps, "source-maps", "", "Comma-separated list of contracts to generate source maps for")
 	flag.StringVar(&f.Package, "package", "bindings", "Package name for the generated Go code")
 	flag.StringVar(&f.MonorepoBase, "monorepo-base", "", "Base directory of the monorepo for resolving source file paths in ASTs")
@@ -51,8 +53,7 @@ func main() {
 }
 
 func processForgeArtifacts(f flags) {
-	// contracts.json 파일에서 계약 이름의 목록을 읽어옵니다.
-	contractData, err := os.ReadFile(f.Contracts)
+	contractData, err := os.ReadFile(f.ForgeContracts)
 	if err != nil {
 		log.Fatalf("error reading contracts file: %v", err)
 	}
@@ -68,11 +69,11 @@ func processForgeArtifacts(f flags) {
 	}
 
 	for _, contract := range contracts {
-		log.Printf("Processing Forge artifact for contract: %s\n", contract)
 		artifactPath := filepath.Join(f.ForgeArtifacts, contract+".sol", contract+".json")
 		forgeArtifactData, err := os.ReadFile(artifactPath)
 		if err != nil {
-			log.Fatalf("Failed to read artifact for contract %s: %v", contract, err)
+			log.Printf("Failed to read artifact for contract %s, skipping: %v", contract, err)
+			continue
 		}
 
 		var artifact foundry.Artifact
@@ -80,23 +81,16 @@ func processForgeArtifacts(f flags) {
 			log.Fatalf("Failed to unmarshal artifact for contract %s: %v", contract, err)
 		}
 
-		// ABI, BIN 파일 및 Go 바인딩 생성 로직은 여기서 처리합니다.
-		// 필요한 경우 템플릿을 이용하여 추가 파일을 생성할 수 있습니다.
-		// 예시 코드에서는 abigen 커맨드를 사용하는 부분을 유지합니다.
-
-		// ABI 파일 생성
 		abiPath := filepath.Join(f.OutDir, contract+".abi")
 		if err := os.WriteFile(abiPath, artifact.Abi, 0644); err != nil {
 			log.Fatalf("Failed to write ABI file for %s: %v", contract, err)
 		}
 
-		// BIN 파일 생성
 		binPath := filepath.Join(f.OutDir, contract+".bin")
 		if err := os.WriteFile(binPath, []byte(artifact.Bytecode.Object.String()), 0644); err != nil {
 			log.Fatalf("Failed to write BIN file for %s: %v", contract, err)
 		}
 
-		// Go 바인딩 생성
 		outFile := filepath.Join(f.OutDir, contract+".go")
 		cmd := exec.Command("abigen", "--abi", abiPath, "--bin", binPath, "--pkg", f.Package, "--type", contract, "--out", outFile)
 		cmd.Stdout = os.Stdout
@@ -115,15 +109,19 @@ func processHardhatArtifacts(f flags) {
 		log.Fatalf("hardhat initialization failed: %v", err)
 	}
 
-	contracts, err := parseContracts(f.Contracts)
+	contractData, err := os.ReadFile(f.HardhatContracts)
 	if err != nil {
-		log.Fatalf("error parsing contracts JSON: %v", err)
+		log.Fatalf("error reading hardhat contracts file: %v", err)
+	}
+	var contracts []string
+	if err := json.Unmarshal(contractData, &contracts); err != nil {
+		log.Fatalf("error parsing hardhat contracts JSON: %v", err)
 	}
 
 	for _, contractName := range contracts {
 		artifact, err := hh.GetArtifact(contractName)
 		if err != nil {
-			log.Printf("Failed to get Hardhat artifact for %s: %v", contractName, err)
+			log.Printf("Failed to get Hardhat artifact for %s, skipping: %v", contractName, err)
 			continue
 		}
 
@@ -137,13 +135,18 @@ func processHardhatArtifacts(f flags) {
 			log.Fatalf("Failed to write ABI file for %s: %v", contractName, err)
 		}
 
+		// hexutil.Bytes 타입을 직접 파일에 쓰기 위한 처리.
+		// 바이트코드를 문자열로 변환하여 파일에 쓰기
 		binPath := filepath.Join(f.OutDir, contractName+".bin")
-		if err := os.WriteFile(binPath, artifact.Bytecode, 0600); err != nil {
+		if err := os.WriteFile(binPath, []byte(artifact.Bytecode), 0600); err != nil {
 			log.Fatalf("Failed to write BIN file for %s: %v", contractName, err)
 		}
 
 		outFile := filepath.Join(f.OutDir, contractName+".go")
 		cmd := exec.Command("abigen", "--abi", abiPath, "--bin", binPath, "--pkg", f.Package, "--type", contractName, "--out", outFile)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
 		if err := cmd.Run(); err != nil {
 			log.Fatalf("Failed to generate Go binding for %s: %v", contractName, err)
 		}
