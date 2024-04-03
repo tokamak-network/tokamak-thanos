@@ -157,24 +157,20 @@ def deploy_contracts(paths):
     account = response['result'][0 if paths.admin_key is None else 1]
     log.info(f'Deploying with {account}')
 
-    # Proxy exists on the fork public network(used by anvil)
-    # We don't need to deploy the proxy contract
-    # https://book.getfoundry.sh/tutorials/create2-tutorial
-    if not paths.fork_public_network:
-        # send some ether to the create2 deployer account
-        cmd = [
-            'cast', 'send',
-            '--rpc-url', 'http://127.0.0.1:8545',
-            '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
-        ]
-        cmd.extend(['--from', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--password', '1234'])
-        run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
+    # send some ether to the create2 deployer account
+    cmd = [
+      'cast', 'send',
+      '--rpc-url', 'http://127.0.0.1:8545',
+      '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
+    ]
+    cmd.extend(['--from', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--password', '1234'])
+    run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
 
-        # deploy the create2 deployer
-        run_command([
-          'cast', 'publish', '--rpc-url', 'http://127.0.0.1:8545',
-          '0xf8a58085174876e800830186a08080b853604580600e600039806000f350fe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf31ba02222222222222222222222222222222222222222222222222222222222222222a02222222222222222222222222222222222222222222222222222222222222222'
-        ], env={}, cwd=paths.contracts_bedrock_dir)
+    # deploy the create2 deployer
+    run_command([
+      'cast', 'publish', '--rpc-url', 'http://127.0.0.1:8545',
+      '0xf8a58085174876e800830186a08080b853604580600e600039806000f350fe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf31ba02222222222222222222222222222222222222222222222222222222222222222a02222222222222222222222222222222222222222222222222222222222222222'
+    ], env={}, cwd=paths.contracts_bedrock_dir)
 
     fqn = 'scripts/Deploy.s.sol:Deploy'
     cmd = [
@@ -253,23 +249,14 @@ def devnet_l1_genesis(paths):
     log.info('Generating L1 genesis state')
     init_devnet_l1_deploy_config(paths)
 
-    if paths.fork_public_network:
-        log.info('Start to fork the public network. Wait to warm up the fork public network.')
-        geth = subprocess.Popen([
-            'anvil', '--fork-url', paths.l1_rpc_url,
-            '--chain-id', '900', '--disable-block-gas-limit',
-            '--gas-price', '0', '--base-fee', '1', '--block-time', '1'
-        ])
-        time.sleep(30)
-    else:
-        if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
-            init_admin_geth(paths)
+    if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
+      init_admin_geth(paths)
 
-        geth = subprocess.Popen([
-            'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
-            '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
-            '--rpc.allow-unprotected-txs'
-        ], cwd=pjoin(paths.mono_repo_dir, 'bedrock-devnet'))
+    geth = subprocess.Popen([
+      'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
+      '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
+      '--rpc.allow-unprotected-txs'
+    ], cwd=pjoin(paths.mono_repo_dir, 'bedrock-devnet'))
 
     try:
         forge = ChildProcess(deploy_contracts, paths)
@@ -279,13 +266,9 @@ def devnet_l1_genesis(paths):
         if err:
             raise Exception(f"Exception occurred in child process: {err}")
 
-        if paths.fork_public_network:
-          res = anvil_dumpState('127.0.0.1:8545')
-          allocs = convert_anvil_dump(res)
-        else:
-          res = debug_dumpBlock('127.0.0.1:8545')
-          response = json.loads(res)
-          allocs = response['result']
+        res = debug_dumpBlock('127.0.0.1:8545')
+        response = json.loads(res)
+        allocs = response['result']
         write_json(paths.allocs_path, allocs)
     finally:
         geth.terminate()
@@ -560,35 +543,6 @@ def validate_fork_public_network(args):
 
       log.info(f'Fork from RPC URL: {l1_rpc_url}, block number: {block_number}, l2 native token: {l2_native_token}')
 
-
-def anvil_dumpState(url):
-    log.info(f'Fetch debug_dumpBlock {url}')
-    conn = http.client.HTTPConnection(url)
-    headers = {'Content-type': 'application/json'}
-    body = '{"id":3, "jsonrpc":"2.0", "method": "anvil_dumpState", "params":[]}'
-    conn.request('POST', '/', body, headers)
-    data = conn.getresponse().read()
-    # Anvil returns a JSON-RPC response with a hex-encoded "result" field
-    result = json.loads(data.decode('utf-8'))['result']
-    result_bytes = bytes.fromhex(result[2:])
-    uncompressed = gzip.decompress(result_bytes).decode()
-    return json.loads(uncompressed)
-
-def convert_anvil_dump(dump):
-    accounts = dump['accounts']
-
-    for account in accounts.values():
-      bal = account['balance']
-      account['balance'] = str(int(bal, 16))
-
-      if 'storage' in account:
-        storage = account['storage']
-        storage_keys = list(storage.keys())
-        for key in storage_keys:
-          value = storage[key]
-          del storage[key]
-          storage[pad_hex(key)] = pad_hex(value)
-    return dump
 
 def pad_hex(input):
     return '0x' + input.replace('0x', '').zfill(64)
