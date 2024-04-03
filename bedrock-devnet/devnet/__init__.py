@@ -10,11 +10,12 @@ import shutil
 import http.client
 import gzip
 import glob
+import ssl
+import urllib
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
 
-import devnet.log_setup
 
 pjoin = os.path.join
 
@@ -25,9 +26,9 @@ parser.add_argument('--test', help='Tests the deployment, must already be deploy
 parser.add_argument('--fork-public-network',
                     help='Fork the public network',
                     type=bool,
-                    default=os.environ.get('FORK_PUBLIC_NETWORK').lower() == 'true' if os.environ.get('FORK_PUBLIC_NETWORK') else False)
+                    default=os.environ.get('L1_FORK_PUBLIC_NETWORK').lower() == 'true' if os.environ.get('L1_FORK_PUBLIC_NETWORK') else False)
 parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=os.environ.get('L1_RPC'))
-parser.add_argument('--from-block-number', help='From block number', type=int, default=os.environ.get('FROM_BLOCK_NUMBER'))
+parser.add_argument('--block-number', help='From block number', type=int, default=os.environ.get('BLOCK_NUMBER'))
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/titan-op-geth:nightly')
@@ -77,6 +78,15 @@ def main():
     sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk')
     bedrock_devnet_dir = pjoin(monorepo_dir, 'bedrock-devnet')
 
+    if args.fork_public_network:
+      if args.block_number is not None:
+        block_number = args.block_number
+      else:
+        response = json.loads(eth_new_head(args.l1_rpc_url))
+        block_number = str(int(response['result'], 16))
+    else:
+      block_number = "0"
+
     paths = Bunch(
       mono_repo_dir=monorepo_dir,
       devnet_dir=devnet_dir,
@@ -97,9 +107,9 @@ def main():
       sdk_addresses_json_path=pjoin(devnet_dir, 'sdk-addresses.json'),
       rollup_config_path=pjoin(devnet_dir, 'rollup.json'),
       fork_public_network = args.fork_public_network,
-      l1_rpc_url = args.l1_rpc_url,
-      l2_native_token = args.l2_native_token,
-      from_block_number = args.from_block_number,
+      l1_rpc_url=args.l1_rpc_url,
+      block_number=block_number,
+      l2_native_token=args.l2_native_token,
       bedrock_devnet_path=bedrock_devnet_dir,
       admin_key=args.admin_key
     )
@@ -130,8 +140,9 @@ def main():
             'COMPOSE_DOCKER_CLI_BUILD': '1',  # use the docker cache
             'L2_IMAGE': args.l2_image,
             'L1_DOCKER_FILE': 'Dockerfile.l1.fork' if paths.fork_public_network else 'Dockerfile.l1',
-            'FROM_BLOCK_NUMBER': str(args.from_block_number),
-            'L1_RPC': args.l1_rpc_url
+            'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+            'BLOCK_NUMBER': paths.block_number,
+            'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
         })
 
     log.info('Devnet starting')
@@ -245,7 +256,7 @@ def devnet_l1_genesis(paths):
     if paths.fork_public_network:
         log.info('Start to fork the public network. Wait to warm up the fork public network.')
         geth = subprocess.Popen([
-            'anvil', '--fork-url', paths.l1_rpc_url, '--fork-block-number', str(paths.from_block_number),
+            'anvil', '--fork-url', paths.l1_rpc_url,
             '--chain-id', '900', '--disable-block-gas-limit',
             '--gas-price', '0', '--base-fee', '1', '--block-time', '1'
         ])
@@ -307,6 +318,8 @@ def devnet_deploy(paths, args):
     log.info('Starting L1.')
     run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
     })
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
@@ -344,12 +357,18 @@ def devnet_deploy(paths, args):
     run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
         'L2OO_ADDRESS': l2_output_oracle,
-        'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address
+        'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
+        'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
+        'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
     })
 
     log.info('Bringing up `artifact-server`')
     run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
     })
 
     shutil.rmtree(pjoin(paths.bedrock_devnet_path, 'data'), ignore_errors=True)
@@ -367,6 +386,29 @@ def eth_accounts(url):
     data = response.read().decode()
     conn.close()
     return data
+
+def eth_new_head(url):
+    parsed_url = urllib.parse.urlparse(url.strip())
+    hostname = parsed_url.hostname
+    path = parsed_url.path if parsed_url.path else '/'
+    # Create a context that does not verify SSL certificates
+    context = ssl._create_unverified_context()
+    conn = http.client.HTTPSConnection(hostname, context=context)
+    headers = {'Content-type': 'application/json'}
+    body = '{"id":2, "jsonrpc":"2.0", "method": "eth_blockNumber", "params":[]}'
+    try:
+        conn.request('POST', path, body, headers)
+        response = conn.getresponse()
+        data = response.read().decode()
+
+    except Exception as e:
+        log.error(f"Failed to fetch the latest block: {e}")
+        data = None
+    finally:
+        conn.close()
+
+    return data
+
 
 def debug_dumpBlock(url):
     log.info(f'Fetch debug_dumpBlock {url}')
@@ -507,7 +549,7 @@ def validate_fork_public_network(args):
     fork_public_network = args.fork_public_network
     l1_rpc_url = args.l1_rpc_url
     l2_native_token = args.l2_native_token
-    from_block_number = args.from_block_number
+    block_number = args.block_number
     # If fork the public network, validate the required params related to
     if fork_public_network:
       if not l1_rpc_url:
@@ -516,13 +558,7 @@ def validate_fork_public_network(args):
       if not l2_native_token:
         raise Exception("Please provide the L2_NATIVE_TOKEN for the forked network.")
 
-
-      if not from_block_number:
-        raise Exception("Please provide the FROM_BLOCK_NUMBER for the forked network.")
-
-      if from_block_number <= 0:
-        raise Exception("Please provide the FROM_BLOCK_NUMBER is bigger than zero.")
-      log.info(f'Fork from RPC URL: {l1_rpc_url}, from block number: {from_block_number}, l2 native token: {l2_native_token}')
+      log.info(f'Fork from RPC URL: {l1_rpc_url}, block number: {block_number}, l2 native token: {l2_native_token}')
 
 
 def anvil_dumpState(url):

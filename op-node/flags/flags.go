@@ -265,6 +265,13 @@ var (
 		EnvVars: prefixEnvVars("OVERRIDE_CANYON"),
 		Hidden:  false,
 	}
+	IsForkPublicNetworkFlag = &cli.BoolFlag{
+		Name:     "l1.fork-public-network",
+		Usage:    "Determine to use the fork public network or not",
+		EnvVars:  prefixEnvVars("L1_FORK_PUBLIC_NETWORK"),
+		Required: false,
+		Hidden:   true,
+	}
 )
 
 var requiredFlags = []cli.Flag{
@@ -311,6 +318,7 @@ var optionalFlags = []cli.Flag{
 	RollupLoadProtocolVersions,
 	CanyonOverrideFlag,
 	L1RethDBPath,
+	IsForkPublicNetworkFlag,
 }
 
 // Flags contains the list of configuration options available to the binary.
