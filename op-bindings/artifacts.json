@@ -42,5 +42,11 @@
   "SafeProxyFactory",
   "DelayedVetoable",
   "ISemver",
-  "StorageSetter"
+  "StorageSetter",
+  "L2UsdcBridge",
+  "L2UsdcBridgeProxy",
+  "SignatureChecker",
+  "MasterMinter",
+  "FiatTokenV2_2",
+  "FiatTokenProxy"
 ]
