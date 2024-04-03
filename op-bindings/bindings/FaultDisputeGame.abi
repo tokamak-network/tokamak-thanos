@@ -1,0 +1,300 @@
+[
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "parentIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "Claim",
+          "name": "claim",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "claimant",
+          "type": "address"
+        }
+      ],
+      "name": "Move",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "enum GameStatus",
+          "name": "status",
+          "type": "uint8"
+        }
+      ],
+      "name": "Resolved",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_ident",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_l2BlockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_partOffset",
+          "type": "uint256"
+        }
+      ],
+      "name": "addLocalData",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_parentIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "Claim",
+          "name": "_claim",
+          "type": "bytes32"
+        }
+      ],
+      "name": "attack",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "bondManager",
+      "outputs": [
+        {
+          "internalType": "contract IBondManager",
+          "name": "bondManager_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "createdAt",
+      "outputs": [
+        {
+          "internalType": "Timestamp",
+          "name": "createdAt_",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_parentIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "Claim",
+          "name": "_claim",
+          "type": "bytes32"
+        }
+      ],
+      "name": "defend",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "extraData",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "extraData_",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "gameData",
+      "outputs": [
+        {
+          "internalType": "GameType",
+          "name": "gameType_",
+          "type": "uint8"
+        },
+        {
+          "internalType": "Claim",
+          "name": "rootClaim_",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "extraData_",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "gameType",
+      "outputs": [
+        {
+          "internalType": "GameType",
+          "name": "gameType_",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "l1BlockNumber",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "l1BlockNumber_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "l1Head",
+      "outputs": [
+        {
+          "internalType": "Hash",
+          "name": "l1Head_",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "l2BlockNumber",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "l2BlockNumber_",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "enum GameStatus",
+          "name": "status_",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_claimIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "resolveClaim",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rootClaim",
+      "outputs": [
+        {
+          "internalType": "Claim",
+          "name": "rootClaim_",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "status",
+      "outputs": [
+        {
+          "internalType": "enum GameStatus",
+          "name": "status_",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_claimIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isAttack",
+          "type": "bool"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_stateData",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_proof",
+          "type": "bytes"
+        }
+      ],
+      "name": "step",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
