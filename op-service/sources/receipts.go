@@ -447,6 +447,9 @@ func (job *receiptsFetchingJob) runFetcher(ctx context.Context) error {
 	if err != nil { // errors if results are not available yet, should never happen.
 		return err
 	}
+	// In the case we use the fork public network, anvil has the issue with the receipt when we fetch by the block hash
+	// So, in this case, we will ignore the error when validating the receipts we get from the l1 node by the block hash
+	// ref: https://github.com/foundry-rs/foundry/issues/3840
 	if err := validateReceipts(job.block, job.receiptHash, job.txHashes, result); err != nil && !job.isForkPublicNetwork {
 		job.fetcher.Reset() // if results are fetched but invalid, try restart all the fetching to try and get valid data.
 		return err
@@ -505,6 +508,9 @@ func (job *receiptsFetchingJob) runAltMethod(ctx context.Context, m ReceiptsFetc
 		job.requester.OnReceiptsMethodErr(m, err)
 		return err
 	} else {
+		// In the case we use the fork public network, anvil has the issue with the receipt when we fetch by the block hash
+		// So, in this case, we will ignore the error when validating the receipts we get from the l1 node by the block hash
+		// ref: https://github.com/foundry-rs/foundry/issues/3840
 		if err := validateReceipts(job.block, job.receiptHash, job.txHashes, result); err != nil && !job.isForkPublicNetwork {
 			return err
 		}
