@@ -1,7 +1,7 @@
 COMPOSEFLAGS=-d
 ITESTS_L2_HOST=http://localhost:9545
 BEDROCK_TAGS_REMOTE?=origin
-OP_STACK_GO_BUILDER?=us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:latest
+OP_STACK_GO_BUILDER?=onthertech/titan-op-stack-go:latest
 
 # Requires at least Python v3.9; specify a minor version below if needed
 PYTHON?=python3
@@ -105,7 +105,7 @@ nuke: clean devnet-clean
 .PHONY: nuke
 
 pre-devnet:
-	@if [ "${FORK_PUBLIC_NETWORK}" != "true" ]  && ! [ -x "$(command -v geth)" ]; then \
+	@if ! [ -x "$(command -v geth)" ]; then \
 		make install-geth; \
 	fi
 	@if [ ! -e op-program/bin ]; then \

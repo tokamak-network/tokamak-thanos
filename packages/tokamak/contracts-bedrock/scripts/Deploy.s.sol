@@ -144,8 +144,16 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the Safe
     function deployL2NativeToken() public onlyDevnet broadcast {
+        string memory path = string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json");
+        address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
+        // If L2NativeToken is already existing on the network, we don't deploy the new contract.
+        if (setupAddr_ != address(0)) {
+            cfg.setNativeTokenAddress(setupAddr_, path);
+            console.log("Native token deployed at", setupAddr_);
+            return;
+        }
         address addr_ = getL2NativeToken();
-        cfg.setNativeTokenAddress(addr_, string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json"));
+        cfg.setNativeTokenAddress(addr_, path);
         console.log("Native token deployed at", addr_);
         save("L2NativeToken", addr_);
     }
