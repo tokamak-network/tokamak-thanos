@@ -80,7 +80,7 @@ def main():
 
     if args.fork_public_network:
       if args.block_number is not None:
-        block_number = args.block_number
+        block_number = str(args.block_number)
       else:
         response = json.loads(eth_new_head(args.l1_rpc_url))
         block_number = str(int(response['result'], 16))
