@@ -66,7 +66,7 @@ type EthClientConfig struct {
 	// [OPTIONAL] The reth DB path to fetch receipts from
 	RethDBPath string
 
-	// [OPTIONAL] The flag determines whatever the network is the forking public network
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
 	IsForkPublicNetwork bool
 }
 
@@ -142,7 +142,7 @@ type EthClient struct {
 	// [OPTIONAL] The reth DB path to fetch receipts from
 	rethDbPath string
 
-	// [OPTIONAL] The flag determines whatever the network is the forking public network
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
 	isForkPublicNetwork bool
 }
 
