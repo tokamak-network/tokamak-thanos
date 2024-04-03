@@ -10,8 +10,8 @@ import L1FastWithdrawABI from '../../contracts-bedrock/forge-artifacts/L1FastWit
 import L2FastWithdrawABI from '../../contracts-bedrock/forge-artifacts/L2FastWithdraw.sol/L2FastWithdraw.json'
 // import * as OptimismPortalABI from '../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
 // import * as L1StandardBridgeABI from '../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
-// import * as L1FastWithdrawProxyABI from '../../contracts-bedrock/forge-artifacts/L1FastWithdrawProxy.sol/L1FastWithdrawProxy.json'
-// import * as L2FastWithdrawProxyABI from '../../contracts-bedrock/forge-artifacts/L2FastWithdrawProxy.sol/L2FastWithdrawProxy.json'
+// import L1FastWithdrawProxyABI from '../../contracts-bedrock/forge-artifacts/L1FastWithdrawProxy.sol/L1FastWithdrawProxy.json'
+// import L2FastWithdrawProxyABI from '../../contracts-bedrock/forge-artifacts/L2FastWithdrawProxy.sol/L2FastWithdrawProxy.json'
 
 // const OptimismPortalABI = require("../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json")
 // const L1StandardBridgeABI = require("../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json")
@@ -64,31 +64,31 @@ const erc20ABI = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "from",
-        type: "address"
+        internalType: 'address',
+        name: 'from',
+        type: 'address'
       },
       {
-        internalType: "address",
-        name: "to",
-        type: "address"
+        internalType: 'address',
+        name: 'to',
+        type: 'address'
       },
       {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256"
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256'
       }
     ],
-    name: "transferFrom",
+    name: 'transferFrom',
     outputs: [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool"
+        internalType: 'bool',
+        name: '',
+        type: 'bool'
       }
     ],
-    stateMutability: "nonpayable",
-    type: "function"
+    stateMutability: 'nonpayable',
+    type: 'function'
   },
 ]
 
@@ -121,7 +121,7 @@ let L2FastWithDrawContract
 
 // let l1fastWithdrawAddr = ""
 // let l2fastWithdrawAddr = ""
-const l2CrossDomainMessengerAddr = "0x4200000000000000000000000000000000000007"
+const l2CrossDomainMessengerAddr = '0x4200000000000000000000000000000000000007'
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (l2NativeToken === '') {
@@ -350,9 +350,12 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
   // await L1FastWithDrawProxy.deployed()
   // console.log("L1FastWithDrawProxy :", L1FastWithDrawProxy.address);
 
-  // await L1FastWithDrawProxy.upgradeTo(L1FastWithDraw.address)
+  // await (
+  //   await L1FastWithDrawProxy.upgradeTo(L1FastWithDraw.address)
+  // ).wait();
   // let imp2 = await L1FastWithDrawProxy.implementation()
   // console.log('check upgradeAddress : ', imp2)
+  // console.log("L1FastWithDraw Address : ", L1FastWithDraw.address)
   // console.log('L1FastWithDrawProxy upgradeTo done')
 
   // const L2FastWithDrawDep = new ethers.ContractFactory(
@@ -374,60 +377,40 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
   // await L2FastWithDrawProxy.deployed()
   // console.log("L2FastWithDrawProxy :", L2FastWithDrawProxy.address);
 
-  // await L2FastWithDrawProxy.upgradeTo(L2FastWithDraw.address)
+  // await (
+  //   await L2FastWithDrawProxy.upgradeTo(L2FastWithDraw.address)
+  // ).wait();
   // imp2 = await L2FastWithDrawProxy.implementation()
   // console.log('check upgradeAddress : ', imp2)
+  // console.log("L2FastWithDraw Address : ", L2FastWithDraw.address)
   // console.log('L2FastWithDrawProxy upgradeTo done')
 
-  //deploy the L1, L2FastWithdraw
-  const L1FastWithDrawDep = new ethers.ContractFactory(
-    L1FastWithdrawABI.abi,
-    L1FastWithdrawABI.bytecode,
-    l1Wallet
-  )
+  // //L1, L2 initialize
+  // await (await L1FastWithDrawProxy.connect(l1Wallet).initialize(
+  //   l1Contracts.L1CrossDomainMessenger,
+  //   L2FastWithDrawProxy.address,
+  //   zeroAddr,
+  //   l2NativeTokenContract.address
+  // )).wait();
+  // console.log("L1FastWithdraw initialize done")
 
-  L1FastWithDrawContract = await L1FastWithDrawDep.deploy()
-  await L1FastWithDrawContract.deployed()
-  // console.log("L1FastWithDrawContract.address :", L1FastWithDrawContract.address);
-
-  const L2FastWithDrawDep = new ethers.ContractFactory(
-    L2FastWithdrawABI.abi,
-    L2FastWithdrawABI.bytecode,
-    l2Wallet
-  )
-
-  L2FastWithDrawContract = await L2FastWithDrawDep.deploy()
-  await L2FastWithDrawContract.deployed()
-  // console.log(await l2Provider.getCode(L2FastWithDrawContract.address))
-  // console.log("L2FastWithDrawContract.address :", L2FastWithDrawContract.address);
-
-  //L1, L2 initialize
-  await (await L1FastWithDrawContract.connect(l1Wallet).initialize(
-    l1Contracts.L1CrossDomainMessenger,
-    L2FastWithDrawContract.address,
-    zeroAddr,
-    l2NativeTokenContract.address
-  )).wait();
-  console.log("L1FastWithdraw initialize done")
-
-  // const checkL1Inform = await L1FastWithDrawContract.crossDomainMessenger();
+  // const checkL1Inform = await L1FastWithDrawProxy.LEGACY_l1token();
   // console.log("checkL1Inform :", checkL1Inform)
-  // console.log("l1Contracts.L1CrossDomainMessenger :", l1Contracts.L1CrossDomainMessenger)
+  // console.log("l2NativeTokenContract.address :", l2NativeTokenContract.address)
 
-  await (await L2FastWithDrawContract.connect(l2Wallet).initialize(
-    l2CrossDomainMessengerAddr,
-    L1FastWithDrawContract.address,
-    predeploys.LegacyERC20ETH,
-    l2NativeToken
-  )).wait();
-  console.log("L2FastWithdraw initialize done")
+  // await (await L2FastWithDrawProxy.connect(l2Wallet).initialize(
+  //   l2CrossDomainMessengerAddr,
+  //   L1FastWithDrawProxy.address,
+  //   predeploys.LegacyERC20ETH,
+  //   l2NativeTokenContract.address
+  // )).wait();
+  // console.log("L2FastWithdraw initialize done")
 
-  // const checkL2Inform = await L2FastWithDrawContract.crossDomainMessenger();
+  // const checkL2Inform = await L2FastWithDrawProxy.LEGACY_l1token();
   // console.log("checkL2Inform :", checkL2Inform)
-  // console.log("l2CrossDomainMessengerAddr :", l2CrossDomainMessengerAddr)
+  // console.log("l2NativeTokenContract.address :", l2NativeTokenContract.address)
 
-
-  //L1, L2 Contract set
+  // //L1, L2 Contract set
   // L1FastWithDrawContract = new ethers.Contract(
   //   L1FastWithDrawProxy.address,
   //   L1FastWithdrawABI.abi,
@@ -440,6 +423,56 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
   //   l2Wallet
   // )
 
+
+
+  // deploy the L1, L2FastWithdraw
+  const L1FastWithDrawDep = new ethers.ContractFactory(
+    L1FastWithdrawABI.abi,
+    L1FastWithdrawABI.bytecode,
+    l1Wallet
+  )
+
+  L1FastWithDrawContract = await L1FastWithDrawDep.deploy()
+  await L1FastWithDrawContract.deployed()
+  console.log('L1FastWithDrawContract.address :', L1FastWithDrawContract.address)
+
+  const L2FastWithDrawDep = new ethers.ContractFactory(
+    L2FastWithdrawABI.abi,
+    L2FastWithdrawABI.bytecode,
+    l2Wallet
+  )
+
+  L2FastWithDrawContract = await L2FastWithDrawDep.deploy()
+  await L2FastWithDrawContract.deployed()
+  // console.log(await l2Provider.getCode(L2FastWithDrawContract.address))
+  console.log('L2FastWithDrawContract.address :', L2FastWithDrawContract.address)
+
+  //L1, L2 initialize
+  await (await L1FastWithDrawContract.connect(l1Wallet).initialize(
+    l1Contracts.L1CrossDomainMessenger,
+    L2FastWithDrawContract.address,
+    zeroAddr,
+    l2NativeTokenContract.address
+  )).wait()
+  console.log('L1FastWithdraw initialize done')
+
+  const checkL1Inform = await L1FastWithDrawContract.crossDomainMessenger()
+  console.log('checkL1Inform :', checkL1Inform)
+  console.log('l1Contracts.L1CrossDomainMessenger :', l1Contracts.L1CrossDomainMessenger)
+
+  await (await L2FastWithDrawContract.connect(l2Wallet).initialize(
+    l2CrossDomainMessengerAddr,
+    L1FastWithDrawContract.address,
+    predeploys.LegacyERC20ETH,
+    l2NativeTokenContract.address
+  )).wait();
+  console.log("L2FastWithdraw initialize done")
+
+  const checkL2Inform = await L2FastWithDrawContract.crossDomainMessenger()
+  console.log("checkL2Inform :", checkL2Inform)
+  console.log("l2CrossDomainMessengerAddr :", l2CrossDomainMessengerAddr)
+
+  // start the test
   let l1Balance = await l1Wallet.getBalance()
   console.log('l1 native balance (ETH) (l1Wallet): ', l1Balance.toString())
   let l2Balance = await l2Wallet.getBalance()
@@ -450,16 +483,8 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
   let l2BalanceUser1 = await l2user1.getBalance()
   console.log('l2 native balance (TON) (User1): ', l2BalanceUser1.toString())
 
-
-  // let optimismPortalStorage = await OptimismPortalContract.depositedAmount()
-  // console.log('optimismPortalStorage: ', optimismPortalStorage.toString())
-
-  // let standardStorage = await L1StandardBridgeContract.deposits(l2NativeToken,predeploys.LegacyERC20ETH)
-  // console.log('standardStorage: ', standardStorage.toString())
-
-
   //request L2
-  let L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address);
+  let L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address)
   console.log('before l2 native balance (L2FastWithdrawBalance): ', L2FastWithdrawBalance.toString())
 
   await (await L2FastWithDrawContract.connect(l2Wallet).requestFW(
@@ -469,11 +494,11 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
     {
       value: threeETH
     }
-  )).wait();
-  const saleCount = await L2FastWithDrawContract.salecount();
-  console.log("saleCount : ", saleCount);
+  )).wait()
+  const saleCount = await L2FastWithDrawContract.salecount()
+  console.log('saleCount : ', saleCount);
   let saleInformation = await L2FastWithDrawContract.dealData(saleCount)
-  console.log("saleInformation : ", saleInformation);
+  console.log('saleInformation : ', saleInformation);
 
   L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address);
   console.log('after l2 native balance (L2FastWithdrawBalance): ', L2FastWithdrawBalance.toString())
@@ -493,16 +518,6 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
     'native token(TON) balance in L1 (Wallet): ',
     l2NativeTokenBalanceWallet.toString()
   )
-
-  if (Number(l2NativeTokenBalance.toString()) === 0) {
-    console.log('start faucet')
-    const tx = await l2NativeTokenContract.connect(l1user1).faucet(twoETH)
-    await tx.wait()
-    const l2NativeTokenBalance2 = await l2NativeTokenContract.balanceOf(
-      l1user1.address
-    )
-    console.log('after faucet l2 native token(TON) balance in L1 (user1):', l2NativeTokenBalance2.toString())
-  }
 
   // //transferFrom test
   // let tx = await l2NativeTokenContract.connect(l1user1).approve(l1Wallet.address, twoETH)
@@ -540,6 +555,16 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
 
 
   //provider L1
+  if (Number(l2NativeTokenBalance.toString()) === 0) {
+    console.log('start faucet')
+    const tx = await l2NativeTokenContract.connect(l1user1).faucet(twoETH)
+    await tx.wait()
+    const l2NativeTokenBalance2 = await l2NativeTokenContract.balanceOf(
+      l1user1.address
+    )
+    console.log('after faucet l2 native token(TON) balance in L1 (user1):', l2NativeTokenBalance2.toString())
+  }
+
   const providerApproveTx = await l2NativeTokenContract.connect(l1user1).approve(L1FastWithDrawContract.address, twoETH)
   await providerApproveTx.wait()
   console.log("pass the L1 TON approve")
@@ -583,11 +608,11 @@ const fastwithdrawNativeToken = async (amount: NumberLike) => {
     l2NativeTokenBalanceWallet.toString()
   )
 
-  L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address);
+  L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address)
   console.log('provider after l2 native balance (L2FastWithdrawBalance): ', L2FastWithdrawBalance.toString())
 
   saleInformation = await L2FastWithDrawContract.dealData(1)
-  console.log("saleInformation : ", saleInformation);
+  console.log("saleInformation : ", saleInformation)
 }
 
 task('deposit-nativetoken', 'request L2NativeToken to L2.')

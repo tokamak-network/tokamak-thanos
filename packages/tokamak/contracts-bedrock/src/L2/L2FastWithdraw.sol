@@ -13,9 +13,6 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
 
     using SafeERC20 for IERC20;
 
-    constructor () {
-    }
-
     //=======modifier========
 
     modifier onlyEOA() {

@@ -12,9 +12,6 @@ contract L1FastWithdraw is AccessibleCommon, L1FastWithdrawStorage {
 
     using SafeERC20 for IERC20;
 
-    constructor () {
-    }
-
     function initialize(
         address _crossDomainMessenger,
         address _l2fastWithdraw,
