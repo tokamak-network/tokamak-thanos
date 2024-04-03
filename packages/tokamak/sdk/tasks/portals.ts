@@ -4,7 +4,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { BigNumber, BytesLike, ethers } from 'ethers'
 
-import { Portals, NumberLike } from '../src'
+import { Portals, NumberLike, asL2Provider } from '../src'
 
 console.log('Setup task...')
 
@@ -42,6 +42,31 @@ const erc20ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'src',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: 'dst',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      }
+    ],
+    name: 'transferFrom',
+    outputs: [{internalType: 'bool', name: '', type: 'bool'}],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
 ]
 
 let l2NativeToken = process.env.NATIVE_TOKEN || ''
@@ -77,7 +102,7 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   }
 }
 
-const depositNativeTokenViaOP = async (amount: NumberLike) => {
+const depositViaOP = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
   console.log('Native token address:', l2NativeToken)
 
@@ -126,7 +151,7 @@ const depositNativeTokenViaOP = async (amount: NumberLike) => {
     to: l2Wallet.address,
     value: BigNumber.from(amount),
     gasLimit: BigNumber.from('200000'),
-    data: '0x'
+    data: '0x',
   })
   const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositReceipt.transactionHash)
@@ -150,9 +175,74 @@ const depositNativeTokenViaOP = async (amount: NumberLike) => {
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
-task('deposit-op', 'Deposits L2NativeToken to L2 via OP.')
+const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
+  console.log('Withdraw Native token:', amount)
+  console.log('Native token address:', l2NativeToken)
+
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, asL2Provider(l2Provider))
+
+  const l2NativeTokenContract = new ethers.Contract(
+    l2NativeToken,
+    erc20ABI,
+    l1Wallet
+  )
+
+  const l1Contracts = {
+    AddressManager: addressManager,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const portals = new Portals({
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  const l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
+    l1Wallet.address
+  )
+  console.log(
+    'l2 native token balance before withdraw in L1: ',
+    l2NativeTokenBalance.toString()
+  )
+
+  const withdrawalTx = await portals.initiateWithdrawal({
+    target: l1Wallet.address,
+    value: BigNumber.from(amount),
+    gasLimit: BigNumber.from('200000'),
+    data: '0x12345678',
+  })
+  const withdrawalReceipt = await withdrawalTx.wait()
+  const withdrawalMessageInfo = await portals.calculateWithdrawalMessage(
+    withdrawalReceipt
+  )
+  await portals.waitForWithdrawalTxReadyForRelay(withdrawalReceipt)
+  const proveTransaction = await portals.proveWithdrawalTransaction(
+    withdrawalMessageInfo
+  )
+
+  const proveTransactionReceipt = await proveTransaction.wait()
+  console.log('prove transaction receipt:', proveTransactionReceipt)
+}
+
+task('deposit-op', 'Deposit L2NativeToken to L2 via OP.')
   .addParam('amount', 'Deposit amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
-    await depositNativeTokenViaOP(args.amount)
+    await depositViaOP(args.amount)
+  })
+
+task('withdraw-op', 'Withdraw L2NativeToken to L1 via BedrockMessagePasser.')
+  .addParam('amount', 'Withdrawal amount', '1', types.string)
+  .setAction(async (args, hre) => {
+    await updateAddresses(hre)
+    await withdrawViaBedrockMessagePasser(args.amount)
   })
