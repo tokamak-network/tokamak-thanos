@@ -18,7 +18,7 @@ import OptimismPortalABI from '../../contracts-bedrock/forge-artifacts/OptimismP
 // const OptimismPortalABI = require("../../contracts-bedrock/forge-artifacts/OptimismPortal.sol/OptimismPortal.json")
 // const L1StandardBridgeABI = require("../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json")
 
-console.log('Setup task...')
+// console.log('Setup task...')
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
 
@@ -29,7 +29,7 @@ const l2Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L2_URL
 )
 const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-console.log('l1Wallet :', l1Wallet.address)
+// console.log('l1Wallet :', l1Wallet.address)
 const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
 
 const erc20ABI = [
