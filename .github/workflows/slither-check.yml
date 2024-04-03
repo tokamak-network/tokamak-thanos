@@ -64,7 +64,7 @@ jobs:
     - name: Build the contracts
       run: |
         cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/L1-tokamak/USDC/L1UsdcBridge-contracts/L1UsdcBridge.sol' '*/src/L2-tokamak/USDC/L2UsdcBridge-contracts/L2UsdcBridge.sol'
+        forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol' '*/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol'
 
     # Analyze smart contracts with Slither
     - name: Run Slither
