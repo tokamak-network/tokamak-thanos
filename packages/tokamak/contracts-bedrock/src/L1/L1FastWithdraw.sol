@@ -26,6 +26,11 @@ contract L1FastWithdraw is AccessibleCommon, L1FastWithdrawStorage {
         LEGACY_l1token = _l1legacyERC20;
     }
 
+    // @dev receive ether
+    receive() external payable {
+
+    }
+
     function provideFW(
         address _l1token,
         address _to,
@@ -56,9 +61,16 @@ contract L1FastWithdraw is AccessibleCommon, L1FastWithdrawStorage {
 
         //need to approve
         if (LEGACY_l1token == _l1token) {
+            //need to approve
             IERC20(_l1token).transferFrom(msg.sender, address(this), _amount);
             IERC20(_l1token).transfer(_to,_amount);
+        } else if (LEGACY_ERC20_ETH == _l1token) {
+            require(msg.value == _amount, "FW: ETH need same amount");
+            payable(address(this)).call{value: msg.value};
+            (bool sent, ) = payable(_to).call{value: msg.value}("");
+            require(sent, "claim fail");
         } else {
+            //need to approve
             IERC20(_l1token).transferFrom(msg.sender, _to, _amount);
         }
 

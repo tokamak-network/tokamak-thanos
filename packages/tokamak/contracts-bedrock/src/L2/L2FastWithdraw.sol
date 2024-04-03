@@ -72,12 +72,12 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
         // require(checkToken[l1token][_l2token], "not entering token");
         ++salecount;
 
-        if (dealData[salecount].l2token == LEGACY_ERC20_ETH) {
+        if (_l2token == LEGACY_ERC20_ETH) {
             require(msg.value == _totalAmount, "FW: nativeTON need amount");
             payable(address(this)).call{value: msg.value};
         } else {
             //need to approve
-            IERC20(dealData[salecount].l2token).safeTransferFrom(msg.sender,address(this),dealData[salecount].totalAmount);
+            IERC20(_l2token).transferFrom(msg.sender,address(this),_totalAmount);
         }
 
         dealData[salecount] = RequestData({
@@ -108,6 +108,8 @@ contract L2FastWithdraw is AccessibleCommon, L2FastWithdrawStorage {
             (bool sent, ) = payable(_from).call{value: dealData[_saleCount].totalAmount}("");
             require(sent, "claim fail");
         } else {
+            // uint256 haveAmount = IERC20(dealData[_saleCount].l2token).balanceOf(address(this));
+            // require(haveAmount >= dealData[_saleCount].totalAmount, "FW: don't have token");
             IERC20(dealData[_saleCount].l2token).transfer(_from,dealData[_saleCount].totalAmount);
         }
     }
