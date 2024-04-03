@@ -105,7 +105,7 @@ nuke: clean devnet-clean
 .PHONY: nuke
 
 pre-devnet:
-	@if [ "${L1_FORK_PUBLIC_NETWORK}" != "true" ]  && ! [ -x "$(command -v geth)" ]; then \
+	@if ! [ -x "$(command -v geth)" ]; then \
 		make install-geth; \
 	fi
 	@if [ ! -e op-program/bin ]; then \
