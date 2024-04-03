@@ -143,8 +143,6 @@ services:
       OP_PROPOSER_METRICS_ENABLED: "true"
       OP_PROPOSER_ALLOW_NON_FINALIZED: "true"
       OP_PROPOSER_RPC_ENABLE_ADMIN: "true"
-    volumes:
-      - "${PWD}/wait-for-it.sh:/wait-for-it.sh:ro"
 
   op-batcher:
     depends_on:
@@ -178,8 +176,6 @@ services:
       OP_BATCHER_METRICS_ENABLED: "true"
       OP_BATCHER_RPC_ENABLE_ADMIN: "true"
       OP_BATCHER_BATCH_TYPE: 0
-    volumes:
-      - "${PWD}/wait-for-it.sh:/wait-for-it.sh"
 
   artifact-server:
     depends_on:
