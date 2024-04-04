@@ -59,13 +59,13 @@ const erc20ABI = [
         internalType: 'uint256',
         name: 'amount',
         type: 'uint256',
-      }
+      },
     ],
     name: 'transferFrom',
-    outputs: [{internalType: 'bool', name: '', type: 'bool'}],
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
     payable: false,
     stateMutability: 'nonpayable',
-    type: 'function'
+    type: 'function',
   },
 ]
 
@@ -241,12 +241,10 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   const transferTx = await l2NativeTokenContract.transferFrom(
     l1Contracts.OptimismPortal,
     l1Wallet.address,
-    amount,
+    amount
   )
   await transferTx.wait()
-  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
-    l1Wallet.address
-  )
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
     'l2 native token balance after withdraw in L1: ',
     l2NativeTokenBalance.toString()
@@ -300,28 +298,29 @@ const withdrawViaBedrockMessagePasserV2 = async (amount: NumberLike) => {
   })
   const withdrawalReceipt = await withdrawalTx.wait()
 
-  await portals.waitForWithdrawalTxReadyForRelayUsingL2Tx(withdrawalReceipt.transactionHash)
+  await portals.waitForWithdrawalTxReadyForRelayUsingL2Tx(
+    withdrawalReceipt.transactionHash
+  )
   const proveTransaction = await portals.proveWithdrawalTransactionUsingL2Tx(
     withdrawalReceipt.transactionHash
   )
   await proveTransaction.wait()
 
   await portals.waitForFinalizationUsingL2Tx(withdrawalReceipt.transactionHash)
-  const finalizedTransaction = await portals.finalizeWithdrawalTransactionUsingL2Tx(
-    withdrawalReceipt.transactionHash
-  )
+  const finalizedTransaction =
+    await portals.finalizeWithdrawalTransactionUsingL2Tx(
+      withdrawalReceipt.transactionHash
+    )
   const finalizedTransactionReceipt = await finalizedTransaction.wait()
   console.log('finalized transaction receipt:', finalizedTransactionReceipt)
 
   const transferTx = await l2NativeTokenContract.transferFrom(
     l1Contracts.OptimismPortal,
     l1Wallet.address,
-    amount,
+    amount
   )
   await transferTx.wait()
-  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
-    l1Wallet.address
-  )
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
     'l2 native token balance after withdraw in L1: ',
     l2NativeTokenBalance.toString()
@@ -335,14 +334,20 @@ task('deposit-portal', 'Deposit L2NativeToken to L2 via OP.')
     await depositViaOP(args.amount)
   })
 
-task('withdraw-portal', 'Withdraw L2NativeToken to L1 via BedrockMessagePasser.')
+task(
+  'withdraw-portal',
+  'Withdraw L2NativeToken to L1 via BedrockMessagePasser.'
+)
   .addParam('amount', 'Withdrawal amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await withdrawViaBedrockMessagePasser(args.amount)
   })
 
-task('withdraw-portal-v2', 'Withdraw L2NativeToken to L1 via BedrockMessagePasser.')
+task(
+  'withdraw-portal-v2',
+  'Withdraw L2NativeToken to L1 via BedrockMessagePasser.'
+)
   .addParam('amount', 'Withdrawal amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
