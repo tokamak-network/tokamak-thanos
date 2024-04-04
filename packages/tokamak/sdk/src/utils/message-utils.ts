@@ -1,6 +1,6 @@
 import { add0x, hashWithdrawal } from '@tokamak-network/core-utils'
 import { BigNumber, utils, ethers } from 'ethers'
-import { Log } from '@ethersproject/abstract-provider'
+import { Log, TransactionReceipt } from '@ethersproject/abstract-provider'
 import { hexDataSlice } from 'ethers/lib/utils'
 
 import { LowLevelMessage, WithdrawalMessageInfo } from '../interfaces'
@@ -137,4 +137,24 @@ export const calculateWithdrawalMessage = (log: Log): WithdrawalMessageInfo => {
     withdrawalHash,
     l2BlockNumber: log.blockNumber,
   }
+}
+
+export const calculateWithdrawalMessageUsingRecept = (
+  txReceipt: TransactionReceipt
+): WithdrawalMessageInfo => {
+  if (txReceipt.status !== 1) {
+    return undefined
+  }
+  let withdrawalMessage: WithdrawalMessageInfo
+  txReceipt.logs.forEach((log) => {
+    if (
+      log.topics[0] ===
+      ethers.utils.id(
+        'MessagePassed(uint256,address,address,uint256,uint256,bytes,bytes32)'
+      )
+    ) {
+      withdrawalMessage = calculateWithdrawalMessage(log)
+    }
+  })
+  return withdrawalMessage
 }
