@@ -206,7 +206,7 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  const l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
+  let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
     l1Wallet.address
   )
   console.log(
@@ -228,9 +228,28 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   const proveTransaction = await portals.proveWithdrawalTransaction(
     withdrawalMessageInfo
   )
+  await proveTransaction.wait()
 
-  const proveTransactionReceipt = await proveTransaction.wait()
-  console.log('prove transaction receipt:', proveTransactionReceipt)
+  await portals.waitForFinalization(withdrawalMessageInfo)
+  const finalizedTransaction = await portals.finalizeWithdrawalTransaction(
+    withdrawalMessageInfo
+  )
+  const finalizedTransactionReceipt = await finalizedTransaction.wait()
+  console.log('finalized transaction receipt:', finalizedTransactionReceipt)
+
+  const transferTx = await l2NativeTokenContract.transferFrom(
+    l1Contracts.OptimismPortal,
+    l1Wallet.address,
+    amount,
+  )
+  await transferTx.wait()
+  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
+    l1Wallet.address
+  )
+  console.log(
+    'l2 native token balance after withdraw in L1: ',
+    l2NativeTokenBalance.toString()
+  )
 }
 
 task('deposit-op', 'Deposit L2NativeToken to L2 via OP.')
