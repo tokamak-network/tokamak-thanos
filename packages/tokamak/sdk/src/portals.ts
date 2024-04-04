@@ -30,6 +30,7 @@ import {
   getPortalsContracts,
   DEPOSIT_CONFIRMATION_BLOCKS,
   CHAIN_BLOCK_TIMES,
+  calculateWithdrawalMessageUsingRecept,
 } from './utils'
 
 export class Portals {
@@ -219,18 +220,16 @@ export class Portals {
       return null
     }
     let promiseMessage: Promise<WithdrawalMessageInfo> = null
-    txReceipt.logs.forEach((log) => {
-      if (
-        log.topics[0] ===
-        ethers.utils.id(
-          'MessagePassed(uint256,address,address,uint256,uint256,bytes,bytes32)'
-        )
-      ) {
-        const withdrawalMessage = calculateWithdrawalMessage(log)
-        promiseMessage = Promise.resolve(withdrawalMessage)
-      }
-    })
+    const withdrawalMessage = calculateWithdrawalMessageUsingRecept(txReceipt)
+    promiseMessage = Promise.resolve(withdrawalMessage)
     return promiseMessage
+  }
+
+  public async calculateWithdrawalMessageByL2TxHash(
+    transactionHash: string
+  ): Promise<WithdrawalMessageInfo> {
+    const txReceipt = await this.l2Provider.getTransactionReceipt(transactionHash)
+    return this.calculateWithdrawalMessage(txReceipt)
   }
 
   public async waitForWithdrawalTxReadyForRelay(
@@ -251,6 +250,17 @@ export class Portals {
       totalTimeMs += Date.now() - tick
     }
     throw new Error(`timed out waiting for relayed deposit transaction`)
+  }
+
+  public async waitForWithdrawalTxReadyForRelayUsingL2Tx(
+    transactionHash: string,
+    opts?: {
+      pollIntervalMs?: number
+      timeoutMs?: number
+    }
+  ) {
+    const txReceipt = await this.l2Provider.getTransactionReceipt(transactionHash)
+    return this.waitForWithdrawalTxReadyForRelay(txReceipt)
   }
 
   /**
@@ -321,6 +331,15 @@ export class Portals {
     return (opts?.signer || this.l1Signer).sendTransaction(tx)
   }
 
+  public async proveWithdrawalTransactionUsingL2Tx(
+    transactionHash: string,
+    opts?: {
+      signer?: Signer
+    }
+  ): Promise<TransactionResponse> {
+    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash)
+    return this.proveWithdrawalTransaction(message, opts)
+  }
 
   public async waitForFinalization(
     message: WithdrawalMessageInfo,
@@ -344,6 +363,17 @@ export class Portals {
     throw new Error(`timed out waiting for relayed deposit transaction`)
   }
 
+  public async waitForFinalizationUsingL2Tx(
+    transactionHash: string,
+    opts?: {
+      pollIntervalMs?: number
+      timeoutMs?: number
+    }
+  ) {
+    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash);
+    return this.waitForFinalization(message, opts)
+  }
+
   public async finalizeWithdrawalTransaction(
     message: WithdrawalMessageInfo,
     opts?: {
@@ -354,6 +384,16 @@ export class Portals {
       message
     )
     return (opts?.signer || this.l1Signer).sendTransaction(tx)
+  }
+
+  public async finalizeWithdrawalTransactionUsingL2Tx(
+    transactionHash: string,
+    opts?: {
+      signer?: Signer
+    }
+  ): Promise<TransactionResponse> {
+    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash);
+    return this.finalizeWithdrawalTransaction(message)
   }
 
   populateTransaction = {
