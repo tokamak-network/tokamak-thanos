@@ -233,7 +233,11 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('TON address:', TON)
 
   const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(predeploys.WNativeToken, erc20ABI, l2Wallet)
+  const wtonContract = new ethers.Contract(
+    predeploys.WNativeToken,
+    erc20ABI,
+    l2Wallet
+  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -318,7 +322,11 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('TON address:', TON)
 
   const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(predeploys.WNativeToken, erc20ABI, l2Wallet)
+  const wtonContract = new ethers.Contract(
+    predeploys.WNativeToken,
+    erc20ABI,
+    l2Wallet
+  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,

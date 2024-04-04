@@ -228,7 +228,9 @@ export class Portals {
   public async calculateWithdrawalMessageByL2TxHash(
     transactionHash: string
   ): Promise<WithdrawalMessageInfo> {
-    const txReceipt = await this.l2Provider.getTransactionReceipt(transactionHash)
+    const txReceipt = await this.l2Provider.getTransactionReceipt(
+      transactionHash
+    )
     return this.calculateWithdrawalMessage(txReceipt)
   }
 
@@ -259,7 +261,9 @@ export class Portals {
       timeoutMs?: number
     }
   ) {
-    const txReceipt = await this.l2Provider.getTransactionReceipt(transactionHash)
+    const txReceipt = await this.l2Provider.getTransactionReceipt(
+      transactionHash
+    )
     return this.waitForWithdrawalTxReadyForRelay(txReceipt)
   }
 
@@ -337,7 +341,9 @@ export class Portals {
       signer?: Signer
     }
   ): Promise<TransactionResponse> {
-    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash)
+    const message = await this.calculateWithdrawalMessageByL2TxHash(
+      transactionHash
+    )
     return this.proveWithdrawalTransaction(message, opts)
   }
 
@@ -348,13 +354,18 @@ export class Portals {
       timeoutMs?: number
     }
   ) {
-    const provenWithdrawal = await this.getProvenWithdrawal(message.withdrawalHash)
-    const finalizedPeriod = await this.getChallengePeriodSeconds();
+    const provenWithdrawal = await this.getProvenWithdrawal(
+      message.withdrawalHash
+    )
+    const finalizedPeriod = await this.getChallengePeriodSeconds()
     const BUFFER_TIME = 12
     let totalTimeMs = 0
     while (totalTimeMs < (opts?.timeoutMs || Infinity)) {
       const currentTimestamp = Date.now()
-      if (currentTimestamp / 1000 - BUFFER_TIME > provenWithdrawal.timestamp.toNumber() + finalizedPeriod) {
+      if (
+        currentTimestamp / 1000 - BUFFER_TIME >
+        provenWithdrawal.timestamp.toNumber() + finalizedPeriod
+      ) {
         return
       }
       await sleep(opts?.pollIntervalMs || 1000)
@@ -370,7 +381,9 @@ export class Portals {
       timeoutMs?: number
     }
   ) {
-    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash);
+    const message = await this.calculateWithdrawalMessageByL2TxHash(
+      transactionHash
+    )
     return this.waitForFinalization(message, opts)
   }
 
@@ -392,7 +405,9 @@ export class Portals {
       signer?: Signer
     }
   ): Promise<TransactionResponse> {
-    const message = await this.calculateWithdrawalMessageByL2TxHash(transactionHash);
+    const message = await this.calculateWithdrawalMessageByL2TxHash(
+      transactionHash
+    )
     return this.finalizeWithdrawalTransaction(message)
   }
 
