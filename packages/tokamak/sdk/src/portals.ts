@@ -215,13 +215,11 @@ export class Portals {
   public async calculateWithdrawalMessage(
     txReceipt: TransactionReceipt
   ): Promise<WithdrawalMessageInfo> {
-    console.log('[calculateWithdrawalMessage]')
     if (txReceipt.status !== 1) {
       return null
     }
     let promiseMessage: Promise<WithdrawalMessageInfo> = null
     txReceipt.logs.forEach((log) => {
-      console.log('log:', log)
       if (
         log.topics[0] ===
         ethers.utils.id(
@@ -230,7 +228,6 @@ export class Portals {
       ) {
         const withdrawalMessage = calculateWithdrawalMessage(log)
         promiseMessage = Promise.resolve(withdrawalMessage)
-        console.log('Found withdrawal event:', withdrawalMessage)
       }
     })
     return promiseMessage
