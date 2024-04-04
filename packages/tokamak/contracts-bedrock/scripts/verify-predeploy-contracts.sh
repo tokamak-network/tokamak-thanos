@@ -28,7 +28,7 @@ function help() {
   echo -e "\n${BOLD}Example:${NORMAL}\n"
   echo -e "  ./verify-predeploy-contracts.sh \\"
   echo -e "  --network titan-sepolia-test \\"
-  echo -e "  --genesis-url https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
+  echo -e "  --genesis-url https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
   echo -e "  --explorer-url https://explorer.titan-sepolia-test.tokamak.network"
 }
 
@@ -56,7 +56,7 @@ while [ $# -gt 0 ]; do
       echo -e "${BOLD}argument:${NORMAL}\n"
       echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
       echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-      echo -e "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+      echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -113,7 +113,7 @@ if [ -z $GENESIS_URL ]; then
   echo -e "${BOLD}argument:${NORMAL}\n"
   echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
   echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-  echo -e "  titan-sepolia-test : https://tokamak-titan-canyon.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
