@@ -147,10 +147,13 @@ func (h *Hardhat) initArtifacts() error {
 			if err != nil {
 				return err
 			}
+			fmt.Printf("nameeeeee: %s\n", name)
+
 			var artifact Artifact
 			if err := json.Unmarshal(file, &artifact); err != nil {
 				return err
 			}
+			fmt.Printf("%+v\n", artifact.ContractName)
 
 			h.artifacts = append(h.artifacts, &artifact)
 			return nil
@@ -216,6 +219,8 @@ func (h *Hardhat) GetBuildInfo(name string) (*BuildInfo, error) {
 	fqn := ParseFullyQualifiedName(name)
 	buildInfos := make([]*BuildInfo, 0)
 
+	fmt.Printf("artifactPaths: %v\n", h.ArtifactPaths)
+
 	for _, artifactPath := range h.ArtifactPaths {
 		fileSystem := os.DirFS(artifactPath)
 		err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
@@ -230,6 +235,8 @@ func (h *Hardhat) GetBuildInfo(name string) (*BuildInfo, error) {
 			if !strings.HasSuffix(name, ".dbg.json") {
 				return nil
 			}
+
+			fmt.Printf("path: %s\n", path)
 
 			// Remove ".dbg.json"
 			target := filepath.Base(name[:len(name)-9])
@@ -250,6 +257,8 @@ func (h *Hardhat) GetBuildInfo(name string) (*BuildInfo, error) {
 				return err
 			}
 			debugPath, _ := filepath.Abs(relPath)
+
+			fmt.Printf("debugPath: %s\n", debugPath)
 
 			buildInfoFile, err := os.ReadFile(debugPath)
 			if err != nil {
@@ -274,6 +283,7 @@ func (h *Hardhat) GetBuildInfo(name string) (*BuildInfo, error) {
 	if len(buildInfos) > 1 {
 		return nil, fmt.Errorf("Multiple contracts with name %s", name)
 	}
+	fmt.Printf("buildInfos: %d\n", len(buildInfos))
 	if len(buildInfos) == 0 {
 		return nil, fmt.Errorf("Cannot find BuildInfo for %s", name)
 	}

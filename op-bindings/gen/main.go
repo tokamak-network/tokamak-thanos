@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/exec"
@@ -104,52 +106,94 @@ func processForgeArtifacts(f flags) {
 }
 
 func processHardhatArtifacts(f flags) {
+	fmt.Printf("Path: %s\n", f.HardhatArtifacts)
 	hh, err := hardhat.New("mainnet", []string{f.HardhatArtifacts}, []string{})
 	if err != nil {
-		log.Fatalf("hardhat initialization failed: %v", err)
+		log.Fatalf("hardhat 초기화 실패: %v", err)
 	}
 
-	contractData, err := os.ReadFile(f.HardhatContracts)
+	contractNames, err := parseContracts(f.HardhatContracts)
 	if err != nil {
-		log.Fatalf("error reading hardhat contracts file: %v", err)
-	}
-	var contracts []string
-	if err := json.Unmarshal(contractData, &contracts); err != nil {
-		log.Fatalf("error parsing hardhat contracts JSON: %v", err)
+		log.Fatalf("hardhat 계약 파일 읽기 오류: %v", err)
 	}
 
-	for _, contractName := range contracts {
-		artifact, err := hh.GetArtifact(contractName)
+	t := template.Must(template.New("artifact").Parse(tmpl))
+
+	for _, contractName := range contractNames {
+		// artifact, err := hh.GetArtifact(contractName)
+		// fmt.Printf("Name: %s\n", contractName)
+		// if err != nil {
+		// 	log.Printf("%s에 대한 Hardhat 아티팩트 가져오기 실패, 건너뜀: %v", contractName, err)
+		// 	continue
+		// }
+		// abii := artifact.Abi
+		// fmt.Printf("ABI: %+v\n", abii)
+
+		// // abi, err := json.Marshal(artifact.Abi)
+		// // if err != nil {
+		// // 	log.Fatalf("%s에 대한 ABI 마샬링 실패: %v", contractName, err)
+		// // }
+
+		// // 바이트코드를 문자열로 변환하지 않고 직접 사용
+		// bytecode := artifact.Bytecode
+
+		// abiPath := filepath.Join(f.OutDir, contractName+".abi")
+		// if err := os.WriteFile(abiPath, artifact.Abi, 0600); err != nil {
+		// 	log.Fatalf("%s에 대한 ABI 파일 쓰기 실패: %v", contractName, err)
+		// }
+
+		// binPath := filepath.Join(f.OutDir, contractName+".bin")
+		// // 바이트코드를 문자열로 변환하여 파일에 쓰기
+		// if err := os.WriteFile(binPath, []byte(bytecode), 0600); err != nil {
+		// 	log.Fatalf("%s에 대한 BIN 파일 쓰기 실패: %v", contractName, err)
+		// }
+
+		// outFile := filepath.Join(f.OutDir, contractName+".go")
+		// cmd := exec.Command("abigen", "--abi", abiPath, "--bin", binPath, "--pkg", f.Package, "--type", contractName, "--out", outFile)
+		// cmd.Stdout = os.Stdout
+		// cmd.Stderr = os.Stderr
+		// if err := cmd.Run(); err != nil {
+		// 	log.Fatalf("%s에 대한 Go 바인딩 생성 실패: %v", contractName, err)
+		// }
+		// log.Printf("계약에 대한 Go 바인딩 생성됨: %s", contractName)
+		art, err := hh.GetArtifact(contractName)
 		if err != nil {
-			log.Printf("Failed to get Hardhat artifact for %s, skipping: %v", contractName, err)
-			continue
+			log.Fatalf("error reading artifact %s: %v\n", contractName, err)
 		}
 
-		abi, err := json.Marshal(artifact.Abi)
+		storage, err := hh.GetStorageLayout(contractName)
 		if err != nil {
-			log.Fatalf("Failed to marshal ABI for %s: %v", contractName, err)
+			log.Fatalf("error reading storage layout %s: %v\n", contractName, err)
 		}
 
-		abiPath := filepath.Join(f.OutDir, contractName+".abi")
-		if err := os.WriteFile(abiPath, abi, 0600); err != nil {
-			log.Fatalf("Failed to write ABI file for %s: %v", contractName, err)
+		ser, err := json.Marshal(storage)
+		if err != nil {
+			log.Fatalf("error marshaling storage: %v\n", err)
+		}
+		serStr := strings.Replace(string(ser), "\"", "\\\"", -1)
+
+		d := data{
+			Name:          contractName,
+			StorageLayout: serStr,
+			DeployedBin:   art.DeployedBytecode.String(),
+			Package:       f.Package,
 		}
 
-		// hexutil.Bytes 타입을 직접 파일에 쓰기 위한 처리.
-		// 바이트코드를 문자열로 변환하여 파일에 쓰기
-		binPath := filepath.Join(f.OutDir, contractName+".bin")
-		if err := os.WriteFile(binPath, []byte(artifact.Bytecode), 0600); err != nil {
-			log.Fatalf("Failed to write BIN file for %s: %v", contractName, err)
+		fname := filepath.Join(f.OutDir, strings.ToLower(contractName)+"_more.go")
+		outfile, err := os.OpenFile(
+			fname,
+			os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+			0o600,
+		)
+		if err != nil {
+			log.Fatalf("error opening %s: %v\n", fname, err)
 		}
 
-		outFile := filepath.Join(f.OutDir, contractName+".go")
-		cmd := exec.Command("abigen", "--abi", abiPath, "--bin", binPath, "--pkg", f.Package, "--type", contractName, "--out", outFile)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
-			log.Fatalf("Failed to generate Go binding for %s: %v", contractName, err)
+		if err := t.Execute(outfile, d); err != nil {
+			log.Fatalf("error writing template %s: %v", outfile.Name(), err)
 		}
+		outfile.Close()
+		log.Printf("wrote file %s\n", outfile.Name())
 	}
 }
 
