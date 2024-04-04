@@ -350,10 +350,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          repository: tokamak-network/tokamak-titan-infra
+          repository: tokamak-network/tokamak-infra
           ref: main
           token: ${{ secrets.ACCESS_TOKEN }}
-          path: tokamak-titan-infra
+          path: tokamak-infra
 
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v1
@@ -362,27 +362,27 @@ jobs:
 
       - name: Update titan-op-node Kubernetes resources
         run: |
-          cd tokamak-titan-infra/titan2/kustomize/overlays/titan-sepolia-test
+          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
           kustomize edit set image onthertech/titan-op-node:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update titan-op-proposer Kubernetes resources
         run: |
-          cd tokamak-titan-infra/titan2/kustomize/overlays/titan-sepolia-test
+          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
           kustomize edit set image onthertech/titan-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update titan-op-batcher Kubernetes resources
         run: |
-          cd tokamak-titan-infra/titan2/kustomize/overlays/titan-sepolia-test
+          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
           kustomize edit set image onthertech/titan-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update titan-proxyd Kubernetes resources
         run: |
-          cd tokamak-titan-infra/titan2/kustomize/overlays/titan-sepolia-test
+          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
           kustomize edit set image onthertech/titan-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Show updated Kubernetes resources
         run: |
-          cd tokamak-titan-infra/titan2/kustomize/overlays/titan-sepolia-test
+          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
           cat kustomization.yaml
 
       - name: Commit and push changes
@@ -390,5 +390,5 @@ jobs:
         with:
           default_author: github_actions
           github_token: ${{ secrets.ACCESS_TOKEN }}
-          message: '[AUTO] Update tokamak-titan-canyon images tag for sepolia'
-          cwd: 'tokamak-titan-infra/'
+          message: '[AUTO] Update tokamak-thanos images tag for sepolia'
+          cwd: 'tokamak-infra/'
