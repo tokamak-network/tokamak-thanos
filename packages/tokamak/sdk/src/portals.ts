@@ -324,6 +324,29 @@ export class Portals {
     return (opts?.signer || this.l1Signer).sendTransaction(tx)
   }
 
+
+  public async waitForFinalization(
+    message: WithdrawalMessageInfo,
+    opts?: {
+      pollIntervalMs?: number
+      timeoutMs?: number
+    }
+  ) {
+    const provenWithdrawal = await this.getProvenWithdrawal(message.withdrawalHash)
+    const finalizedPeriod = await this.getChallengePeriodSeconds();
+    const BUFFER_TIME = 12
+    let totalTimeMs = 0
+    while (totalTimeMs < (opts?.timeoutMs || Infinity)) {
+      const currentTimestamp = Date.now()
+      if (currentTimestamp / 1000 - BUFFER_TIME > provenWithdrawal.timestamp.toNumber() + finalizedPeriod) {
+        return
+      }
+      await sleep(opts?.pollIntervalMs || 1000)
+      totalTimeMs += Date.now() - currentTimestamp
+    }
+    throw new Error(`timed out waiting for relayed deposit transaction`)
+  }
+
   public async finalizeWithdrawalTransaction(
     message: WithdrawalMessageInfo,
     opts?: {
@@ -333,7 +356,7 @@ export class Portals {
     const tx = await this.populateTransaction.finalizeWithdrawalTransaction(
       message
     )
-    return (opts?.signer || this.l2Signer).sendTransaction(tx)
+    return (opts?.signer || this.l1Signer).sendTransaction(tx)
   }
 
   populateTransaction = {
@@ -427,7 +450,16 @@ export class Portals {
     finalizeWithdrawalTransaction: async (
       message: WithdrawalMessageInfo
     ): Promise<TransactionRequest> => {
-      return null
+      return this.contracts.l1.OptimismPortal.populateTransaction.finalizeWithdrawalTransaction(
+        [
+          message.messageNonce,
+          message.sender,
+          message.target,
+          message.value,
+          message.minGasLimit,
+          message.message,
+        ]
+      )
     },
   }
 }
