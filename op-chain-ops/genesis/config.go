@@ -220,18 +220,12 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
-	// L1UsdcBridgeAddr - remove after predeploy L1UsdcBridge
+	// L1UsdcBridgeAddr - remove after deploy L1UsdcBridge
 	L1UsdcBridgeAddr common.Address `json:"l1UsdcBridgeAddr"`
 	// L1UsdcAddr - standard USDC address
 	L1UsdcAddr common.Address `json:"l1UsdcAddr"`
-	// TokenName - ERC20 name of the token e.g. "USD Coin"
-	TokenName string `json:"tokenName"`
-	// TokenSymbol - Symbol of the token e.g. "USDC"
-	TokenSymbol string `json:"tokenSymbol"`
-	// TokenCurrency - Currency of the token e.g. "USD"
-	TokenCurrency string `json:"tokenCurrency"`
-	// TokenDecimals - Number of decimals for the token e.g. 6
-	TokenDecimals uint8 `json:"tokenDecimals"`
+	// UsdcTokenName - ERC20 name of the token e.g. "Bridged USDC (Own Company Name)"
+	UsdcTokenName string `json:"usdcTokenName"`
 	// MasterMinter - can configure minters and minter allowance
 	NewMasterMinter common.Address `json:"newMasterMinter"`
 	// Pauser - can pause the contract
@@ -841,10 +835,10 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_owner":              config.FiatTokenOwner,
 		"pauser":              config.NewPauser,
 		"blacklister":         config.NewBlacklister,
-		"name":                config.TokenName,
-		"symbol":              config.TokenSymbol,
-		"decimals":            config.TokenDecimals,
-		"currency":            config.TokenCurrency,
+		"name":                config.UsdcTokenName,
+		"symbol":              "USDC.e",
+		"decimals":            6,
+		"currency":            "USD",
 		"masterMinter":        predeploys.MasterMinterAddr,
 		"initialized":         false,
 		"_initializedVersion": 3,
