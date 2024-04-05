@@ -1,7 +1,9 @@
-import { hashWithdrawal } from '@tokamak-network/core-utils'
+import { add0x, hashWithdrawal } from '@tokamak-network/core-utils'
 import { BigNumber, utils, ethers } from 'ethers'
+import { Log, TransactionReceipt } from '@ethersproject/abstract-provider'
+import { hexDataSlice } from 'ethers/lib/utils'
 
-import { LowLevelMessage } from '../interfaces'
+import { LowLevelMessage, WithdrawalMessageInfo } from '../interfaces'
 
 const { hexDataLength } = utils
 
@@ -89,4 +91,70 @@ export const migratedWithdrawalGasLimit = (
     minGasLimit = BigNumber.from(25_000_000)
   }
   return minGasLimit
+}
+
+export const calculateWithdrawalMessage = (log: Log): WithdrawalMessageInfo => {
+  if (typeof log.topics[1] === 'undefined') {
+    throw new Error('"nonce" undefined')
+  }
+  const messageNonce = BigNumber.from(log.topics[1])
+
+  if (typeof log.topics[2] === 'undefined') {
+    throw new Error('"sender" undefined')
+  }
+  const sender = log.topics[2].substring(26)
+
+  if (typeof log.topics[3] === 'undefined') {
+    throw new Error(`"target" undefined`)
+  }
+  const target = log.topics[3].substring(26)
+
+  const data = log.data
+  if (data.length < 320) {
+    throw new Error('Bad data')
+  }
+
+  const value = BigNumber.from(hexDataSlice(data, 0, 32))
+  const minGasLimit = BigNumber.from(hexDataSlice(data, 32, 64))
+  const dataOffset = BigNumber.from(hexDataSlice(data, 64, 96)).toNumber()
+  const withdrawalHash = hexDataSlice(data, 96, 128)
+  const dataLength = BigNumber.from(
+    hexDataSlice(data, dataOffset, dataOffset + 32)
+  ).toNumber()
+  const message = hexDataSlice(
+    data,
+    dataOffset + 32,
+    dataOffset + 32 + dataLength
+  )
+
+  return {
+    messageNonce,
+    sender: add0x(sender),
+    target: add0x(target),
+    value,
+    minGasLimit,
+    message,
+    withdrawalHash,
+    l2BlockNumber: log.blockNumber,
+  }
+}
+
+export const calculateWithdrawalMessageUsingRecept = (
+  txReceipt: TransactionReceipt
+): WithdrawalMessageInfo => {
+  if (txReceipt.status !== 1) {
+    return undefined
+  }
+  let withdrawalMessage: WithdrawalMessageInfo
+  txReceipt.logs.forEach((log) => {
+    if (
+      log.topics[0] ===
+      ethers.utils.id(
+        'MessagePassed(uint256,address,address,uint256,uint256,bytes,bytes32)'
+      )
+    ) {
+      withdrawalMessage = calculateWithdrawalMessage(log)
+    }
+  })
+  return withdrawalMessage
 }

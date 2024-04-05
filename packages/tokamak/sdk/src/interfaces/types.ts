@@ -175,6 +175,39 @@ export enum MessageDirection {
   L1_TO_L2,
   L2_TO_L1,
 }
+/**
+ * Deposit data
+ */
+export interface DepositTransactionRequest {
+  to: AddressLike
+  value: BigNumber
+  gasLimit: BigNumber
+  data: string
+}
+
+/**
+ * Withdrawal data
+ */
+export interface WithdrawalTransactionRequest {
+  target: AddressLike
+  value: BigNumber
+  gasLimit: BigNumber
+  data: string
+}
+
+/**
+ * Core components of a cross chain message.
+ */
+export interface WithdrawalMessageInfo {
+  sender: string
+  target: string
+  message: string
+  messageNonce: BigNumber
+  value: BigNumber
+  minGasLimit: BigNumber
+  withdrawalHash: string
+  l2BlockNumber: number
+}
 
 /**
  * Partial message that needs to be signed and executed by a specific signer.

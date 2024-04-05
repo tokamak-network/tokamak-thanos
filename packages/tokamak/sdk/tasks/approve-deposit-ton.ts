@@ -233,7 +233,11 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('TON address:', TON)
 
   const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(predeploys.WETH9, erc20ABI, l2Wallet)
+  const wtonContract = new ethers.Contract(
+    predeploys.WNativeToken,
+    erc20ABI,
+    l2Wallet
+  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -280,7 +284,7 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
 
   const data = ethers.utils.solidityPack(
     ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WETH9, amount, 200000, '0xd0e30db0']
+    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via CDM: ', data)
@@ -318,7 +322,11 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('TON address:', TON)
 
   const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(predeploys.WETH9, erc20ABI, l2Wallet)
+  const wtonContract = new ethers.Contract(
+    predeploys.WNativeToken,
+    erc20ABI,
+    l2Wallet
+  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -340,7 +348,7 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
 
   const data = ethers.utils.solidityPack(
     ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WETH9, amount, 200000, '0xd0e30db0']
+    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via Portal: ', data)
