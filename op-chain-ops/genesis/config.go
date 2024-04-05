@@ -748,12 +748,6 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.StorageConfig, error) {
 	storage := make(state.StorageConfig)
 
-	//controllers of MasterMinter - encode storage for controllers: mapping must be map[any]any
-	controllers := map[any]any{
-		"_controller": predeploys.L2UsdcBridgeAddr,
-		"_worker":     predeploys.L2UsdcBridgeAddr,
-	}
-
 	if block.Number() == nil {
 		return storage, errors.New("block number not set")
 	}
@@ -827,8 +821,11 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["SignatureChecker"] = state.StorageValues{}
 	storage["MasterMinter"] = state.StorageValues{
-		"_owner":        config.MasterMinterOwner,
-		"controllers":   controllers,
+		"_owner": config.MasterMinterOwner,
+		"controllers": map[any]any{
+			"_controller": predeploys.L2UsdcBridgeAddr,
+			"_worker":     predeploys.L2UsdcBridgeAddr,
+		},
 		"minterManager": predeploys.MasterMinterAddr,
 	}
 	storage["FiatTokenV2_2"] = state.StorageValues{
