@@ -24,7 +24,7 @@ bindings-build:
     -forge-artifacts $(contracts-dir)/forge-artifacts \
     -hardhat-artifacts $(hardhat-artifacts-dir)/hardhat-artifacts \
     -out ./bindings \
-    -forge-contracts ./artifacts-forge.json \
+    -forge-contracts ./artifacts.json \
     -hardhat-contracts ./artifacts-hardhat.json \
     -source-maps MIPS,PreimageOracle \
     -package $(pkg) \
