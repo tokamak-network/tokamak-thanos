@@ -220,10 +220,6 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
-	// UniswapV3Config stores the configuration related to Uniswap V3.
-	UniswapV3Factory    common.Address `json:"UniswapV3Factory"`
-	ONE_BP_FEE          *big.Int
-	ONE_BP_TICK_SPACING *big.Int
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -836,43 +832,4 @@ func (m *MarshalableRPCBlockNumberOrHash) Hash() (common.Hash, bool) {
 // String wraps the rpc.BlockNumberOrHash String method.
 func (m *MarshalableRPCBlockNumberOrHash) String() string {
 	return (*rpc.BlockNumberOrHash)(m).String()
-}
-
-// NewUniswapV3Config initializes the configuration for Uniswap V3.
-func NewUniswapV3Config(factoryAddress common.Address) *DeployConfig {
-	return &DeployConfig{
-		UniswapV3Factory:    factoryAddress,
-		ONE_BP_FEE:          big.NewInt(100),
-		ONE_BP_TICK_SPACING: big.NewInt(1),
-	}
-}
-
-// Definition of TRANSFER_PROXY_ADMIN function
-func TRANSFER_PROXY_ADMIN(state *state.State, ownerAddress common.Address) error {
-	// Get ProxyAdmin address from state
-	proxyAdminAddress := state.ProxyAdminAddress
-	if proxyAdminAddress == nil {
-		return nil // No error if ProxyAdmin address is not set
-	}
-
-	// Change ProxyAdmin owner
-	state.ProxyAdminOwner = ownerAddress
-
-	// Return nil if successfully changed
-	return nil
-}
-
-// Definition of TRANSFER_V3_CORE_FACTORY_OWNER function
-func TRANSFER_V3_CORE_FACTORY_OWNER(state *state.State, ownerAddress common.Address) error {
-	// Get the UniswapV3Factory address from the state
-	v3CoreFactoryAddress := state.V3CoreFactoryAddress
-	if v3CoreFactoryAddress == nil {
-		return errors.New("UniswapV3Factory address is not set")
-	}
-
-	// Change the owner of the UniswapV3Factory
-	state.V3CoreFactoryOwner = ownerAddress
-
-	// Return nil if successfully changed
-	return nil
 }
