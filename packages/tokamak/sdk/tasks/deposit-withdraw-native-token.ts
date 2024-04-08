@@ -346,7 +346,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   )
   console.log('withdrawal amount', amount.toString())
   console.log(
-    '   spent amount  ',
+    '   spent amount = l1_gas_cost + l2_gas_cost + withdrawal_amount = ',
     l1Cost
       .add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount))
       .toString()
