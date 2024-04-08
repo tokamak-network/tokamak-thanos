@@ -30,7 +30,7 @@ bindings-build:
     -package $(pkg) \
     -monorepo-base $(monorepo-base)
 
-go-bindings:
+hardhat-bindings:
 	./gen_bindings.sh $(ARTIFACTS_PATH)/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
 	./gen_bindings.sh $(ARTIFACTS_PATH)/permit2/Permit2.sol/Permit2.json $(pkg)
 	./gen_bindings.sh $(ARTIFACTS_PATH)/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
