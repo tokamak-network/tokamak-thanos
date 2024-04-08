@@ -153,6 +153,21 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "WETH",
 		},
+		{
+			Name: "L2UsdcBridge",
+		},
+		{
+			Name: "SignatureChecker",
+		},
+		{
+			Name: "MasterMinter",
+			Args: []interface{}{
+				immutable["MasterMinter"]["_minterManager"],
+			},
+		},
+		{
+			Name: "FiatTokenV2_2",
+		},
 	}
 	return BuildL2(deployments)
 }
@@ -250,6 +265,18 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		_, tx, _, err = bindings.DeploySchemaRegistry(opts, backend)
 	case "WETH":
 		_, tx, _, err = bindings.DeployWETH(opts, backend)
+	case "L2UsdcBridge":
+		_, tx, _, err = bindings.DeployL2UsdcBridge(opts, backend)
+	case "SignatureChecker":
+		_, tx, _, err = bindings.DeploySignatureChecker(opts, backend)
+	case "MasterMinter":
+		_minterManager, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _minterManager")
+		}
+		_, tx, _, err = bindings.DeployMasterMinter(opts, backend, _minterManager)
+	case "FiatTokenV2_2":
+		_, tx, _, err = bindings.DeployFiatTokenV22(opts, backend)
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
