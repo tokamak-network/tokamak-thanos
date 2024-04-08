@@ -446,8 +446,8 @@ const fastwithdrawERC20Token = async (amount: NumberLike) => {
   l2ETHBalanceUser1 = await l2ETHERC20.balanceOf(l2user1.address)
   console.log('l2 ETH(ERC20) balance (User1): ', l2ETHBalanceUser1.toString())
 
-  L2FastWithdrawBalance = await l2Provider.getBalance(L2FastWithDrawContract.address)
-  console.log('provider after l2 native balance (L2FastWithdrawBalance): ', L2FastWithdrawBalance.toString())
+  L2FastWithdrawBalance = await l2ETHERC20.balanceOf(L2FastWithDrawContract.address)
+  console.log('provider after L2 ERC20 (L2FastWithdrawBalance): ', L2FastWithdrawBalance.toString())
 
   saleInformation = await L2FastWithDrawContract.dealData(1)
   console.log('saleInformation : ', saleInformation)
