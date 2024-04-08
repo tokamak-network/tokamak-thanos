@@ -10,6 +10,7 @@ import {
   MessageStatus,
   NativeTokenBridgeAdapter,
   NumberLike,
+  Portals,
 } from '../src'
 
 console.log('Setup task...')
@@ -150,7 +151,18 @@ const depositETH = async (amount: NumberLike) => {
   await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
-  await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
+  const portals = new Portals({
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  const relayedDepositTx = await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
+  console.log('relayed tx:', relayedDepositTx)
 
   l1Balance = await l1Wallet.getBalance()
   console.log('l1 eth balance: ', l1Balance.toString())
