@@ -26,7 +26,6 @@ const (
 	SchemaRegistry                     = "0x4200000000000000000000000000000000000020"
 	EAS                                = "0x4200000000000000000000000000000000000021"
 	WETH                               = "0x4200000000000000000000000000000000000022"
-	TransparentUpgradeableProxy        = "0x4200000000000000000000000000000000000500"
 	Permit2                            = "0x4200000000000000000000000000000000000501"
 	QuoterV2                           = "0x4200000000000000000000000000000000000502"
 	SwapRouter02                       = "0x4200000000000000000000000000000000000503"
@@ -36,6 +35,10 @@ const (
 	NonfungibleTokenPositionDescriptor = "0x4200000000000000000000000000000000000507"
 	TickLens                           = "0x4200000000000000000000000000000000000508"
 	UniswapInterfaceMulticall          = "0x4200000000000000000000000000000000000509"
+	L2UsdcBridge                       = "0x4200000000000000000000000000000000000775"
+	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
+	MasterMinter                       = "0x4200000000000000000000000000000000000777"
+	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
 )
 
 var (
@@ -59,7 +62,6 @@ var (
 	SchemaRegistryAddr                     = common.HexToAddress(SchemaRegistry)
 	EASAddr                                = common.HexToAddress(EAS)
 	WETHAddr                               = common.HexToAddress(WETH)
-	TransparentUpgradeableProxyAddr        = common.HexToAddress(TransparentUpgradeableProxy)
 	Permit2Addr                            = common.HexToAddress(Permit2)
 	QuoterV2Addr                           = common.HexToAddress(QuoterV2)
 	SwapRouter02Addr                       = common.HexToAddress(SwapRouter02)
@@ -69,6 +71,10 @@ var (
 	NonfungibleTokenPositionDescriptorAddr = common.HexToAddress(NonfungibleTokenPositionDescriptor)
 	TickLensAddr                           = common.HexToAddress(TickLens)
 	UniswapInterfaceMulticallAddr          = common.HexToAddress(UniswapInterfaceMulticall)
+	L2UsdcBridgeAddr                       = common.HexToAddress(L2UsdcBridge)
+	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
+	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
+	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
 
 	Predeploys = make(map[string]*common.Address)
 )
@@ -78,6 +84,8 @@ func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
 	case WTONAddr:
 	case GovernanceTokenAddr:
+	case SignatureCheckerAddr:
+	case MasterMinterAddr:
 	default:
 		return true
 	}
@@ -105,7 +113,6 @@ func init() {
 	Predeploys["SchemaRegistry"] = &SchemaRegistryAddr
 	Predeploys["EAS"] = &EASAddr
 	Predeploys["WETH"] = &WETHAddr
-	Predeploys["TransparentUpgradeableProxy"] = &TransparentUpgradeableProxyAddr
 	Predeploys["Permit2"] = &Permit2Addr
 	Predeploys["QuoterV2"] = &QuoterV2Addr
 	Predeploys["SwapRouter02"] = &SwapRouter02Addr
@@ -115,5 +122,8 @@ func init() {
 	Predeploys["NonfungibleTokenPositionDescriptor"] = &NonfungibleTokenPositionDescriptorAddr
 	Predeploys["TickLens"] = &TickLensAddr
 	Predeploys["UniswapInterfaceMulticall"] = &UniswapInterfaceMulticallAddr
-
+	Predeploys["L2UsdcBridge"] = &L2UsdcBridgeAddr
+	Predeploys["SignatureChecker"] = &SignatureCheckerAddr
+	Predeploys["MasterMinter"] = &MasterMinterAddr
+	Predeploys["FiatTokenV2_2"] = &FiatTokenV2_2Addr
 }
