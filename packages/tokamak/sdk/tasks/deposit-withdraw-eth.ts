@@ -161,7 +161,8 @@ const depositETH = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  const relayedDepositTx = await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
+  const relayedDepositTx =
+    await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
   console.log('relayed tx:', relayedDepositTx)
 
   l1Balance = await l1Wallet.getBalance()
