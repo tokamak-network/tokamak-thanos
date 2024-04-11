@@ -57,6 +57,8 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	l1CDM, err := bindings.NewL1CrossDomainMessenger(cfg.L1Deployments.L1CrossDomainMessengerProxy, l1Client)
+	require.NoError(t, err)
+
 	optimismPortal, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
 	require.NoError(t, err)
 
@@ -69,6 +71,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	depositedTx, err := transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return l1CDM.SendNativeTokenMessage(opts, opts.From, depositedAmount, []byte{}, 200000)
 	})
+	require.NoError(t, err)
 
 	depositDeployedReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, depositedTx.Hash())
 	require.NoError(t, err)
@@ -103,6 +106,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	require.NoError(t, err)
 	l2Opts.Value = depositedAmount
 
 	withdrawalTxL2, err := transactions.PadGasEstimate(l2Opts, 1.1, func(l2Opts *bind.TransactOpts) (*types.Transaction, error) {
@@ -111,6 +115,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTxL2.Hash())
+	require.NoError(t, err)
 	require.Equal(t, withdrawalReceipt.Status, types.ReceiptStatusSuccessful)
 
 	proveReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
@@ -190,6 +195,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTxL2.Hash())
+	require.NoError(t, err)
 	require.Equal(t, types.ReceiptStatusSuccessful, withdrawalReceipt.Status)
 
 	balanceBeforeFinalization, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
