@@ -128,7 +128,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
-	require.Equal(t, withdrawalReceipt.Status, types.ReceiptStatusSuccessful)
+	require.Equal(t, types.ReceiptStatusSuccessful, withdrawalReceipt.Status)
 
 	l1BalanceBeforeFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 
@@ -139,7 +139,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 
 	withdrawTokenReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
-	require.Equal(t, withdrawTokenReceipt.Status, types.ReceiptStatusSuccessful)
+	require.Equal(t, types.ReceiptStatusSuccessful, withdrawTokenReceipt.Status)
 
 	l1BalanceAfterFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.Equal(t, l1BalanceAfterFinalizeWithdraw, l1BalanceBeforeFinalizeWithdraw.Add(l1BalanceBeforeFinalizeWithdraw, big.NewInt(depositedAmount)))
@@ -343,7 +343,7 @@ func TestDeployContractFailedNonPayableConstructor(t *testing.T) {
 	require.NoError(t, err)
 	relayedTxReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
 	require.NotNil(t, err)
-	require.Equal(t, relayedTxReceipt.Status, types.ReceiptStatusFailed)
+	require.Equal(t, types.ReceiptStatusFailed, relayedTxReceipt.Status)
 }
 
 func TestDeployContractFailedOutOfGas(t *testing.T) {
@@ -431,7 +431,7 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 	require.NoError(t, err)
 	relayedTxReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
 	require.NotNil(t, err)
-	require.Equal(t, relayedTxReceipt.Status, types.ReceiptStatusFailed)
+	require.Equal(t, types.ReceiptStatusFailed, relayedTxReceipt.Status)
 }
 
 // TestDeployContractSuccessfully tests successully
@@ -522,5 +522,5 @@ func TestDeployContractSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 	relayedTxReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
 	require.NoError(t, err)
-	require.Equal(t, relayedTxReceipt.Status, types.ReceiptStatusSuccessful)
+	require.Equal(t, types.ReceiptStatusSuccessful, relayedTxReceipt.Status)
 }
