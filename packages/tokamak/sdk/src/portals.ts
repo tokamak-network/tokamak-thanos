@@ -197,7 +197,9 @@ export class Portals {
       timeoutMs?: number
     }
   ): Promise<string> {
-    const txReceipt = await this.l1Provider.getTransactionReceipt(transactionHash)
+    const txReceipt = await this.l1Provider.getTransactionReceipt(
+      transactionHash
+    )
     return this.waitingDepositTransactionRelayed(txReceipt, opts)
   }
 
