@@ -732,6 +732,8 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
+	immutable["Permit2"] = immutables.ImmutableValues{}
+
 	immutable["WETH"] = immutables.ImmutableValues{}
 	immutable["L2UsdcBridge"] = immutables.ImmutableValues{}
 	immutable["SignatureChecker"] = immutables.ImmutableValues{}

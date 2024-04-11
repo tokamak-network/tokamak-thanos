@@ -82,6 +82,14 @@ var (
 // IsProxied returns true for predeploys that will sit behind a proxy contract
 func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
+	case QuoterV2Addr:
+	case SwapRouter02Addr:
+	case UniswapV3FactoryAddr:
+	case NFTDescriptorAddr:
+	case NonfungiblePositionManagerAddr:
+	case NonfungibleTokenPositionDescriptorAddr:
+	case TickLensAddr:
+	case UniswapInterfaceMulticallAddr:
 	case WTONAddr:
 	case GovernanceTokenAddr:
 	case SignatureCheckerAddr:
