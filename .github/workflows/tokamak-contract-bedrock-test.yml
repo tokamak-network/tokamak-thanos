@@ -60,7 +60,7 @@ jobs:
     needs: [start-runner]
     runs-on: ${{ needs.start-runner.outputs.label }}
     container:
-      image: onthertech/titan-ci-builder:latest
+      image: onthertech/thanos-ci-builder:latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4.1.0

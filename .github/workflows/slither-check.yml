@@ -33,7 +33,7 @@ jobs:
     # Copy necessary tools from Docker container
     - name: Copy foundry from Docker container
       run: |
-        container_id=$(docker create onthertech/titan-ci-builder:latest)
+        container_id=$(docker create onthertech/thanos-ci-builder:latest)
         mkdir -p $HOME/bin
         docker cp $container_id:/usr/local/bin/cast $HOME/bin/
         docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
