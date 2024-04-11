@@ -1,0 +1,2140 @@
+{
+  "id": "84c91d545d3b2a672d3c6c64870f7d2f",
+  "_format": "hh-sol-build-info-1",
+  "solcVersion": "0.7.6",
+  "solcLongVersion": "0.7.6+commit.7338295f",
+  "input": {
+    "language": "Solidity",
+    "sources": {
+      "contracts/test/MockObservable.sol": {
+        "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity =0.7.6;\n\ncontract MockObservable {\n    Observation private observation0;\n    Observation private observation1;\n\n    struct Observation {\n        uint32 secondsAgo;\n        int56 tickCumulatives;\n        uint160 secondsPerLiquidityCumulativeX128s;\n    }\n\n    constructor(\n        uint32[] memory secondsAgos,\n        int56[] memory tickCumulatives,\n        uint160[] memory secondsPerLiquidityCumulativeX128s\n    ) {\n        require(\n            secondsAgos.length == 2 && tickCumulatives.length == 2 && secondsPerLiquidityCumulativeX128s.length == 2,\n            'Invalid test case size'\n        );\n\n        observation0 = Observation(secondsAgos[0], tickCumulatives[0], secondsPerLiquidityCumulativeX128s[0]);\n        observation1 = Observation(secondsAgos[1], tickCumulatives[1], secondsPerLiquidityCumulativeX128s[1]);\n    }\n\n    function observe(uint32[] calldata secondsAgos)\n        external\n        view\n        returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s)\n    {\n        require(\n            secondsAgos[0] == observation0.secondsAgo && secondsAgos[1] == observation1.secondsAgo,\n            'Invalid test case'\n        );\n\n        int56[] memory _tickCumulatives = new int56[](2);\n        _tickCumulatives[0] = observation0.tickCumulatives;\n        _tickCumulatives[1] = observation1.tickCumulatives;\n\n        uint160[] memory _secondsPerLiquidityCumulativeX128s = new uint160[](2);\n        _secondsPerLiquidityCumulativeX128s[0] = observation0.secondsPerLiquidityCumulativeX128s;\n        _secondsPerLiquidityCumulativeX128s[1] = observation1.secondsPerLiquidityCumulativeX128s;\n\n        return (_tickCumulatives, _secondsPerLiquidityCumulativeX128s);\n    }\n}\n"
+      }
+    },
+    "settings": {
+      "evmVersion": "istanbul",
+      "optimizer": {
+        "enabled": true,
+        "runs": 1000000
+      },
+      "metadata": {
+        "bytecodeHash": "none"
+      },
+      "outputSelection": {
+        "*": {
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ],
+          "": [
+            "ast"
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "contracts": {
+      "contracts/test/MockObservable.sol": {
+        "MockObservable": {
+          "abi": [
+            {
+              "inputs": [
+                {
+                  "internalType": "uint32[]",
+                  "name": "secondsAgos",
+                  "type": "uint32[]"
+                },
+                {
+                  "internalType": "int56[]",
+                  "name": "tickCumulatives",
+                  "type": "int56[]"
+                },
+                {
+                  "internalType": "uint160[]",
+                  "name": "secondsPerLiquidityCumulativeX128s",
+                  "type": "uint160[]"
+                }
+              ],
+              "stateMutability": "nonpayable",
+              "type": "constructor"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint32[]",
+                  "name": "secondsAgos",
+                  "type": "uint32[]"
+                }
+              ],
+              "name": "observe",
+              "outputs": [
+                {
+                  "internalType": "int56[]",
+                  "name": "tickCumulatives",
+                  "type": "int56[]"
+                },
+                {
+                  "internalType": "uint160[]",
+                  "name": "secondsPerLiquidityCumulativeX128s",
+                  "type": "uint160[]"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            }
+          ],
+          "evm": {
+            "bytecode": {
+              "generatedSources": [],
+              "linkReferences": {},
+              "object": "608060405234801561001057600080fd5b506040516107803803806107808339818101604052606081101561003357600080fd5b810190808051604051939291908464010000000082111561005357600080fd5b90830190602082018581111561006857600080fd5b825186602082028301116401000000008211171561008557600080fd5b82525081516020918201928201910280838360005b838110156100b257818101518382015260200161009a565b50505050905001604052602001805160405193929190846401000000008211156100db57600080fd5b9083019060208201858111156100f057600080fd5b825186602082028301116401000000008211171561010d57600080fd5b82525081516020918201928201910280838360005b8381101561013a578181015183820152602001610122565b505050509050016040526020018051604051939291908464010000000082111561016357600080fd5b90830190602082018581111561017857600080fd5b825186602082028301116401000000008211171561019557600080fd5b82525081516020918201928201910280838360005b838110156101c25781810151838201526020016101aa565b50505050905001604052505050825160021480156101e1575081516002145b80156101ee575080516002145b61023f576040805162461bcd60e51b815260206004820152601660248201527f496e76616c6964207465737420636173652073697a6500000000000000000000604482015290519081900360640190fd5b60405180606001604052808460008151811061025757fe5b602002602001015163ffffffff1681526020018360008151811061027757fe5b602002602001015160060b81526020018260008151811061029457fe5b6020908102919091018101516001600160a01b03908116909252825160008054928501516040958601519094166b01000000000000000000000002600160581b600160f81b031960069590950b66ffffffffffffff166401000000000266ffffffffffffff60201b1963ffffffff90941663ffffffff1990951694909417929092169290921792909216919091179055805160608101909152835181908590600190811061033e57fe5b602002602001015163ffffffff1681526020018360018151811061035e57fe5b602002602001015160060b81526020018260018151811061037b57fe5b6020908102919091018101516001600160a01b03908116909252825160018054928501516040909501519093166b01000000000000000000000002600160581b600160f81b031960069590950b66ffffffffffffff166401000000000266ffffffffffffff60201b1963ffffffff90931663ffffffff19909416939093179190911691909117929092169190911790555050506103638061041d6000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063883bdbfd14610030575b600080fd5b6100a06004803603602081101561004657600080fd5b81019060208101813564010000000081111561006157600080fd5b82018360208201111561007357600080fd5b8035906020019184602083028401116401000000008311171561009557600080fd5b509092509050610139565b604051808060200180602001838103835285818151815260200191508051906020019060200280838360005b838110156100e45781810151838201526020016100cc565b50505050905001838103825284818151815260200191508051906020019060200280838360005b8381101561012357818101518382015260200161010b565b5050505090500194505050505060405180910390f35b60008054606091829163ffffffff1690859085908161015457fe5b9050602002013563ffffffff1663ffffffff1614801561019c57506001805463ffffffff16908590859081811061018757fe5b9050602002013563ffffffff1663ffffffff16145b61020757604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601160248201527f496e76616c696420746573742063617365000000000000000000000000000000604482015290519081900360640190fd5b6040805160028082526060820183526000926020830190803683375050600080548351939450640100000000900460060b9284925061024257fe5b600692830b830b602091820292909201015260018054835164010000000090910490920b91839190811061027257fe5b600692830b90920b602092830291909101820152604080516002808252606082018352600093919290918301908036833750506000805483519394506b010000000000000000000000900473ffffffffffffffffffffffffffffffffffffffff16928492506102dd57fe5b73ffffffffffffffffffffffffffffffffffffffff92831660209182029290920101526001805483516b01000000000000000000000090910490921691839190811061032557fe5b73ffffffffffffffffffffffffffffffffffffffff909216602092830291909101909101529092509050925092905056fea164736f6c6343000706000a",
+              "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x40 MLOAD PUSH2 0x780 CODESIZE SUB DUP1 PUSH2 0x780 DUP4 CODECOPY DUP2 DUP2 ADD PUSH1 0x40 MSTORE PUSH1 0x60 DUP2 LT ISZERO PUSH2 0x33 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 MLOAD PUSH1 0x40 MLOAD SWAP4 SWAP3 SWAP2 SWAP1 DUP5 PUSH5 0x100000000 DUP3 GT ISZERO PUSH2 0x53 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST SWAP1 DUP4 ADD SWAP1 PUSH1 0x20 DUP3 ADD DUP6 DUP2 GT ISZERO PUSH2 0x68 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MLOAD DUP7 PUSH1 0x20 DUP3 MUL DUP4 ADD GT PUSH5 0x100000000 DUP3 GT OR ISZERO PUSH2 0x85 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MSTORE POP DUP2 MLOAD PUSH1 0x20 SWAP2 DUP3 ADD SWAP3 DUP3 ADD SWAP2 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0xB2 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0x9A JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD PUSH1 0x40 MSTORE PUSH1 0x20 ADD DUP1 MLOAD PUSH1 0x40 MLOAD SWAP4 SWAP3 SWAP2 SWAP1 DUP5 PUSH5 0x100000000 DUP3 GT ISZERO PUSH2 0xDB JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST SWAP1 DUP4 ADD SWAP1 PUSH1 0x20 DUP3 ADD DUP6 DUP2 GT ISZERO PUSH2 0xF0 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MLOAD DUP7 PUSH1 0x20 DUP3 MUL DUP4 ADD GT PUSH5 0x100000000 DUP3 GT OR ISZERO PUSH2 0x10D JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MSTORE POP DUP2 MLOAD PUSH1 0x20 SWAP2 DUP3 ADD SWAP3 DUP3 ADD SWAP2 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0x13A JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0x122 JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD PUSH1 0x40 MSTORE PUSH1 0x20 ADD DUP1 MLOAD PUSH1 0x40 MLOAD SWAP4 SWAP3 SWAP2 SWAP1 DUP5 PUSH5 0x100000000 DUP3 GT ISZERO PUSH2 0x163 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST SWAP1 DUP4 ADD SWAP1 PUSH1 0x20 DUP3 ADD DUP6 DUP2 GT ISZERO PUSH2 0x178 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MLOAD DUP7 PUSH1 0x20 DUP3 MUL DUP4 ADD GT PUSH5 0x100000000 DUP3 GT OR ISZERO PUSH2 0x195 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 MSTORE POP DUP2 MLOAD PUSH1 0x20 SWAP2 DUP3 ADD SWAP3 DUP3 ADD SWAP2 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0x1C2 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0x1AA JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD PUSH1 0x40 MSTORE POP POP POP DUP3 MLOAD PUSH1 0x2 EQ DUP1 ISZERO PUSH2 0x1E1 JUMPI POP DUP2 MLOAD PUSH1 0x2 EQ JUMPDEST DUP1 ISZERO PUSH2 0x1EE JUMPI POP DUP1 MLOAD PUSH1 0x2 EQ JUMPDEST PUSH2 0x23F JUMPI PUSH1 0x40 DUP1 MLOAD PUSH3 0x461BCD PUSH1 0xE5 SHL DUP2 MSTORE PUSH1 0x20 PUSH1 0x4 DUP3 ADD MSTORE PUSH1 0x16 PUSH1 0x24 DUP3 ADD MSTORE PUSH32 0x496E76616C6964207465737420636173652073697A6500000000000000000000 PUSH1 0x44 DUP3 ADD MSTORE SWAP1 MLOAD SWAP1 DUP2 SWAP1 SUB PUSH1 0x64 ADD SWAP1 REVERT JUMPDEST PUSH1 0x40 MLOAD DUP1 PUSH1 0x60 ADD PUSH1 0x40 MSTORE DUP1 DUP5 PUSH1 0x0 DUP2 MLOAD DUP2 LT PUSH2 0x257 JUMPI INVALID JUMPDEST PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH4 0xFFFFFFFF AND DUP2 MSTORE PUSH1 0x20 ADD DUP4 PUSH1 0x0 DUP2 MLOAD DUP2 LT PUSH2 0x277 JUMPI INVALID JUMPDEST PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x6 SIGNEXTEND DUP2 MSTORE PUSH1 0x20 ADD DUP3 PUSH1 0x0 DUP2 MLOAD DUP2 LT PUSH2 0x294 JUMPI INVALID JUMPDEST PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD DUP2 ADD MLOAD PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB SWAP1 DUP2 AND SWAP1 SWAP3 MSTORE DUP3 MLOAD PUSH1 0x0 DUP1 SLOAD SWAP3 DUP6 ADD MLOAD PUSH1 0x40 SWAP6 DUP7 ADD MLOAD SWAP1 SWAP5 AND PUSH12 0x10000000000000000000000 MUL PUSH1 0x1 PUSH1 0x58 SHL PUSH1 0x1 PUSH1 0xF8 SHL SUB NOT PUSH1 0x6 SWAP6 SWAP1 SWAP6 SIGNEXTEND PUSH7 0xFFFFFFFFFFFFFF AND PUSH5 0x100000000 MUL PUSH7 0xFFFFFFFFFFFFFF PUSH1 0x20 SHL NOT PUSH4 0xFFFFFFFF SWAP1 SWAP5 AND PUSH4 0xFFFFFFFF NOT SWAP1 SWAP6 AND SWAP5 SWAP1 SWAP5 OR SWAP3 SWAP1 SWAP3 AND SWAP3 SWAP1 SWAP3 OR SWAP3 SWAP1 SWAP3 AND SWAP2 SWAP1 SWAP2 OR SWAP1 SSTORE DUP1 MLOAD PUSH1 0x60 DUP2 ADD SWAP1 SWAP2 MSTORE DUP4 MLOAD DUP2 SWAP1 DUP6 SWAP1 PUSH1 0x1 SWAP1 DUP2 LT PUSH2 0x33E JUMPI INVALID JUMPDEST PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH4 0xFFFFFFFF AND DUP2 MSTORE PUSH1 0x20 ADD DUP4 PUSH1 0x1 DUP2 MLOAD DUP2 LT PUSH2 0x35E JUMPI INVALID JUMPDEST PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x6 SIGNEXTEND DUP2 MSTORE PUSH1 0x20 ADD DUP3 PUSH1 0x1 DUP2 MLOAD DUP2 LT PUSH2 0x37B JUMPI INVALID JUMPDEST PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD DUP2 ADD MLOAD PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB SWAP1 DUP2 AND SWAP1 SWAP3 MSTORE DUP3 MLOAD PUSH1 0x1 DUP1 SLOAD SWAP3 DUP6 ADD MLOAD PUSH1 0x40 SWAP1 SWAP6 ADD MLOAD SWAP1 SWAP4 AND PUSH12 0x10000000000000000000000 MUL PUSH1 0x1 PUSH1 0x58 SHL PUSH1 0x1 PUSH1 0xF8 SHL SUB NOT PUSH1 0x6 SWAP6 SWAP1 SWAP6 SIGNEXTEND PUSH7 0xFFFFFFFFFFFFFF AND PUSH5 0x100000000 MUL PUSH7 0xFFFFFFFFFFFFFF PUSH1 0x20 SHL NOT PUSH4 0xFFFFFFFF SWAP1 SWAP4 AND PUSH4 0xFFFFFFFF NOT SWAP1 SWAP5 AND SWAP4 SWAP1 SWAP4 OR SWAP2 SWAP1 SWAP2 AND SWAP2 SWAP1 SWAP2 OR SWAP3 SWAP1 SWAP3 AND SWAP2 SWAP1 SWAP2 OR SWAP1 SSTORE POP POP POP PUSH2 0x363 DUP1 PUSH2 0x41D PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH2 0x2B JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0x883BDBFD EQ PUSH2 0x30 JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH2 0xA0 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH2 0x46 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 PUSH1 0x20 DUP2 ADD DUP2 CALLDATALOAD PUSH5 0x100000000 DUP2 GT ISZERO PUSH2 0x61 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 ADD DUP4 PUSH1 0x20 DUP3 ADD GT ISZERO PUSH2 0x73 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP2 DUP5 PUSH1 0x20 DUP4 MUL DUP5 ADD GT PUSH5 0x100000000 DUP4 GT OR ISZERO PUSH2 0x95 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP SWAP1 SWAP3 POP SWAP1 POP PUSH2 0x139 JUMP JUMPDEST PUSH1 0x40 MLOAD DUP1 DUP1 PUSH1 0x20 ADD DUP1 PUSH1 0x20 ADD DUP4 DUP2 SUB DUP4 MSTORE DUP6 DUP2 DUP2 MLOAD DUP2 MSTORE PUSH1 0x20 ADD SWAP2 POP DUP1 MLOAD SWAP1 PUSH1 0x20 ADD SWAP1 PUSH1 0x20 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0xE4 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0xCC JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD DUP4 DUP2 SUB DUP3 MSTORE DUP5 DUP2 DUP2 MLOAD DUP2 MSTORE PUSH1 0x20 ADD SWAP2 POP DUP1 MLOAD SWAP1 PUSH1 0x20 ADD SWAP1 PUSH1 0x20 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0x123 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0x10B JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD SWAP5 POP POP POP POP POP PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 RETURN JUMPDEST PUSH1 0x0 DUP1 SLOAD PUSH1 0x60 SWAP2 DUP3 SWAP2 PUSH4 0xFFFFFFFF AND SWAP1 DUP6 SWAP1 DUP6 SWAP1 DUP2 PUSH2 0x154 JUMPI INVALID JUMPDEST SWAP1 POP PUSH1 0x20 MUL ADD CALLDATALOAD PUSH4 0xFFFFFFFF AND PUSH4 0xFFFFFFFF AND EQ DUP1 ISZERO PUSH2 0x19C JUMPI POP PUSH1 0x1 DUP1 SLOAD PUSH4 0xFFFFFFFF AND SWAP1 DUP6 SWAP1 DUP6 SWAP1 DUP2 DUP2 LT PUSH2 0x187 JUMPI INVALID JUMPDEST SWAP1 POP PUSH1 0x20 MUL ADD CALLDATALOAD PUSH4 0xFFFFFFFF AND PUSH4 0xFFFFFFFF AND EQ JUMPDEST PUSH2 0x207 JUMPI PUSH1 0x40 DUP1 MLOAD PUSH32 0x8C379A000000000000000000000000000000000000000000000000000000000 DUP2 MSTORE PUSH1 0x20 PUSH1 0x4 DUP3 ADD MSTORE PUSH1 0x11 PUSH1 0x24 DUP3 ADD MSTORE PUSH32 0x496E76616C696420746573742063617365000000000000000000000000000000 PUSH1 0x44 DUP3 ADD MSTORE SWAP1 MLOAD SWAP1 DUP2 SWAP1 SUB PUSH1 0x64 ADD SWAP1 REVERT JUMPDEST PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD DUP4 MSTORE PUSH1 0x0 SWAP3 PUSH1 0x20 DUP4 ADD SWAP1 DUP1 CALLDATASIZE DUP4 CALLDATACOPY POP POP PUSH1 0x0 DUP1 SLOAD DUP4 MLOAD SWAP4 SWAP5 POP PUSH5 0x100000000 SWAP1 DIV PUSH1 0x6 SIGNEXTEND SWAP3 DUP5 SWAP3 POP PUSH2 0x242 JUMPI INVALID JUMPDEST PUSH1 0x6 SWAP3 DUP4 SIGNEXTEND DUP4 SIGNEXTEND PUSH1 0x20 SWAP2 DUP3 MUL SWAP3 SWAP1 SWAP3 ADD ADD MSTORE PUSH1 0x1 DUP1 SLOAD DUP4 MLOAD PUSH5 0x100000000 SWAP1 SWAP2 DIV SWAP1 SWAP3 SIGNEXTEND SWAP2 DUP4 SWAP2 SWAP1 DUP2 LT PUSH2 0x272 JUMPI INVALID JUMPDEST PUSH1 0x6 SWAP3 DUP4 SIGNEXTEND SWAP1 SWAP3 SIGNEXTEND PUSH1 0x20 SWAP3 DUP4 MUL SWAP2 SWAP1 SWAP2 ADD DUP3 ADD MSTORE PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD DUP4 MSTORE PUSH1 0x0 SWAP4 SWAP2 SWAP3 SWAP1 SWAP2 DUP4 ADD SWAP1 DUP1 CALLDATASIZE DUP4 CALLDATACOPY POP POP PUSH1 0x0 DUP1 SLOAD DUP4 MLOAD SWAP4 SWAP5 POP PUSH12 0x10000000000000000000000 SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP3 DUP5 SWAP3 POP PUSH2 0x2DD JUMPI INVALID JUMPDEST PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF SWAP3 DUP4 AND PUSH1 0x20 SWAP2 DUP3 MUL SWAP3 SWAP1 SWAP3 ADD ADD MSTORE PUSH1 0x1 DUP1 SLOAD DUP4 MLOAD PUSH12 0x10000000000000000000000 SWAP1 SWAP2 DIV SWAP1 SWAP3 AND SWAP2 DUP4 SWAP2 SWAP1 DUP2 LT PUSH2 0x325 JUMPI INVALID JUMPDEST PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF SWAP1 SWAP3 AND PUSH1 0x20 SWAP3 DUP4 MUL SWAP2 SWAP1 SWAP2 ADD SWAP1 SWAP2 ADD MSTORE SWAP1 SWAP3 POP SWAP1 POP SWAP3 POP SWAP3 SWAP1 POP JUMP INVALID LOG1 PUSH5 0x736F6C6343 STOP SMOD MOD STOP EXP ",
+              "sourceMap": "64:1707:0:-:0;;;313:569;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;313:569:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;313:569:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;313:569:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;500:11;:18;522:1;500:23;:54;;;;;527:15;:22;553:1;527:27;500:54;:104;;;;;558:34;:41;603:1;558:46;500:104;479:173;;;;;-1:-1:-1;;;479:173:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;678:86;;;;;;;;690:11;702:1;690:14;;;;;;;;;;;;;;678:86;;;;;;706:15;722:1;706:18;;;;;;;;;;;;;;678:86;;;;;;726:34;761:1;726:37;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;678:86:0;;;;;;663:101;;:12;:101;;;;;;;;;;;;;;;;-1:-1:-1;;;;;;;;663:101:0;;;;;;;;;-1:-1:-1;;;;663:101:0;;;;-1:-1:-1;;663:101:0;;;;;;;;;;;;;;;;;;;;;;;;;789:86;;;;;;;;801:14;;789:86;;801:11;;663:101;;801:14;;;;;;;;;;;;789:86;;;;;;817:15;833:1;817:18;;;;;;;;;;;;;;789:86;;;;;;837:34;872:1;837:37;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;789:86:0;;;;;;774:101;;:12;:101;;;;;;;;;;;;;;;;-1:-1:-1;;;;;;;;774:101:0;;;;;;;;;-1:-1:-1;;;;774:101:0;;;;-1:-1:-1;;774:101:0;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;64:1707:0;;;;;;"
+            },
+            "deployedBytecode": {
+              "generatedSources": [],
+              "immutableReferences": {},
+              "linkReferences": {},
+              "object": "608060405234801561001057600080fd5b506004361061002b5760003560e01c8063883bdbfd14610030575b600080fd5b6100a06004803603602081101561004657600080fd5b81019060208101813564010000000081111561006157600080fd5b82018360208201111561007357600080fd5b8035906020019184602083028401116401000000008311171561009557600080fd5b509092509050610139565b604051808060200180602001838103835285818151815260200191508051906020019060200280838360005b838110156100e45781810151838201526020016100cc565b50505050905001838103825284818151815260200191508051906020019060200280838360005b8381101561012357818101518382015260200161010b565b5050505090500194505050505060405180910390f35b60008054606091829163ffffffff1690859085908161015457fe5b9050602002013563ffffffff1663ffffffff1614801561019c57506001805463ffffffff16908590859081811061018757fe5b9050602002013563ffffffff1663ffffffff16145b61020757604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601160248201527f496e76616c696420746573742063617365000000000000000000000000000000604482015290519081900360640190fd5b6040805160028082526060820183526000926020830190803683375050600080548351939450640100000000900460060b9284925061024257fe5b600692830b830b602091820292909201015260018054835164010000000090910490920b91839190811061027257fe5b600692830b90920b602092830291909101820152604080516002808252606082018352600093919290918301908036833750506000805483519394506b010000000000000000000000900473ffffffffffffffffffffffffffffffffffffffff16928492506102dd57fe5b73ffffffffffffffffffffffffffffffffffffffff92831660209182029290920101526001805483516b01000000000000000000000090910490921691839190811061032557fe5b73ffffffffffffffffffffffffffffffffffffffff909216602092830291909101909101529092509050925092905056fea164736f6c6343000706000a",
+              "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH2 0x2B JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0x883BDBFD EQ PUSH2 0x30 JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH2 0xA0 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH2 0x46 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 PUSH1 0x20 DUP2 ADD DUP2 CALLDATALOAD PUSH5 0x100000000 DUP2 GT ISZERO PUSH2 0x61 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 ADD DUP4 PUSH1 0x20 DUP3 ADD GT ISZERO PUSH2 0x73 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP2 DUP5 PUSH1 0x20 DUP4 MUL DUP5 ADD GT PUSH5 0x100000000 DUP4 GT OR ISZERO PUSH2 0x95 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP SWAP1 SWAP3 POP SWAP1 POP PUSH2 0x139 JUMP JUMPDEST PUSH1 0x40 MLOAD DUP1 DUP1 PUSH1 0x20 ADD DUP1 PUSH1 0x20 ADD DUP4 DUP2 SUB DUP4 MSTORE DUP6 DUP2 DUP2 MLOAD DUP2 MSTORE PUSH1 0x20 ADD SWAP2 POP DUP1 MLOAD SWAP1 PUSH1 0x20 ADD SWAP1 PUSH1 0x20 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0xE4 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0xCC JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD DUP4 DUP2 SUB DUP3 MSTORE DUP5 DUP2 DUP2 MLOAD DUP2 MSTORE PUSH1 0x20 ADD SWAP2 POP DUP1 MLOAD SWAP1 PUSH1 0x20 ADD SWAP1 PUSH1 0x20 MUL DUP1 DUP4 DUP4 PUSH1 0x0 JUMPDEST DUP4 DUP2 LT ISZERO PUSH2 0x123 JUMPI DUP2 DUP2 ADD MLOAD DUP4 DUP3 ADD MSTORE PUSH1 0x20 ADD PUSH2 0x10B JUMP JUMPDEST POP POP POP POP SWAP1 POP ADD SWAP5 POP POP POP POP POP PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 RETURN JUMPDEST PUSH1 0x0 DUP1 SLOAD PUSH1 0x60 SWAP2 DUP3 SWAP2 PUSH4 0xFFFFFFFF AND SWAP1 DUP6 SWAP1 DUP6 SWAP1 DUP2 PUSH2 0x154 JUMPI INVALID JUMPDEST SWAP1 POP PUSH1 0x20 MUL ADD CALLDATALOAD PUSH4 0xFFFFFFFF AND PUSH4 0xFFFFFFFF AND EQ DUP1 ISZERO PUSH2 0x19C JUMPI POP PUSH1 0x1 DUP1 SLOAD PUSH4 0xFFFFFFFF AND SWAP1 DUP6 SWAP1 DUP6 SWAP1 DUP2 DUP2 LT PUSH2 0x187 JUMPI INVALID JUMPDEST SWAP1 POP PUSH1 0x20 MUL ADD CALLDATALOAD PUSH4 0xFFFFFFFF AND PUSH4 0xFFFFFFFF AND EQ JUMPDEST PUSH2 0x207 JUMPI PUSH1 0x40 DUP1 MLOAD PUSH32 0x8C379A000000000000000000000000000000000000000000000000000000000 DUP2 MSTORE PUSH1 0x20 PUSH1 0x4 DUP3 ADD MSTORE PUSH1 0x11 PUSH1 0x24 DUP3 ADD MSTORE PUSH32 0x496E76616C696420746573742063617365000000000000000000000000000000 PUSH1 0x44 DUP3 ADD MSTORE SWAP1 MLOAD SWAP1 DUP2 SWAP1 SUB PUSH1 0x64 ADD SWAP1 REVERT JUMPDEST PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD DUP4 MSTORE PUSH1 0x0 SWAP3 PUSH1 0x20 DUP4 ADD SWAP1 DUP1 CALLDATASIZE DUP4 CALLDATACOPY POP POP PUSH1 0x0 DUP1 SLOAD DUP4 MLOAD SWAP4 SWAP5 POP PUSH5 0x100000000 SWAP1 DIV PUSH1 0x6 SIGNEXTEND SWAP3 DUP5 SWAP3 POP PUSH2 0x242 JUMPI INVALID JUMPDEST PUSH1 0x6 SWAP3 DUP4 SIGNEXTEND DUP4 SIGNEXTEND PUSH1 0x20 SWAP2 DUP3 MUL SWAP3 SWAP1 SWAP3 ADD ADD MSTORE PUSH1 0x1 DUP1 SLOAD DUP4 MLOAD PUSH5 0x100000000 SWAP1 SWAP2 DIV SWAP1 SWAP3 SIGNEXTEND SWAP2 DUP4 SWAP2 SWAP1 DUP2 LT PUSH2 0x272 JUMPI INVALID JUMPDEST PUSH1 0x6 SWAP3 DUP4 SIGNEXTEND SWAP1 SWAP3 SIGNEXTEND PUSH1 0x20 SWAP3 DUP4 MUL SWAP2 SWAP1 SWAP2 ADD DUP3 ADD MSTORE PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD DUP4 MSTORE PUSH1 0x0 SWAP4 SWAP2 SWAP3 SWAP1 SWAP2 DUP4 ADD SWAP1 DUP1 CALLDATASIZE DUP4 CALLDATACOPY POP POP PUSH1 0x0 DUP1 SLOAD DUP4 MLOAD SWAP4 SWAP5 POP PUSH12 0x10000000000000000000000 SWAP1 DIV PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP3 DUP5 SWAP3 POP PUSH2 0x2DD JUMPI INVALID JUMPDEST PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF SWAP3 DUP4 AND PUSH1 0x20 SWAP2 DUP3 MUL SWAP3 SWAP1 SWAP3 ADD ADD MSTORE PUSH1 0x1 DUP1 SLOAD DUP4 MLOAD PUSH12 0x10000000000000000000000 SWAP1 SWAP2 DIV SWAP1 SWAP3 AND SWAP2 DUP4 SWAP2 SWAP1 DUP2 LT PUSH2 0x325 JUMPI INVALID JUMPDEST PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF SWAP1 SWAP3 AND PUSH1 0x20 SWAP3 DUP4 MUL SWAP2 SWAP1 SWAP2 ADD SWAP1 SWAP2 ADD MSTORE SWAP1 SWAP3 POP SWAP1 POP SWAP3 POP SWAP3 SWAP1 POP JUMP INVALID LOG1 PUSH5 0x736F6C6343 STOP SMOD MOD STOP EXP ",
+              "sourceMap": "64:1707:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;888:881;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;888:881:0;;-1:-1:-1;888:881:0;-1:-1:-1;888:881:0;:::i;:::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1121:12;:23;;983:30;;;;1121:23;;;1103:11;;;;:14;;;;;;;;;;;;;:41;;;:86;;;;-1:-1:-1;1166:12:0;:23;;;;;1148:11;;;;:14;;;;;;;;;;;;;;;:41;;;1103:86;1082:150;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1277:14;;;1289:1;1277:14;;;;;;;;1243:31;;1277:14;;;;;;;;-1:-1:-1;;1323:12:0;:28;;1301:19;;;;-1:-1:-1;1323:28:0;;;;;;1301:19;;-1:-1:-1;1301:19:0;;;;:50;;;;;;:19;;;;;;;;;:50;1383:12;:28;;1361:19;;1383:28;;;;;;;;1361:16;;1383:12;1361:19;;;;;;:50;;;;;;;:19;;;;;;;;;;:50;1477:16;;;1491:1;1477:16;;;;;;;;1422:52;;1477:16;;1491:1;;1477:16;;;;;;;-1:-1:-1;;1544:12:0;:47;;1503:38;;;;-1:-1:-1;1544:47:0;;;;;;1503:38;;-1:-1:-1;1503:38:0;;;;:88;;;;:38;;;;;;;;;:88;1642:12;:47;;1601:38;;1642:47;;;;;;;;1601:35;;1642:12;1601:38;;;;;;:88;;;;:38;;;;;;;;;;;:88;1708:16;;-1:-1:-1;1726:35:0;-1:-1:-1;888:881:0;;;;;:::o"
+            },
+            "methodIdentifiers": {
+              "observe(uint32[])": "883bdbfd"
+            }
+          },
+          "metadata": "{\"compiler\":{\"version\":\"0.7.6+commit.7338295f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"},{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"}],\"name\":\"observe\",\"outputs\":[{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/test/MockObservable.sol\":\"MockObservable\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\"},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[]},\"sources\":{\"contracts/test/MockObservable.sol\":{\"keccak256\":\"0x05418e9fabd3e5e5be9f533d150ea7277806a7a79ae5e3df3dc47c3af9f8a359\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://4cbf49aea1f73517d3fc91a0ac8bbf8a27676ef553f51a908a93b37930e50057\",\"dweb:/ipfs/QmTHwEeeHteYbJfpoAtaedrgaE1LLzMxJhhXA9FtqewAcw\"]}},\"version\":1}"
+        }
+      }
+    },
+    "sources": {
+      "contracts/test/MockObservable.sol": {
+        "ast": {
+          "absolutePath": "contracts/test/MockObservable.sol",
+          "exportedSymbols": {
+            "MockObservable": [
+              156
+            ]
+          },
+          "id": 157,
+          "license": "UNLICENSED",
+          "nodeType": "SourceUnit",
+          "nodes": [
+            {
+              "id": 1,
+              "literals": [
+                "solidity",
+                "=",
+                "0.7",
+                ".6"
+              ],
+              "nodeType": "PragmaDirective",
+              "src": "39:23:0"
+            },
+            {
+              "abstract": false,
+              "baseContracts": [],
+              "contractDependencies": [],
+              "contractKind": "contract",
+              "fullyImplemented": true,
+              "id": 156,
+              "linearizedBaseContracts": [
+                156
+              ],
+              "name": "MockObservable",
+              "nodeType": "ContractDefinition",
+              "nodes": [
+                {
+                  "constant": false,
+                  "id": 3,
+                  "mutability": "mutable",
+                  "name": "observation0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 156,
+                  "src": "94:32:0",
+                  "stateVariable": true,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Observation_$12_storage",
+                    "typeString": "struct MockObservable.Observation"
+                  },
+                  "typeName": {
+                    "id": 2,
+                    "name": "Observation",
+                    "nodeType": "UserDefinedTypeName",
+                    "referencedDeclaration": 12,
+                    "src": "94:11:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Observation_$12_storage_ptr",
+                      "typeString": "struct MockObservable.Observation"
+                    }
+                  },
+                  "visibility": "private"
+                },
+                {
+                  "constant": false,
+                  "id": 5,
+                  "mutability": "mutable",
+                  "name": "observation1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 156,
+                  "src": "132:32:0",
+                  "stateVariable": true,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_Observation_$12_storage",
+                    "typeString": "struct MockObservable.Observation"
+                  },
+                  "typeName": {
+                    "id": 4,
+                    "name": "Observation",
+                    "nodeType": "UserDefinedTypeName",
+                    "referencedDeclaration": 12,
+                    "src": "132:11:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_Observation_$12_storage_ptr",
+                      "typeString": "struct MockObservable.Observation"
+                    }
+                  },
+                  "visibility": "private"
+                },
+                {
+                  "canonicalName": "MockObservable.Observation",
+                  "id": 12,
+                  "members": [
+                    {
+                      "constant": false,
+                      "id": 7,
+                      "mutability": "mutable",
+                      "name": "secondsAgo",
+                      "nodeType": "VariableDeclaration",
+                      "scope": 12,
+                      "src": "200:17:0",
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint32",
+                        "typeString": "uint32"
+                      },
+                      "typeName": {
+                        "id": 6,
+                        "name": "uint32",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "200:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint32",
+                          "typeString": "uint32"
+                        }
+                      },
+                      "visibility": "internal"
+                    },
+                    {
+                      "constant": false,
+                      "id": 9,
+                      "mutability": "mutable",
+                      "name": "tickCumulatives",
+                      "nodeType": "VariableDeclaration",
+                      "scope": 12,
+                      "src": "227:21:0",
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_int56",
+                        "typeString": "int56"
+                      },
+                      "typeName": {
+                        "id": 8,
+                        "name": "int56",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "227:5:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_int56",
+                          "typeString": "int56"
+                        }
+                      },
+                      "visibility": "internal"
+                    },
+                    {
+                      "constant": false,
+                      "id": 11,
+                      "mutability": "mutable",
+                      "name": "secondsPerLiquidityCumulativeX128s",
+                      "nodeType": "VariableDeclaration",
+                      "scope": 12,
+                      "src": "258:42:0",
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint160",
+                        "typeString": "uint160"
+                      },
+                      "typeName": {
+                        "id": 10,
+                        "name": "uint160",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "258:7:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint160",
+                          "typeString": "uint160"
+                        }
+                      },
+                      "visibility": "internal"
+                    }
+                  ],
+                  "name": "Observation",
+                  "nodeType": "StructDefinition",
+                  "scope": 156,
+                  "src": "171:136:0",
+                  "visibility": "public"
+                },
+                {
+                  "body": {
+                    "id": 70,
+                    "nodeType": "Block",
+                    "src": "469:413:0",
+                    "statements": [
+                      {
+                        "expression": {
+                          "arguments": [
+                            {
+                              "commonType": {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              },
+                              "id": 38,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "leftExpression": {
+                                "commonType": {
+                                  "typeIdentifier": "t_bool",
+                                  "typeString": "bool"
+                                },
+                                "id": 33,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                  "commonType": {
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                  },
+                                  "id": 28,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "leftExpression": {
+                                    "expression": {
+                                      "id": 25,
+                                      "name": "secondsAgos",
+                                      "nodeType": "Identifier",
+                                      "overloadedDeclarations": [],
+                                      "referencedDeclaration": 15,
+                                      "src": "500:11:0",
+                                      "typeDescriptions": {
+                                        "typeIdentifier": "t_array$_t_uint32_$dyn_memory_ptr",
+                                        "typeString": "uint32[] memory"
+                                      }
+                                    },
+                                    "id": 26,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": false,
+                                    "lValueRequested": false,
+                                    "memberName": "length",
+                                    "nodeType": "MemberAccess",
+                                    "src": "500:18:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_uint256",
+                                      "typeString": "uint256"
+                                    }
+                                  },
+                                  "nodeType": "BinaryOperation",
+                                  "operator": "==",
+                                  "rightExpression": {
+                                    "hexValue": "32",
+                                    "id": 27,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": true,
+                                    "kind": "number",
+                                    "lValueRequested": false,
+                                    "nodeType": "Literal",
+                                    "src": "522:1:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_rational_2_by_1",
+                                      "typeString": "int_const 2"
+                                    },
+                                    "value": "2"
+                                  },
+                                  "src": "500:23:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_bool",
+                                    "typeString": "bool"
+                                  }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "&&",
+                                "rightExpression": {
+                                  "commonType": {
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                  },
+                                  "id": 32,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "leftExpression": {
+                                    "expression": {
+                                      "id": 29,
+                                      "name": "tickCumulatives",
+                                      "nodeType": "Identifier",
+                                      "overloadedDeclarations": [],
+                                      "referencedDeclaration": 18,
+                                      "src": "527:15:0",
+                                      "typeDescriptions": {
+                                        "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                        "typeString": "int56[] memory"
+                                      }
+                                    },
+                                    "id": 30,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": false,
+                                    "lValueRequested": false,
+                                    "memberName": "length",
+                                    "nodeType": "MemberAccess",
+                                    "src": "527:22:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_uint256",
+                                      "typeString": "uint256"
+                                    }
+                                  },
+                                  "nodeType": "BinaryOperation",
+                                  "operator": "==",
+                                  "rightExpression": {
+                                    "hexValue": "32",
+                                    "id": 31,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": true,
+                                    "kind": "number",
+                                    "lValueRequested": false,
+                                    "nodeType": "Literal",
+                                    "src": "553:1:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_rational_2_by_1",
+                                      "typeString": "int_const 2"
+                                    },
+                                    "value": "2"
+                                  },
+                                  "src": "527:27:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_bool",
+                                    "typeString": "bool"
+                                  }
+                                },
+                                "src": "500:54:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_bool",
+                                  "typeString": "bool"
+                                }
+                              },
+                              "nodeType": "BinaryOperation",
+                              "operator": "&&",
+                              "rightExpression": {
+                                "commonType": {
+                                  "typeIdentifier": "t_uint256",
+                                  "typeString": "uint256"
+                                },
+                                "id": 37,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                  "expression": {
+                                    "id": 34,
+                                    "name": "secondsPerLiquidityCumulativeX128s",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 21,
+                                    "src": "558:34:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                      "typeString": "uint160[] memory"
+                                    }
+                                  },
+                                  "id": 35,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "memberName": "length",
+                                  "nodeType": "MemberAccess",
+                                  "src": "558:41:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                  }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "==",
+                                "rightExpression": {
+                                  "hexValue": "32",
+                                  "id": 36,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "603:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_2_by_1",
+                                    "typeString": "int_const 2"
+                                  },
+                                  "value": "2"
+                                },
+                                "src": "558:46:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_bool",
+                                  "typeString": "bool"
+                                }
+                              },
+                              "src": "500:104:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              }
+                            },
+                            {
+                              "hexValue": "496e76616c6964207465737420636173652073697a65",
+                              "id": 39,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "string",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "618:24:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_stringliteral_6380b120c432ddf674784021d27d0971178cd3d3643ae88791f8da7996aad60b",
+                                "typeString": "literal_string \"Invalid test case size\""
+                              },
+                              "value": "Invalid test case size"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              },
+                              {
+                                "typeIdentifier": "t_stringliteral_6380b120c432ddf674784021d27d0971178cd3d3643ae88791f8da7996aad60b",
+                                "typeString": "literal_string \"Invalid test case size\""
+                              }
+                            ],
+                            "id": 24,
+                            "name": "require",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [
+                              -18,
+                              -18
+                            ],
+                            "referencedDeclaration": -18,
+                            "src": "479:7:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                              "typeString": "function (bool,string memory) pure"
+                            }
+                          },
+                          "id": 40,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "479:173:0",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_tuple$__$",
+                            "typeString": "tuple()"
+                          }
+                        },
+                        "id": 41,
+                        "nodeType": "ExpressionStatement",
+                        "src": "479:173:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 54,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "id": 42,
+                            "name": "observation0",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 3,
+                            "src": "663:12:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_Observation_$12_storage",
+                              "typeString": "struct MockObservable.Observation storage ref"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "arguments": [
+                              {
+                                "baseExpression": {
+                                  "id": 44,
+                                  "name": "secondsAgos",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 15,
+                                  "src": "690:11:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_uint32_$dyn_memory_ptr",
+                                    "typeString": "uint32[] memory"
+                                  }
+                                },
+                                "id": 46,
+                                "indexExpression": {
+                                  "hexValue": "30",
+                                  "id": 45,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "702:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_0_by_1",
+                                    "typeString": "int_const 0"
+                                  },
+                                  "value": "0"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "690:14:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                }
+                              },
+                              {
+                                "baseExpression": {
+                                  "id": 47,
+                                  "name": "tickCumulatives",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 18,
+                                  "src": "706:15:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                    "typeString": "int56[] memory"
+                                  }
+                                },
+                                "id": 49,
+                                "indexExpression": {
+                                  "hexValue": "30",
+                                  "id": 48,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "722:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_0_by_1",
+                                    "typeString": "int_const 0"
+                                  },
+                                  "value": "0"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "706:18:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                }
+                              },
+                              {
+                                "baseExpression": {
+                                  "id": 50,
+                                  "name": "secondsPerLiquidityCumulativeX128s",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 21,
+                                  "src": "726:34:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                    "typeString": "uint160[] memory"
+                                  }
+                                },
+                                "id": 52,
+                                "indexExpression": {
+                                  "hexValue": "30",
+                                  "id": 51,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "761:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_0_by_1",
+                                    "typeString": "int_const 0"
+                                  },
+                                  "value": "0"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "726:37:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              }
+                            ],
+                            "expression": {
+                              "argumentTypes": [
+                                {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                },
+                                {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                },
+                                {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              ],
+                              "id": 43,
+                              "name": "Observation",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 12,
+                              "src": "678:11:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_type$_t_struct$_Observation_$12_storage_ptr_$",
+                                "typeString": "type(struct MockObservable.Observation storage pointer)"
+                              }
+                            },
+                            "id": 53,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "kind": "structConstructorCall",
+                            "lValueRequested": false,
+                            "names": [],
+                            "nodeType": "FunctionCall",
+                            "src": "678:86:0",
+                            "tryCall": false,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_Observation_$12_memory_ptr",
+                              "typeString": "struct MockObservable.Observation memory"
+                            }
+                          },
+                          "src": "663:101:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_Observation_$12_storage",
+                            "typeString": "struct MockObservable.Observation storage ref"
+                          }
+                        },
+                        "id": 55,
+                        "nodeType": "ExpressionStatement",
+                        "src": "663:101:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 68,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "id": 56,
+                            "name": "observation1",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 5,
+                            "src": "774:12:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_Observation_$12_storage",
+                              "typeString": "struct MockObservable.Observation storage ref"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "arguments": [
+                              {
+                                "baseExpression": {
+                                  "id": 58,
+                                  "name": "secondsAgos",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 15,
+                                  "src": "801:11:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_uint32_$dyn_memory_ptr",
+                                    "typeString": "uint32[] memory"
+                                  }
+                                },
+                                "id": 60,
+                                "indexExpression": {
+                                  "hexValue": "31",
+                                  "id": 59,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "813:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_1_by_1",
+                                    "typeString": "int_const 1"
+                                  },
+                                  "value": "1"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "801:14:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                }
+                              },
+                              {
+                                "baseExpression": {
+                                  "id": 61,
+                                  "name": "tickCumulatives",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 18,
+                                  "src": "817:15:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                    "typeString": "int56[] memory"
+                                  }
+                                },
+                                "id": 63,
+                                "indexExpression": {
+                                  "hexValue": "31",
+                                  "id": 62,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "833:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_1_by_1",
+                                    "typeString": "int_const 1"
+                                  },
+                                  "value": "1"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "817:18:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                }
+                              },
+                              {
+                                "baseExpression": {
+                                  "id": 64,
+                                  "name": "secondsPerLiquidityCumulativeX128s",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 21,
+                                  "src": "837:34:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                    "typeString": "uint160[] memory"
+                                  }
+                                },
+                                "id": 66,
+                                "indexExpression": {
+                                  "hexValue": "31",
+                                  "id": 65,
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": true,
+                                  "kind": "number",
+                                  "lValueRequested": false,
+                                  "nodeType": "Literal",
+                                  "src": "872:1:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_rational_1_by_1",
+                                    "typeString": "int_const 1"
+                                  },
+                                  "value": "1"
+                                },
+                                "isConstant": false,
+                                "isLValue": true,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "IndexAccess",
+                                "src": "837:37:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              }
+                            ],
+                            "expression": {
+                              "argumentTypes": [
+                                {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                },
+                                {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                },
+                                {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              ],
+                              "id": 57,
+                              "name": "Observation",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 12,
+                              "src": "789:11:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_type$_t_struct$_Observation_$12_storage_ptr_$",
+                                "typeString": "type(struct MockObservable.Observation storage pointer)"
+                              }
+                            },
+                            "id": 67,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "kind": "structConstructorCall",
+                            "lValueRequested": false,
+                            "names": [],
+                            "nodeType": "FunctionCall",
+                            "src": "789:86:0",
+                            "tryCall": false,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_Observation_$12_memory_ptr",
+                              "typeString": "struct MockObservable.Observation memory"
+                            }
+                          },
+                          "src": "774:101:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_Observation_$12_storage",
+                            "typeString": "struct MockObservable.Observation storage ref"
+                          }
+                        },
+                        "id": 69,
+                        "nodeType": "ExpressionStatement",
+                        "src": "774:101:0"
+                      }
+                    ]
+                  },
+                  "id": 71,
+                  "implemented": true,
+                  "kind": "constructor",
+                  "modifiers": [],
+                  "name": "",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 22,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 15,
+                        "mutability": "mutable",
+                        "name": "secondsAgos",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 71,
+                        "src": "334:27:0",
+                        "stateVariable": false,
+                        "storageLocation": "memory",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint32_$dyn_memory_ptr",
+                          "typeString": "uint32[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 13,
+                            "name": "uint32",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "334:6:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint32",
+                              "typeString": "uint32"
+                            }
+                          },
+                          "id": 14,
+                          "nodeType": "ArrayTypeName",
+                          "src": "334:8:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_uint32_$dyn_storage_ptr",
+                            "typeString": "uint32[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 18,
+                        "mutability": "mutable",
+                        "name": "tickCumulatives",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 71,
+                        "src": "371:30:0",
+                        "stateVariable": false,
+                        "storageLocation": "memory",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                          "typeString": "int56[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 16,
+                            "name": "int56",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "371:5:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "id": 17,
+                          "nodeType": "ArrayTypeName",
+                          "src": "371:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_int56_$dyn_storage_ptr",
+                            "typeString": "int56[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 21,
+                        "mutability": "mutable",
+                        "name": "secondsPerLiquidityCumulativeX128s",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 71,
+                        "src": "411:51:0",
+                        "stateVariable": false,
+                        "storageLocation": "memory",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                          "typeString": "uint160[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 19,
+                            "name": "uint160",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "411:7:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "id": 20,
+                          "nodeType": "ArrayTypeName",
+                          "src": "411:9:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_uint160_$dyn_storage_ptr",
+                            "typeString": "uint160[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "324:144:0"
+                  },
+                  "returnParameters": {
+                    "id": 23,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "469:0:0"
+                  },
+                  "scope": 156,
+                  "src": "313:569:0",
+                  "stateMutability": "nonpayable",
+                  "virtual": false,
+                  "visibility": "public"
+                },
+                {
+                  "body": {
+                    "id": 154,
+                    "nodeType": "Block",
+                    "src": "1072:697:0",
+                    "statements": [
+                      {
+                        "expression": {
+                          "arguments": [
+                            {
+                              "commonType": {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              },
+                              "id": 96,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "leftExpression": {
+                                "commonType": {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                },
+                                "id": 89,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                  "baseExpression": {
+                                    "id": 84,
+                                    "name": "secondsAgos",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 74,
+                                    "src": "1103:11:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_array$_t_uint32_$dyn_calldata_ptr",
+                                      "typeString": "uint32[] calldata"
+                                    }
+                                  },
+                                  "id": 86,
+                                  "indexExpression": {
+                                    "hexValue": "30",
+                                    "id": 85,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": true,
+                                    "kind": "number",
+                                    "lValueRequested": false,
+                                    "nodeType": "Literal",
+                                    "src": "1115:1:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_rational_0_by_1",
+                                      "typeString": "int_const 0"
+                                    },
+                                    "value": "0"
+                                  },
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "nodeType": "IndexAccess",
+                                  "src": "1103:14:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_uint32",
+                                    "typeString": "uint32"
+                                  }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "==",
+                                "rightExpression": {
+                                  "expression": {
+                                    "id": 87,
+                                    "name": "observation0",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 3,
+                                    "src": "1121:12:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                      "typeString": "struct MockObservable.Observation storage ref"
+                                    }
+                                  },
+                                  "id": 88,
+                                  "isConstant": false,
+                                  "isLValue": true,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "memberName": "secondsAgo",
+                                  "nodeType": "MemberAccess",
+                                  "referencedDeclaration": 7,
+                                  "src": "1121:23:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_uint32",
+                                    "typeString": "uint32"
+                                  }
+                                },
+                                "src": "1103:41:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_bool",
+                                  "typeString": "bool"
+                                }
+                              },
+                              "nodeType": "BinaryOperation",
+                              "operator": "&&",
+                              "rightExpression": {
+                                "commonType": {
+                                  "typeIdentifier": "t_uint32",
+                                  "typeString": "uint32"
+                                },
+                                "id": 95,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                  "baseExpression": {
+                                    "id": 90,
+                                    "name": "secondsAgos",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 74,
+                                    "src": "1148:11:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_array$_t_uint32_$dyn_calldata_ptr",
+                                      "typeString": "uint32[] calldata"
+                                    }
+                                  },
+                                  "id": 92,
+                                  "indexExpression": {
+                                    "hexValue": "31",
+                                    "id": 91,
+                                    "isConstant": false,
+                                    "isLValue": false,
+                                    "isPure": true,
+                                    "kind": "number",
+                                    "lValueRequested": false,
+                                    "nodeType": "Literal",
+                                    "src": "1160:1:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_rational_1_by_1",
+                                      "typeString": "int_const 1"
+                                    },
+                                    "value": "1"
+                                  },
+                                  "isConstant": false,
+                                  "isLValue": false,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "nodeType": "IndexAccess",
+                                  "src": "1148:14:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_uint32",
+                                    "typeString": "uint32"
+                                  }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "==",
+                                "rightExpression": {
+                                  "expression": {
+                                    "id": 93,
+                                    "name": "observation1",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 5,
+                                    "src": "1166:12:0",
+                                    "typeDescriptions": {
+                                      "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                      "typeString": "struct MockObservable.Observation storage ref"
+                                    }
+                                  },
+                                  "id": 94,
+                                  "isConstant": false,
+                                  "isLValue": true,
+                                  "isPure": false,
+                                  "lValueRequested": false,
+                                  "memberName": "secondsAgo",
+                                  "nodeType": "MemberAccess",
+                                  "referencedDeclaration": 7,
+                                  "src": "1166:23:0",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_uint32",
+                                    "typeString": "uint32"
+                                  }
+                                },
+                                "src": "1148:41:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_bool",
+                                  "typeString": "bool"
+                                }
+                              },
+                              "src": "1103:86:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              }
+                            },
+                            {
+                              "hexValue": "496e76616c696420746573742063617365",
+                              "id": 97,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "string",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1203:19:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_stringliteral_50f7e4809f16e1a96b82b5d85c94bf5834461108f0f076475f13e2b1423a8e09",
+                                "typeString": "literal_string \"Invalid test case\""
+                              },
+                              "value": "Invalid test case"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                              },
+                              {
+                                "typeIdentifier": "t_stringliteral_50f7e4809f16e1a96b82b5d85c94bf5834461108f0f076475f13e2b1423a8e09",
+                                "typeString": "literal_string \"Invalid test case\""
+                              }
+                            ],
+                            "id": 83,
+                            "name": "require",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [
+                              -18,
+                              -18
+                            ],
+                            "referencedDeclaration": -18,
+                            "src": "1082:7:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                              "typeString": "function (bool,string memory) pure"
+                            }
+                          },
+                          "id": 98,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "1082:150:0",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_tuple$__$",
+                            "typeString": "tuple()"
+                          }
+                        },
+                        "id": 99,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1082:150:0"
+                      },
+                      {
+                        "assignments": [
+                          104
+                        ],
+                        "declarations": [
+                          {
+                            "constant": false,
+                            "id": 104,
+                            "mutability": "mutable",
+                            "name": "_tickCumulatives",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 154,
+                            "src": "1243:31:0",
+                            "stateVariable": false,
+                            "storageLocation": "memory",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                              "typeString": "int56[]"
+                            },
+                            "typeName": {
+                              "baseType": {
+                                "id": 102,
+                                "name": "int56",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "1243:5:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                }
+                              },
+                              "id": 103,
+                              "nodeType": "ArrayTypeName",
+                              "src": "1243:7:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_int56_$dyn_storage_ptr",
+                                "typeString": "int56[]"
+                              }
+                            },
+                            "visibility": "internal"
+                          }
+                        ],
+                        "id": 110,
+                        "initialValue": {
+                          "arguments": [
+                            {
+                              "hexValue": "32",
+                              "id": 108,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1289:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_2_by_1",
+                                "typeString": "int_const 2"
+                              },
+                              "value": "2"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_rational_2_by_1",
+                                "typeString": "int_const 2"
+                              }
+                            ],
+                            "id": 107,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "lValueRequested": false,
+                            "nodeType": "NewExpression",
+                            "src": "1277:11:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_objectcreation_pure$_t_uint256_$returns$_t_array$_t_int56_$dyn_memory_ptr_$",
+                              "typeString": "function (uint256) pure returns (int56[] memory)"
+                            },
+                            "typeName": {
+                              "baseType": {
+                                "id": 105,
+                                "name": "int56",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "1281:5:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_int56",
+                                  "typeString": "int56"
+                                }
+                              },
+                              "id": 106,
+                              "nodeType": "ArrayTypeName",
+                              "src": "1281:7:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_int56_$dyn_storage_ptr",
+                                "typeString": "int56[]"
+                              }
+                            }
+                          },
+                          "id": 109,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "1277:14:0",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                            "typeString": "int56[] memory"
+                          }
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "1243:48:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 116,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "baseExpression": {
+                              "id": 111,
+                              "name": "_tickCumulatives",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 104,
+                              "src": "1301:16:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                "typeString": "int56[] memory"
+                              }
+                            },
+                            "id": 113,
+                            "indexExpression": {
+                              "hexValue": "30",
+                              "id": 112,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1318:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_0_by_1",
+                                "typeString": "int_const 0"
+                              },
+                              "value": "0"
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1301:19:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "expression": {
+                              "id": 114,
+                              "name": "observation0",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 3,
+                              "src": "1323:12:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                "typeString": "struct MockObservable.Observation storage ref"
+                              }
+                            },
+                            "id": 115,
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberName": "tickCumulatives",
+                            "nodeType": "MemberAccess",
+                            "referencedDeclaration": 9,
+                            "src": "1323:28:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "src": "1301:50:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_int56",
+                            "typeString": "int56"
+                          }
+                        },
+                        "id": 117,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1301:50:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 123,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "baseExpression": {
+                              "id": 118,
+                              "name": "_tickCumulatives",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 104,
+                              "src": "1361:16:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                "typeString": "int56[] memory"
+                              }
+                            },
+                            "id": 120,
+                            "indexExpression": {
+                              "hexValue": "31",
+                              "id": 119,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1378:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_1_by_1",
+                                "typeString": "int_const 1"
+                              },
+                              "value": "1"
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1361:19:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "expression": {
+                              "id": 121,
+                              "name": "observation1",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 5,
+                              "src": "1383:12:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                "typeString": "struct MockObservable.Observation storage ref"
+                              }
+                            },
+                            "id": 122,
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberName": "tickCumulatives",
+                            "nodeType": "MemberAccess",
+                            "referencedDeclaration": 9,
+                            "src": "1383:28:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "src": "1361:50:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_int56",
+                            "typeString": "int56"
+                          }
+                        },
+                        "id": 124,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1361:50:0"
+                      },
+                      {
+                        "assignments": [
+                          129
+                        ],
+                        "declarations": [
+                          {
+                            "constant": false,
+                            "id": 129,
+                            "mutability": "mutable",
+                            "name": "_secondsPerLiquidityCumulativeX128s",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 154,
+                            "src": "1422:52:0",
+                            "stateVariable": false,
+                            "storageLocation": "memory",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                              "typeString": "uint160[]"
+                            },
+                            "typeName": {
+                              "baseType": {
+                                "id": 127,
+                                "name": "uint160",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "1422:7:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              },
+                              "id": 128,
+                              "nodeType": "ArrayTypeName",
+                              "src": "1422:9:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint160_$dyn_storage_ptr",
+                                "typeString": "uint160[]"
+                              }
+                            },
+                            "visibility": "internal"
+                          }
+                        ],
+                        "id": 135,
+                        "initialValue": {
+                          "arguments": [
+                            {
+                              "hexValue": "32",
+                              "id": 133,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1491:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_2_by_1",
+                                "typeString": "int_const 2"
+                              },
+                              "value": "2"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_rational_2_by_1",
+                                "typeString": "int_const 2"
+                              }
+                            ],
+                            "id": 132,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "lValueRequested": false,
+                            "nodeType": "NewExpression",
+                            "src": "1477:13:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_objectcreation_pure$_t_uint256_$returns$_t_array$_t_uint160_$dyn_memory_ptr_$",
+                              "typeString": "function (uint256) pure returns (uint160[] memory)"
+                            },
+                            "typeName": {
+                              "baseType": {
+                                "id": 130,
+                                "name": "uint160",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "1481:7:0",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_uint160",
+                                  "typeString": "uint160"
+                                }
+                              },
+                              "id": 131,
+                              "nodeType": "ArrayTypeName",
+                              "src": "1481:9:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint160_$dyn_storage_ptr",
+                                "typeString": "uint160[]"
+                              }
+                            }
+                          },
+                          "id": 134,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "1477:16:0",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                            "typeString": "uint160[] memory"
+                          }
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "1422:71:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 141,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "baseExpression": {
+                              "id": 136,
+                              "name": "_secondsPerLiquidityCumulativeX128s",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 129,
+                              "src": "1503:35:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                "typeString": "uint160[] memory"
+                              }
+                            },
+                            "id": 138,
+                            "indexExpression": {
+                              "hexValue": "30",
+                              "id": 137,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1539:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_0_by_1",
+                                "typeString": "int_const 0"
+                              },
+                              "value": "0"
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1503:38:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "expression": {
+                              "id": 139,
+                              "name": "observation0",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 3,
+                              "src": "1544:12:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                "typeString": "struct MockObservable.Observation storage ref"
+                              }
+                            },
+                            "id": 140,
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberName": "secondsPerLiquidityCumulativeX128s",
+                            "nodeType": "MemberAccess",
+                            "referencedDeclaration": 11,
+                            "src": "1544:47:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "src": "1503:88:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint160",
+                            "typeString": "uint160"
+                          }
+                        },
+                        "id": 142,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1503:88:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 148,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "baseExpression": {
+                              "id": 143,
+                              "name": "_secondsPerLiquidityCumulativeX128s",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 129,
+                              "src": "1601:35:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                "typeString": "uint160[] memory"
+                              }
+                            },
+                            "id": 145,
+                            "indexExpression": {
+                              "hexValue": "31",
+                              "id": 144,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "number",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "1637:1:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_rational_1_by_1",
+                                "typeString": "int_const 1"
+                              },
+                              "value": "1"
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1601:38:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "expression": {
+                              "id": 146,
+                              "name": "observation1",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 5,
+                              "src": "1642:12:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_struct$_Observation_$12_storage",
+                                "typeString": "struct MockObservable.Observation storage ref"
+                              }
+                            },
+                            "id": 147,
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "memberName": "secondsPerLiquidityCumulativeX128s",
+                            "nodeType": "MemberAccess",
+                            "referencedDeclaration": 11,
+                            "src": "1642:47:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "src": "1601:88:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint160",
+                            "typeString": "uint160"
+                          }
+                        },
+                        "id": 149,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1601:88:0"
+                      },
+                      {
+                        "expression": {
+                          "components": [
+                            {
+                              "id": 150,
+                              "name": "_tickCumulatives",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 104,
+                              "src": "1708:16:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                                "typeString": "int56[] memory"
+                              }
+                            },
+                            {
+                              "id": 151,
+                              "name": "_secondsPerLiquidityCumulativeX128s",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 129,
+                              "src": "1726:35:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                                "typeString": "uint160[] memory"
+                              }
+                            }
+                          ],
+                          "id": 152,
+                          "isConstant": false,
+                          "isInlineArray": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "nodeType": "TupleExpression",
+                          "src": "1707:55:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_tuple$_t_array$_t_int56_$dyn_memory_ptr_$_t_array$_t_uint160_$dyn_memory_ptr_$",
+                            "typeString": "tuple(int56[] memory,uint160[] memory)"
+                          }
+                        },
+                        "functionReturnParameters": 82,
+                        "id": 153,
+                        "nodeType": "Return",
+                        "src": "1700:62:0"
+                      }
+                    ]
+                  },
+                  "functionSelector": "883bdbfd",
+                  "id": 155,
+                  "implemented": true,
+                  "kind": "function",
+                  "modifiers": [],
+                  "name": "observe",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 75,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 74,
+                        "mutability": "mutable",
+                        "name": "secondsAgos",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 155,
+                        "src": "905:29:0",
+                        "stateVariable": false,
+                        "storageLocation": "calldata",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint32_$dyn_calldata_ptr",
+                          "typeString": "uint32[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 72,
+                            "name": "uint32",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "905:6:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint32",
+                              "typeString": "uint32"
+                            }
+                          },
+                          "id": 73,
+                          "nodeType": "ArrayTypeName",
+                          "src": "905:8:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_uint32_$dyn_storage_ptr",
+                            "typeString": "uint32[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "904:31:0"
+                  },
+                  "returnParameters": {
+                    "id": 82,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 78,
+                        "mutability": "mutable",
+                        "name": "tickCumulatives",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 155,
+                        "src": "983:30:0",
+                        "stateVariable": false,
+                        "storageLocation": "memory",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_int56_$dyn_memory_ptr",
+                          "typeString": "int56[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 76,
+                            "name": "int56",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "983:5:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_int56",
+                              "typeString": "int56"
+                            }
+                          },
+                          "id": 77,
+                          "nodeType": "ArrayTypeName",
+                          "src": "983:7:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_int56_$dyn_storage_ptr",
+                            "typeString": "int56[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 81,
+                        "mutability": "mutable",
+                        "name": "secondsPerLiquidityCumulativeX128s",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 155,
+                        "src": "1015:51:0",
+                        "stateVariable": false,
+                        "storageLocation": "memory",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint160_$dyn_memory_ptr",
+                          "typeString": "uint160[]"
+                        },
+                        "typeName": {
+                          "baseType": {
+                            "id": 79,
+                            "name": "uint160",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "1015:7:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint160",
+                              "typeString": "uint160"
+                            }
+                          },
+                          "id": 80,
+                          "nodeType": "ArrayTypeName",
+                          "src": "1015:9:0",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_uint160_$dyn_storage_ptr",
+                            "typeString": "uint160[]"
+                          }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "982:85:0"
+                  },
+                  "scope": 156,
+                  "src": "888:881:0",
+                  "stateMutability": "view",
+                  "virtual": false,
+                  "visibility": "external"
+                }
+              ],
+              "scope": 157,
+              "src": "64:1707:0"
+            }
+          ],
+          "src": "39:1733:0"
+        },
+        "id": 0
+      }
+    }
+  }
+}
