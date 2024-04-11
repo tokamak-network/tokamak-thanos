@@ -3,7 +3,7 @@ name: Publish Docker images (nightly)
 on:
   push:
     branches:
-      - main
+      - OR-1477-use-macos-latest
 
 jobs:
   version:
@@ -26,8 +26,11 @@ jobs:
 
   op-stack-go:
     name: Publish op-stack-go
-    needs: [version]
-    runs-on: ubuntu-latest
+    needs: [ version ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,8 +50,8 @@ jobs:
       - name: Set build args
         id: build_args
         run: |
-          echo "GITDATE=$(date +%d-%m-%Y)" >> "$GITHUB_OUTPUT"
-          echo "GITCOMMIT=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "GITDATE=$(date +%d-%m-%Y)" >> "$GITHUB_ENV"
+          echo "GITCOMMIT=$GITHUB_SHA" >> "$GITHUB_ENV"
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -57,17 +60,19 @@ jobs:
           context: .
           file: ./ops/docker/op-stack-go/Dockerfile
           push: true
-          tags: onthertech/titan-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: 0x6e616d/titan-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
-            GITDATE=${{ steps.build_args.outputs.GITDATE }}
-            GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
+            GITDATE=${{ env.GITDATE }}
+            GITCOMMIT=${{ env.GITCOMMIT }}
+
 
   op-packages:
     name: Publish ${{ matrix.target }}
     needs: [op-stack-go, version]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ macos-latest ]
         target:
           [
             op-node,
@@ -100,16 +105,17 @@ jobs:
           context: .
           file: ./${{ matrix.target }}/Dockerfile
           push: true
-          tags: onthertech/titan-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: 0x6e616d/titan-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
-            OP_STACK_GO_BUILDER=onthertech/titan-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+            OP_STACK_GO_BUILDER=0x6e616d/titan-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
 
   etc:
     name: Publish ${{ matrix.target }}
     needs: [version]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ ubuntu-latest, macos-latest ]
         target: [endpoint-monitor, indexer, op-exporter, proxyd]
     steps:
       - name: Checkout
