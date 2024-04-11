@@ -45,7 +45,7 @@ func EncodeCallData(items ...interface{}) []byte {
 	return packed
 }
 
-// TestDepositAndWithdrawPortalsSuccessfully tests deposit via OptimismPortal and withdraw via L2ToL1MessagePasser successully
+// TestDepositAndWithdrawPortalsSuccessfully tests deposit via OptimismPortal and withdraw via L2ToL1MessagePasser successfully
 func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	InitParallel(t)
 
@@ -121,6 +121,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	require.NoError(t, err)
 	l2Opts.Value = big.NewInt(depositedAmount)
 
 	// init a withdraw
@@ -128,10 +129,11 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	require.NoError(t, err)
 	require.Equal(t, types.ReceiptStatusSuccessful, withdrawalReceipt.Status)
 
 	l1BalanceBeforeFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
-
+	require.NoError(t, err)
 	ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
 
 	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, opts.From, big.NewInt(depositedAmount))
@@ -142,6 +144,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	require.Equal(t, types.ReceiptStatusSuccessful, withdrawTokenReceipt.Status)
 
 	l1BalanceAfterFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
+	require.NoError(t, err)
 	require.Equal(t, l1BalanceAfterFinalizeWithdraw, l1BalanceBeforeFinalizeWithdraw.Add(l1BalanceBeforeFinalizeWithdraw, big.NewInt(depositedAmount)))
 }
 
@@ -211,7 +214,7 @@ func TestOnApproveSuccessfully(t *testing.T) {
 	require.Equal(t, l2BalanceExpectedAmount, l2BalanceAfterDeposit)
 }
 
-// TestDepositAndCallContractL2ViaPortal tests successully
+// TestDepositAndCallContractL2ViaPortal tests successfully
 func TestDepositAndCallL2Successfully(t *testing.T) {
 	InitParallel(t)
 
@@ -279,6 +282,7 @@ func TestDepositAndCallL2Successfully(t *testing.T) {
 	require.NoError(t, err)
 
 	wnativetokenContract, err := bindings.NewL2NativeToken(predeploys.WNativeTokenAddr, l2Client)
+	require.NoError(t, err)
 	wnativetokenBalance, err := wnativetokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 	require.Equal(t, wnativetokenBalance, big.NewInt(depositedAmount))
@@ -410,12 +414,12 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 
 	// Estimate data
 	_, estimatedData, _, _ := bindings.DeployWNativeToken(opts, l1Client)
-	require.NoError(t, err)
 
 	// Deploy contract
 	deployedTx, err := transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return optimismPortal.DepositTransaction(opts, common.Address{}, big.NewInt(0), 200000, estimatedData.Data())
 	})
+	require.NoError(t, err)
 
 	depositDeployedReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, deployedTx.Hash())
 	require.NoError(t, err)
@@ -434,7 +438,7 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 	require.Equal(t, types.ReceiptStatusFailed, relayedTxReceipt.Status)
 }
 
-// TestDeployContractSuccessfully tests successully
+// TestDeployContractSuccessfully tests successfully
 func TestDeployContractSuccessfully(t *testing.T) {
 	InitParallel(t)
 
@@ -500,12 +504,12 @@ func TestDeployContractSuccessfully(t *testing.T) {
 	// Estimate data
 	_, estimatedData, _, _ := bindings.DeployWNativeToken(opts, l1Client)
 	t.Log("Estimated gas:", estimatedData.Gas())
-	require.NoError(t, err)
 
 	// Deploy contract
 	deployedTx, err := transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return optimismPortal.DepositTransaction(opts, common.Address{}, big.NewInt(0), estimatedData.Gas(), estimatedData.Data())
 	})
+	require.NoError(t, err)
 
 	depositDeployedReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, deployedTx.Hash())
 	require.NoError(t, err)
