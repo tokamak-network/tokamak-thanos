@@ -2,7 +2,6 @@ package op_e2e
 
 import (
 	"context"
-	"encoding/binary"
 	"math"
 	"math/big"
 	"testing"
@@ -14,36 +13,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 )
-
-func EncodeCallDataCDM(items ...interface{}) []byte {
-	var packed []byte
-
-	for _, item := range items {
-		switch v := item.(type) {
-		case []byte:
-			packed = append(packed, v...)
-		case uint32:
-			buf := make([]byte, 4)
-			binary.BigEndian.PutUint32(buf, v)
-			packed = append(packed, buf...)
-		case *big.Int:
-			bytes := v.Bytes()
-			if len(bytes) < 32 {
-				padding := make([]byte, 32-len(bytes))
-				bytes = append(padding, bytes...)
-			}
-			packed = append(packed, bytes...)
-		case common.Address:
-			packed = append(packed, v.Bytes()...)
-		}
-	}
-	return packed
-}
 
 // TestCannotWithdrawTokenWithEmptyMessage: cannot withdraw token on L1
 // Success on L2
@@ -260,7 +233,7 @@ func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	calldata := EncodeCallDataCDM(opts.From, opts.From, amount, uint32(200000), []byte{})
+	calldata := EncodeCallData(opts.From, opts.From, amount, uint32(200000), []byte{})
 
 	l1BalanceBeforeDeposit, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
