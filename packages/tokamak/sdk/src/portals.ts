@@ -172,22 +172,35 @@ export class Portals {
 
   public async waitingDepositTransactionRelayed(
     txReceipt: TransactionReceipt,
-    opts: {
+    opts?: {
       pollIntervalMs?: number
       timeoutMs?: number
     }
   ): Promise<string> {
     const l1BlockNumber = txReceipt.blockNumber
     let totalTimeMs = 0
-    while (totalTimeMs < (opts.timeoutMs || Infinity)) {
+    while (totalTimeMs < (opts?.timeoutMs || Infinity)) {
       const tick = Date.now()
       if (l1BlockNumber <= (await this.getL1BlockNumber())) {
         return this.calculateRelayedDepositTxID(txReceipt)
       }
-      await sleep(opts.pollIntervalMs || 1000)
+      await sleep(opts?.pollIntervalMs || 1000)
       totalTimeMs += Date.now() - tick
     }
     throw new Error(`timed out waiting for relayed deposit transaction`)
+  }
+
+  public async waitingDepositTransactionRelayedUsingL1Tx(
+    transactionHash: string,
+    opts?: {
+      pollIntervalMs?: number
+      timeoutMs?: number
+    }
+  ): Promise<string> {
+    const txReceipt = await this.l1Provider.getTransactionReceipt(
+      transactionHash
+    )
+    return this.waitingDepositTransactionRelayed(txReceipt, opts)
   }
 
   public async calculateRelayedDepositTxID(

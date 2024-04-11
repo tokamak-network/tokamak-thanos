@@ -333,7 +333,12 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   const updatedL2Balance = await l2Wallet.getBalance()
   console.log('l2 native balance:', updatedL2Balance.toString())
 
-  const l1Cost = withdrawalTx['l1Fee'].mul(withdrawalTx['l1FeeScalar'])
+  const l1FeeScalar = withdrawalTx['l1FeeScalar']
+  const l1FeeScalarBN = ethers.utils.parseUnits(l1FeeScalar.toString(), 18)
+  const l1Cost = withdrawalTx['l1Fee']
+    .mul(l1FeeScalarBN)
+    .div(ethers.utils.parseUnits('1', 18))
+
   console.log('   l1 gas cost   ', l1Cost.toString())
   console.log(
     '   l2 gas cost   ',
@@ -341,7 +346,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   )
   console.log('withdrawal amount', amount.toString())
   console.log(
-    '   spent amount  ',
+    '   spent amount = l1_gas_cost + l2_gas_cost + withdrawal_amount = ',
     l1Cost
       .add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount))
       .toString()
