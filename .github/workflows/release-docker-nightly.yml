@@ -338,57 +338,57 @@ jobs:
           images: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-amd64,onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-arm64
           push: true
 
-  update-kustomize:
-    name: Update image version in kustomize manifest file(nightly)
-    needs:
-      - version
-      - etc
-      - op-packages
-    runs-on: ubuntu-latest
+  # update-kustomize:
+  #   name: Update image version in kustomize manifest file(nightly)
+  #   needs:
+  #     - version
+  #     - etc
+  #     - op-packages
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          repository: tokamak-network/tokamak-infra
-          ref: main
-          token: ${{ secrets.ACCESS_TOKEN }}
-          path: tokamak-infra
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         repository: tokamak-network/tokamak-infra
+  #         ref: main
+  #         token: ${{ secrets.ACCESS_TOKEN }}
+  #         path: tokamak-infra
 
-      - name: Setup Kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          github-token: ${{ secrets.ACCESS_TOKEN }}
+  #     - name: Setup Kustomize
+  #       uses: imranismail/setup-kustomize@v1
+  #       with:
+  #         github-token: ${{ secrets.ACCESS_TOKEN }}
 
-      - name: Update titan-op-node Kubernetes resources
-        run: |
-          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
-          kustomize edit set image onthertech/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
+  #     - name: Update titan-op-node Kubernetes resources
+  #       run: |
+  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         kustomize edit set image onthertech/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
 
-      - name: Update titan-op-proposer Kubernetes resources
-        run: |
-          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
-          kustomize edit set image onthertech/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
+  #     - name: Update titan-op-proposer Kubernetes resources
+  #       run: |
+  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         kustomize edit set image onthertech/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
 
-      - name: Update titan-op-batcher Kubernetes resources
-        run: |
-          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
-          kustomize edit set image onthertech/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
+  #     - name: Update titan-op-batcher Kubernetes resources
+  #       run: |
+  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         kustomize edit set image onthertech/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
 
-      - name: Update titan-proxyd Kubernetes resources
-        run: |
-          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
-          kustomize edit set image onthertech/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
+  #     - name: Update titan-proxyd Kubernetes resources
+  #       run: |
+  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         kustomize edit set image onthertech/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
 
-      - name: Show updated Kubernetes resources
-        run: |
-          cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
-          cat kustomization.yaml
+  #     - name: Show updated Kubernetes resources
+  #       run: |
+  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cat kustomization.yaml
 
-      - name: Commit and push changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          default_author: github_actions
-          github_token: ${{ secrets.ACCESS_TOKEN }}
-          message: '[AUTO] Update tokamak-thanos images tag for sepolia'
-          cwd: 'tokamak-infra/'
+  #     - name: Commit and push changes
+  #       uses: EndBug/add-and-commit@v9
+  #       with:
+  #         default_author: github_actions
+  #         github_token: ${{ secrets.ACCESS_TOKEN }}
+  #         message: '[AUTO] Update tokamak-thanos images tag for sepolia'
+  #         cwd: 'tokamak-infra/'
