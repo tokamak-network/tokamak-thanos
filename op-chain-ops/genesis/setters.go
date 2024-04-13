@@ -55,6 +55,14 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 		return errors.New("the contract FiatTokenProxy has empty bytecode")
 	}
 
+	TransparentUpgradeableProxyBytecode, err := bindings.GetDeployedBytecode("TransparentUpgradeableProxy")
+	if err != nil {
+		return err
+	}
+	if len(TransparentUpgradeableProxyBytecode) == 0 {
+		return errors.New("the contract TransparentUpgradeableProxy has empty bytecode")
+	}
+
 	for i := uint64(0); i <= count; i++ {
 		bigAddr := new(big.Int).Or(namespace, new(big.Int).SetUint64(i))
 		addr := common.BigToAddress(bigAddr)
@@ -70,6 +78,7 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 			db.SetCode(addr, l2UsdcBridgeProxyBytecode)
 		case predeploys.FiatTokenV2_2Addr:
 			db.SetCode(addr, fiatTokenProxyBytecode)
+		case predeploys.NonfungibleTokenPositionDescriptorAddr:
 		default:
 			db.SetCode(addr, depBytecode)
 		}

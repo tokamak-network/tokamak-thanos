@@ -732,9 +732,36 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
-	immutable["Permit2"] = immutables.ImmutableValues{}
-
 	immutable["WETH"] = immutables.ImmutableValues{}
+	immutable["Permit2"] = immutables.ImmutableValues{}
+	immutable["QuoterV2"] = immutables.ImmutableValues{
+		"factory": predeploys.UniswapV3FactoryAddr,
+		"WETH9":   predeploys.WETHAddr,
+	}
+	immutable["SwapRouter02"] = immutables.ImmutableValues{
+		"factoryV2":       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		"factoryV3":       predeploys.UniswapV3FactoryAddr,
+		"positionManager": predeploys.NonfungiblePositionManagerAddr,
+		"WETH9":           predeploys.WETHAddr,
+	}
+	immutable["UniswapV3Factory"] = immutables.ImmutableValues{
+		// Set the FactoryV3 address to owner
+		"owner":                     predeploys.UniswapV3FactoryAddr,
+		"feeAmountTickSpacing500":   10,
+		"feeAmountTickSpacing3000":  60,
+		"feeAmountTickSpacing10000": 200,
+	}
+	immutable["NFTDescriptor"] = immutables.ImmutableValues{}
+	immutable["NonfungiblePositionManager"] = immutables.ImmutableValues{
+		"factory":         predeploys.UniswapV3FactoryAddr,
+		"WETH9":           predeploys.WETHAddr,
+		"tokenDescriptor": predeploys.NonfungibleTokenPositionDescriptorAddr,
+	}
+	immutable["NonfungibleTokenPositionDescriptor"] = immutables.ImmutableValues{
+		"tokenDescriptor": predeploys.NonfungibleTokenPositionDescriptorAddr,
+	}
+	immutable["TickLens"] = immutables.ImmutableValues{}
+	immutable["UniswapInterfaceMulticall"] = immutables.ImmutableValues{}
 	immutable["L2UsdcBridge"] = immutables.ImmutableValues{}
 	immutable["SignatureChecker"] = immutables.ImmutableValues{}
 	immutable["MasterMinter"] = immutables.ImmutableValues{

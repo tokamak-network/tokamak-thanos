@@ -69,6 +69,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 	if err := immutable.Check(); err != nil {
 		return DeploymentResults{}, err
 	}
+	factoryV2Addr := common.HexToAddress("0x0000000000000000000000000000000000000000")
 
 	deployments := []deployer.Constructor{
 		{
@@ -154,6 +155,54 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			Name: "WETH",
 		},
 		{
+			Name: "Permit2",
+		},
+		{
+			Name: "QuoterV2",
+			Args: []interface{}{
+				predeploys.UniswapV3FactoryAddr,
+				predeploys.WETHAddr,
+			},
+		},
+		{
+			Name: "SwapRouter02",
+			Args: []interface{}{
+				factoryV2Addr,
+				predeploys.UniswapV3FactoryAddr,
+				predeploys.NonfungiblePositionManagerAddr,
+				predeploys.WETHAddr,
+			},
+		},
+		{
+			Name: "UniswapV3Factory",
+			Args: []interface{}{
+				predeploys.UniswapV3FactoryAddr,
+				immutable["UniswapV3Factory"]["feeAmountTickSpacing500"],
+				immutable["UniswapV3Factory"]["feeAmountTickSpacing3000"],
+				immutable["UniswapV3Factory"]["feeAmountTickSpacing10000"],
+			},
+		},
+		{
+			Name: "NonfungiblePositionManager",
+			Args: []interface{}{
+				predeploys.UniswapV3FactoryAddr,
+				predeploys.WETHAddr,
+				predeploys.NonfungibleTokenPositionDescriptorAddr,
+			},
+		},
+		{
+			Name: "NonfungibleTokenPositionDescriptor",
+			Args: []interface{}{
+				predeploys.NonfungibleTokenPositionDescriptorAddr,
+			},
+		},
+		{
+			Name: "TickLens",
+		},
+		{
+			Name: "UniswapInterfaceMulticall",
+		},
+		{
 			Name: "L2UsdcBridge",
 		},
 		{
@@ -193,6 +242,12 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 	var recipient common.Address
 	var minimumWithdrawalAmount *big.Int
 	var withdrawalNetwork uint8
+	var _factoryV2 common.Address
+	var factoryV3 common.Address
+	var _positionManager common.Address
+	var _WETH9 common.Address
+	var _factory common.Address
+	var _tokenDescriptor_ common.Address
 	var err error
 	switch deployment.Name {
 	case "GasPriceOracle":
@@ -265,6 +320,49 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		_, tx, _, err = bindings.DeploySchemaRegistry(opts, backend)
 	case "WETH":
 		_, tx, _, err = bindings.DeployWETH(opts, backend)
+	case "Permit2":
+		_, tx, _, err = bindings.DeployPermit2(opts, backend)
+
+	case "QuoterV2":
+		_factory, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _factory")
+		}
+		_WETH9, ok := deployment.Args[1].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _WETH9")
+		}
+		_, tx, _, err = bindings.DeployQuoterV2(opts, backend, _factory, _WETH9)
+	case "SwapRouter02":
+		_factoryV2, factoryV3, _positionManager, _WETH9, err = prepareSwapRouter02(deployment)
+		if err != nil {
+			return nil, err
+		}
+		_, tx, _, err = bindings.DeploySwapRouter02(opts, backend, _factoryV2, factoryV3, _positionManager, _WETH9)
+	case "UniswapV3Factory":
+		_, tx, _, err = bindings.DeployUniswapV3Factory(opts, backend)
+	case "NFTDescriptor":
+		_, tx, _, err = bindings.DeployNFTDescriptor(opts, backend)
+	case "NonfungiblePositionManager":
+		_factory, _WETH9, _tokenDescriptor_, err = prepareonfungiblePositionManager(deployment)
+		if err != nil {
+			return nil, err
+		}
+		_, tx, _, err = bindings.DeployNonfungiblePositionManager(opts, backend, _factory, _WETH9, _tokenDescriptor_)
+	case "NonfungibleTokenPositionDescriptor":
+		_WETH9, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _WETH9")
+		}
+		_nativeCurrencyLabelBytes, ok := deployment.Args[1].([32]byte)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _nativeCurrencyLabelBytes")
+		}
+		_, tx, _, err = bindings.DeployNonfungibleTokenPositionDescriptor(opts, backend, _WETH9, _nativeCurrencyLabelBytes)
+	case "TickLens":
+		_, tx, _, err = bindings.DeployTickLens(opts, backend)
+	case "UniswapInterfaceMulticall":
+		_, tx, _, err = bindings.DeployUniswapInterfaceMulticall(opts, backend)
 	case "L2UsdcBridge":
 		_, tx, _, err = bindings.DeployL2UsdcBridge(opts, backend)
 	case "SignatureChecker":
@@ -298,4 +396,41 @@ func prepareFeeVaultArguments(deployment deployer.Constructor) (common.Address, 
 		return common.Address{}, nil, 0, fmt.Errorf("invalid type for withdrawalNetwork")
 	}
 	return recipient, minimumWithdrawalAmountHex.ToInt(), withdrawalNetwork, nil
+}
+
+func prepareSwapRouter02(deployment deployer.Constructor) (common.Address, common.Address, common.Address, common.Address, error) {
+	_factoryV2, ok := deployment.Args[0].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _factoryV2")
+	}
+	factoryV3, ok := deployment.Args[1].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for factoryV3")
+	}
+	_positionManager, ok := deployment.Args[2].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _positionManager")
+	}
+	_WETH9, ok := deployment.Args[3].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _WETH9")
+	}
+	return _factoryV2, factoryV3, _positionManager, _WETH9, nil
+}
+
+func prepareonfungiblePositionManager(deployment deployer.Constructor) (common.Address, common.Address, common.Address, error) {
+	_factory, ok := deployment.Args[0].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _factory")
+	}
+	_WETH9, ok := deployment.Args[1].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _WETH9")
+	}
+	_tokenDescriptor_, ok := deployment.Args[2].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _tokenDescriptor_")
+	}
+
+	return _factory, _WETH9, _tokenDescriptor_, nil
 }
