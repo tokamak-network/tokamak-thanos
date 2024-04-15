@@ -1,6 +1,8 @@
 package predeploys
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // TODO - we should get a single toml yaml or json file source of truth in @eth-optimism/bedrock package
 // This needs to be kept in sync with @eth-optimism/contracts-ts/wagmi.config.ts which also specifies this
@@ -82,12 +84,13 @@ var (
 // IsProxied returns true for predeploys that will sit behind a proxy contract
 func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
+	case Permit2Addr:
 	case QuoterV2Addr:
 	case SwapRouter02Addr:
 	case UniswapV3FactoryAddr:
 	case NFTDescriptorAddr:
 	case NonfungiblePositionManagerAddr:
-	case NonfungibleTokenPositionDescriptorAddr:
+		//	case NonfungibleTokenPositionDescriptorAddr:
 	case TickLensAddr:
 	case UniswapInterfaceMulticallAddr:
 	case WTONAddr:

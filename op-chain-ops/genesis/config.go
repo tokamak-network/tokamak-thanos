@@ -236,6 +236,12 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
+	//FacroryV2addr - address of the factoryV2 contract 0x0000000000...
+	FactoryV2addr common.Address `json:"factoryV2addr"`
+	//
+	NativeCurrencyLabelBytes [32]byte `json:"nativeCurrencyLabelBytes"`
+	//
+	UniswapV3FactoryOwner common.Address `json:"niswapV3FactoryOwner"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -739,7 +745,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"WETH9":   predeploys.WETHAddr,
 	}
 	immutable["SwapRouter02"] = immutables.ImmutableValues{
-		"factoryV2":       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		"factoryV2":       config.FactoryV2addr,
 		"factoryV3":       predeploys.UniswapV3FactoryAddr,
 		"positionManager": predeploys.NonfungiblePositionManagerAddr,
 		"WETH9":           predeploys.WETHAddr,
@@ -758,7 +764,8 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"tokenDescriptor": predeploys.NonfungibleTokenPositionDescriptorAddr,
 	}
 	immutable["NonfungibleTokenPositionDescriptor"] = immutables.ImmutableValues{
-		"tokenDescriptor": predeploys.NonfungibleTokenPositionDescriptorAddr,
+		"WETH9":                    predeploys.WETHAddr,
+		"NativeCurrencyLabelBytes": config.NativeCurrencyLabelBytes,
 	}
 	immutable["TickLens"] = immutables.ImmutableValues{}
 	immutable["UniswapInterfaceMulticall"] = immutables.ImmutableValues{}
@@ -868,6 +875,14 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"masterMinter":        predeploys.MasterMinterAddr,
 		"initialized":         false,
 		"_initializedVersion": 3,
+	}
+	storage["UniswapV3Factory"] = state.StorageValues{
+		"owner":       config.UniswapV3FactoryOwner,
+		"fee":         100,
+		"tickSpacing": 1,
+	}
+	storage["ProxyAdmin"] = state.StorageValues{
+		"owner": predeploys.ProxyAdminAddr,
 	}
 	return storage, nil
 }

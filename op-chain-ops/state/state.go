@@ -53,6 +53,7 @@ func SetStorage(name string, address common.Address, values StorageValues, db vm
 	if err != nil {
 		return fmt.Errorf("cannot set storage: %w", err)
 	}
+	fmt.Printf("start!!!!! %v \n", name)
 	slots, err := ComputeStorageSlots(layout, values)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -74,6 +75,7 @@ func ComputeStorageSlots(layout *solc.StorageLayout, values StorageValues) ([]*E
 			if label == entry.Label {
 				target = entry
 			}
+			fmt.Printf("entry!!!!!!!!!!!!!! %v\n", entry)
 		}
 		if target.Label == "" {
 			return nil, fmt.Errorf("storage layout entry for %s not found", label)

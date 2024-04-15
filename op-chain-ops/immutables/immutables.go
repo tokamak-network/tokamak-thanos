@@ -69,7 +69,6 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 	if err := immutable.Check(); err != nil {
 		return DeploymentResults{}, err
 	}
-	factoryV2Addr := common.HexToAddress("0x0000000000000000000000000000000000000000")
 
 	deployments := []deployer.Constructor{
 		{
@@ -167,7 +166,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "SwapRouter02",
 			Args: []interface{}{
-				factoryV2Addr,
+				immutable["SwapRouter02"]["factoryV2"],
 				predeploys.UniswapV3FactoryAddr,
 				predeploys.NonfungiblePositionManagerAddr,
 				predeploys.WETHAddr,
@@ -193,7 +192,9 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "NonfungibleTokenPositionDescriptor",
 			Args: []interface{}{
-				predeploys.NonfungibleTokenPositionDescriptorAddr,
+				predeploys.WETHAddr,
+				immutable["NonfungibleTokenPositionDescriptor"]["NativeCurrencyLabelBytes"],
+				//predeploys.NonfungibleTokenPositionDescriptorAddr,
 			},
 		},
 		{
@@ -344,7 +345,7 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 	case "NFTDescriptor":
 		_, tx, _, err = bindings.DeployNFTDescriptor(opts, backend)
 	case "NonfungiblePositionManager":
-		_factory, _WETH9, _tokenDescriptor_, err = prepareonfungiblePositionManager(deployment)
+		_factory, _WETH9, _tokenDescriptor_, err = PrepareNonfungiblePositionManager(deployment)
 		if err != nil {
 			return nil, err
 		}
@@ -418,7 +419,7 @@ func prepareSwapRouter02(deployment deployer.Constructor) (common.Address, commo
 	return _factoryV2, factoryV3, _positionManager, _WETH9, nil
 }
 
-func prepareonfungiblePositionManager(deployment deployer.Constructor) (common.Address, common.Address, common.Address, error) {
+func PrepareNonfungiblePositionManager(deployment deployer.Constructor) (common.Address, common.Address, common.Address, error) {
 	_factory, ok := deployment.Args[0].(common.Address)
 	if !ok {
 		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _factory")
