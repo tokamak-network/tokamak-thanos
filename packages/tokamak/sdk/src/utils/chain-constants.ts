@@ -53,7 +53,8 @@ const l1CrossDomainMessengerAddresses = {
   mainnet: l1CrossDomainMessengerArtifactMainnet.address,
   goerli: l1CrossDomainMessengerArtifactGoerli.address,
   sepolia: l1CrossDomainMessengerArtifactSepolia.address,
-  'thanos-sepolia-test': l1CrossDomainMessengerArtifactThanosSepoliaTest.address,
+  'thanos-sepolia-test':
+    l1CrossDomainMessengerArtifactThanosSepoliaTest.address,
 }
 
 // legacy
