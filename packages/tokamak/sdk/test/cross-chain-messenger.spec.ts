@@ -2,8 +2,8 @@ import { Provider } from '@ethersproject/abstract-provider'
 import {
   expectApprox,
   hashCrossDomainMessage,
+  predeploys,
 } from '@tokamak-network/core-utils'
-import { predeploys } from '@eth-optimism/contracts'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
@@ -1655,7 +1655,7 @@ describe('CrossChainMessenger', () => {
         .to.emit(l2Bridge, 'WithdrawalInitiated')
         .withArgs(
           ethers.constants.AddressZero,
-          predeploys.OVM_ETH,
+          predeploys.LegacyERC20NativeToken,
           await l2Signer.getAddress(),
           await l2Signer.getAddress(),
           100000,

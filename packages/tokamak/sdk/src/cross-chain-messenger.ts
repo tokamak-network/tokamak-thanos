@@ -28,10 +28,10 @@ import {
   getChainId,
   hashCrossDomainMessagev0,
   hashCrossDomainMessagev1,
+  predeploys,
 } from '@tokamak-network/core-utils'
-import { getContractInterface, predeploys } from '@eth-optimism/contracts'
 import * as rlp from 'rlp'
-import l1CrossDomainMessagerArtifact from '@tokamak-network/titan2-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
+import l1CrossDomainMessagerArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 
 import {
   OEContracts,
@@ -2112,7 +2112,7 @@ export class CrossChainMessenger {
       }
       return this.bridges.ETH.populateTransaction.deposit(
         ethers.constants.AddressZero,
-        predeploys.OVM_ETH,
+        predeploys.ETH,
         amount,
         await getOpts()
       )
@@ -2136,7 +2136,7 @@ export class CrossChainMessenger {
     ): Promise<TransactionRequest> => {
       return this.bridges.ETH.populateTransaction.withdraw(
         ethers.constants.AddressZero,
-        predeploys.OVM_ETH,
+        predeploys.ETH,
         amount,
         opts
       )
@@ -2177,7 +2177,7 @@ export class CrossChainMessenger {
       }
       return this.bridges.NativeToken.populateTransaction.deposit(
         this.l1NativeTokenAddress,
-        predeploys.L2Ton,
+        predeploys.LegacyERC20NativeToken,
         amount,
         await getOpts()
       )
@@ -2201,7 +2201,7 @@ export class CrossChainMessenger {
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.withdraw(
         this.l1NativeTokenAddress,
-        predeploys.L2Ton,
+        predeploys.LegacyERC20NativeToken,
         amount,
         opts
       )
@@ -2223,7 +2223,7 @@ export class CrossChainMessenger {
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.approve(
         this.l1NativeTokenAddress,
-        predeploys.L2Ton,
+        predeploys.LegacyERC20NativeToken,
         amount,
         opts
       )

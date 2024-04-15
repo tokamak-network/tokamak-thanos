@@ -7,7 +7,6 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { Event, Contract, Wallet, providers, utils, ethers } from 'ethers'
 import { predeploys, sleep } from '@tokamak-network/core-utils'
-import Artifact__WETH9 from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 import Artifact__OptimismMintableERC20TokenFactory from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
 import Artifact__OptimismMintableERC20Token from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
 import Artifact__L2ToL1MessagePasser from '@tokamak-network/thanos-contracts/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
@@ -17,6 +16,7 @@ import Artifact__OptimismPortal from '@tokamak-network/thanos-contracts/forge-ar
 import Artifact__L1CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import Artifact__L1StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import Artifact__L2OutputOracle from '@tokamak-network/thanos-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
+import Artifact__WETH9 from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 
 import {
   CrossChainMessenger,
@@ -32,8 +32,8 @@ const deployWTON = async (
   wrap: boolean
 ): Promise<Contract> => {
   const Factory__WTON = new hre.ethers.ContractFactory(
-    Artifact__WTON.abi,
-    Artifact__WTON.bytecode.object,
+    Artifact__WETH9.abi,
+    Artifact__WETH9.bytecode.object,
     signer
   )
 
