@@ -10,7 +10,6 @@ NORMAL=$(tput sgr0)
 declare -A network_list
 
 network_list+=(
-  ["titan-sepolia-test"]=111551115050
   ["thanos-sepolia-test"]=111551118080
 )
 
@@ -27,9 +26,9 @@ function help() {
   done
   echo -e "\n${BOLD}Example:${NORMAL}\n"
   echo -e "  ./verify-predeploy-contracts.sh \\"
-  echo -e "  --network titan-sepolia-test \\"
-  echo -e "  --genesis-url https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
-  echo -e "  --explorer-url https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "  --network thanos-sepolia-test \\"
+  echo -e "  --genesis-url https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json \\"
+  echo -e "  --explorer-url https://explorer.thanos-sepolia-test.tokamak.network"
 }
 
 while [ $# -gt 0 ]; do
@@ -56,7 +55,7 @@ while [ $# -gt 0 ]; do
       echo -e "${BOLD}argument:${NORMAL}\n"
       echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
       echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-      echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+      echo -e "  thanos-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -69,7 +68,7 @@ while [ $# -gt 0 ]; do
       echo -e "${BOLD}argument:${NORMAL}\n"
       echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
       echo -e "\n${BOLD}explorer url:${NORMAL}\n"
-      echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+      echo -e "  thanos-sepolia-test : https://explorer.thanos-sepolia-test.tokamak.network"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -113,7 +112,7 @@ if [ -z $GENESIS_URL ]; then
   echo -e "${BOLD}argument:${NORMAL}\n"
   echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
   echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-  echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  echo -e "  thanos-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
@@ -123,7 +122,7 @@ if [ -z $VERIFIER_URL ]; then
   echo -e "${BOLD}argument:${NORMAL}\n"
   echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
   echo -e "\n${BOLD}explorer url:${NORMAL}\n"
-  echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "  thanos-sepolia-test : https://explorer.thanos-sepolia-test.tokamak.network"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
