@@ -1,4 +1,3 @@
-import { getContractInterface, predeploys } from '@eth-optimism/contracts'
 import { ethers, Contract } from 'ethers'
 import l1StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import l2StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
@@ -14,6 +13,8 @@ import l2ERC721Bridge from '@tokamak-network/thanos-contracts/forge-artifacts/L2
 import l1Block from '@tokamak-network/thanos-contracts/forge-artifacts/L1Block.sol/L1Block.json'
 import l2ToL1MessagePasser from '@tokamak-network/thanos-contracts/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
 import gasPriceOracle from '@tokamak-network/thanos-contracts/forge-artifacts/GasPriceOracle.sol/GasPriceOracle.json'
+import { getContractInterface } from '@eth-optimism/contracts'
+import { predeploys } from '@tokamak-network/core-utils'
 
 import { toAddress } from './coercion'
 import { DeepPartial } from './type-utils'
@@ -40,7 +41,7 @@ import {
 
 /**
  * We've changed some contract names in this SDK to be a bit nicer. Here we remap these nicer names
- * back to the original contract names so we can look them up.
+ * back to the original contract names so we can lookpredeploy them up.
  */
 const NAME_REMAPPING = {
   AddressManager: 'Lib_AddressManager' as const,
