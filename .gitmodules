@@ -36,3 +36,10 @@
 	path = packages/tokamak/contracts-bedrock/lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
 	branch = v1.4.0
+[submodule "packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts_v5.0.1"]
+	path = packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts_v5.0.1
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
+[submodule "packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts_v3.1.0"]
+	path = packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts_v3.1.0
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
+	branch = release-v3.1.0
