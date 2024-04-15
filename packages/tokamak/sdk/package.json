@@ -1,7 +1,7 @@
 {
   "name": "@tokamak-network/thanos-sdk",
   "version": "0.0.2",
-  "description": "Tools for working with Titan 2.0",
+  "description": "Tools for working with Thanos",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
