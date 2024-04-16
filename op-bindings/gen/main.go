@@ -313,7 +313,9 @@ const {{.Name}}StorageLayoutJSON = "{{.StorageLayout}}"
 var {{.Name}}StorageLayout = new(solc.StorageLayout)
 
 var {{.Name}}DeployedBin = "{{.DeployedBin}}"
-
+{{if .DeployedSourceMap}}
+var {{.Name}}DeployedSourceMap = "{{.DeployedSourceMap}}"
+{{end}}
 func init() {
 	if err := json.Unmarshal([]byte({{.Name}}StorageLayoutJSON), {{.Name}}StorageLayout); err != nil {
 		panic(err)
