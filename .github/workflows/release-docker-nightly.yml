@@ -360,29 +360,29 @@ jobs:
   #       with:
   #         github-token: ${{ secrets.ACCESS_TOKEN }}
 
-  #     - name: Update titan-op-node Kubernetes resources
+  #     - name: Update thanos-op-node Kubernetes resources
   #       run: |
-  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cd tokamak-infra/thanos/overlays/thanos-sepolia-test
   #         kustomize edit set image onthertech/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
 
-  #     - name: Update titan-op-proposer Kubernetes resources
+  #     - name: Update thanos-op-proposer Kubernetes resources
   #       run: |
-  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cd tokamak-infra/thanos/overlays/thanos-sepolia-test
   #         kustomize edit set image onthertech/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
 
-  #     - name: Update titan-op-batcher Kubernetes resources
+  #     - name: Update thanos-op-batcher Kubernetes resources
   #       run: |
-  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cd tokamak-infra/thanos/overlays/thanos-sepolia-test
   #         kustomize edit set image onthertech/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
 
-  #     - name: Update titan-proxyd Kubernetes resources
+  #     - name: Update thanos-proxyd Kubernetes resources
   #       run: |
-  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cd tokamak-infra/thanos/overlays/thanos-sepolia-test
   #         kustomize edit set image onthertech/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
 
   #     - name: Show updated Kubernetes resources
   #       run: |
-  #         cd tokamak-infra/titan2/kustomize/overlays/titan-sepolia-test
+  #         cd tokamak-infra/thanos/overlays/thanos-sepolia-test
   #         cat kustomization.yaml
 
   #     - name: Commit and push changes
