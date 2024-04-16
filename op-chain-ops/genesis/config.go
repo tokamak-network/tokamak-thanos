@@ -241,7 +241,7 @@ type DeployConfig struct {
 	//
 	NativeCurrencyLabelBytes [32]byte `json:"nativeCurrencyLabelBytes"`
 	//
-	UniswapV3FactoryOwner common.Address `json:"niswapV3FactoryOwner"`
+	UniswapV3FactoryOwner common.Address `json:"uniswapV3FactoryOwner"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -752,7 +752,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 	}
 	immutable["UniswapV3Factory"] = immutables.ImmutableValues{
 		// Set the FactoryV3 address to owner
-		"owner":                     predeploys.UniswapV3FactoryAddr,
+		"owner":                     config.UniswapV3FactoryOwner,
 		"feeAmountTickSpacing500":   10,
 		"feeAmountTickSpacing3000":  60,
 		"feeAmountTickSpacing10000": 200,
@@ -877,13 +877,13 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_initializedVersion": 3,
 	}
 	storage["UniswapV3Factory"] = state.StorageValues{
-		"owner":       config.UniswapV3FactoryOwner,
-		"fee":         100,
-		"tickSpacing": 1,
+		"owner": config.UniswapV3FactoryOwner,
+		"feeAmountTickSpacing": map[any]any{
+			"fee":         100,
+			"tickSpacing": 1,
+		},
 	}
-	storage["ProxyAdmin"] = state.StorageValues{
-		"owner": predeploys.ProxyAdminAddr,
-	}
+
 	return storage, nil
 }
 
