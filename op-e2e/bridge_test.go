@@ -445,6 +445,7 @@ func TestWithdrawNativeTokenTo(t *testing.T) {
 
 	bobAddress := sys.cfg.Secrets.Addresses().Bob
 	l2BalanceBeforeFinalizingWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, bobAddress)
+	require.NoError(t, err)
 
 	l2Opts.Value = big.NewInt(depositedAmount)
 	withdrawalTx, err := l2StandardBridge.WithdrawNativeTokenTo(l2Opts, bobAddress, 200000, []byte{})
