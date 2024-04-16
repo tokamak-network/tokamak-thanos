@@ -40,24 +40,23 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
-	// Deploy L1Token
-	l1Address, tx, L1Token, err := bindings.DeployWNativeToken(opts, l1Client)
+	// Deploy wNativeToken
+	l1Address, tx, wNativeToken, err := bindings.DeployWNativeToken(opts, l1Client)
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err, "Waiting for deposit tx on L1")
 
 	// Get some WETH
 	opts.Value = big.NewInt(params.Ether)
-	tx, err = L1Token.Fallback(opts, []byte{})
+	tx, err = wNativeToken.Fallback(opts, []byte{})
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 	opts.Value = nil
-	wethBalance, err := L1Token.BalanceOf(&bind.CallOpts{}, opts.From)
+	wNativeBalance, err := wNativeToken.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	require.Equal(t, big.NewInt(params.Ether), wethBalance)
+	require.Equal(t, big.NewInt(params.Ether), wNativeBalance)
 
-	// Deploy L2 L1Token
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	optimismMintableTokenFactory, err := bindings.NewOptimismMintableERC20Factory(predeploys.OptimismMintableERC20FactoryAddr, l2Client)
@@ -67,7 +66,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
 	require.NoError(t, err)
 
-	// Get the deployment event to have access to the L2 WETH9 address
+	// Get the deployment event to have access to the L2 WNativeToken address
 	it, err := optimismMintableTokenFactory.FilterOptimismMintableERC20Created(&bind.FilterOpts{Start: 0}, nil, nil)
 	require.NoError(t, err)
 	var event *bindings.OptimismMintableERC20FactoryOptimismMintableERC20Created
@@ -76,13 +75,13 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	}
 	require.NotNil(t, event)
 
-	// Approve WETH9 with the bridge
-	tx, err = L1Token.Approve(opts, cfg.L1Deployments.L1StandardBridgeProxy, new(big.Int).SetUint64(math.MaxUint64))
+	// Approve token with the bridge
+	tx, err = wNativeToken.Approve(opts, cfg.L1Deployments.L1StandardBridgeProxy, new(big.Int).SetUint64(math.MaxUint64))
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	// Bridge the L1Token
+	// Bridge the erc20 token
 	l1StandardBridge, err := bindings.NewL1StandardBridge(cfg.L1Deployments.L1StandardBridgeProxy, l1Client)
 	require.NoError(t, err)
 	tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
@@ -129,14 +128,14 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
 
-	l1BalanceBeforeFinalizingWithdraw, err := L1Token.BalanceOf(&bind.CallOpts{}, opts.From)
+	l1BalanceBeforeFinalizingWithdraw, err := wNativeToken.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
 	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
-	l1BalanceAfterFinalizingWithdraw, err := L1Token.BalanceOf(&bind.CallOpts{}, opts.From)
+	l1BalanceAfterFinalizingWithdraw, err := wNativeToken.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
 	require.Equal(t, l1BalanceAfterFinalizingWithdraw, l1BalanceBeforeFinalizingWithdraw.Add(l1BalanceBeforeFinalizingWithdraw, l2Balance))
