@@ -234,6 +234,12 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
+	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
+	// as part of building the L2 genesis state.
+	L1UsdcBridge common.Address `json:"l1UsdcBridge"`
+	// L1UsdcBridgeProxy represents the address of the L1UsdcBridgeProxy on L1 and is used
+	// as part of building the L2 genesis state.
+	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -392,6 +398,9 @@ func (d *DeployConfig) CheckAddresses() error {
 	if d.OptimismPortalProxy == (common.Address{}) {
 		return fmt.Errorf("%w: OptimismPortalProxy cannot be address(0)", ErrInvalidDeployConfig)
 	}
+	if d.L1UsdcBridgeProxy == (common.Address{}) {
+		return fmt.Errorf("%w: L1UsdcBridgeProxy cannot be address(0)", ErrInvalidDeployConfig)
+	}
 	return nil
 }
 
@@ -402,6 +411,7 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 	d.L1ERC721BridgeProxy = deployments.L1ERC721BridgeProxy
 	d.SystemConfigProxy = deployments.SystemConfigProxy
 	d.OptimismPortalProxy = deployments.OptimismPortalProxy
+	d.L1UsdcBridgeProxy = deployments.L1UsdcBridgeProxy
 }
 
 // GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
@@ -458,6 +468,14 @@ func (d *DeployConfig) GetDeployedAddresses(hh *hardhat.Hardhat) error {
 			return err
 		}
 		d.OptimismPortalProxy = optimismPortalProxyDeployment.Address
+	}
+
+	if d.L1UsdcBridgeProxy == (common.Address{}) {
+		l1UsdcBridgeProxyDeployment, err := hh.GetDeployment("L1UsdcBridgeProxy")
+		if err != nil {
+			return err
+		}
+		d.L1UsdcBridgeProxy = l1UsdcBridgeProxyDeployment.Address
 	}
 
 	return nil
@@ -587,6 +605,8 @@ type L1Deployments struct {
 	SystemConfigProxy                 common.Address `json:"SystemConfigProxy"`
 	ProtocolVersions                  common.Address `json:"ProtocolVersions"`
 	ProtocolVersionsProxy             common.Address `json:"ProtocolVersionsProxy"`
+	L1UsdcBridge                      common.Address `json:"L1UsdcBridge"`
+	L1UsdcBridgeProxy                 common.Address `json:"L1UsdcBridgeProxy"`
 }
 
 // GetName will return the name of the contract given an address.
@@ -812,7 +832,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["L2UsdcBridge"] = state.StorageValues{
 		"messenger":          predeploys.L2CrossDomainMessengerAddr,
-		"otherBridge":        config.L1UsdcBridgeAddr,
+		"otherBridge":        config.L1UsdcBridge,
 		"l1Usdc":             config.L1UsdcAddr,
 		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
 		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
