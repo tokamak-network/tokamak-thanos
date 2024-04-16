@@ -43,6 +43,8 @@ import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
 import { AlphabetVM } from "../test/FaultDisputeGame.t.sol";
 import "src/libraries/DisputeTypes.sol";
+import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
+import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
 
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.
@@ -74,6 +76,7 @@ contract Deploy is Deployer {
 
         deployProxies();
         deployImplementations();
+        deployL1UsdcBridgeProxy();
 
         deploySafe();
         transferProxyAdminOwnership(); // to the Safe
@@ -160,6 +163,7 @@ contract Deploy is Deployer {
         deployPreimageOracle();
         deployMips();
         deployProtocolVersions();
+        deployL1UsdcBridge();
     }
 
     // @notice Gets the address of the SafeProxyFactory and Safe singleton for use in deploying a new GnosisSafe.
@@ -177,6 +181,48 @@ contract Deploy is Deployer {
 
         save("SafeProxyFactory", address(safeProxyFactory_));
         save("SafeSingleton", address(safeSingleton_));
+    }
+
+    function upgradeL1UsdcBridge(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployL1UsdcBridge();
+        deployL1UsdcBridgeProxy();
+        sync();
+    }
+
+    /// @notice Deploy the L1UsdcBridge
+    function deployL1UsdcBridge() public broadcast returns (address addr_) {
+        L1UsdcBridge bridge = new L1UsdcBridge{ salt: implSalt() }();
+
+        save("L1UsdcBridge", address(bridge));
+        console.log("L1UsdcBridge deployed at %s", address(bridge));
+
+        addr_ = address(bridge);
+    }
+
+    /// @notice Deploy the L1UsdcBridgeProxy
+    function deployL1UsdcBridgeProxy() public broadcast returns (address addr_) {
+        address l1UsdcBridge = mustGetAddress("L1UsdcBridge");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        L1UsdcBridgeProxy proxy = new L1UsdcBridgeProxy({
+            _logic: l1UsdcBridge,
+            initialOwner: msg.sender,
+            _data: abi.encode()
+        });
+
+        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
+
+        require(address(proxy.messenger()) == l1CrossDomainMessengerProxy);
+        require(address(proxy.otherBridge()) == Predeploys.L2_USDC_BRIDGE);
+        require(address(proxy.l1Usdc()) == cfg.l1UsdcAddr());
+        require(address(proxy.l2Usdc()) == Predeploys.FIATTOKENV2_2);
+
+        address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
+        require(admin == address(msg.sender));
+
+        save("L1UsdcBridgeProxy", address(proxy));
+        console.log("L1UsdcBridgeProxy deployed at %s", address(proxy));
+        addr_ = address(proxy);
     }
 
     function upgradeL1StandardBridge(address safeOwner) public {
