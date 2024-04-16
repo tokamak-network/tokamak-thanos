@@ -30,6 +30,8 @@ ProtocolVersionsProxy=$(cat ${ARTIFACTS_PATH}/ProtocolVersionsProxy.json | jq '.
 ProxyAdmin=$(cat ${ARTIFACTS_PATH}/ProxyAdmin.json | jq '.address')
 SystemConfig=$(cat ${ARTIFACTS_PATH}/SystemConfig.json | jq '.address')
 SystemConfigProxy=$(cat ${ARTIFACTS_PATH}/SystemConfigProxy.json | jq '.address')
+L1UsdcBridge=$(cat ${ARTIFACTS_PATH}/L1UsdcBrige.json | jq '.address')
+L1UsdcBridgeProxy=$(cat ${ARTIFACTS_PATH}/L1UsdcBridgeProxy.json | jq '.address')
 
 echo "AddressManager: $AddressManager"
 echo "L1CrossDomainMessenger: $L1CrossDomainMessenger"
@@ -49,6 +51,8 @@ echo "ProtocolVersionsProxy: $ProtocolVersionsProxy"
 echo "ProxyAdmin: $ProxyAdmin"
 echo "SystemConfig: $SystemConfig"
 echo "SystemConfigProxy: $SystemConfigProxy"
+echo "L1UsdcBridge: $L1UsdcBridge"
+echo "L1UsdcBridgeProxy: $L1UsdcBridgeProxy"
 
 cat << EOF > ${ADDRESS_FILE_PATH}/$1/address.json
 {
@@ -69,6 +73,8 @@ cat << EOF > ${ADDRESS_FILE_PATH}/$1/address.json
   "ProtocolVersionsProxy": $ProtocolVersionsProxy,
   "ProxyAdmin": $ProxyAdmin,
   "SystemConfig": $SystemConfig,
-  "SystemConfigProxy": $SystemConfigProxy
+  "SystemConfigProxy": $SystemConfigProxy,
+  "L1UsdcBridge": $L1UsdcBridge,
+  "L1UsdcBridgeProxy": $L1UsdcBridgeProxy,
 }
 EOF
