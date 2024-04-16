@@ -220,8 +220,6 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
-	// L1UsdcBridgeAddr - remove after deploy L1UsdcBridge
-	L1UsdcBridgeAddr common.Address `json:"l1UsdcBridgeAddr"`
 	// L1UsdcAddr - standard USDC address
 	L1UsdcAddr common.Address `json:"l1UsdcAddr"`
 	// UsdcTokenName - ERC20 name of the token e.g. "Bridged USDC (Own Company Name)"
