@@ -48,5 +48,7 @@
   "SignatureChecker",
   "MasterMinter",
   "FiatTokenV2_2",
-  "FiatTokenProxy"
+  "FiatTokenProxy",
+  "L1UsdcBridge",
+  "L1UsdcBridgeProxy"
 ]
