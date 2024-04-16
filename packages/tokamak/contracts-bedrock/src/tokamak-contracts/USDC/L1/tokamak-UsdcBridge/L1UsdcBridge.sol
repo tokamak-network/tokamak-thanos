@@ -27,6 +27,7 @@ interface IL2USDCBridge {
     ) external;
 }
 
+/// @title L1UsdcBridge
 contract L1UsdcBridge is L1UsdcBridgeStorage {
     using SafeERC20 for IERC20;
      /**
