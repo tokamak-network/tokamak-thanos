@@ -41,12 +41,12 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.Nil(t, err)
 
 	// Deploy wNativeToken
-	l1Address, tx, wNativeToken, err := bindings.DeployWNativeToken(opts, l1Client)
+	wNativeTokenAddress, tx, wNativeToken, err := bindings.DeployWNativeToken(opts, l1Client)
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err, "Waiting for deposit tx on L1")
 
-	// Get some WETH
+	// Get some token
 	opts.Value = big.NewInt(params.Ether)
 	tx, err = wNativeToken.Fallback(opts, []byte{})
 	require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.NoError(t, err)
 	optimismMintableTokenFactory, err := bindings.NewOptimismMintableERC20Factory(predeploys.OptimismMintableERC20FactoryAddr, l2Client)
 	require.NoError(t, err)
-	tx, err = optimismMintableTokenFactory.CreateOptimismMintableERC20(l2Opts, l1Address, "L2-WETH", "L2-WETH")
+	tx, err = optimismMintableTokenFactory.CreateOptimismMintableERC20(l2Opts, wNativeTokenAddress, "L2-WETH", "L2-WETH")
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	l1StandardBridge, err := bindings.NewL1StandardBridge(cfg.L1Deployments.L1StandardBridgeProxy, l1Client)
 	require.NoError(t, err)
 	tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l1StandardBridge.BridgeERC20(opts, l1Address, event.LocalToken, big.NewInt(100), 100000, []byte{})
+		return l1StandardBridge.BridgeERC20(opts, wNativeTokenAddress, event.LocalToken, big.NewInt(100), 100000, []byte{})
 	})
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
