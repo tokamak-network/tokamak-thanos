@@ -11,6 +11,9 @@ import { Arithmetic } from "src/libraries/Arithmetic.sol";
 /// @notice ResourceMetering implements an EIP-1559 style resource metering system where pricing
 ///         updates automatically based on current demand.
 abstract contract ResourceMetering is Initializable {
+    /// @notice Error returned when too much gas resource is consumed.
+    error OutOfGas();
+
     /// @notice Represents the various parameters that control the way in which resources are
     ///         metered. Corresponds to the EIP-1559 resource metering system.
     /// @custom:field prevBaseFee   Base fee from the previous block(s).
@@ -121,10 +124,9 @@ abstract contract ResourceMetering is Initializable {
 
         // Make sure we can actually buy the resource amount requested by the user.
         params.prevBoughtGas += _amount;
-        require(
-            int256(uint256(params.prevBoughtGas)) <= int256(uint256(config.maxResourceLimit)),
-            "ResourceMetering: cannot buy more gas than available gas limit"
-        );
+        if (int256(uint256(params.prevBoughtGas)) > int256(uint256(config.maxResourceLimit))) {
+            revert OutOfGas();
+        }
 
         // Determine the amount of ETH to be paid.
         uint256 resourceCost = uint256(_amount) * uint256(params.prevBaseFee);
@@ -153,8 +155,9 @@ abstract contract ResourceMetering is Initializable {
     /// @notice Sets initial resource parameter values.
     ///         This function must either be called by the initializer function of an upgradeable
     ///         child contract.
-    // solhint-disable-next-line func-name-mixedcase
     function __ResourceMetering_init() internal onlyInitializing {
-        params = ResourceParams({ prevBaseFee: 1 gwei, prevBoughtGas: 0, prevBlockNum: uint64(block.number) });
+        if (params.prevBlockNum == 0) {
+            params = ResourceParams({ prevBaseFee: 1 gwei, prevBoughtGas: 0, prevBlockNum: uint64(block.number) });
+        }
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.15;
 
 import "src/libraries/DisputeTypes.sol";
+import "src/libraries/DisputeErrors.sol";
 
 /// @title LibPosition
 /// @notice This library contains helper functions for working with the `Position` type.
@@ -10,7 +11,7 @@ library LibPosition {
     /// @param _depth The depth of the position.
     /// @param _indexAtDepth The index at the depth of the position.
     /// @return position_ The computed generalized index.
-    function wrap(uint64 _depth, uint64 _indexAtDepth) internal pure returns (Position position_) {
+    function wrap(uint8 _depth, uint128 _indexAtDepth) internal pure returns (Position position_) {
         assembly {
             // gindex = 2^{_depth} + _indexAtDepth
             position_ := add(shl(_depth, 1), _indexAtDepth)
@@ -21,7 +22,7 @@ library LibPosition {
     /// @param _position The generalized index to get the `depth` of.
     /// @return depth_ The `depth` of the `position` gindex.
     /// @custom:attribution Solady <https://github.com/Vectorized/Solady>
-    function depth(Position _position) internal pure returns (uint64 depth_) {
+    function depth(Position _position) internal pure returns (uint8 depth_) {
         // Return the most significant bit offset, which signifies the depth of the gindex.
         assembly {
             depth_ := or(depth_, shl(6, lt(0xffffffffffffffff, shr(depth_, _position))))
@@ -52,7 +53,7 @@ library LibPosition {
     ///         and the `indexAtDepth` = 0.
     /// @param _position The generalized index to get the `indexAtDepth` of.
     /// @return indexAtDepth_ The `indexAtDepth` of the `position` gindex.
-    function indexAtDepth(Position _position) internal pure returns (uint64 indexAtDepth_) {
+    function indexAtDepth(Position _position) internal pure returns (uint128 indexAtDepth_) {
         // Return bits p_{msb-1}...p_{0}. This effectively pulls the 2^{depth} out of the gindex,
         // leaving only the `indexAtDepth`.
         uint256 msb = depth(_position);
@@ -136,15 +137,52 @@ library LibPosition {
         }
     }
 
+    /// @notice Gets the position of the highest ancestor of `_position` that commits to the same
+    ///         trace index, while still being below `_upperBoundExclusive`.
+    /// @param _position The position to get the highest ancestor of.
+    /// @param _upperBoundExclusive The exclusive upper depth bound, used to inform where to stop in order
+    ///                             to not escape a sub-tree.
+    /// @return ancestor_ The highest ancestor of `position` that commits to the same trace index.
+    function traceAncestorBounded(
+        Position _position,
+        uint256 _upperBoundExclusive
+    )
+        internal
+        pure
+        returns (Position ancestor_)
+    {
+        // This function only works for positions that are below the upper bound.
+        if (_position.depth() <= _upperBoundExclusive) revert ClaimAboveSplit();
+
+        // Grab the global trace ancestor.
+        ancestor_ = traceAncestor(_position);
+
+        // If the ancestor is above or at the upper bound, shift it to be below the upper bound.
+        // This should be a special case that only covers positions that commit to the final leaf
+        // in a sub-tree.
+        if (ancestor_.depth() <= _upperBoundExclusive) {
+            ancestor_ = ancestor_.rightIndex(_upperBoundExclusive + 1);
+        }
+    }
+
     /// @notice Get the move position of `_position`, which is the left child of:
-    ///         1. `_position + 1` if `_isAttack` is true.
-    ///         1. `_position` if `_isAttack` is false.
+    ///         1. `_position` if `_isAttack` is true.
+    ///         2. `_position | 1` if `_isAttack` is false.
     /// @param _position The position to get the relative attack/defense position of.
     /// @param _isAttack Whether or not the move is an attack move.
     /// @return move_ The move position relative to `position`.
     function move(Position _position, bool _isAttack) internal pure returns (Position move_) {
         assembly {
             move_ := shl(1, or(iszero(_isAttack), _position))
+        }
+    }
+
+    /// @notice Get the value of a `Position` type in the form of the underlying uint128.
+    /// @param _position The position to get the value of.
+    /// @return raw_ The value of the `position` as a uint128 type.
+    function raw(Position _position) internal pure returns (uint128 raw_) {
+        assembly {
+            raw_ := _position
         }
     }
 }

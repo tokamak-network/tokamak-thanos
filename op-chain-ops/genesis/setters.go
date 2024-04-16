@@ -2,7 +2,10 @@ package genesis
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+
+	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -25,7 +28,7 @@ func FundDevAccounts(db vm.StateDB) {
 		if !db.Exist(account) {
 			db.CreateAccount(account)
 		}
-		db.AddBalance(account, devBalance)
+		db.AddBalance(account, uint256.MustFromBig(devBalance))
 	}
 }
 
@@ -55,13 +58,12 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 }
 
 // SetPrecompileBalances will set a single wei at each precompile address.
-// This is an optimization to make calling them cheaper. This should only
-// be used for devnets.
+// This is an optimization to make calling them cheaper.
 func SetPrecompileBalances(db vm.StateDB) {
 	for i := 0; i < PrecompileCount; i++ {
 		addr := common.BytesToAddress([]byte{byte(i)})
 		db.CreateAccount(addr)
-		db.AddBalance(addr, common.Big1)
+		db.AddBalance(addr, uint256.NewInt(1))
 	}
 }
 
@@ -74,7 +76,7 @@ func setupPredeploy(db vm.StateDB, deployResults immutables.DeploymentResults, s
 	} else {
 		depBytecode, err := bindings.GetDeployedBytecode(name)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetDeployedBytecode failed: %w", err)
 		}
 		log.Info("Setting deployed bytecode from solc compiler output", "name", name, "address", implAddr)
 		db.SetCode(implAddr, depBytecode)

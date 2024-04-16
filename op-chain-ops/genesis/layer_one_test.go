@@ -43,18 +43,16 @@ func TestBuildL1DeveloperGenesis(t *testing.T) {
 	deployments, err := NewL1Deployments("testdata/deploy.json")
 	require.NoError(t, err)
 
-	genesis, err := BuildL1DeveloperGenesis(config, dump, nil, false)
+	genesis, err := BuildL1DeveloperGenesis(config, dump, nil)
 	require.NoError(t, err)
 
-	sim := backends.NewSimulatedBackend(
+	sim := backends.NewSimulatedBackend( // nolint:staticcheck
 		genesis.Alloc,
 		15000000,
 	)
 	callOpts := &bind.CallOpts{}
 
 	oracle, err := bindings.NewL2OutputOracle(deployments.L2OutputOracleProxy, sim)
-	require.NoError(t, err)
-	portal, err := bindings.NewOptimismPortal(deployments.OptimismPortalProxy, sim)
 	require.NoError(t, err)
 
 	proposer, err := oracle.PROPOSER(callOpts)
@@ -77,10 +75,6 @@ func TestBuildL1DeveloperGenesis(t *testing.T) {
 	l2BlockTime, err := oracle.L2BLOCKTIME(callOpts)
 	require.NoError(t, err)
 	require.EqualValues(t, 2, l2BlockTime.Uint64())
-
-	oracleAddr, err := portal.L2ORACLE(callOpts)
-	require.NoError(t, err)
-	require.EqualValues(t, deployments.L2OutputOracleProxy, oracleAddr)
 
 	msgr, err := bindings.NewL1CrossDomainMessenger(deployments.L1CrossDomainMessengerProxy, sim)
 	require.NoError(t, err)

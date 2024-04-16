@@ -1,5 +1,20 @@
 # @eth-optimism/common-ts
 
+## 0.8.9
+
+### Patch Changes
+
+- [#9964](https://github.com/ethereum-optimism/optimism/pull/9964) [`8241220898128e1f61064f22dcb6fdd0a5f043c3`](https://github.com/ethereum-optimism/optimism/commit/8241220898128e1f61064f22dcb6fdd0a5f043c3) Thanks [@roninjin10](https://github.com/roninjin10)! - Removed only-allow command from package.json
+
+- Updated dependencies [[`8241220898128e1f61064f22dcb6fdd0a5f043c3`](https://github.com/ethereum-optimism/optimism/commit/8241220898128e1f61064f22dcb6fdd0a5f043c3)]:
+  - @eth-optimism/core-utils@0.13.2
+
+## 0.8.8
+
+### Patch Changes
+
+- [#9334](https://github.com/ethereum-optimism/optimism/pull/9334) [`1ed50c44a5c4fb7244ede3b4c45ea7bbf144c1e5`](https://github.com/ethereum-optimism/optimism/commit/1ed50c44a5c4fb7244ede3b4c45ea7bbf144c1e5) Thanks [@smartcontracts](https://github.com/smartcontracts)! - Adds a new validator for address types.
+
 ## 0.8.7
 
 ### Patch Changes

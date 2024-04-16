@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -12,6 +15,22 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+func ForBalanceChange(ctx context.Context, client *ethclient.Client, address common.Address, initial *big.Int) (*big.Int, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	return AndGet[*big.Int](
+		ctx,
+		100*time.Millisecond,
+		func() (*big.Int, error) {
+			return client.BalanceAt(ctx, address, nil)
+		},
+		func(b *big.Int) bool {
+			return b.Cmp(initial) != 0
+		},
+	)
+}
 
 func ForReceiptOK(ctx context.Context, client *ethclient.Client, hash common.Hash) (*types.Receipt, error) {
 	return ForReceipt(ctx, client, hash, types.ReceiptStatusSuccessful)
@@ -28,13 +47,16 @@ func ForReceipt(ctx context.Context, client *ethclient.Client, hash common.Hash,
 	defer ticker.Stop()
 	for {
 		receipt, err := client.TransactionReceipt(ctx, hash)
-		if errors.Is(err, ethereum.NotFound) {
+		if errors.Is(err, ethereum.NotFound) || (err != nil && strings.Contains(err.Error(), "transaction indexing is in progress")) {
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			case <-ticker.C:
 				continue
 			}
+		}
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			continue
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to get receipt: %w", err)

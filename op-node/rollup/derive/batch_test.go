@@ -19,7 +19,7 @@ import (
 )
 
 func RandomRawSpanBatch(rng *rand.Rand, chainId *big.Int) *RawSpanBatch {
-	blockCount := uint64(1 + rng.Int()&0xFF)
+	blockCount := uint64(4 + rng.Int()&0xFF) // at least 4
 	originBits := new(big.Int)
 	for i := 0; i < int(blockCount); i++ {
 		bit := uint(0)
@@ -31,14 +31,24 @@ func RandomRawSpanBatch(rng *rand.Rand, chainId *big.Int) *RawSpanBatch {
 	var blockTxCounts []uint64
 	totalblockTxCounts := uint64(0)
 	for i := 0; i < int(blockCount); i++ {
-		blockTxCount := uint64(rng.Intn(16))
+		blockTxCount := 1 + uint64(rng.Intn(16))
 		blockTxCounts = append(blockTxCounts, blockTxCount)
 		totalblockTxCounts += blockTxCount
 	}
-	signer := types.NewLondonSigner(chainId)
+	londonSigner := types.NewLondonSigner(chainId)
 	var txs [][]byte
 	for i := 0; i < int(totalblockTxCounts); i++ {
-		tx := testutils.RandomTx(rng, new(big.Int).SetUint64(rng.Uint64()), signer)
+		var tx *types.Transaction
+		switch i % 4 {
+		case 0:
+			tx = testutils.RandomLegacyTx(rng, types.HomesteadSigner{})
+		case 1:
+			tx = testutils.RandomLegacyTx(rng, londonSigner)
+		case 2:
+			tx = testutils.RandomAccessListTx(rng, londonSigner)
+		case 3:
+			tx = testutils.RandomDynamicFeeTx(rng, londonSigner)
+		}
 		rawTx, err := tx.MarshalBinary()
 		if err != nil {
 			panic("MarshalBinary:" + err.Error())
@@ -64,28 +74,6 @@ func RandomRawSpanBatch(rng *rand.Rand, chainId *big.Int) *RawSpanBatch {
 		},
 	}
 	return &rawSpanBatch
-}
-
-func RandomSingularBatch(rng *rand.Rand, txCount int, chainID *big.Int) *SingularBatch {
-	signer := types.NewLondonSigner(chainID)
-	baseFee := big.NewInt(rng.Int63n(300_000_000_000))
-	txsEncoded := make([]hexutil.Bytes, 0, txCount)
-	// force each tx to have equal chainID
-	for i := 0; i < txCount; i++ {
-		tx := testutils.RandomTx(rng, baseFee, signer)
-		txEncoded, err := tx.MarshalBinary()
-		if err != nil {
-			panic("tx Marshal binary" + err.Error())
-		}
-		txsEncoded = append(txsEncoded, hexutil.Bytes(txEncoded))
-	}
-	return &SingularBatch{
-		ParentHash:   testutils.RandomHash(rng),
-		EpochNum:     rollup.Epoch(1 + rng.Int63n(100_000_000)),
-		EpochHash:    testutils.RandomHash(rng),
-		Timestamp:    uint64(rng.Int63n(2_000_000_000)),
-		Transactions: txsEncoded,
-	}
 }
 
 func RandomValidConsecutiveSingularBatches(rng *rand.Rand, chainID *big.Int) []*SingularBatch {
@@ -172,9 +160,7 @@ func TestBatchRoundTrip(t *testing.T) {
 		err = dec.UnmarshalBinary(enc)
 		require.NoError(t, err)
 		if dec.GetBatchType() == SpanBatchType {
-			rawSpanBatch, ok := dec.inner.(*RawSpanBatch)
-			require.True(t, ok)
-			_, err := rawSpanBatch.derive(blockTime, genesisTimestamp, chainID)
+			_, err := DeriveSpanBatch(&dec, blockTime, genesisTimestamp, chainID)
 			require.NoError(t, err)
 		}
 		require.Equal(t, batch, &dec, "Batch not equal test case %v", i)
@@ -222,9 +208,7 @@ func TestBatchRoundTripRLP(t *testing.T) {
 		err = dec.DecodeRLP(s)
 		require.NoError(t, err)
 		if dec.GetBatchType() == SpanBatchType {
-			rawSpanBatch, ok := dec.inner.(*RawSpanBatch)
-			require.True(t, ok)
-			_, err := rawSpanBatch.derive(blockTime, genesisTimestamp, chainID)
+			_, err = DeriveSpanBatch(&dec, blockTime, genesisTimestamp, chainID)
 			require.NoError(t, err)
 		}
 		require.Equal(t, batch, &dec, "Batch not equal test case %v", i)

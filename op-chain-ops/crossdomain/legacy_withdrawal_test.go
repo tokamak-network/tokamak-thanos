@@ -86,7 +86,7 @@ func init() {
 	if err := readStateDiffs(); err != nil {
 		panic(err)
 	}
-	// Initialze the message passer ABI
+	// Initialize the message passer ABI
 	var err error
 	passMessage, err = abi.JSON(strings.NewReader(passMessageABI))
 	if err != nil {
@@ -201,7 +201,7 @@ func findPassMessage(trace *callFrame) *callFrame {
 
 // findCrossDomainMessage will parse a CrossDomainMessage from a receipt
 func findCrossDomainMessage(receipt *types.Receipt) (*crossdomain.CrossDomainMessage, error) {
-	backend := backends.NewSimulatedBackend(nil, 15000000)
+	backend := backends.NewSimulatedBackend(nil, 15000000) // nolint:staticcheck
 	l2xdm, err := bindings.NewL2CrossDomainMessenger(predeploys.L2CrossDomainMessengerAddr, backend)
 	if err != nil {
 		return nil, err

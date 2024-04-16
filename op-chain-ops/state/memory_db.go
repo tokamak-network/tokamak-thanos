@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/holiman/uint256"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,7 +18,10 @@ import (
 
 var _ vm.StateDB = (*MemoryStateDB)(nil)
 
-var emptyCodeHash = crypto.Keccak256(nil)
+var (
+	emptyCodeHash = crypto.Keccak256(nil)
+	zeroAddr      = common.Address{}
+)
 
 // MemoryStateDB implements geth's StateDB interface
 // but operates on a core.Genesis so that a genesis.json
@@ -28,7 +33,7 @@ type MemoryStateDB struct {
 
 func NewMemoryStateDB(genesis *core.Genesis) *MemoryStateDB {
 	if genesis == nil {
-		genesis = core.DeveloperGenesisBlock(15_000_000, common.Address{})
+		genesis = core.DeveloperGenesisBlock(15_000_000, &zeroAddr)
 	}
 
 	return &MemoryStateDB{
@@ -61,6 +66,10 @@ func (db *MemoryStateDB) CreateAccount(addr common.Address) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
+	db.createAccount(addr)
+}
+
+func (db *MemoryStateDB) createAccount(addr common.Address) {
 	if _, ok := db.genesis.Alloc[addr]; !ok {
 		db.genesis.Alloc[addr] = core.GenesisAccount{
 			Code:    []byte{},
@@ -69,10 +78,9 @@ func (db *MemoryStateDB) CreateAccount(addr common.Address) {
 			Nonce:   0,
 		}
 	}
-
 }
 
-func (db *MemoryStateDB) SubBalance(addr common.Address, amount *big.Int) {
+func (db *MemoryStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -83,11 +91,11 @@ func (db *MemoryStateDB) SubBalance(addr common.Address, amount *big.Int) {
 	if account.Balance.Sign() == 0 {
 		return
 	}
-	account.Balance = new(big.Int).Sub(account.Balance, amount)
+	account.Balance.Sub(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
 }
 
-func (db *MemoryStateDB) AddBalance(addr common.Address, amount *big.Int) {
+func (db *MemoryStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -95,19 +103,19 @@ func (db *MemoryStateDB) AddBalance(addr common.Address, amount *big.Int) {
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))
 	}
-	account.Balance = new(big.Int).Add(account.Balance, amount)
+	account.Balance.Add(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
 }
 
-func (db *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
+func (db *MemoryStateDB) GetBalance(addr common.Address) *uint256.Int {
 	db.rw.RLock()
 	defer db.rw.RUnlock()
 
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
-		return common.Big0
+		return common.U2560
 	}
-	return account.Balance
+	return uint256.MustFromBig(account.Balance)
 }
 
 func (db *MemoryStateDB) GetNonce(addr common.Address) uint64 {
@@ -165,6 +173,8 @@ func (db *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
+	db.createAccount(addr)
+
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
 		return
@@ -174,8 +184,8 @@ func (db *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (db *MemoryStateDB) GetCodeSize(addr common.Address) int {
-	db.rw.Lock()
-	defer db.rw.Unlock()
+	db.rw.RLock()
+	defer db.rw.RUnlock()
 
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
@@ -227,6 +237,9 @@ func (db *MemoryStateDB) SetState(addr common.Address, key, value common.Hash) {
 }
 
 func (db *MemoryStateDB) DeleteState(addr common.Address, key common.Hash) {
+	db.rw.Lock()
+	defer db.rw.Unlock()
+
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -11,13 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-const (
-	// default to 5 seconds
-	defaultLoopInterval     = 5000
-	defaultHeaderBufferSize = 500
-)
-
-// In the future, presets can just be onchain config and fetched on initialization
+// In the future, presets can just be onchain system config with everything else
+// fetched on initialization
 
 // Config represents the `indexer.toml` file used to configure the indexer
 type Config struct {
@@ -35,8 +31,9 @@ type L1Contracts struct {
 	SystemConfigProxy common.Address `toml:"system-config"`
 
 	// rollup state
-	OptimismPortalProxy common.Address `toml:"optimism-portal"`
-	L2OutputOracleProxy common.Address `toml:"l2-output-oracle"`
+	OptimismPortalProxy     common.Address `toml:"optimism-portal"`
+	L2OutputOracleProxy     common.Address `toml:"l2-output-oracle"`
+	DisputeGameFactoryProxy common.Address `toml:"dispute-game-factory"`
 
 	// bridging
 	L1CrossDomainMessengerProxy common.Address `toml:"l1-cross-domain-messenger"`
@@ -103,7 +100,7 @@ type ChainConfig struct {
 	L1Contracts L1Contracts `toml:"l1-contracts"`
 	L2Contracts L2Contracts `toml:"-"`
 
-	// Bedrock starting heights only applicable for OP-Mainnet & OP-Goerli
+	// Bedrock starting heights only applicable for OP-Mainnet
 	L1BedrockStartingHeight uint `toml:"-"`
 	L2BedrockStartingHeight uint `toml:"-"`
 
@@ -117,6 +114,9 @@ type ChainConfig struct {
 
 	L1HeaderBufferSize uint `toml:"l1-header-buffer-size"`
 	L2HeaderBufferSize uint `toml:"l2-header-buffer-size"`
+
+	// Inactivity allowed before a block is indexed by the ETL. Default 0 value disables this feature
+	ETLAllowedInactivityWindowSeconds uint `toml:"etl-allowed-inactivity-window-seconds"`
 }
 
 // RPCsConfig configures the RPC urls
@@ -134,10 +134,11 @@ type DBConfig struct {
 	Password string `toml:"password"`
 }
 
-// Configures the a server
+// Configures the server
 type ServerConfig struct {
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
+	Host         string `toml:"host"`
+	Port         int    `toml:"port"`
+	WriteTimeout int    `toml:"timeout"`
 }
 
 // LoadConfig loads the `indexer.toml` config file from a given path
@@ -195,24 +196,21 @@ func LoadConfig(log log.Logger, path string) (Config, error) {
 		}
 	}
 
-	// Defaults for any unset options
-
+	// Check to make sure some required properties are set
+	var errs error
 	if cfg.Chain.L1PollingInterval == 0 {
-		cfg.Chain.L1PollingInterval = defaultLoopInterval
+		errs = errors.Join(err, errors.New("`l1-polling-interval` unset"))
 	}
-
 	if cfg.Chain.L2PollingInterval == 0 {
-		cfg.Chain.L2PollingInterval = defaultLoopInterval
+		errs = errors.Join(err, errors.New("`l2-polling-interval` unset"))
 	}
-
 	if cfg.Chain.L1HeaderBufferSize == 0 {
-		cfg.Chain.L1HeaderBufferSize = defaultHeaderBufferSize
+		errs = errors.Join(err, errors.New("`l1-header-buffer-size` unset"))
 	}
-
 	if cfg.Chain.L2HeaderBufferSize == 0 {
-		cfg.Chain.L2HeaderBufferSize = defaultHeaderBufferSize
+		errs = errors.Join(err, errors.New("`l2-header-buffer-size` unset"))
 	}
 
 	log.Info("loaded chain config", "config", cfg.Chain)
-	return cfg, nil
+	return cfg, errs
 }
