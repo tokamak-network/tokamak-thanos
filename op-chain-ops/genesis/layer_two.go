@@ -3,7 +3,6 @@ package genesis
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -67,12 +66,11 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 				return nil, fmt.Errorf("error converting to code namespace: %w", err)
 			}
 			db.CreateAccount(codeAddr)
-			db.SetState(addr, ImplementationSlot, eth.AddressAsLeftPaddedHash(codeAddr))
-			log.Info("Set proxy", "name", name, "address", addr, "implementation", codeAddr)
 
+			log.Info("Set proxy", "name", name, "address", addr, "implementation", codeAddr)
 			switch addr {
 			case predeploys.FiatTokenV2_2Addr:
-				db.SetState(addr, common.HexToHash("0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"), eth.AddressAsLeftPaddedHash(codeAddr))
+				db.SetState(addr, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
 			default:
 				db.SetState(addr, ImplementationSlot, eth.AddressAsLeftPaddedHash(codeAddr))
 			}
