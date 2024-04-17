@@ -63,18 +63,18 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 			db.CreateAccount(addr)
 		}
 
-		db.SetCode(addr, depBytecode)
-
 		switch addr {
 		case predeploys.L2UsdcBridgeAddr:
 			db.SetCode(addr, l2UsdcBridgeProxyBytecode)
+			db.SetState(addr, AdminSlot, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
 		case predeploys.FiatTokenV2_2Addr:
 			db.SetCode(addr, fiatTokenProxyBytecode)
+			db.SetState(addr, AdminSlotForZepplin, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
 		default:
 			db.SetCode(addr, depBytecode)
+			db.SetState(addr, AdminSlot, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
 		}
 
-		db.SetState(addr, AdminSlot, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
 		log.Trace("Set proxy", "address", addr, "admin", proxyAdminAddr)
 	}
 
