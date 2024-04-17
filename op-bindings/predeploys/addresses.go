@@ -36,7 +36,6 @@ const (
 	TickLens                           = "0x4200000000000000000000000000000000000508"
 	UniswapInterfaceMulticall          = "0x4200000000000000000000000000000000000509"
 	L2UsdcBridge                       = "0x4200000000000000000000000000000000000775"
-	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
 	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
 )
@@ -72,7 +71,6 @@ var (
 	TickLensAddr                           = common.HexToAddress(TickLens)
 	UniswapInterfaceMulticallAddr          = common.HexToAddress(UniswapInterfaceMulticall)
 	L2UsdcBridgeAddr                       = common.HexToAddress(L2UsdcBridge)
-	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
 	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
 
@@ -84,7 +82,6 @@ func IsProxied(predeployAddr common.Address) bool {
 	switch predeployAddr {
 	case WTONAddr:
 	case GovernanceTokenAddr:
-	case SignatureCheckerAddr:
 	case MasterMinterAddr:
 	default:
 		return true
@@ -123,7 +120,6 @@ func init() {
 	Predeploys["TickLens"] = &TickLensAddr
 	Predeploys["UniswapInterfaceMulticall"] = &UniswapInterfaceMulticallAddr
 	Predeploys["L2UsdcBridge"] = &L2UsdcBridgeAddr
-	Predeploys["SignatureChecker"] = &SignatureCheckerAddr
 	Predeploys["MasterMinter"] = &MasterMinterAddr
 	Predeploys["FiatTokenV2_2"] = &FiatTokenV2_2Addr
 }
