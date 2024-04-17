@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -239,7 +238,7 @@ func processHardhatArtifacts(f flags) {
 	// Process each contract to generate Go bindings.
 	for _, contractName := range contractNames {
 		artifactPath := filepath.Join(f.HardhatArtifacts, contractName+".json")
-		fmt.Printf("Processing artifact at path: %s\n", artifactPath)
+		log.Printf("Processing artifact at path: %s\n", artifactPath)
 		log.Printf("generating code for : %s", contractName)
 		art, err := hh.GetArtifact(contractName)
 		if err != nil {
@@ -313,7 +312,9 @@ const {{.Name}}StorageLayoutJSON = "{{.StorageLayout}}"
 var {{.Name}}StorageLayout = new(solc.StorageLayout)
 
 var {{.Name}}DeployedBin = "{{.DeployedBin}}"
-
+{{if .DeployedSourceMap}}
+var {{.Name}}DeployedSourceMap = "{{.DeployedSourceMap}}"
+{{end}}
 func init() {
 	if err := json.Unmarshal([]byte({{.Name}}StorageLayoutJSON), {{.Name}}StorageLayout); err != nil {
 		panic(err)
