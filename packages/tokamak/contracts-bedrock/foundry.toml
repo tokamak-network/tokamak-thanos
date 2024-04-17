@@ -13,6 +13,8 @@ optimizer_runs = 999999
 remappings = [
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts',
   '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts',
+  '@openzeppelin/contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts',
+  '@openzeppelin/contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/contracts',
   '@rari-capital/solmate/=lib/solmate',
   '@cwia/=lib/clones-with-immutable-args/src',
   'forge-std/=lib/forge-std/src',
@@ -23,6 +25,8 @@ extra_output = ['devdoc', 'userdoc', 'metadata', 'storageLayout']
 bytecode_hash = 'none'
 build_info = true
 build_info_path = 'artifacts/build-info'
+
+libraries = ["src/L2-tokamak/USDC/usdc-contracts/v2/FiatTokenV2_2.sol:SignatureChecker:0x4200000000000000000000000000000000000776"]
 
 # Test / Script Runner Settings
 ffi = true

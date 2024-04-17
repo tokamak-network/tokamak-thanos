@@ -226,6 +226,22 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
+	// L1UsdcBridgeAddr - remove after deploy L1UsdcBridge
+	L1UsdcBridgeAddr common.Address `json:"l1UsdcBridgeAddr"`
+	// L1UsdcAddr - standard USDC address
+	L1UsdcAddr common.Address `json:"l1UsdcAddr"`
+	// UsdcTokenName - ERC20 name of the token e.g. "Bridged USDC (Own Company Name)"
+	UsdcTokenName string `json:"usdcTokenName"`
+	// MasterMinter - can configure minters and minter allowance
+	NewMasterMinter common.Address `json:"newMasterMinter"`
+	// Pauser - can pause the contract
+	NewPauser common.Address `json:"newPauser"`
+	// Blacklister - can blacklist addresses
+	NewBlacklister common.Address `json:"newBlacklister"`
+	// MasterMinterOwner - owner of master minter contract
+	MasterMinterOwner common.Address `json:"masterMinterOwner"`
+	// FiatTokenOwner - can configure master minter, pauser, and blacklister
+	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -725,6 +741,12 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
 	immutable["ETH"] = immutables.ImmutableValues{}
+	immutable["L2UsdcBridge"] = immutables.ImmutableValues{}
+	immutable["SignatureChecker"] = immutables.ImmutableValues{}
+	immutable["MasterMinter"] = immutables.ImmutableValues{
+		"_minterManager": predeploys.FiatTokenV2_2Addr,
+	}
+	immutable["FiatTokenV2_2"] = immutables.ImmutableValues{}
 
 	return immutable, nil
 }
@@ -797,6 +819,32 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	storage["ETH"] = state.StorageValues{
 		"_name":   "Ether",
 		"_symbol": "ETH",
+	}
+	storage["L2UsdcBridge"] = state.StorageValues{
+		"messenger":          predeploys.L2CrossDomainMessengerAddr,
+		"otherBridge":        config.L1UsdcBridgeAddr,
+		"l1Usdc":             config.L1UsdcAddr,
+		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
+		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
+	}
+	storage["MasterMinter"] = state.StorageValues{
+		"_owner": config.MasterMinterOwner,
+		"controllers": map[any]any{
+			predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
+		},
+		"minterManager": predeploys.MasterMinterAddr,
+	}
+	storage["FiatTokenV2_2"] = state.StorageValues{
+		"_owner":              config.FiatTokenOwner,
+		"pauser":              config.NewPauser,
+		"blacklister":         config.NewBlacklister,
+		"name":                config.UsdcTokenName,
+		"symbol":              "USDC.e",
+		"decimals":            6,
+		"currency":            "USD",
+		"masterMinter":        predeploys.MasterMinterAddr,
+		"initialized":         true,
+		"_initializedVersion": 3,
 	}
 	return storage, nil
 }

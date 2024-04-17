@@ -15,17 +15,22 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-bindings/ast"
 	"github.com/ethereum-optimism/optimism/op-bindings/foundry"
+	"github.com/ethereum-optimism/optimism/op-bindings/hardhat"
 )
 
+// flags struct stores command line arguments.
 type flags struct {
-	ForgeArtifacts string
-	Contracts      string
-	SourceMaps     string
-	OutDir         string
-	Package        string
-	MonorepoBase   string
+	ForgeArtifacts   string
+	HardhatArtifacts string
+	ForgeContracts   string
+	HardhatContracts string
+	SourceMaps       string
+	OutDir           string
+	Package          string
+	MonorepoBase     string
 }
 
+// data struct is used to pass data to the template.
 type data struct {
 	Name              string
 	StorageLayout     string
@@ -36,20 +41,34 @@ type data struct {
 
 func main() {
 	var f flags
-	flag.StringVar(&f.ForgeArtifacts, "forge-artifacts", "", "Forge artifacts directory, to load sourcemaps from, if available")
-	flag.StringVar(&f.OutDir, "out", "", "Output directory to put code in")
-	flag.StringVar(&f.Contracts, "contracts", "artifacts.json", "Path to file containing list of contracts to generate bindings for")
-	flag.StringVar(&f.SourceMaps, "source-maps", "", "Comma-separated list of contracts to generate source-maps for")
-	flag.StringVar(&f.Package, "package", "artifacts", "Go package name")
-	flag.StringVar(&f.MonorepoBase, "monorepo-base", "", "Base of the monorepo")
+	// Parse command line flags.
+	flag.StringVar(&f.ForgeArtifacts, "forge-artifacts", "", "Forge artifacts directory")
+	flag.StringVar(&f.HardhatArtifacts, "hardhat-artifacts", "", "Hardhat artifacts directory")
+	flag.StringVar(&f.OutDir, "out", "", "Output directory for generated code")
+	flag.StringVar(&f.ForgeContracts, "forge-contracts", "", "File path with list of contracts for forge")
+	flag.StringVar(&f.HardhatContracts, "hardhat-contracts", "", "File path with list of contracts for hardhat")
+	flag.StringVar(&f.SourceMaps, "source-maps", "", "Comma-separated contracts for source maps")
+	flag.StringVar(&f.Package, "package", "bindings", "Package name for generated Go code")
+	flag.StringVar(&f.MonorepoBase, "monorepo-base", "", "Monorepo base directory for AST paths")
 	flag.Parse()
 
+	// Process artifacts for Forge and Hardhat if specified.
+	if f.ForgeArtifacts != "" {
+		processForgeArtifacts(f)
+	}
+	if f.HardhatArtifacts != "" {
+		processHardhatArtifacts(f)
+	}
+}
+
+// processForgeArtifacts processes Forge artifacts to generate Go bindings.
+func processForgeArtifacts(f flags) {
 	if f.MonorepoBase == "" {
 		log.Fatal("must provide -monorepo-base")
 	}
 	log.Printf("Using monorepo base %s\n", f.MonorepoBase)
 
-	contractData, err := os.ReadFile(f.Contracts)
+	contractData, err := os.ReadFile(f.ForgeContracts)
 	if err != nil {
 		log.Fatal("error reading contract list: %w\n", err)
 	}
@@ -197,6 +216,84 @@ func main() {
 		outfile.Close()
 		log.Printf("wrote file %s\n", outfile.Name())
 	}
+}
+
+// processHardhatArtifacts processes Hardhat artifacts similarly to Forge.
+func processHardhatArtifacts(f flags) {
+	// Initialize Hardhat with the specified network and artifacts.
+	hh, err := hardhat.New("mainnet", []string{f.HardhatArtifacts}, []string{})
+	if err != nil {
+		log.Fatalf("hardhat initialization failed: %v", err)
+	}
+
+	// Read and parse the Hardhat contracts file.
+	contractNames, err := parseContracts(f.HardhatContracts)
+	if err != nil {
+		log.Fatalf("hardhat contract file reading error: %v", err)
+	}
+
+	// Template preparation for generating Go files.
+	t := template.Must(template.New("artifact").Parse(tmpl))
+
+	// Process each contract to generate Go bindings.
+	for _, contractName := range contractNames {
+		artifactPath := filepath.Join(f.HardhatArtifacts, contractName+".json")
+		log.Printf("Processing artifact at path: %s\n", artifactPath)
+		log.Printf("generating code for : %s", contractName)
+		art, err := hh.GetArtifact(contractName)
+		if err != nil {
+			log.Fatalf("error reading artifact %s: %v\n", contractName, err)
+		}
+
+		storage, err := hh.GetStorageLayout(contractName)
+		if err != nil {
+			log.Fatalf("error reading storage layout %s: %v\n", contractName, err)
+		}
+
+		ser, err := json.Marshal(storage)
+		if err != nil {
+			log.Fatalf("error marshaling storage: %v\n", err)
+		}
+		serStr := strings.Replace(string(ser), "\"", "\\\"", -1)
+
+		// Prepare data for template execution.
+		d := data{
+			Name:          contractName,
+			StorageLayout: serStr,
+			DeployedBin:   art.DeployedBytecode.String(),
+			Package:       f.Package,
+		}
+
+		// Generate Go file from template.
+		fname := filepath.Join(f.OutDir, strings.ToLower(contractName)+"_more.go")
+		outfile, err := os.OpenFile(
+			fname,
+			os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+			0o600,
+		)
+		if err != nil {
+			log.Fatalf("error opening %s: %v\n", fname, err)
+		}
+
+		if err := t.Execute(outfile, d); err != nil {
+			log.Fatalf("error writing template %s: %v", outfile.Name(), err)
+		}
+		outfile.Close()
+		log.Printf("wrote file bindings: %s", contractName)
+	}
+}
+
+// parseContracts reads and unmarshals a JSON file listing contracts.
+func parseContracts(filePath string) ([]string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	var contracts []string
+	if err := json.Unmarshal(data, &contracts); err != nil {
+		return nil, err
+	}
+	return contracts, nil
 }
 
 var tmpl = `// Code generated - DO NOT EDIT.
