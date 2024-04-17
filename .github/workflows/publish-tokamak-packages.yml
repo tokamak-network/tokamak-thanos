@@ -1,4 +1,4 @@
-name: Publish the Titan2 Packages
+name: Publish the Thanos Packages
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - 'release-*'
 
 jobs:
-  release-titan2-packages:
+  release-thanos-packages:
     name: Release
     runs-on: ubuntu-latest
     container:
-      image: onthertech/titan-ci-builder:latest
+      image: onthertech/thanos-ci-builder:latest
     defaults:
       run:
         shell: bash
