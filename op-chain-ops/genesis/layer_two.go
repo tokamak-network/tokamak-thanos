@@ -73,10 +73,8 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			switch addr {
 			case predeploys.FiatTokenV2_2Addr:
 				db.SetState(addr, common.HexToHash("0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"), eth.AddressAsLeftPaddedHash(codeAddr))
-				break
 			default:
 				db.SetState(addr, ImplementationSlot, eth.AddressAsLeftPaddedHash(codeAddr))
-				break
 			}
 		} else {
 			db.DeleteState(addr, AdminSlot)
