@@ -819,12 +819,10 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
 		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
 	}
-	storage["SignatureChecker"] = state.StorageValues{}
 	storage["MasterMinter"] = state.StorageValues{
 		"_owner": config.MasterMinterOwner,
 		"controllers": map[any]any{
-			"_controller": predeploys.L2UsdcBridgeAddr,
-			"_worker":     predeploys.L2UsdcBridgeAddr,
+			predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
 		},
 		"minterManager": predeploys.MasterMinterAddr,
 	}
@@ -837,7 +835,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"decimals":            6,
 		"currency":            "USD",
 		"masterMinter":        predeploys.MasterMinterAddr,
-		"initialized":         false,
+		"initialized":         true,
 		"_initializedVersion": 3,
 	}
 	return storage, nil
