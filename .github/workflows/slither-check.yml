@@ -10,69 +10,73 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Add the repository to safe directories
-    - name: Add repo to git safe directories
-      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # Add the repository to safe directories
+      - name: Add repo to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    # Setup Node.js environment
-    - name: Set up Node
-      uses: actions/setup-node@v4
+      # Setup Node.js environment
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
+      # Copy necessary tools from Docker container
+      - name: Copy foundry from Docker container
+        run: |
+          container_id=$(docker create onthertech/thanos-ci-builder:latest)
+          mkdir -p $HOME/bin
+          docker cp $container_id:/usr/local/bin/cast $HOME/bin/
+          docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
+          docker cp $container_id:/usr/local/bin/forge $HOME/bin/
+          docker rm $container_id
 
-    # Restore pnpm package cache
-    - name: Restore PNPM Package Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.pnpm-store
-        key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
+      # Set permissions for the copied tools and add them to the PATH
+      - name: Set permissions and add PATH
+        run: |
+          chmod +x $HOME/bin/*
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-    # Copy necessary tools from Docker container
-    - name: Copy foundry from Docker container
-      run: |
-        container_id=$(docker create onthertech/thanos-ci-builder:latest)
-        mkdir -p $HOME/bin
-        docker cp $container_id:/usr/local/bin/cast $HOME/bin/
-        docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
-        docker cp $container_id:/usr/local/bin/forge $HOME/bin/
-        docker rm $container_id
+      # Install pnpm and dependencies
+      - name: Install pnpm and dependencies
+        run: |
+          npm install --global pnpm@8.15.1
 
-    # Set permissions for the copied tools and add them to the PATH
-    - name: Set permissions and add PATH
-      run: |
-        chmod +x $HOME/bin/*
-        echo "$HOME/bin" >> $GITHUB_PATH
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-slither-${{ hashFiles('pnpm-lock.yaml') }}
 
-    # Install pnpm and dependencies
-    - name: Install pnpm and dependencies
-      run: |
-        npm install --global pnpm
-        pnpm install
+      - name: Fetch dependencies
+        run: pnpm fetch --frozen-lockfile --prefer-offline
 
-    # Save pnpm package cache for future runs
-    - name: Save PNPM Package Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.pnpm-store
-        # Ensure cache key consistency
-        key: pnpm-packages-v3-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-slither-${{ hashFiles('pnpm-lock.yaml') }}
 
-    # Build smart contracts
-    - name: Build the contracts
-      run: |
-        cd packages/tokamak/contracts-bedrock
-        forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol' '*/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --offline
 
-    # Analyze smart contracts with Slither
-    - name: Run Slither
-      uses: crytic/slither-action@v0.3.1
-      with:
-        target: packages/tokamak/contracts-bedrock
-        slither-config: packages/tokamak/contracts-bedrock/slither.config.json
-        fail-on: config
-        slither-version: dev-triage-db
-        slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
-        ignore-compile: true
+      # Build smart contracts
+      - name: Build the contracts
+        run: |
+          cd packages/tokamak/contracts-bedrock
+          forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol' '*/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol'
+
+      # Analyze smart contracts with Slither
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.1
+        with:
+          target: packages/tokamak/contracts-bedrock
+          slither-config: packages/tokamak/contracts-bedrock/slither.config.json
+          fail-on: config
+          slither-version: dev-triage-db
+          slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
+          ignore-compile: true
+          node-version: 20
