@@ -46,7 +46,6 @@ import "src/libraries/DisputeTypes.sol";
 import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
 import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
 
-
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.
 ///         To add a new contract to the system, add a public function that deploys that individual contract.
@@ -91,6 +90,7 @@ contract Deploy is Deployer {
         initializeL2OutputOracle();
         initializeOptimismPortal();
         initializeProtocolVersions();
+        setL1UsdcBridge();
 
         setAlphabetFaultGameImplementation();
         setCannonFaultGameImplementation();
@@ -184,16 +184,14 @@ contract Deploy is Deployer {
         save("SafeSingleton", address(safeSingleton_));
     }
 
-    function upgradeL1UsdcBridge(address safeOwner) public {
-        insert("SystemOwnerSafe", safeOwner);
-        deployL1UsdcBridge();
-        deployL1UsdcBridgeProxy();
-        sync();
-    }
-
     /// @notice Deploy the L1UsdcBridge
-    function deployL1UsdcBridge() public broadcast returns (address addr_) {
+    function deployL1UsdcBridge() public broadcast returns (address addr_) { 
         L1UsdcBridge bridge = new L1UsdcBridge{ salt: implSalt() }();
+
+        require(address(bridge.messenger()) == address(0));
+        require(address(bridge.otherBridge()) == address(0));
+        require(address(bridge.l1Usdc()) == address(0));
+        require(address(bridge.l2Usdc()) == address(0));
 
         save("L1UsdcBridge", address(bridge));
         console.log("L1UsdcBridge deployed at %s", address(bridge));
@@ -211,19 +209,28 @@ contract Deploy is Deployer {
             _data: abi.encode()
         });
 
-        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
-
-        require(address(proxy.messenger()) == l1CrossDomainMessengerProxy);
-        require(address(proxy.otherBridge()) == Predeploys.L2_USDC_BRIDGE);
-        require(address(proxy.l1Usdc()) == cfg.l1UsdcAddr());
-        require(address(proxy.l2Usdc()) == Predeploys.FIATTOKENV2_2);
-
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == address(msg.sender));
 
+        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
+        proxy.upgradeTo(l1UsdcBridge);
+        
         save("L1UsdcBridgeProxy", address(proxy));
         console.log("L1UsdcBridgeProxy deployed at %s", address(proxy));
         addr_ = address(proxy);
+    }
+
+    function setL1UsdcBridge() public broadcast {
+        address l1UsdcBridgeProxy = mustGetAddress("L1UsdcBridgeProxy");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+
+        L1UsdcBridge bridge = L1UsdcBridge(l1UsdcBridgeProxy);
+
+        require(address(bridge.messenger()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.otherBridge()) == Predeploys.L2_USDC_BRIDGE);
+        require(address(bridge.l1Usdc()) == cfg.l1UsdcAddr());
+        require(address(bridge.l2Usdc()) == Predeploys.FIATTOKENV2_2);
+
     }
 
     function upgradeL1StandardBridge(address safeOwner) public {
