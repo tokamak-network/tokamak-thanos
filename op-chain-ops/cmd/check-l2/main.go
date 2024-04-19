@@ -215,13 +215,13 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 				return err
 			}
 
-		case predeploys.WTONAddr:
-			if err := checkWTON(p, client); err != nil {
+		case predeploys.WNativeTokenAddr:
+			if err := checkWNativeToken(p, client); err != nil {
 				return err
 			}
 
-		case predeploys.WETHAddr:
-			if err := checkWETH(p, client); err != nil {
+		case predeploys.ETHAddr:
+			if err := checkETH(p, client); err != nil {
 				return err
 			}
 
@@ -482,8 +482,8 @@ func checkGovernanceToken(addr common.Address, client *ethclient.Client) error {
 	return nil
 }
 
-func checkWTON(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWTON(addr, client)
+func checkWNativeToken(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewWNativeToken(addr, client)
 	if err != nil {
 		return err
 	}
@@ -491,33 +491,33 @@ func checkWTON(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WTON", "name", name)
-	if name != "Wrapped TON" {
-		return fmt.Errorf("WTON name should be 'Wrapped TON', got %s", name)
+	log.Info("WNativeToken", "name", name)
+	if name != "Wrapped NativeToken" {
+		return fmt.Errorf("WNativeToken name should be 'Wrapped NativeToken', got %s", name)
 	}
 
 	symbol, err := contract.Symbol(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WTON", "symbol", symbol)
-	if symbol != "WTON" {
-		return fmt.Errorf("WTON symbol should be 'WTON', got %s", symbol)
+	log.Info("WNativeToken", "symbol", symbol)
+	if symbol != "WNativeToken" {
+		return fmt.Errorf("WNativeToken symbol should be 'WNativeToken', got %s", symbol)
 	}
 
 	decimals, err := contract.Decimals(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WTON", "decimals", decimals)
+	log.Info("WNativeToken", "decimals", decimals)
 	if decimals != 18 {
-		return fmt.Errorf("WTON decimals should be 18, got %d", decimals)
+		return fmt.Errorf("WNativeToken decimals should be 18, got %d", decimals)
 	}
 	return nil
 }
 
-func checkWETH(addr common.Address, client *ethclient.Client) error {
-	contract, err := bindings.NewWETH(addr, client)
+func checkETH(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewETH(addr, client)
 	if err != nil {
 		return err
 	}
@@ -525,27 +525,27 @@ func checkWETH(addr common.Address, client *ethclient.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "name", name)
-	if name != "Wrapped Ether" {
-		return fmt.Errorf("WETH name should be 'Wrapped Ether', got %s", name)
+	log.Info("ETH", "name", name)
+	if name != "Ether" {
+		return fmt.Errorf("ETH name should be 'Ether', got %s", name)
 	}
 
 	symbol, err := contract.Symbol(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "symbol", symbol)
-	if symbol != "WETH" {
-		return fmt.Errorf("WETH symbol should be 'WETH', got %s", symbol)
+	log.Info("ETH", "symbol", symbol)
+	if symbol != "ETH" {
+		return fmt.Errorf("ETH symbol should be 'ETH', got %s", symbol)
 	}
 
 	decimals, err := contract.Decimals(&bind.CallOpts{})
 	if err != nil {
 		return err
 	}
-	log.Info("WETH", "decimals", decimals)
+	log.Info("ETH", "decimals", decimals)
 	if decimals != 18 {
-		return fmt.Errorf("WETH decimals should be 18, got %d", decimals)
+		return fmt.Errorf("ETH decimals should be 18, got %d", decimals)
 	}
 	return nil
 }
@@ -725,7 +725,7 @@ func checkL2CrossDomainMessenger(addr common.Address, client *ethclient.Client) 
 		return err
 	}
 	if common.BytesToAddress(slot) != defaultCrossDomainMessageSender {
-		return fmt.Errorf("Expected xDomainMsgSender to be %s, got %s", defaultCrossDomainMessageSender, addr)
+		return fmt.Errorf("expected xDomainMsgSender to be %s, got %s", defaultCrossDomainMessageSender, addr)
 	}
 
 	contract, err := bindings.NewL2CrossDomainMessenger(addr, client)
@@ -874,7 +874,7 @@ func checkEAS(addr common.Address, client *ethclient.Client) error {
 		return err
 	}
 	if registry != predeploys.SchemaRegistryAddr {
-		return fmt.Errorf("Incorrect registry address %s", registry)
+		return fmt.Errorf("incorrect registry address %s", registry)
 	}
 	log.Info("EAS", "registry", registry)
 
@@ -922,7 +922,7 @@ func getInitializing(name string, addr common.Address, client *ethclient.Client)
 		return false, err
 	}
 	if len(value) != 1 {
-		return false, fmt.Errorf("Unexpected length for _initializing: %d", len(value))
+		return false, fmt.Errorf("unexpected length for _initializing: %d", len(value))
 	}
 	return value[0] == 1, nil
 }

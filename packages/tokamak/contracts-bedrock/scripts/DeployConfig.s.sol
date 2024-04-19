@@ -16,6 +16,7 @@ contract DeployConfig is Script {
 
     address public finalSystemOwner;
     address public portalGuardian;
+    address public nativeTokenAddress;
     uint256 public l1ChainID;
     uint256 public l2ChainID;
     uint256 public l2BlockTime;
@@ -62,6 +63,7 @@ contract DeployConfig is Script {
 
         finalSystemOwner = stdJson.readAddress(_json, "$.finalSystemOwner");
         portalGuardian = stdJson.readAddress(_json, "$.portalGuardian");
+        nativeTokenAddress = stdJson.readAddress(_json, "$.nativeTokenAddress");
         l1ChainID = stdJson.readUint(_json, "$.l1ChainID");
         l2ChainID = stdJson.readUint(_json, "$.l2ChainID");
         l2BlockTime = stdJson.readUint(_json, "$.l2BlockTime");
@@ -99,6 +101,11 @@ contract DeployConfig is Script {
             faultGameMaxDepth = stdJson.readUint(_json, "$.faultGameMaxDepth");
             faultGameMaxDuration = stdJson.readUint(_json, "$.faultGameMaxDuration");
         }
+    }
+
+    function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
+        nativeTokenAddress = _nativeTokenAddress;
+        stdJson.write(vm.toString(_nativeTokenAddress), _path, "$.nativeTokenAddress");
     }
 
     function l1StartingBlockTag() public returns (bytes32) {

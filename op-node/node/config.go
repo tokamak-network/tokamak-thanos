@@ -63,6 +63,9 @@ type Config struct {
 
 	// [OPTIONAL] The reth DB path to read receipts from
 	RethDBPath string
+
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
+	IsForkPublicNetwork bool
 }
 
 type RPCConfig struct {

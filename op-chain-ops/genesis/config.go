@@ -44,6 +44,12 @@ type DeployConfig struct {
 	// script may use it if the L2 starting timestamp is nil, assuming the L2 genesis is set up
 	// with this.
 	L1StartingBlockTag *MarshalableRPCBlockNumberOrHash `json:"l1StartingBlockTag"`
+	// L1Token is the L1's address of the L2 chain's native token.
+	NativeTokenName string `json:"nativeTokenName"`
+	// L1Token is the L1's address of the L2 chain's native token.
+	NativeTokenSymbol string `json:"nativeTokenSymbol"`
+	// L1Token is the L1's address of the L2 chain's native token.
+	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
 	// L1ChainID is the chain ID of the L1 chain.
 	L1ChainID uint64 `json:"l1ChainID"`
 	// L2ChainID is the chain ID of the L2 chain.
@@ -404,6 +410,7 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 	d.L1ERC721BridgeProxy = deployments.L1ERC721BridgeProxy
 	d.SystemConfigProxy = deployments.SystemConfigProxy
 	d.OptimismPortalProxy = deployments.OptimismPortalProxy
+	d.NativeTokenAddress = deployments.L2NativeToken
 }
 
 // GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
@@ -589,6 +596,7 @@ type L1Deployments struct {
 	SystemConfigProxy                 common.Address `json:"SystemConfigProxy"`
 	ProtocolVersions                  common.Address `json:"ProtocolVersions"`
 	ProtocolVersionsProxy             common.Address `json:"ProtocolVersionsProxy"`
+	L2NativeToken                     common.Address `json:"L2NativeToken"`
 }
 
 // GetName will return the name of the contract given an address.
@@ -732,7 +740,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"minimumWithdrawalAmount": config.BaseFeeVaultMinimumWithdrawalAmount,
 		"withdrawalNetwork":       config.BaseFeeVaultWithdrawalNetwork.ToUint8(),
 	}
-	immutable["WETH"] = immutables.ImmutableValues{}
+	immutable["ETH"] = immutables.ImmutableValues{}
 	immutable["L2UsdcBridge"] = immutables.ImmutableValues{}
 	immutable["SignatureChecker"] = immutables.ImmutableValues{}
 	immutable["MasterMinter"] = immutables.ImmutableValues{
@@ -779,13 +787,13 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"l1FeeOverhead":  config.GasPriceOracleOverhead,
 		"l1FeeScalar":    config.GasPriceOracleScalar,
 	}
-	storage["LegacyERC20ETH"] = state.StorageValues{
-		"_name":   "Ether",
-		"_symbol": "ETH",
+	storage["LegacyERC20NativeToken"] = state.StorageValues{
+		"_name":   config.NativeTokenName,
+		"_symbol": config.NativeTokenSymbol,
 	}
-	storage["WTON"] = state.StorageValues{
-		"name":     "Wrapped TON",
-		"symbol":   "WTON",
+	storage["WNativeToken"] = state.StorageValues{
+		"name":     "Wrapped " + config.NativeTokenName,
+		"symbol":   "W" + config.NativeTokenSymbol,
 		"decimals": 18,
 	}
 	if config.EnableGovernance {
@@ -808,9 +816,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_initialized":  initializedValue,
 		"_initializing": false,
 	}
-	storage["WETH"] = state.StorageValues{
-		"_name":   "Wrapped Ether",
-		"_symbol": "WETH",
+	storage["ETH"] = state.StorageValues{
+		"_name":   "Ether",
+		"_symbol": "ETH",
 	}
 	storage["L2UsdcBridge"] = state.StorageValues{
 		"messenger":          predeploys.L2CrossDomainMessengerAddr,

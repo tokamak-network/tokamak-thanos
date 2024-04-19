@@ -4,18 +4,18 @@ import os
 import subprocess
 import json
 import socket
-import calendar
 import datetime
 import time
 import shutil
 import http.client
+import gzip
 import glob
-import shutil
+import ssl
+import urllib
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
 
-import devnet.log_setup
 
 pjoin = os.path.join
 
@@ -23,7 +23,15 @@ parser = argparse.ArgumentParser(description='Bedrock devnet launcher')
 parser.add_argument('--monorepo-dir', help='Directory of the monorepo', default=os.getcwd())
 parser.add_argument('--allocs', help='Only create the allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
 parser.add_argument('--test', help='Tests the deployment, must already be deployed', type=bool, action=argparse.BooleanOptionalAction)
+parser.add_argument('--fork-public-network',
+                    help='Fork the public network',
+                    type=bool,
+                    default=os.environ.get('L1_FORK_PUBLIC_NETWORK').lower() == 'true' if os.environ.get('L1_FORK_PUBLIC_NETWORK') else False)
+parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=os.environ.get('L1_RPC'))
+parser.add_argument('--block-number', help='From block number', type=int, default=os.environ.get('BLOCK_NUMBER'))
+parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
+parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/titan-op-geth:nightly')
 
 log = logging.getLogger()
 
@@ -55,6 +63,8 @@ class ChildProcess:
 def main():
     args = parser.parse_args()
 
+    validate_fork_public_network(args)
+
     monorepo_dir = os.path.abspath(args.monorepo_dir)
     devnet_dir = pjoin(monorepo_dir, '.devnet')
     contracts_bedrock_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'contracts-bedrock')
@@ -67,6 +77,15 @@ def main():
     ops_chain_ops = pjoin(monorepo_dir, 'op-chain-ops')
     sdk_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'sdk')
     bedrock_devnet_dir = pjoin(monorepo_dir, 'bedrock-devnet')
+
+    if args.fork_public_network:
+      if args.block_number is not None:
+        block_number = str(args.block_number)
+      else:
+        response = json.loads(eth_new_head(args.l1_rpc_url))
+        block_number = str(int(response['result'], 16))
+    else:
+      block_number = "0"
 
     paths = Bunch(
       mono_repo_dir=monorepo_dir,
@@ -87,6 +106,10 @@ def main():
       addresses_json_path=pjoin(devnet_dir, 'addresses.json'),
       sdk_addresses_json_path=pjoin(devnet_dir, 'sdk-addresses.json'),
       rollup_config_path=pjoin(devnet_dir, 'rollup.json'),
+      fork_public_network=args.fork_public_network,
+      l1_rpc_url=args.l1_rpc_url,
+      block_number=block_number,
+      l2_native_token=args.l2_native_token,
       bedrock_devnet_path=bedrock_devnet_dir,
       admin_key=args.admin_key
     )
@@ -104,22 +127,26 @@ def main():
 
     git_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     git_date = subprocess.run(['git', 'show', '-s', "--format=%ct"], capture_output=True, text=True).stdout.strip()
-
     # CI loads the images from workspace, and does not otherwise know the images are good as-is
     if os.getenv('DEVNET_NO_BUILD') == "true":
         log.info('Skipping docker images build')
     else:
         log.info(f'Building docker images for git commit {git_commit} ({git_date})')
         run_command(['docker', 'compose', 'build', '--progress', 'plain',
-                     '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'],
-                    cwd=paths.ops_bedrock_dir, env={
+                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'],
+                cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
-            'COMPOSE_DOCKER_CLI_BUILD': '1'  # use the docker cache
+            'COMPOSE_DOCKER_CLI_BUILD': '1',  # use the docker cache
+            'L2_IMAGE': args.l2_image,
+            'L1_DOCKER_FILE': 'Dockerfile.l1.fork' if paths.fork_public_network else 'Dockerfile.l1',
+            'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+            'BLOCK_NUMBER': paths.block_number,
+            'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
         })
 
     log.info('Devnet starting')
-    devnet_deploy(paths)
+    devnet_deploy(paths, args)
 
 def deploy_contracts(paths):
     wait_up(8545)
@@ -132,9 +159,9 @@ def deploy_contracts(paths):
 
     # send some ether to the create2 deployer account
     cmd = [
-        'cast', 'send',
-        '--rpc-url', 'http://127.0.0.1:8545',
-        '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
+      'cast', 'send',
+      '--rpc-url', 'http://127.0.0.1:8545',
+      '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
     ]
     cmd.extend(['--from', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--password', '1234'])
     run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
@@ -162,8 +189,8 @@ def deploy_contracts(paths):
         '--rpc-url', 'http://127.0.0.1:8545'
     ], env={}, cwd=paths.contracts_bedrock_dir)
 
-def init_devnet_l1_deploy_config(paths, update_timestamp=False):
-    deploy_config = read_json(paths.devnet_config_template_path)
+def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
+    deploy_config = read_json(paths.devnet_config_template_path) if temp else read_json(paths.devnet_config_path)
     if update_timestamp:
         deploy_config['l1GenesisBlockTimestamp'] = '{:#x}'.format(int(time.time()))
     write_json(paths.devnet_config_path, deploy_config)
@@ -223,12 +250,12 @@ def devnet_l1_genesis(paths):
     init_devnet_l1_deploy_config(paths)
 
     if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
-        init_admin_geth(paths)
+      init_admin_geth(paths)
 
     geth = subprocess.Popen([
-        'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
-        '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
-        '--rpc.allow-unprotected-txs'
+      'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
+      '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
+      '--rpc.allow-unprotected-txs'
     ], cwd=pjoin(paths.mono_repo_dir, 'bedrock-devnet'))
 
     try:
@@ -242,14 +269,13 @@ def devnet_l1_genesis(paths):
         res = debug_dumpBlock('127.0.0.1:8545')
         response = json.loads(res)
         allocs = response['result']
-
         write_json(paths.allocs_path, allocs)
     finally:
         geth.terminate()
 
 
 # Bring up the devnet where the contracts are deployed to L1
-def devnet_deploy(paths):
+def devnet_deploy(paths, args):
     if os.path.exists(paths.genesis_l1_path):
         log.info('L1 genesis already generated.')
     else:
@@ -262,7 +288,7 @@ def devnet_deploy(paths):
         # function.  But, without it, CI flakes on this test rather consistently.
         # If someone reads this comment and understands why this is being done, please
         # update this comment to explain.
-        init_devnet_l1_deploy_config(paths, update_timestamp=True)
+        init_devnet_l1_deploy_config(paths, update_timestamp=True, temp=False)
         outfile_l1 = pjoin(paths.devnet_dir, 'genesis-l1.json')
         run_command([
             'go', 'run', 'cmd/main.go', 'genesis', 'l1',
@@ -274,7 +300,9 @@ def devnet_deploy(paths):
 
     log.info('Starting L1.')
     run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
     })
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
@@ -297,7 +325,8 @@ def devnet_deploy(paths):
 
     log.info('Bringing up L2.')
     run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
+         'L2_IMAGE': args.l2_image
     })
     wait_up(9545)
     wait_for_rpc_server('127.0.0.1:9545')
@@ -311,12 +340,18 @@ def devnet_deploy(paths):
     run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
         'L2OO_ADDRESS': l2_output_oracle,
-        'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address
+        'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
+        'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
+        'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
     })
 
     log.info('Bringing up `artifact-server`')
     run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
+        'PWD': paths.ops_bedrock_dir,
+        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+        'BLOCK_NUMBER': paths.block_number,
     })
 
     shutil.rmtree(pjoin(paths.bedrock_devnet_path, 'data'), ignore_errors=True)
@@ -334,6 +369,29 @@ def eth_accounts(url):
     data = response.read().decode()
     conn.close()
     return data
+
+def eth_new_head(url):
+    parsed_url = urllib.parse.urlparse(url.strip())
+    hostname = parsed_url.hostname
+    path = parsed_url.path if parsed_url.path else '/'
+    # Create a context that does not verify SSL certificates
+    context = ssl._create_unverified_context()
+    conn = http.client.HTTPSConnection(hostname, context=context)
+    headers = {'Content-type': 'application/json'}
+    body = '{"id":2, "jsonrpc":"2.0", "method": "eth_blockNumber", "params":[]}'
+    try:
+        conn.request('POST', path, body, headers)
+        response = conn.getresponse()
+        data = response.read().decode()
+
+    except Exception as e:
+        log.error(f"Failed to fetch the latest block: {e}")
+        data = None
+    finally:
+        conn.close()
+
+    return data
+
 
 def debug_dumpBlock(url):
     log.info(f'Fetch debug_dumpBlock {url}')
@@ -468,6 +526,26 @@ def write_json(path, data):
 def read_json(path):
     with open(path, 'r') as f:
         return json.load(f)
+
+
+def validate_fork_public_network(args):
+    fork_public_network = args.fork_public_network
+    l1_rpc_url = args.l1_rpc_url
+    l2_native_token = args.l2_native_token
+    block_number = args.block_number
+    # If fork the public network, validate the required params related to
+    if fork_public_network:
+      if not l1_rpc_url:
+        raise Exception("Please provide the L1_RPC URL for the forked network.")
+
+      if not l2_native_token:
+        raise Exception("Please provide the L2_NATIVE_TOKEN for the forked network.")
+
+      log.info(f'Fork from RPC URL: {l1_rpc_url}, block number: {block_number}, l2 native token: {l2_native_token}')
+
+
+def pad_hex(input):
+    return '0x' + input.replace('0x', '').zfill(64)
 
 def write_file(path, data):
     f = open(path, 'w+')

@@ -1,7 +1,7 @@
 COMPOSEFLAGS=-d
 ITESTS_L2_HOST=http://localhost:9545
 BEDROCK_TAGS_REMOTE?=origin
-OP_STACK_GO_BUILDER?=us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:latest
+OP_STACK_GO_BUILDER?=onthertech/titan-op-stack-go:latest
 
 # Requires at least Python v3.9; specify a minor version below if needed
 PYTHON?=python3
@@ -114,7 +114,7 @@ pre-devnet:
 .PHONY: pre-devnet
 
 devnet-up: pre-devnet
-	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
+	 .devnet/allocs-l1.json ./packages/tokamak/contracts-bedrock \
 		|| make devnet-allocs
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=.
 .PHONY: devnet-up

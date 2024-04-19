@@ -122,10 +122,10 @@ export const DEFAULT_L2_CONTRACT_ADDRESSES: OEL2ContractsLike = {
   OVM_L1BlockNumber: predeploys.L1BlockNumber,
   OVM_L2ToL1MessagePasser: predeploys.L2ToL1MessagePasser,
   OVM_DeployerWhitelist: predeploys.DeployerWhitelist,
-  OVM_ETH: predeploys.LegacyERC20ETH,
+  OVM_ETH: predeploys.LegacyERC20NativeToken,
   OVM_GasPriceOracle: predeploys.GasPriceOracle,
   OVM_SequencerFeeVault: predeploys.SequencerFeeVault,
-  WETH: predeploys.WETH9,
+  WETH: predeploys.WNativeToken,
   BedrockMessagePasser: predeploys.L2ToL1MessagePasser,
 }
 

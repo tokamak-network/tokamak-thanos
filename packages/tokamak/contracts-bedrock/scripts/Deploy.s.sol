@@ -13,6 +13,7 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 import { Deployer } from "scripts/Deployer.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { Safe } from "safe-contracts/Safe.sol";
 import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -72,6 +73,7 @@ contract Deploy is Deployer {
     function run() public {
         console.log("Deploying L1 system");
 
+        deployL2NativeToken();
         deployProxies();
         deployImplementations();
 
@@ -101,6 +103,18 @@ contract Deploy is Deployer {
         return keccak256(bytes(vm.envOr("IMPL_SALT", string("ethers phoenix"))));
     }
 
+    function getL2NativeToken() public returns (address) {
+        bool isForkPublicNetwork = vm.envOr("FORK_PUBLIC_NETWORK", false);
+        if (isForkPublicNetwork) {
+            address addr_ = vm.envAddress("L2_NATIVE_TOKEN");
+            return addr_;
+        } else {
+            L2NativeToken token = new L2NativeToken{ salt: implSalt() }();
+            address addr_ = address(token);
+            return addr_;
+        }
+    }
+
     /// @notice Modifier that wraps a function in broadcasting.
     modifier broadcast() {
         vm.startBroadcast();
@@ -126,6 +140,22 @@ contract Deploy is Deployer {
         ) {
             _;
         }
+    }
+
+    /// @notice Deploy the Safe
+    function deployL2NativeToken() public onlyDevnet broadcast {
+        string memory path = string.concat(vm.projectRoot(), "/deploy-config/", deploymentContext, ".json");
+        address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
+        // If L2NativeToken is already existing on the network, we don't deploy the new contract.
+        if (setupAddr_ != address(0)) {
+            cfg.setNativeTokenAddress(setupAddr_, path);
+            console.log("Native token deployed at", setupAddr_);
+            return;
+        }
+        address addr_ = getL2NativeToken();
+        cfg.setNativeTokenAddress(addr_, path);
+        console.log("Native token deployed at", addr_);
+        save("L2NativeToken", addr_);
     }
 
     /// @notice Deploy all of the proxies
@@ -194,10 +224,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
 
-        _upgradeViaSafe({
-            _proxy: payable(l1StandardBridgeProxy),
-            _implementation: l1StandardBridge
-        });
+        _upgradeViaSafe({ _proxy: payable(l1StandardBridgeProxy), _implementation: l1StandardBridge });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
         console.log("L1StandardBridge version: %s", version);
@@ -224,11 +251,11 @@ contract Deploy is Deployer {
 
         require(uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy)) == uint256(ProxyAdmin.ProxyType.RESOLVED));
         string memory contractName = "OVM_L1CrossDomainMessenger";
-        require(keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) == keccak256(bytes(contractName)));
-        _upgradeViaSafe({
-            _proxy: payable(l1CrossDomainMessengerProxy),
-            _implementation: l1CrossDomainMessenger
-        });
+        require(
+            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
+                == keccak256(bytes(contractName))
+        );
+        _upgradeViaSafe({ _proxy: payable(l1CrossDomainMessengerProxy), _implementation: l1CrossDomainMessenger });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
         string memory version = messenger.version();
@@ -238,6 +265,36 @@ contract Deploy is Deployer {
         require(address(messenger.portal()) == optimismPortalProxy);
         bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
+    }
+
+    function upgradeOptimismPortal(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deployOptimismPortal();
+        upgradeOptimismPortalLogic();
+        sync();
+    }
+
+    function upgradeOptimismPortalLogic() public broadcast {
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address optimismPortal = mustGetAddress("OptimismPortal");
+        address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+
+        address guardian = cfg.portalGuardian();
+        if (guardian.code.length == 0) {
+            console.log("Portal guardian has no code: %s", guardian);
+        }
+
+        _upgradeViaSafe({ _proxy: payable(optimismPortalProxy), _implementation: optimismPortal });
+
+        OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
+        string memory version = portal.version();
+        console.log("OptimismPortal version: %s", version);
+
+        require(address(portal.L2_ORACLE()) == l2OutputOracleProxy);
+        require(portal.GUARDIAN() == cfg.portalGuardian());
+        require(address(portal.SYSTEM_CONFIG()) == systemConfigProxy);
+        require(portal.paused() == false);
     }
 
     function upgradeL2OutputOracle(address safeOwner) public {
@@ -251,10 +308,7 @@ contract Deploy is Deployer {
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address l2OutputOracle = mustGetAddress("L2OutputOracle");
 
-        _upgradeViaSafe({
-            _proxy: payable(l2OutputOracleProxy),
-            _implementation: l2OutputOracle
-        });
+        _upgradeViaSafe({ _proxy: payable(l2OutputOracleProxy), _implementation: l2OutputOracle });
 
         L2OutputOracle oracle = L2OutputOracle(l2OutputOracleProxy);
         string memory version = oracle.version();
@@ -674,12 +728,11 @@ contract Deploy is Deployer {
         });
     }
 
-     /// @notice Call from the Safe contract to the Proxy Admin's upgrade
+    /// @notice Call from the Safe contract to the Proxy Admin's upgrade
     function _upgradeViaSafe(address _proxy, address _implementation) internal {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
 
-        bytes memory data =
-            abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
+        bytes memory data = abi.encodeCall(ProxyAdmin.upgrade, (payable(_proxy), _implementation));
 
         _callViaSafe({ _target: proxyAdmin, _data: data });
     }
@@ -797,7 +850,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
-                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy))
+                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.nativeTokenAddress())
                 )
         });
 
@@ -884,7 +937,7 @@ contract Deploy is Deployer {
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
             _innerCallData: abi.encodeCall(
-                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)))
+                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.nativeTokenAddress())
                 )
         });
 
@@ -952,7 +1005,13 @@ contract Deploy is Deployer {
             _implementation: optimismPortal,
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
-                (L2OutputOracle(l2OutputOracleProxy), guardian, SystemConfig(systemConfigProxy), false)
+                (
+                    cfg.nativeTokenAddress(),
+                    L2OutputOracle(l2OutputOracleProxy),
+                    guardian,
+                    SystemConfig(systemConfigProxy),
+                    false
+                )
                 )
         });
 

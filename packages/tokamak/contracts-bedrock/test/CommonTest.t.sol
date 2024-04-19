@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import { Test, StdUtils } from "forge-std/Test.sol";
+import { Test, StdUtils, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
@@ -20,7 +20,7 @@ import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
 import { SequencerFeeVault } from "src/L2/SequencerFeeVault.sol";
 import { FeeVault } from "src/universal/FeeVault.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { LegacyERC20ETH } from "src/legacy/LegacyERC20ETH.sol";
+import { LegacyERC20NativeToken } from "src/legacy/LegacyERC20NativeToken.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -36,6 +36,14 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
+
+contract NativeToken is ERC20 {
+    constructor() ERC20("Test", "Test") { }
+
+    function faucet(uint256 _amount) external {
+        _mint(msg.sender, _amount);
+    }
+}
 
 contract CommonTest is Test {
     address alice = address(128);
@@ -79,12 +87,13 @@ contract CommonTest is Test {
         uint256 _mint,
         uint256 _value,
         uint64 _gasLimit,
-        bool _isCreation,
         bytes memory _data
     )
         internal
     {
-        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
+        emit TransactionDeposited(
+            _from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, bool(_to == address(0)), _data)
+        );
     }
 }
 
@@ -170,7 +179,30 @@ contract L2OutputOracle_Initializer is CommonTest {
     }
 }
 
-contract Portal_Initializer is L2OutputOracle_Initializer {
+contract NativeToken_Initializer is L2OutputOracle_Initializer {
+    using stdStorage for StdStorage;
+
+    // Test target
+    NativeToken internal tokenImpl;
+    NativeToken internal token;
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        vm.prank(multisig);
+        tokenImpl = new NativeToken();
+        token = NativeToken(address(tokenImpl));
+        vm.label(address(token), "L2NativeToken");
+    }
+
+    function dealL2NativeToken(address _target, uint256 _amount) public {
+        deal(address(token), _target, _amount, true);
+        vm.store(address(token), bytes32(uint256(0x2)), bytes32(uint256(_amount) + token.totalSupply())); //set total
+            // supply
+    }
+}
+
+contract Portal_Initializer is NativeToken_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
@@ -220,7 +252,8 @@ contract Portal_Initializer is L2OutputOracle_Initializer {
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
         proxy.upgradeToAndCall(
-            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (oracle, guardian, systemConfig, false))
+            address(opImpl),
+            abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, guardian, systemConfig, false))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
@@ -279,7 +312,7 @@ contract Messenger_Initializer is Portal_Initializer {
             "OVM_L1CrossDomainMessenger"
         );
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(op);
+        L1Messenger.initialize(op, address(token));
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger(address(L1Messenger))).code);
 
@@ -289,7 +322,7 @@ contract Messenger_Initializer is Portal_Initializer {
         vm.label(address(addressManager), "AddressManager");
         vm.label(address(L1MessengerImpl), "L1CrossDomainMessenger_Impl");
         vm.label(address(L1Messenger), "L1CrossDomainMessenger_Proxy");
-        vm.label(Predeploys.LEGACY_ERC20_ETH, "LegacyERC20ETH");
+        vm.label(Predeploys.LEGACY_ERC20_NATIVE_TOKEN, "LegacyERC20NativeToken");
         vm.label(Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L2CrossDomainMessenger");
 
         vm.label(AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger)), "L1CrossDomainMessenger_aliased");
@@ -372,7 +405,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         vm.stopPrank();
 
         L1Bridge = L1StandardBridge(payable(address(proxy)));
-        L1Bridge.initialize({ _messenger: L1Messenger });
+        L1Bridge.initialize(L1Messenger, address(token));
 
         vm.label(address(proxy), "L1StandardBridge_Proxy");
         vm.label(address(L1Bridge_Impl), "L1StandardBridge_Impl");
@@ -390,7 +423,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         L2TokenFactory = OptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
         L2TokenFactory.initialize(Predeploys.L2_STANDARD_BRIDGE);
 
-        vm.etch(Predeploys.LEGACY_ERC20_ETH, address(new LegacyERC20ETH()).code);
+        vm.etch(Predeploys.LEGACY_ERC20_NATIVE_TOKEN, address(new LegacyERC20NativeToken()).code);
 
         L1Token = new ERC20("Native L1 Token", "L1T");
 
