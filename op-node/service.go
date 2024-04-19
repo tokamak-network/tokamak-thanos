@@ -101,10 +101,11 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 			Moniker: ctx.String(flags.HeartbeatMonikerFlag.Name),
 			URL:     ctx.String(flags.HeartbeatURLFlag.Name),
 		},
-		ConfigPersistence: configPersistence,
-		Sync:              *syncConfig,
-		RollupHalt:        haltOption,
-		RethDBPath:        ctx.String(flags.L1RethDBPath.Name),
+		ConfigPersistence:   configPersistence,
+		Sync:                *syncConfig,
+		RollupHalt:          haltOption,
+		RethDBPath:          ctx.String(flags.L1RethDBPath.Name),
+		IsForkPublicNetwork: ctx.Bool(flags.IsForkPublicNetworkFlag.Name),
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {

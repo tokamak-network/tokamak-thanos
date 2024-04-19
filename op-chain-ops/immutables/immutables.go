@@ -142,7 +142,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			},
 		},
 		{
-			Name: "LegacyERC20ETH",
+			Name: "LegacyERC20NativeToken",
 		},
 		{
 			Name: "EAS",
@@ -151,7 +151,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			Name: "SchemaRegistry",
 		},
 		{
-			Name: "WETH",
+			Name: "ETH",
 		},
 		{
 			Name: "L2UsdcBridge",
@@ -257,14 +257,14 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 			return nil, fmt.Errorf("invalid type for remoteChainId")
 		}
 		_, tx, _, err = bindings.DeployOptimismMintableERC721Factory(opts, backend, bridge, remoteChainId)
-	case "LegacyERC20ETH":
-		_, tx, _, err = bindings.DeployLegacyERC20ETH(opts, backend)
+	case "LegacyERC20NativeToken":
+		_, tx, _, err = bindings.DeployLegacyERC20NativeToken(opts, backend)
 	case "EAS":
 		_, tx, _, err = bindings.DeployEAS(opts, backend)
 	case "SchemaRegistry":
 		_, tx, _, err = bindings.DeploySchemaRegistry(opts, backend)
-	case "WETH":
-		_, tx, _, err = bindings.DeployWETH(opts, backend)
+	case "ETH":
+		_, tx, _, err = bindings.DeployETH(opts, backend)
 	case "L2UsdcBridge":
 		_, tx, _, err = bindings.DeployL2UsdcBridge(opts, backend)
 	case "SignatureChecker":

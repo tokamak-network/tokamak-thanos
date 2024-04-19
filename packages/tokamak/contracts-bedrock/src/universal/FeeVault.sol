@@ -74,7 +74,7 @@ abstract contract FeeVault {
             (bool success,) = RECIPIENT.call{ value: value }(hex"");
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
         } else {
-            L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).bridgeETHTo{ value: value }(
+            L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).withdrawNativeTokenTo{ value: value }(
                 RECIPIENT, WITHDRAWAL_MIN_GAS, bytes("")
             );
         }

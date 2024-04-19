@@ -80,16 +80,18 @@ contract GasBenchMark_OptimismPortal is Portal_Initializer {
     }
 
     function test_depositTransaction_benchmark() external {
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+        token.faucet(NON_ZERO_VALUE);
+        vm.prank(address(this));
+        token.approve(address(op), NON_ZERO_VALUE);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     function test_depositTransaction_benchmark_1() external {
         setPrevBaseFee(vm, address(op), 1 gwei);
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+        token.faucet(NON_ZERO_VALUE);
+        vm.prank(address(this));
+        token.approve(address(op), NON_ZERO_VALUE);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     function test_proveWithdrawalTransaction_benchmark() external {
@@ -178,6 +180,9 @@ contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
             abi.encode(address(L1Bridge.OTHER_BRIDGE()))
         );
         vm.startPrank(address(L1Bridge.messenger()));
+        token.faucet(100);
+        vm.startPrank(address(L1Bridge.messenger()));
+        token.approve(address(L1Bridge), 100);
         vm.deal(address(L1Bridge.messenger()), 100);
     }
 
@@ -185,7 +190,7 @@ contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
         // TODO: Make this more accurate. It is underestimating the cost because it pranks
         // the call coming from the messenger, which bypasses the portal
         // and oracle.
-        L1Bridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
+        L1Bridge.finalizeETHWithdrawal(alice, alice, 100, hex"");
     }
 }
 

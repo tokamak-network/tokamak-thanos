@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { StdUtils } from "forge-std/Test.sol";
+import { StdUtils, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
@@ -15,7 +15,17 @@ import { Portal_Initializer } from "test/CommonTest.t.sol";
 import { EIP1967Helper } from "test/CommonTest.t.sol";
 import { Types } from "src/libraries/Types.sol";
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "forge-std/console.sol";
+
+interface NativeToken is IERC20 {
+    function faucet(uint256 _amount) external;
+}
+
 contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
+    using stdStorage for StdStorage;
+
     Vm internal vm;
     OptimismPortal internal portal;
     bool public failedToComplete;
@@ -44,20 +54,24 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
         address _to,
         uint256 _value,
         uint64 _gasLimit,
-        bool _isCreation,
         bytes memory _data
     )
         public
         payable
     {
-        vm.assume((!_isCreation || _to == address(0)) && _data.length <= 120_000);
+        address nativeTokenAddress = portal.nativeTokenAddress();
+        console.log(nativeTokenAddress);
 
         uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
         // Give the depositor some ether
         vm.deal(address(this), preDepositvalue);
-        // cache the contract's eth balance
-        uint256 preDepositBalance = address(this).balance;
+        NativeToken(nativeTokenAddress).faucet(preDepositvalue);
+
+        // cache the contract's native token balance
+        uint256 preDepositBalance = NativeToken(nativeTokenAddress).balanceOf(address(this));
         uint256 value = bound(preDepositvalue, 0, preDepositBalance);
+
+        NativeToken(nativeTokenAddress).approve(address(portal), value);
 
         (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
         ResourceMetering.ResourceConfig memory rcfg = resourceConfig();
@@ -66,7 +80,7 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
             bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
         );
 
-        try portal.depositTransaction{ value: value }(_to, value, gasLimit, _isCreation, _data) {
+        try portal.depositTransaction(_to, value, gasLimit, _data) {
             // Do nothing; Call succeeded
         } catch {
             failedToComplete = true;
@@ -86,6 +100,8 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
     bytes32 _withdrawalHash;
     bytes[] _withdrawalProof;
     Types.OutputRootProof internal _outputRootProof;
+
+    uint256 immutable depositedAmountSlotIndex = 57;
 
     function setUp() public virtual override {
         super.setUp();
@@ -111,6 +127,9 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
         });
         _proposedBlockNumber = oracle.nextBlockNumber();
         _proposedOutputIndex = oracle.nextOutputIndex();
+
+        // setup value for total deposit amount
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_defaultTx.value));
 
         // Configure the oracle to return the output root we've prepared.
         vm.warp(oracle.computeL2Timestamp(_proposedBlockNumber) + 1);
@@ -228,10 +247,15 @@ contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant
     ///                   exactly `FINALIZATION_PERIOD_SECONDS` after it was successfully
     ///                   proven.
     function invariant_canAlwaysFinalize() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 bobBalanceBefore = token.balanceOf(address(bob));
 
         op.finalizeWithdrawalTransaction(_defaultTx);
 
-        assertEq(address(bob).balance, bobBalanceBefore + _defaultTx.value);
+        dealL2NativeToken(address(op), _defaultTx.value);
+
+        vm.prank(address(bob), address(bob));
+        token.transferFrom(address(op), address(bob), _defaultTx.value);
+
+        assertEq(token.balanceOf(address(bob)), bobBalanceBefore + _defaultTx.value);
     }
 }

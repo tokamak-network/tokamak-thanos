@@ -65,6 +65,9 @@ type EthClientConfig struct {
 
 	// [OPTIONAL] The reth DB path to fetch receipts from
 	RethDBPath string
+
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
+	IsForkPublicNetwork bool
 }
 
 func (c *EthClientConfig) Check() error {
@@ -138,6 +141,9 @@ type EthClient struct {
 
 	// [OPTIONAL] The reth DB path to fetch receipts from
 	rethDbPath string
+
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
+	isForkPublicNetwork bool
 }
 
 func (s *EthClient) PickReceiptsMethod(txCount uint64) ReceiptsFetchingMethod {
@@ -186,6 +192,7 @@ func NewEthClient(client client.RPC, log log.Logger, metrics caching.Metrics, co
 		lastMethodsReset:        time.Now(),
 		methodResetDuration:     config.MethodResetDuration,
 		rethDbPath:              config.RethDBPath,
+		isForkPublicNetwork:     config.IsForkPublicNetwork,
 	}, nil
 }
 
@@ -364,7 +371,7 @@ func (s *EthClient) FetchReceipts(ctx context.Context, blockHash common.Hash) (e
 		job = v
 	} else {
 		txHashes := eth.TransactionsToHashes(txs)
-		job = NewReceiptsFetchingJob(s, s.client, s.maxBatchSize, eth.ToBlockID(info), info.ReceiptHash(), txHashes, s.rethDbPath)
+		job = NewReceiptsFetchingJob(s, s.client, s.maxBatchSize, eth.ToBlockID(info), info.ReceiptHash(), txHashes, s.rethDbPath, s.isForkPublicNetwork)
 		s.receiptsCache.Add(blockHash, job)
 	}
 	receipts, err := job.Fetch(ctx)

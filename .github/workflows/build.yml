@@ -1,10 +1,11 @@
 name: pnpm-monorepo
 
 on:
-  push:
+  pull_request:
     paths:
       - 'op-chain-ops/**'
       - 'packages/**'
+
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest

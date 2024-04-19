@@ -33,7 +33,7 @@ ffi = true
 fs_permissions = [
   { access='read-write', path='./.resource-metering.csv' },
   { access='read-write', path='./deployments/' },
-  { access='read', path='./deploy-config/' },
+  { access='read-write', path='./deploy-config/' },
   { access='read', path='./periphery-deploy-config/' },
   { access='read', path='./broadcast/' },
   { access='read', path = './forge-artifacts/' },
@@ -48,7 +48,7 @@ line_length=120
 multiline_func_header='all'
 bracket_spacing=true
 wrap_comments=true
-ignore = ['src/vendor/WETH9.sol']
+ignore = ['src/vendor/WNativeToken.sol']
 
 ################################################################
 #                         PROFILE: CI                          #

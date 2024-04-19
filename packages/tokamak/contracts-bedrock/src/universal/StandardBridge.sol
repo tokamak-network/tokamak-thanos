@@ -238,6 +238,7 @@ abstract contract StandardBridge is Initializable {
     )
         public
         payable
+        virtual
         onlyOtherBridge
     {
         require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
@@ -271,6 +272,7 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
+        virtual
         onlyOtherBridge
     {
         if (_isOptimismMintableERC20(_localToken)) {
@@ -306,6 +308,7 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
+        virtual
     {
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
 
@@ -339,6 +342,7 @@ abstract contract StandardBridge is Initializable {
         bytes memory _extraData
     )
         internal
+        virtual
     {
         if (_isOptimismMintableERC20(_localToken)) {
             require(
