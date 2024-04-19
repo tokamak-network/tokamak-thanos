@@ -194,10 +194,10 @@ L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
-L2_USDC_BRIDGE=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol
-SIGNATURECHECKER=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol
-MASTERMINTER=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol
-FIATTOKENV2_2=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol
+L2_USDC_BRIDGE_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol
+SIGNATURECHECKER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol
+MASTERMINTER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol
+FIATTOKENV2_2_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol
 
 function run() {
   verify_proxy
@@ -348,7 +348,7 @@ function verify_BaseFeeVault() {
 }
 
 function verify_L1FeeVault() {
-  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,uint256,uint8)" 420000000000000000000000000000000000001a 1 1)
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,uint256,uint8)" 0x420000000000000000000000000000000000001a 1 1)
   CONTRACT_ADDR=${contracts["420000000000000000000000000000000000001a"]}
   COMPILER_VERSION=v0.8.15+commit.e14f2714
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${L1_FEE_VAULT_PATH}:L1FeeVault"
@@ -375,20 +375,19 @@ function verify_ETH() {
 }
 
 function verify_L2UsdcBridge() {
-  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor()")
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000775"]}
   COMPILER_VERSION=v0.8.20+commit.a1b79de6
-  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${L2_USDC_BRIDGE_PATH}:L2UsdcBridge"
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${L2_USDC_BRIDGE_PATH}:L2UsdcBridge"
 }
 
 function verify_SignatureChecker() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000776"]}
   COMPILER_VERSION=v0.6.12+commit.27d51765
-  verify_contract $COMPILER_VERSION $CONTRACT_ADDR "${SIGNATURECHECKER_PATH}:SignatureChecker"
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${SIGNATURECHECKER_PATH}:SignatureChecker"
 }
 
 function verify_MasterMinter() {
-  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 4200000000000000000000000000000000000778)
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 0x4200000000000000000000000000000000000778)
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000777"]}
   COMPILER_VERSION=v0.6.12+commit.27d51765
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${MASTERMINTER_PATH}:MasterMinter"
@@ -397,6 +396,6 @@ function verify_MasterMinter() {
 function verify_FiatTokenV2_2() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000778"]}
   COMPILER_VERSION=v0.6.12+commit.27d51765
-  verify_contract $COMPILER_VERSION $CONTRACT_ADDR "${FIATTOKENV2_2_PATH}:FiatTokenV2_2"
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${FIATTOKENV2_2_PATH}:FiatTokenV2_2"
 }
 run
