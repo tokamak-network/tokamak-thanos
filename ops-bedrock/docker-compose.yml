@@ -18,31 +18,37 @@ services:
       args:
         GIT_COMMIT: "dev"
         GIT_DATE: "0"
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:devnet
+    image: onthertech/titan-op-stack-go:${IMAGE_TAG:-latest}
     entrypoint: ["echo", "build complete"]
 
   l1:
     build:
       context: .
-      dockerfile: Dockerfile.l1
+      dockerfile: ${L1_DOCKER_FILE:-Dockerfile.l1}
     ports:
       - "8545:8545"
       - "8546:8546"
       - "7060:6060"
+      - "9999:9999"
     volumes:
       - "l1_data:/db"
       - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
+      BLOCK_NUMBER: ${BLOCK_NUMBER}
+      L1_RPC: ${L1_RPC}
 
   l2:
     build:
       context: .
       dockerfile: Dockerfile.l2
+      args:
+        L2_IMAGE: ${L2_IMAGE}
     ports:
       - "9545:8545"
       - "8060:6060"
+      - "8551:8551"
     volumes:
       - "l2_data:/db"
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
@@ -63,11 +69,13 @@ services:
       context: ../
       dockerfile: ./op-node/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:devnet
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:devnet
+        OP_STACK_GO_BUILDER: onthertech/titan-op-stack-go:${IMAGE_TAG:-latest}
+    image: onthertech/titan-op-node:${IMAGE_TAG:-latest}
     command: >
+      /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
-      --l1=ws://l1:8546
+      --l1=http://l1:8545
+      --l1.fork-public-network=${L1_FORK_PUBLIC_NETWORK:-false}
       --l2=http://l2:8551
       --l2.jwt-secret=/config/test-jwt-secret.txt
       --sequencer.enabled
@@ -89,6 +97,7 @@ services:
       --metrics.port=7300
       --pprof.enabled
       --rpc.enable-admin
+      --l1.trustrpc"
     ports:
       - "7545:8545"
       - "9003:9003"
@@ -100,6 +109,9 @@ services:
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
       - "${PWD}/../.devnet/rollup.json:/rollup.json"
       - op_log:/op_log
+    environment:
+      L1_FORK_PUBLIC_NETWORK: "${L1_FORK_PUBLIC_NETWORK}"
+      WAITING_L1_PORT: "${WAITING_L1_PORT}"
 
   op-proposer:
     depends_on:
@@ -111,12 +123,14 @@ services:
       context: ../
       dockerfile: ./op-proposer/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:devnet
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-proposer:devnet
+        OP_STACK_GO_BUILDER: onthertech/titan-op-stack-go:${IMAGE_TAG:-latest}
+    image: onthertech/titan-op-proposer:${IMAGE_TAG:-latest}
     ports:
       - "6062:6060"
       - "7302:7300"
       - "6546:8545"
+    command: >
+      /bin/sh -c "while ! nc -z op-node 8545 ; do sleep 1; done; echo 'op-node is now available' && op-proposer"
     environment:
       OP_PROPOSER_L1_ETH_RPC: http://l1:8545
       OP_PROPOSER_ROLLUP_RPC: http://op-node:8545
@@ -140,12 +154,14 @@ services:
       context: ../
       dockerfile: ./op-batcher/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:devnet
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-batcher:devnet
+        OP_STACK_GO_BUILDER: onthertech/titan-op-stack-go:${IMAGE_TAG:-latest}
+    image: onthertech/titan-op-batcher:${IMAGE_TAG:-latest}
     ports:
       - "6061:6060"
       - "7301:7300"
       - "6545:8545"
+    command: >
+      /bin/sh -c "while ! nc -z op-node 8545 ; do sleep 1; done; echo 'op-node is now available' && op-batcher"
     environment:
       OP_BATCHER_L1_ETH_RPC: http://l1:8545
       OP_BATCHER_L2_ETH_RPC: http://l2:8545

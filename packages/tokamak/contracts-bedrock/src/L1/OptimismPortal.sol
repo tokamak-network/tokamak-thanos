@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
@@ -12,14 +14,16 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+    using SafeERC20 for IERC20;
+
     /// @notice Represents a proven withdrawal.
     /// @custom:field outputRoot    Root of the L2 output this was proven against.
     /// @custom:field timestamp     Timestamp at whcih the withdrawal was proven.
@@ -64,6 +68,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @custom:network-specific
     address public guardian;
 
+    /// @notice Address of native (ERC-20 token)
+    address public nativeTokenAddress;
+
+    uint256 public depositedAmount;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
     ///         transactions on L2.
@@ -105,6 +114,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
+            _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _guardian: address(0),
             _systemConfig: SystemConfig(address(0)),
@@ -118,6 +128,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _paused Sets the contract's pausability state.
     /// @param _systemConfig Address of the SystemConfig contract.
     function initialize(
+        address _nativeTokenAddress,
         L2OutputOracle _l2Oracle,
         address _guardian,
         SystemConfig _systemConfig,
@@ -126,6 +137,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
+        nativeTokenAddress = _nativeTokenAddress;
         l2Sender = Constants.DEFAULT_L2_SENDER;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
@@ -183,7 +195,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         otherwise any deposited funds will be lost due to address aliasing.
     // solhint-disable-next-line ordering
     receive() external payable {
-        depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
+        revert("Only allow native token");
+        // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 
     /// @notice Accepts ETH value without triggering a deposit to L2.
@@ -218,7 +231,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
+        require(_tx.target != address(this), "OptimismPortal: cannot send messages to this");
 
         // Get the output root and load onto the stack to prevent multiple mloads. This will
         // revert if there is no output root for the given block number.
@@ -242,7 +255,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         require(
             provenWithdrawal.timestamp == 0
                 || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
-            "OptimismPortal: withdrawal hash has already been proven"
+            "OptimismPortal: already been proven"
         );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
@@ -341,6 +354,15 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
+        if (_tx.value > 0) {
+            require(
+                IERC20(nativeTokenAddress).approve(
+                    _tx.target, _tx.value + IERC20(nativeTokenAddress).allowance(address(this), _tx.target)
+                ),
+                "Optimism approve failed"
+            );
+            depositedAmount -= _tx.value;
+        }
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
@@ -349,7 +371,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, 0, _tx.data);
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
@@ -366,30 +388,92 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         }
     }
 
-    /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
+    /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data)
+        public
+        pure
+        returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bytes calldata _message)
+    {
+        require(_data.length >= 76, "invalid onApprove data");
+        assembly {
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _from
+            // The next 20 bytes: _to
+            // The next 32 bytes: _amount
+            // The next 4 bytes: _gasLimit
+            // The rest: _message
+            _from := shr(96, calldataload(_data.offset))
+            _to := shr(96, calldataload(add(_data.offset, 20)))
+            _amount := calldataload(add(_data.offset, 40))
+            _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
+            _message.offset := add(_data.offset, 76)
+            _message.length := sub(_data.length, 76)
+        }
+    }
+
+    /// @notice ERC20 onApprove callback
+    /// @param _owner    Account that called approveAndCall
+    /// @param _amount   Approved amount
+    /// @param _data     Data used in OnApprove contract
+    function onApprove(
+        address _owner,
+        address,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        returns (bool)
+    {
+        (address from, address to, uint256 amount, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        if (msg.sender == nativeTokenAddress && _owner == from && _amount == amount) {
+            _depositTransaction(from, to, amount, gasLimit, message, true);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // @notice Public interface for Accepting deposits of L1's ERC20 as L2's native token and data, and emits a
+    // TransactionDeposited event for use
+    // in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _to         Target address on L2.
-    /// @param _value      ETH value to send to the recipient.
+    /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(
+    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
+        _depositTransaction(msg.sender, _to, _value, _gasLimit, _data, false);
+    }
+
+    // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
+    // use in
+    ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
+    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
+    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @param _sender       Sender address
+    /// @param _to         Target address on L2.
+    /// @param _value      Native token value to send to the recipient.
+    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _data       Data to trigger the recipient with.
+    function _depositTransaction(
+        address _sender,
         address _to,
         uint256 _value,
         uint64 _gasLimit,
-        bool _isCreation,
-        bytes memory _data
+        bytes calldata _data,
+        bool isOnApproveTrigger
     )
-        public
-        payable
+        internal
         metered(_gasLimit)
     {
-        // Just to be safe, make sure that people specify address(0) as the target when doing
-        // contract creations.
-        if (_isCreation) {
-            require(_to == address(0), "OptimismPortal: must send to address(0) when creating a contract");
+        // Lock token in this contract
+        if (_value > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
+            depositedAmount += _value;
         }
 
         // Prevent depositing transactions that have too small of a gas limit. Users should pay
@@ -403,15 +487,15 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from = msg.sender;
-        if (msg.sender != tx.origin) {
-            from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+        address from = _sender;
+        if (_sender != tx.origin && !isOnApproveTrigger) {
+            from = AddressAliasHelper.applyL1ToL2Alias(_sender);
         }
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(msg.value, _value, _gasLimit, _isCreation, _data);
+        bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, (_to == address(0)), _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.

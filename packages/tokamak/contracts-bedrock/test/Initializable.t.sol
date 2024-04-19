@@ -16,16 +16,16 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 contract Initializer_Test is ERC721Bridge_Initializer {
     function test_cannotReinitializeL1_succeeds() public {
         vm.expectRevert("Initializable: contract is already initialized");
-        L1Messenger.initialize(OptimismPortal(payable(address(0))));
+        L1Messenger.initialize(OptimismPortal(payable(address(0))), address(0));
 
         vm.expectRevert("Initializable: contract is already initialized");
-        L1Bridge.initialize(CrossDomainMessenger(address(0)));
+        L1Bridge.initialize(CrossDomainMessenger(address(0)), address(0));
 
         vm.expectRevert("Initializable: contract is already initialized");
         oracle.initialize(0, 0, address(0), address(0));
 
         vm.expectRevert("Initializable: contract is already initialized");
-        op.initialize(L2OutputOracle(address(0)), address(0), SystemConfig(address(0)), false);
+        op.initialize(address(0), L2OutputOracle(address(0)), address(0), SystemConfig(address(0)), false);
 
         vm.expectRevert("Initializable: contract is already initialized");
         systemConfig.initialize({

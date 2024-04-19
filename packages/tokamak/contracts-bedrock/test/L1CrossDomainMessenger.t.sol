@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 // Testing utilities
 import { Messenger_Initializer, Reverter, ConfigurableCaller } from "test/CommonTest.t.sol";
 import { L2OutputOracle_Initializer } from "test/L2OutputOracle.t.sol";
-
+import "forge-std/console.sol";
 // Libraries
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -17,6 +17,8 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
 // Target contract
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev The receiver address
@@ -34,6 +36,67 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev Tests that the sendMessage function is able to send a single message.
     /// TODO: this same test needs to be done with the legacy message type
     ///       by setting the message version to 0
+    function test_sendNativeTokenMessage_succeeds() external {
+        // faucet to alice's balance
+        dealL2NativeToken(alice, NON_ZERO_VALUE);
+
+        vm.prank(alice);
+        token.approve(address(L1Messenger), NON_ZERO_VALUE);
+
+        // deposit transaction on the optimism portal should be called
+        vm.expectCall(
+            address(op),
+            abi.encodeWithSelector(
+                OptimismPortal.depositTransaction.selector,
+                Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+                NON_ZERO_VALUE,
+                L1Messenger.baseGas(hex"ff", 100),
+                Encoding.encodeCrossDomainMessage(
+                    L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
+                )
+            )
+        );
+
+        // TransactionDeposited event
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(
+            AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger)),
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+            NON_ZERO_VALUE,
+            NON_ZERO_VALUE,
+            L1Messenger.baseGas(hex"ff", 100),
+            Encoding.encodeCrossDomainMessage(
+                L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
+            )
+        );
+
+        // SentMessage event
+        vm.expectEmit(true, true, true, true);
+        emit SentMessage(recipient, alice, hex"ff", L1Messenger.messageNonce(), 100);
+
+        // SentMessageExtension1 event
+        vm.expectEmit(true, true, true, true);
+        emit SentMessageExtension1(alice, NON_ZERO_VALUE);
+
+        vm.prank(alice);
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"ff", uint32(100));
+    }
+
+    /// @dev Tests that the sendMessage function is able to send
+    ///      the same message twice.
+    function test_sendNativeTokenMessage_twice_succeeds() external {
+        dealL2NativeToken(address(this), NON_ZERO_VALUE * 2);
+        token.approve(address(L1Messenger), NON_ZERO_VALUE * 2);
+        uint256 nonce = L1Messenger.messageNonce();
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"aa", uint32(500_000));
+        L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"aa", uint32(500_000));
+        // the nonce increments for each message sent
+        assertEq(nonce + 2, L1Messenger.messageNonce());
+    }
+
+    /// @dev Tests that the sendMessage function is able to send a single message.
+    /// TODO: this same test needs to be done with the legacy message type
+    ///       by setting the message version to 0
     function test_sendMessage_succeeds() external {
         // deposit transaction on the optimism portal should be called
         vm.expectCall(
@@ -43,7 +106,6 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
                 Predeploys.L2_CROSS_DOMAIN_MESSENGER,
                 0,
                 L1Messenger.baseGas(hex"ff", 100),
-                false,
                 Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, 0, 100, hex"ff")
             )
         );
@@ -56,7 +118,6 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             0,
             0,
             L1Messenger.baseGas(hex"ff", 100),
-            false,
             Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, 0, 100, hex"ff")
         );
 
@@ -175,7 +236,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         bytes memory message = hex"1111";
 
-        vm.expectRevert("CrossDomainMessenger: value must be zero unless message is from a system address");
+        vm.expectRevert("CrossDomainMessenger: value must be zero");
         L1Messenger.relayMessage{ value: 100 }(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), sender, target, 0, 0, message
         );
@@ -200,12 +261,17 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     }
 
     /// @dev Tests that relayMessage should successfully call the target contract after
-    ///      the first message fails and ETH is stuck, but the second message succeeds
+    ///      the first message fails and NativeToken is stuck, but the second message succeeds
     ///      with a version 1 message.
     function test_relayMessage_retryAfterFailure_succeeds() external {
         address target = address(0xabcd);
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
+
+        dealL2NativeToken(address(op), 2 * value);
+        // Approve the L1Messenger contract
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
 
         vm.expectCall(target, hex"1111");
 
@@ -215,9 +281,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
 
         vm.store(address(op), bytes32(senderSlotIndex), bytes32(abi.encode(sender)));
         vm.etch(target, address(new Reverter()).code);
-        vm.deal(address(op), value);
         vm.prank(address(op));
-        L1Messenger.relayMessage{ value: value }(
+        L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
             sender,
             target,
@@ -226,7 +291,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             hex"1111"
         );
 
-        assertEq(address(L1Messenger).balance, value);
+        assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
         assertEq(L1Messenger.failedMessages(hash), true);
@@ -246,8 +311,10 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             hex"1111"
         );
 
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(L1Messenger).balance, 0);
-        assertEq(address(target).balance, value);
+        assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), true);
     }
@@ -346,6 +413,11 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
 
+        dealL2NativeToken(address(op), 2 * value);
+        // Approve the L1Messenger contract
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
+
         // Compute the message hash.
         bytes32 hash = Hashing.hashCrossDomainMessageV1(
             // Using a legacy nonce with version 0.
@@ -371,9 +443,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         emit FailedRelayedMessage(hash);
 
         // Relay the message.
-        vm.deal(address(op), value);
         vm.prank(address(op));
-        L1Messenger.relayMessage{ value: value }(
+        L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 0 }), // nonce
             sender,
             target,
@@ -383,7 +454,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(address(L1Messenger).balance, value);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
+        assertEq(address(L1Messenger).balance, 0);
         assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
         assertEq(L1Messenger.failedMessages(hash), true);
@@ -410,8 +483,10 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(L1Messenger).balance, 0);
-        assertEq(address(target).balance, value);
+        assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), true);
     }
@@ -421,6 +496,11 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         address target = address(0xabcd);
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
+
+        dealL2NativeToken(address(op), value);
+        // Approve the L1Messenger contract
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
 
         // Compute the message hash.
         bytes32 hash = Hashing.hashCrossDomainMessageV1(
@@ -444,9 +524,8 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         emit RelayedMessage(hash);
 
         // Relay the message.
-        vm.deal(address(op), value);
         vm.prank(address(op));
-        L1Messenger.relayMessage{ value: value }(
+        L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 0 }), // nonce
             sender,
             target,
@@ -456,15 +535,17 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message was successfully relayed.
-        assertEq(address(L1Messenger).balance, 0);
-        assertEq(address(target).balance, value);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
+        assertEq(address(target).balance, 0);
+        assertEq(address(target).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), false);
 
-        // Expect a revert.
+        // // Expect a revert.
         vm.expectRevert("CrossDomainMessenger: message cannot be replayed");
 
-        // Retry the message.
+        // // Retry the message.
         vm.prank(address(sender));
         L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 0 }), // nonce
@@ -476,11 +557,16 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
     }
 
-    /// @dev Tests that relayMessage cannot be called after a failure and a successful replay.
     function test_relayMessage_legacyRetryAfterFailureThenSuccess_reverts() external {
         address target = address(0xabcd);
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         uint256 value = 100;
+
+        dealL2NativeToken(address(op), 2 * value);
+
+        // Approve the L1Messenger contract
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
 
         // Compute the message hash.
         bytes32 hash = Hashing.hashCrossDomainMessageV1(
@@ -503,9 +589,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         vm.expectCall(target, hex"1111");
 
         // Relay the message.
-        vm.deal(address(op), value);
         vm.prank(address(op));
-        L1Messenger.relayMessage{ value: value }(
+
+        L1Messenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 0 }), // nonce
             sender,
             target,
@@ -515,8 +601,10 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
         );
 
         // Message failed.
-        assertEq(address(L1Messenger).balance, value);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
         assertEq(address(target).balance, 0);
+        assertEq(address(L1Messenger).balance, 0);
         assertEq(L1Messenger.successfulMessages(hash), false);
         assertEq(L1Messenger.failedMessages(hash), true);
 
@@ -543,7 +631,10 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
 
         // Message was successfully relayed.
         assertEq(address(L1Messenger).balance, 0);
-        assertEq(address(target).balance, value);
+        assertEq(address(target).balance, 0);
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(IERC20(token).balanceOf(address(target)), 0);
+
         assertEq(L1Messenger.successfulMessages(hash), true);
         assertEq(L1Messenger.failedMessages(hash), true);
 

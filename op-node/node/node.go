@@ -159,6 +159,9 @@ func (n *OpNode) initL1(ctx context.Context, cfg *Config) error {
 	// Set the RethDB path in the EthClientConfig, if there is one configured.
 	rpcCfg.EthClientConfig.RethDBPath = cfg.RethDBPath
 
+	// Set the flag in the EthClientConfig, if the network is the fork public network
+	rpcCfg.EthClientConfig.IsForkPublicNetwork = cfg.IsForkPublicNetwork
+
 	n.l1Source, err = sources.NewL1Client(
 		client.NewInstrumentedRPC(l1Node, n.metrics), n.log, n.metrics.L1SourceCache, rpcCfg)
 	if err != nil {

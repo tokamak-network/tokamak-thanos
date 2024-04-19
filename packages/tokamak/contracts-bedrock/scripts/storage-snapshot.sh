@@ -2,11 +2,10 @@
 
 set -e
 
-if ! command -v forge &> /dev/null
-then
-    echo "forge could not be found. Please install forge by running:"
-    echo "curl -L https://foundry.paradigm.xyz | bash"
-    exit
+if ! command -v forge &>/dev/null; then
+  echo "forge could not be found. Please install forge by running:"
+  echo "curl -L https://foundry.paradigm.xyz | bash"
+  exit
 fi
 
 contracts=(
@@ -22,12 +21,12 @@ contracts=(
   src/L2/L2CrossDomainMessenger.sol:L2CrossDomainMessenger
   src/L2/L2StandardBridge.sol:L2StandardBridge
   src/L2/L2ToL1MessagePasser.sol:L2ToL1MessagePasser
-  src/legacy/LegacyERC20ETH.sol:LegacyERC20ETH
+  src/legacy/LegacyERC20NativeToken.sol:LegacyERC20NativeToken
   src/L2/SequencerFeeVault.sol:SequencerFeeVault
   src/L2/BaseFeeVault.sol:BaseFeeVault
   src/L2/L1FeeVault.sol:L1FeeVault
   src/L2/L2ERC721Bridge.sol:L2ERC721Bridge
-  src/vendor/WETH9.sol:WETH9
+  src/vendor/WNativeToken.sol:WNativeToken
   src/universal/ProxyAdmin.sol:ProxyAdmin
   src/universal/Proxy.sol:Proxy
   src/legacy/L1ChugSplashProxy.sol:L1ChugSplashProxy
@@ -40,15 +39,14 @@ dir=$(dirname "$0")
 
 echo "Creating storage layout diagrams.."
 
-echo "=======================" > $dir/../.storage-layout
-echo "👁👁 STORAGE LAYOUT snapshot 👁👁" >> $dir/../.storage-layout
-echo "=======================" >> $dir/../.storage-layout
+echo "=======================" >$dir/../.storage-layout
+echo "👁👁 STORAGE LAYOUT snapshot 👁👁" >>$dir/../.storage-layout
+echo "=======================" >>$dir/../.storage-layout
 
-for contract in ${contracts[@]}
-do
-  echo -e "\n=======================" >> $dir/../.storage-layout
-  echo "➡ $contract">> $dir/../.storage-layout
-  echo -e "=======================\n" >> $dir/../.storage-layout
-  forge inspect --pretty $contract storage-layout >> $dir/../.storage-layout
+for contract in ${contracts[@]}; do
+  echo -e "\n=======================" >>$dir/../.storage-layout
+  echo "➡ $contract" >>$dir/../.storage-layout
+  echo -e "=======================\n" >>$dir/../.storage-layout
+  forge inspect --pretty $contract storage-layout >>$dir/../.storage-layout
 done
 echo "Storage layout snapshot stored at $dir/../.storage-layout"

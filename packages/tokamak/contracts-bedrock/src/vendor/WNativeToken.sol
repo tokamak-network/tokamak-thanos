@@ -15,9 +15,9 @@
 
 pragma solidity >=0.4.22 <0.6;
 
-contract WTON {
-    string public name     = "Wrapped TON";
-    string public symbol   = "WTON";
+contract WNativeToken {
+    string public name     = "Wrapped NativeToken";
+    string public symbol   = "WNativeToken";
     uint8  public decimals = 18;
 
     event  Approval(address indexed src, address indexed guy, uint wad);

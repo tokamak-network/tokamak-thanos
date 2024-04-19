@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-deploy'
-
+import 'dotenv/config'
 import './tasks'
 
 const config: HardhatUserConfig = {

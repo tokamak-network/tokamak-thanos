@@ -95,26 +95,13 @@ contract OptimismPortal_Test is Portal_Initializer {
         assertEq(op.paused(), true);
     }
 
-    /// @dev Tests that `receive` successdully deposits ETH.
-    function test_receive_succeeds() external {
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(alice, alice, 100, 100, 100_000, false, hex"");
-
-        // give alice money and send as an eoa
+    /// @dev Tests that `receive` reverted deposits ETH.
+    function test_receive_reverts() external {
+        vm.expectRevert("Only allow native token");
         vm.deal(alice, 2 ** 64);
         vm.prank(alice, alice);
         (bool s,) = address(op).call{ value: 100 }(hex"");
-
         assert(s);
-        assertEq(address(op).balance, 100);
-    }
-
-    /// @dev Tests that `depositTransaction` reverts when the destination address is non-zero
-    ///      for a contract creation deposit.
-    function test_depositTransaction_contractCreation_reverts() external {
-        // contract creation must have a target of address(0)
-        vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
-        op.depositTransaction(address(1), 1, 0, true, hex"");
     }
 
     /// @dev Tests that `depositTransaction` reverts when the data is too large.
@@ -123,19 +110,13 @@ contract OptimismPortal_Test is Portal_Initializer {
         uint256 size = 120_001;
         uint64 gasLimit = op.minimumGasLimit(uint64(size));
         vm.expectRevert("OptimismPortal: data too large");
-        op.depositTransaction({
-            _to: address(0),
-            _value: 0,
-            _gasLimit: gasLimit,
-            _isCreation: false,
-            _data: new bytes(size)
-        });
+        op.depositTransaction({ _to: address(0), _value: 0, _gasLimit: gasLimit, _data: new bytes(size) });
     }
 
     /// @dev Tests that `depositTransaction` reverts when the gas limit is too small.
     function test_depositTransaction_smallGasLimit_reverts() external {
         vm.expectRevert("OptimismPortal: gas limit too small");
-        op.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
+        op.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _data: hex"" });
     }
 
     /// @dev Tests that `depositTransaction` succeeds for small,
@@ -149,7 +130,7 @@ contract OptimismPortal_Test is Portal_Initializer {
             vm.expectRevert("OptimismPortal: gas limit too small");
         }
 
-        op.depositTransaction({ _to: address(0x40), _value: 0, _gasLimit: gasLimit, _isCreation: false, _data: _data });
+        op.depositTransaction({ _to: address(0x40), _value: 0, _gasLimit: gasLimit, _data: _data });
     }
 
     /// @dev Tests that `minimumGasLimit` succeeds for small calldata sizes.
@@ -167,10 +148,10 @@ contract OptimismPortal_Test is Portal_Initializer {
         vm.prank(address(this), address(this));
         vm.expectEmit(true, true, false, true);
         emitTransactionDeposited(
-            address(this), NON_ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+            address(this), NON_ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
         );
 
-        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with 0 value.
@@ -182,11 +163,10 @@ contract OptimismPortal_Test is Portal_Initializer {
             ZERO_VALUE,
             ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            false,
             NON_ZERO_DATA
         );
 
-        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for an EOA
@@ -196,11 +176,9 @@ contract OptimismPortal_Test is Portal_Initializer {
         vm.prank(address(this), address(this));
 
         vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA
-        );
+        emitTransactionDeposited(address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
 
-        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract
@@ -213,76 +191,80 @@ contract OptimismPortal_Test is Portal_Initializer {
             ZERO_VALUE,
             ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            true,
             NON_ZERO_DATA
         );
-
-        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        // console.log(abi.encodePacked(ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, bool(ZERO_ADDRESS == address(0)),
+        // NON_ZERO_DATA));
+        op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
-    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with ETH.
-    function test_depositTransaction_withEthValueFromEOA_succeeds() external {
+    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a tx with Native token.
+    function test_depositTransaction_withNativeTokenValueFromEOA_succeeds() external {
         // EOA emulation
-        vm.prank(address(this), address(this));
+        vm.prank(address(this));
+        token.faucet(NON_ZERO_VALUE);
+        token.approve(address(op), type(uint256).max);
 
-        vm.expectEmit(true, true, false, true);
+        vm.expectEmit(true, true, true, true);
         emitTransactionDeposited(
-            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
+            address(this), NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA
         );
-
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
-        assertEq(address(op).balance, NON_ZERO_VALUE);
+        vm.prank(address(this), address(this));
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
+        assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract depositing a tx with ETH.
-    function test_depositTransaction_withEthValueFromContract_succeeds() external {
-        vm.expectEmit(true, true, false, true);
+    function test_depositTransaction_withNativeTokenValueFromContract_succeeds() external {
+        vm.prank(address(this), address(alice));
+        token.faucet(NON_ZERO_VALUE);
+        token.approve(address(op), type(uint256).max);
+
+        vm.expectEmit(true, true, true, true);
         emitTransactionDeposited(
             AddressAliasHelper.applyL1ToL2Alias(address(this)),
             NON_ZERO_ADDRESS,
             NON_ZERO_VALUE,
-            ZERO_VALUE,
+            NON_ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            false,
             NON_ZERO_DATA
         );
-
-        op.depositTransaction{ value: NON_ZERO_VALUE }(
-            NON_ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, false, NON_ZERO_DATA
-        );
+        vm.prank(address(this), address(alice));
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
-    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with ETH.
-    function test_depositTransaction_withEthValueAndEOAContractCreation_succeeds() external {
+    /// @dev Tests that `depositTransaction` succeeds for an EOA depositing a contract creation with native token.
+    function test_depositTransaction_withNativeTokenValueAndEOAContractCreation_succeeds() external {
         // EOA emulation
         vm.prank(address(this), address(this));
+        token.faucet(NON_ZERO_VALUE);
+        token.approve(address(op), type(uint256).max);
 
-        vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(
-            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
-        );
-
-        op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
-        assertEq(address(op).balance, NON_ZERO_VALUE);
+        vm.expectEmit(true, true, true, true);
+        emitTransactionDeposited(address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex"");
+        vm.prank(address(this), address(this));
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, hex"");
+        assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
     /// @dev Tests that `depositTransaction` succeeds for a contract depositing a contract creation with ETH.
     function test_depositTransaction_withEthValueAndContractContractCreation_succeeds() external {
+        vm.prank(address(this), address(alice));
+        token.faucet(NON_ZERO_VALUE);
+        token.approve(address(op), NON_ZERO_VALUE);
+
         vm.expectEmit(true, true, false, true);
         emitTransactionDeposited(
             AddressAliasHelper.applyL1ToL2Alias(address(this)),
             ZERO_ADDRESS,
             NON_ZERO_VALUE,
-            ZERO_VALUE,
+            NON_ZERO_VALUE,
             NON_ZERO_GASLIMIT,
-            true,
             NON_ZERO_DATA
         );
-
-        op.depositTransaction{ value: NON_ZERO_VALUE }(ZERO_ADDRESS, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
-        assertEq(address(op).balance, NON_ZERO_VALUE);
+        vm.prank(address(this), address(alice));
+        op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
+        assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
     }
 
     /// @dev Tests that `isOutputFinalized` succeeds for an EOA depositing a tx with ETH and data.
@@ -343,6 +325,8 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     bytes32 _withdrawalHash;
     bytes[] _withdrawalProof;
     Types.OutputRootProof internal _outputRootProof;
+
+    uint256 immutable depositedAmountSlotIndex = 57;
 
     // Use a constructor to set the storage vars above, so as to minimize the number of ffi calls.
     constructor() {
@@ -410,7 +394,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `proveWithdrawalTransaction` reverts when the target is the portal contract.
     function test_proveWithdrawalTransaction_onSelfCall_reverts() external {
         _defaultTx.target = address(op);
-        vm.expectRevert("OptimismPortal: you cannot send messages to the portal contract");
+        vm.expectRevert("OptimismPortal: cannot send messages to this");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
@@ -438,7 +422,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
-        vm.expectRevert("OptimismPortal: withdrawal hash has already been proven");
+        vm.expectRevert("OptimismPortal: already been proven");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
@@ -529,7 +513,15 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     function test_finalizeWithdrawalTransaction_provenWithdrawalHash_succeeds() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 withdrawalAmount = 100;
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(withdrawalAmount));
+        vm.prank(address(op));
+        token.faucet(withdrawalAmount);
+
+        vm.prank(address(this));
+        token.approve(address(op), type(uint256).max);
+
+        uint256 bobBalanceBefore = token.balanceOf(address(bob));
 
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
@@ -540,7 +532,10 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         emit WithdrawalFinalized(_withdrawalHash, true);
         op.finalizeWithdrawalTransaction(_defaultTx);
 
-        assert(address(bob).balance == bobBalanceBefore + 100);
+        vm.prank(address(bob));
+        token.transferFrom(address(op), address(bob), withdrawalAmount);
+
+        assert(token.balanceOf(address(bob)) == bobBalanceBefore + withdrawalAmount);
     }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
@@ -671,23 +666,6 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         assertEq(bobBalanceBefore, address(bob).balance);
     }
 
-    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the target reverts.
-    function test_finalizeWithdrawalTransaction_targetFails_fails() external {
-        uint256 bobBalanceBefore = address(bob).balance;
-        vm.etch(bob, hex"fe"); // Contract with just the invalid opcode.
-
-        vm.expectEmit(true, true, true, true);
-        emit WithdrawalProven(_withdrawalHash, alice, bob);
-        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
-
-        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
-        vm.expectEmit(true, true, true, true);
-        emit WithdrawalFinalized(_withdrawalHash, false);
-        op.finalizeWithdrawalTransaction(_defaultTx);
-
-        assert(address(bob).balance == bobBalanceBefore);
-    }
-
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the finalization period
     ///      has not yet passed.
     function test_finalizeWithdrawalTransaction_onRecentWithdrawal_reverts() external {
@@ -708,6 +686,11 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal has already been
     ///      finalized.
     function test_finalizeWithdrawalTransaction_onReplay_reverts() external {
+        uint256 withdrawalAmount = 100;
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(withdrawalAmount));
+        vm.prank(address(op));
+        token.faucet(withdrawalAmount);
+
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
@@ -724,13 +707,18 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal transaction
     ///      does not have enough gas to execute.
     function test_finalizeWithdrawalTransaction_onInsufficientGas_reverts() external {
+        uint256 withdrawalAmount = 100;
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(withdrawalAmount));
+        vm.prank(address(op), address(op));
+        token.faucet(withdrawalAmount);
+
         // This number was identified through trial and error.
         uint256 gasLimit = 150_000;
         Types.WithdrawalTransaction memory insufficientGasTx = Types.WithdrawalTransaction({
             nonce: 0,
             sender: alice,
             target: bob,
-            value: 100,
+            value: withdrawalAmount,
             gasLimit: gasLimit,
             data: hex""
         });
@@ -767,7 +755,12 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if a sub-call attempts to finalize
     ///      another withdrawal.
     function test_finalizeWithdrawalTransaction_onReentrancy_reverts() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 withdrawalAmount = 100;
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(withdrawalAmount));
+        vm.prank(address(op));
+        token.faucet(withdrawalAmount);
+
+        uint256 bobBalanceBefore = token.balanceOf(address(bob));
 
         // Copy and modify the default test values to attempt a reentrant call by first calling to
         // this contract's callPortalAndExpectRevert() function above.
@@ -809,7 +802,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         op.finalizeWithdrawalTransaction(_testTx);
 
         // Ensure that bob's balance was not changed by the reentrant call.
-        assert(address(bob).balance == bobBalanceBefore);
+        assert(token.balanceOf(address(bob)) == bobBalanceBefore);
     }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
@@ -822,6 +815,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     )
         external
     {
+        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_value));
         vm.assume(
             _target != address(op) // Cannot call the optimism portal or a contract
                 && _target.code.length == 0 // No accounts with code
@@ -829,9 +823,14 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
                 && uint160(_target) > 9 // No precompiles (or zero address)
         );
 
-        // Total ETH supply is currently about 120M ETH.
-        uint256 value = bound(_value, 0, 200_000_000 ether);
-        vm.deal(address(op), value);
+        // vm.prank(address(op));
+        uint256 opBalance = token.balanceOf(address(op));
+        if (opBalance < _value) {
+            vm.prank(address(op));
+            token.faucet(_value - opBalance);
+        }
+
+        vm.prank(address(this));
 
         uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
         uint256 nonce = messagePasser.messageNonce();
@@ -841,7 +840,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
             nonce: nonce,
             sender: _sender,
             target: _target,
-            value: value,
+            value: 0,
             gasLimit: gasLimit,
             data: _data
         });
@@ -886,7 +885,8 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
 
         // Finalize the withdrawal transaction
-        vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
+        vm.expectCallMinGas(_tx.target, 0, uint64(_tx.gasLimit), _tx.data);
+
         op.finalizeWithdrawalTransaction(_tx);
         assertTrue(op.finalizedWithdrawals(withdrawalHash));
     }
@@ -919,6 +919,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitProxy_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(payable(proxy)).initialize({
+            _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
@@ -930,6 +931,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
     function test_initialize_cannotInitImpl_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         OptimismPortal(opImpl).initialize({
+            _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _guardian: address(0),
@@ -1026,13 +1028,11 @@ contract OptimismPortalResourceFuzz_Test is Portal_Initializer {
         assertEq(prevBoughtGas, _prevBoughtGas);
         assertEq(prevBlockNum, _prevBlockNum);
 
+        uint256 depositAmount = 0x40;
+        token.faucet(depositAmount);
+        token.approve(address(op), depositAmount);
+
         // Do a deposit, should not revert
-        op.depositTransaction{ gas: MAX_GAS_LIMIT }({
-            _to: address(0x20),
-            _value: 0x40,
-            _gasLimit: _gasLimit,
-            _isCreation: false,
-            _data: hex""
-        });
+        op.depositTransaction({ _to: address(0x20), _value: depositAmount, _gasLimit: _gasLimit, _data: hex"" });
     }
 }

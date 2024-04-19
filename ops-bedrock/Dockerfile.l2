@@ -1,4 +1,6 @@
-FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:optimism
+ARG L2_IMAGE=onthertech/titan-op-geth:nightly
+
+FROM ${L2_IMAGE}
 
 RUN apk add --no-cache jq
 
