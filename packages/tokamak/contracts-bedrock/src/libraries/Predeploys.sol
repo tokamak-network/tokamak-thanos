@@ -77,4 +77,10 @@ library Predeploys {
 
     /// @notice Address of the ETH predeploy.
     address internal constant ETH = 0x4200000000000000000000000000000000000486;
+
+    /// @notice Address of the L2UsdcBridge predeploy.
+    address internal constant L2_USDC_BRIDGE = 0x4200000000000000000000000000000000000775;
+
+    /// @notice Address of the FiatTokenV2_2 predeploy.
+    address internal constant FIATTOKENV2_2 = 0x4200000000000000000000000000000000000778;
 }
