@@ -1,0 +1,13 @@
+name: e2e test
+
+on: push
+
+jobs:
+  go-lint:
+    runs-on: onthertech/thanos-ci-builder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
+
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
