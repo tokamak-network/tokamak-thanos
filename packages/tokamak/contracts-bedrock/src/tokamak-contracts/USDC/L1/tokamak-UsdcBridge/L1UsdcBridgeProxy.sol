@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
-import { ERC1967Proxy } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC1967Utils } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC1967Utils.sol";
+import { ERC1967Proxy } from "../libraries/ERC1967Proxy.sol";
+import { ERC1967Utils } from "../libraries/ERC1967Utils.sol";
 import { L1UsdcBridgeStorage } from "./L1UsdcBridgeStorage.sol";
 
 contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
