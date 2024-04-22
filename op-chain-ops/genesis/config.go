@@ -404,9 +404,7 @@ func (d *DeployConfig) CheckAddresses() error {
 	if d.OptimismPortalProxy == (common.Address{}) {
 		return fmt.Errorf("%w: OptimismPortalProxy cannot be address(0)", ErrInvalidDeployConfig)
 	}
-	if d.L1UsdcBridgeProxy == (common.Address{}) {
-		return fmt.Errorf("%w: L1UsdcBridgeProxy cannot be address(0)", ErrInvalidDeployConfig)
-	}
+
 	return nil
 }
 
