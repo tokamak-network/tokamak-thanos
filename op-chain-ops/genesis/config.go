@@ -238,10 +238,14 @@ type DeployConfig struct {
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
 	//FacroryV2addr - address of the factoryV2 contract 0x0000000000...
 	FactoryV2addr common.Address `json:"factoryV2addr"`
-	//
+	// NativeCurrencyLabelBytes represents the bytes of the native currency label.
 	NativeCurrencyLabelBytes [32]byte `json:"nativeCurrencyLabelBytes"`
-	//
+	// UniswapV3FactoryOwner represents the owner of the UniswapV3Factory.
 	UniswapV3FactoryOwner common.Address `json:"uniswapV3FactoryOwner"`
+	// UniswapV3FactoryFee is the fee for UniswapV3Factory.
+	UniswapV3FactoryFee uint32 `json:"uniswapV3FactoryFee"`
+	// UniswapV3FactoryTickSpacing is the tick spacing for UniswapV3Factory.
+	UniswapV3FactoryTickSpacing int32 `json:"uniswapV3FactoryTickSpacing"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -879,11 +883,9 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	storage["UniswapV3Factory"] = state.StorageValues{
 		"owner": config.UniswapV3FactoryOwner,
 		"feeAmountTickSpacing": map[any]any{
-			"fee":         100,
-			"tickSpacing": 1,
+			config.UniswapV3FactoryFee: config.UniswapV3FactoryTickSpacing,
 		},
 	}
-
 	return storage, nil
 }
 

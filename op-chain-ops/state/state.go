@@ -49,13 +49,10 @@ func EncodeStorage(entry solc.StorageLayoutEntry, value any, storageType solc.St
 // SetStorage will set the storage values in a db given a contract name,
 // address and the storage values
 func SetStorage(name string, address common.Address, values StorageValues, db vm.StateDB) error {
-	fmt.Println("SetStorage Name: ", name)
 	layout, err := bindings.GetStorageLayout(name)
-	fmt.Printf("Layout: %+v\n", layout.Storage)
 	if err != nil {
 		return fmt.Errorf("cannot set storage: %w", err)
 	}
-	fmt.Printf("start!!!!! %v \n", name)
 	slots, err := ComputeStorageSlots(layout, values)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -77,7 +74,6 @@ func ComputeStorageSlots(layout *solc.StorageLayout, values StorageValues) ([]*E
 			if label == entry.Label {
 				target = entry
 			}
-			fmt.Printf("entry!!!!!!!!!!!!!! %v\n", entry)
 		}
 		if target.Label == "" {
 			return nil, fmt.Errorf("storage layout entry for %s not found", label)
