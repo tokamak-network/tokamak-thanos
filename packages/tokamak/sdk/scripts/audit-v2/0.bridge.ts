@@ -5,22 +5,25 @@ import 'hardhat-deploy'
 import { BigNumber, BytesLike, Wallet, ethers } from 'ethers'
 import * as l1CrossDomainMessengerAbi from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import * as OptimismPortalAbi from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
+// import * as OptimismPortalProxyAbi from '@tokamak-network/thanos-contracts/forge-artifacts/Proxy.sol/Proxy.json'
 
 import { CrossChainMessenger, MessageStatus } from '../../src'
 import * as l1StandardBridgeAbi from '../../../contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
-import * as l2StandardBridgeAbi from '../../../contracts-bedrock/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
+// import * as l2StandardBridgeAbi from '../../../contracts-bedrock/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import {
   erc20ABI,
-  wtonABI,
-  deployERC20,
-  createOptimismMintableERC20,
-  getErc20Balance,
-  differenceErc20Balance,
+  // wtonABI,
+  // deployERC20,
+  // createOptimismMintableERC20,
+  // getErc20Balance,
+  // differenceErc20Balance,
   getBalances,
   differenceLog,
 } from '../shared'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
+const privateKey1 = process.env.PRIVATE_KEY1 as BytesLike
+// const privateKeyAdmin = process.env.PRIVATE_KEY_DEPLOYER as BytesLike
 
 const l1Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L1_URL
@@ -30,6 +33,9 @@ const l2Provider = new ethers.providers.StaticJsonRpcProvider(
 )
 const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
 const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+// const l1TesterWallet = new ethers.Wallet(privateKey1, l1Provider)
+const l2TesterWallet = new ethers.Wallet(privateKey1, l1Provider)
+// const l1AdminWallet = new ethers.Wallet(privateKeyAdmin, l1Provider)
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
@@ -40,21 +46,22 @@ let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
 let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
-const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
-const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
+// const l2StandardBridge = process.env.L2_STANDARD_BRIDGE || ''
+// const legacy_ERC20_ETH = process.env.LEGACY_ERC20_ETH || ''
 const l2_ERC20_ETH = process.env.ETH || ''
-const l2_WTON = process.env.WTON || ''
+// const l2_WTON = process.env.WTON || ''
 const l2EthContract = new ethers.Contract(l2_ERC20_ETH, erc20ABI, l2Wallet)
 
 let l1BridgeContract
 let l1CrossDomainMessengerContract
 let OptomismPortalContract
+// let OptomismPortalProxyContract
 
 let l1Contracts
 let messenger
 let tonContract
-let l1ERC20Token
-let l2ERC20Token
+// let l1ERC20Token
+// let l2ERC20Token
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (l2NativeToken === '') {
@@ -98,11 +105,70 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   }
 }
 
-const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
-  console.log('\n==== bridge_1_depositTON_L1_TO_L2  ====== ')
+// const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
+//   console.log('\n==== bridge_1_depositTON_L1_TO_L2  ====== ')
+//   const beforeBalances = await getBalances(
+//     l1Wallet,
+//     l2Wallet,
+//     tonContract,
+//     l2EthContract,
+//     l1BridgeContract,
+//     l1CrossDomainMessengerContract,
+//     OptomismPortalContract
+//   )
+
+//   // The layout of a "bytes calldata" is:
+//   // The first 20 bytes: _from
+//   // The next 20 bytes: _to
+//   // The next 32 bytes: _amount
+//   // The next 4 bytes: _minGasLimit -> you can input zero if you don't know the exact min gas limit
+//   // The rest: _message
+//   const data = ethers.utils.solidityPack(
+//     ['address', 'address', 'uint256', 'uint32', 'bytes'],
+//     [l1Wallet.address, l1Wallet.address, amount.toString(), 0, '0x']
+//   )
+
+//   const approveAndCallTx = await (
+//     await tonContract
+//       .connect(l1Wallet)
+//       .approveAndCall(l1Contracts.L1StandardBridge, amount, data)
+//   ).wait()
+//   console.log('\napproveAndCallTx:', approveAndCallTx.transactionHash)
+
+//   await messenger.waitForMessageStatus(
+//     approveAndCallTx.transactionHash,
+//     MessageStatus.RELAYED
+//   )
+
+//   const afterBalances = await getBalances(
+//     l1Wallet,
+//     l2Wallet,
+//     tonContract,
+//     l2EthContract,
+//     l1BridgeContract,
+//     l1CrossDomainMessengerContract,
+//     OptomismPortalContract
+//   )
+
+//   await differenceLog(beforeBalances, afterBalances)
+// }
+
+const bridge_1_depositTON_To_L1_TO_L2 = async (amount: BigNumber) => {
+  console.log('\n==== bridge_1_depositTON_To_L1_TO_L2  ====== ')
+
+  console.log('l1Wallet.address', l1Wallet.address)
+  console.log('l2TesterWallet.address', l2TesterWallet.address)
+
+  const tonBalanceBefore = await await l2TesterWallet.getBalance()
+  console.log(
+    'l2TesterWallet Before',
+    ethers.utils.formatEther(tonBalanceBefore.toString()),
+    'nativeTON'
+  )
+
   const beforeBalances = await getBalances(
     l1Wallet,
-    l2Wallet,
+    l2TesterWallet,
     tonContract,
     l2EthContract,
     l1BridgeContract,
@@ -110,14 +176,31 @@ const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
     OptomismPortalContract
   )
 
-  const data = ethers.utils.solidityPack(['uint32', 'bytes'], [2000000, '0x'])
+  // The layout of a "bytes calldata" is:
+  // The first 20 bytes: _from
+  // The next 20 bytes: _to
+  // The next 32 bytes: _amount
+  // The next 4 bytes: _minGasLimit -> you can input zero if you don't know the exact min gas limit
+  // The rest: _message
+  // const data = ethers.utils.solidityPack(
+  //   ['address','address','uint256','uint32','bytes'],
+  //   [l1Wallet.address, l2TesterWallet.address, amount.toString(), 0, '0x']
+  // )
+
+  const data = ethers.utils.solidityPack(
+    ['address', 'address', 'uint256', 'uint32', 'bytes'],
+    [l1Wallet.address, l2TesterWallet.address, amount.toString(), 0, '0x']
+  )
+
+  // const unpackOnApproveData =  await l1BridgeContract.connect(l1Wallet)
+  //     .unpackOnApproveData(data)
+  // console.log('unpackOnApproveData', unpackOnApproveData)
 
   const approveAndCallTx = await (
     await tonContract
       .connect(l1Wallet)
       .approveAndCall(l1Contracts.L1StandardBridge, amount, data)
   ).wait()
-  console.log('\napproveAndCallTx:', approveAndCallTx.transactionHash)
 
   await messenger.waitForMessageStatus(
     approveAndCallTx.transactionHash,
@@ -126,7 +209,7 @@ const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
 
   const afterBalances = await getBalances(
     l1Wallet,
-    l2Wallet,
+    l2TesterWallet,
     tonContract,
     l2EthContract,
     l1BridgeContract,
@@ -135,84 +218,92 @@ const bridge_1_depositTON_L1_TO_L2 = async (amount: BigNumber) => {
   )
 
   await differenceLog(beforeBalances, afterBalances)
-}
 
-const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
-  console.log('\n==== bridge_2_withdrawTON_L2_TO_L1  ====== ')
-
-  const beforeBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-  const l2BridgeContract = new ethers.Contract(
-    l2StandardBridge,
-    l2StandardBridgeAbi.abi,
-    l2Wallet
-  )
-  const withdrawal = await l2BridgeContract
-    .connect(l2Wallet)
-    .withdraw(legacy_ERC20_ETH, amount, 20000, '0x', {
-      value: amount,
-    })
-  const withdrawalTx = await withdrawal.wait()
+  const tonBalanceAfter = await await l2TesterWallet.getBalance()
   console.log(
-    '\nwithdrawal Tx:',
-    withdrawalTx.transactionHash,
-    ' Block',
-    withdrawalTx.blockNumber,
-    ' hash',
-    withdrawal.hash
+    'l2TesterWallet After',
+    ethers.utils.formatEther(tonBalanceAfter.toString()),
+    'nativeTON'
   )
-
-  await messenger.waitForMessageStatus(
-    withdrawalTx.transactionHash,
-    MessageStatus.READY_TO_PROVE
-  )
-
-  console.log('\nProve the message')
-  const proveTx = await messenger.proveMessage(withdrawalTx.transactionHash)
-  const proveReceipt = await proveTx.wait(3)
-  console.log('Proved the message: ', proveReceipt.transactionHash)
-
-  const finalizeInterval = setInterval(async () => {
-    const currentStatus = await messenger.getMessageStatus(
-      withdrawalTx.transactionHash
-    )
-    console.log('Message status: ', currentStatus)
-  }, 3000)
-
-  try {
-    await messenger.waitForMessageStatus(
-      withdrawalTx.transactionHash,
-      MessageStatus.READY_FOR_RELAY
-    )
-  } finally {
-    clearInterval(finalizeInterval)
-  }
-
-  const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
-  const receipt = await tx.wait()
-  console.log('\nFinalized message tx', receipt.transactionHash)
-  console.log('Finalized withdrawal')
-
-  const afterBalances = await getBalances(
-    l1Wallet,
-    l2Wallet,
-    tonContract,
-    l2EthContract,
-    l1BridgeContract,
-    l1CrossDomainMessengerContract,
-    OptomismPortalContract
-  )
-
-  await differenceLog(beforeBalances, afterBalances)
 }
 
+// const bridge_2_withdrawTON_L2_TO_L1 = async (amount: BigNumber) => {
+//   console.log('\n==== bridge_2_withdrawTON_L2_TO_L1  ====== ')
+
+//   const beforeBalances = await getBalances(
+//     l1Wallet,
+//     l2Wallet,
+//     tonContract,
+//     l2EthContract,
+//     l1BridgeContract,
+//     l1CrossDomainMessengerContract,
+//     OptomismPortalContract
+//   )
+//   const l2BridgeContract = new ethers.Contract(
+//     l2StandardBridge,
+//     l2StandardBridgeAbi.abi,
+//     l2Wallet
+//   )
+//   const withdrawal = await l2BridgeContract
+//     .connect(l2Wallet)
+//     .withdraw(legacy_ERC20_ETH, amount, 20000, '0x', {
+//       value: amount,
+//     })
+//   const withdrawalTx = await withdrawal.wait()
+//   console.log(
+//     '\nwithdrawal Tx:',
+//     withdrawalTx.transactionHash,
+//     ' Block',
+//     withdrawalTx.blockNumber,
+//     ' hash',
+//     withdrawal.hash
+//   )
+
+//   await messenger.waitForMessageStatus(
+//     withdrawalTx.transactionHash,
+//     MessageStatus.READY_TO_PROVE
+//   )
+
+//   console.log('\nProve the message')
+//   const proveTx = await messenger.proveMessage(withdrawalTx.transactionHash)
+//   const proveReceipt = await proveTx.wait(3)
+//   console.log('Proved the message: ', proveReceipt.transactionHash)
+
+//   const finalizeInterval = setInterval(async () => {
+//     const currentStatus = await messenger.getMessageStatus(
+//       withdrawalTx.transactionHash
+//     )
+//     console.log('Message status: ', currentStatus)
+//   }, 3000)
+
+//   try {
+//     await messenger.waitForMessageStatus(
+//       withdrawalTx.transactionHash,
+//       MessageStatus.READY_FOR_RELAY
+//     )
+//   } finally {
+//     clearInterval(finalizeInterval)
+//   }
+
+//   const tx = await messenger.finalizeMessage(withdrawalTx.transactionHash)
+//   const receipt = await tx.wait()
+//   console.log('\nFinalized message tx', receipt.transactionHash)
+//   console.log('Finalized withdrawal')
+
+//   const afterBalances = await getBalances(
+//     l1Wallet,
+//     l2Wallet,
+//     tonContract,
+//     l2EthContract,
+//     l1BridgeContract,
+//     l1CrossDomainMessengerContract,
+//     OptomismPortalContract
+//   )
+
+//   await differenceLog(beforeBalances, afterBalances)
+// }
+
+/*
 const bridge_3_depositETH_L1_TO_L2 = async (amount: BigNumber) => {
   console.log('\n==== bridge_3_depositETH_L1_TO_L2  ====== ')
 
@@ -554,7 +645,7 @@ const bridge_7_withdrawERC20_L2_TO_L1 = async (amount: BigNumber) => {
   await differenceErc20Balance(l1token, l1token_after, 'L1 ERC20 Changed : ')
   await differenceErc20Balance(l2token, l2token_after, 'L2 ERC20 Changed : ')
 }
-
+*/
 const faucet = async (account: Wallet, amount: BigNumber) => {
   await (await tonContract.connect(account).faucet(amount)).wait()
 
@@ -599,9 +690,14 @@ const setup = async () => {
     l1Wallet
   )
 
+  // OptomismPortalProxyContract = new ethers.Contract(
+  //   optimismPortal,
+  //   OptimismPortalProxyAbi.abi,
+  //   l1Wallet
+  // )
+
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
-  //   console.log('l1ChainId',l1ChainId)
 
   messenger = new CrossChainMessenger({
     bedrock: true,
@@ -620,18 +716,20 @@ const main = async () => {
   await faucet(l1Wallet, ethers.utils.parseEther('100'))
 
   const depositAmount = ethers.utils.parseEther('2')
-  const withdrawAmount = ethers.utils.parseEther('1')
+  // const withdrawAmount = ethers.utils.parseEther('1')
 
-  await bridge_1_depositTON_L1_TO_L2(depositAmount)
-  await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
+  // await bridge_1_depositTON_L1_TO_L2(depositAmount)
+  // await bridge_2_withdrawTON_L2_TO_L1(withdrawAmount)
 
-  await bridge_3_depositETH_L1_TO_L2(depositAmount)
-  await bridge_4_withdrawETH_L2_TO_L1(withdrawAmount)
+  await bridge_1_depositTON_To_L1_TO_L2(depositAmount)
 
-  await bridge_5_withdrawWTON_L2_TO_L1(withdrawAmount)
+  // await bridge_3_depositETH_L1_TO_L2(depositAmount)
+  // await bridge_4_withdrawETH_L2_TO_L1(withdrawAmount)
 
-  await bridge_6_depositERC20_L1_TO_L2(hardhat, depositAmount)
-  await bridge_7_withdrawERC20_L2_TO_L1(withdrawAmount)
+  // await bridge_5_withdrawWTON_L2_TO_L1(withdrawAmount)
+
+  // await bridge_6_depositERC20_L1_TO_L2(hardhat, depositAmount)
+  // await bridge_7_withdrawERC20_L2_TO_L1(withdrawAmount)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

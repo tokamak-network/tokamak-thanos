@@ -618,7 +618,7 @@ const portal_3_createContract_L1_TO_L2 = async (amount: BigNumber) => {
   const rawTxL2 = '0x7e' + remove0x(ethers.utils.RLP.encode(txData))
   const txHashL2 = ethers.utils.keccak256(rawTxL2)
 
-  let newContract : string
+  let newContract: string
 
   while (true) {
     const l2Tx = await l2Wallet.provider.getTransactionReceipt(txHashL2)
