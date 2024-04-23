@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"runtime"
@@ -163,8 +164,23 @@ func TestSystemE2E(t *testing.T) {
 	opts, err := bind.NewKeyedTransactorWithChainID(ethPrivKey, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 	mintAmount := big.NewInt(1_000_000_000_000)
-	opts.Value = mintAmount
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {})
+
+	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	require.NoError(t, err)
+
+	// faucet NativeToken
+	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	// Approve NativeToken with the OP
+	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {}, mintAmount)
 
 	// Confirm balance
 	ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
@@ -980,10 +996,26 @@ func TestWithdrawals(t *testing.T) {
 
 	// Send deposit tx
 	mintAmount := big.NewInt(1_000_000_000_000)
-	opts.Value = mintAmount
+
+	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	require.NoError(t, err)
+
+	// faucet NativeToken
+	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	// Approve NativeToken with the OP
+	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	// opts.Value = mintAmount
 	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		l2Opts.Value = common.Big0
-	})
+		// l2Opts.Value = common.Big0
+	}, mintAmount)
 
 	// Confirm L2 balance
 	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
@@ -1025,28 +1057,23 @@ func TestWithdrawals(t *testing.T) {
 	diff = diff.Sub(diff, fees)
 	require.Equal(t, withdrawAmount, diff)
 
-	// Take start balance on L1
-	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	startBalance, err = l1Client.BalanceAt(ctx, fromAddr, nil)
+	startBalance, err = nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
 	proveReceipt, finalizeReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["verifier"], ethPrivKey, receipt)
+	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
+	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
 
-	// Verify balance after withdrawal
-	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	endBalance, err = l1Client.BalanceAt(ctx, fromAddr, nil)
+	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
+	require.NoError(t, err)
+
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	endBalance, err = nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
-	// Ensure that withdrawal - gas fees are added to the L1 balance
-	// Fun fact, the fee is greater than the withdrawal amount
-	// NOTE: The gas fees include *both* the ProveWithdrawalTransaction and FinalizeWithdrawalTransaction transactions.
 	diff = new(big.Int).Sub(endBalance, startBalance)
-	proveFee := new(big.Int).Mul(new(big.Int).SetUint64(proveReceipt.GasUsed), proveReceipt.EffectiveGasPrice)
-	finalizeFee := new(big.Int).Mul(new(big.Int).SetUint64(finalizeReceipt.GasUsed), finalizeReceipt.EffectiveGasPrice)
-	fees = new(big.Int).Add(proveFee, finalizeFee)
-	withdrawAmount = withdrawAmount.Sub(withdrawAmount, fees)
 	require.Equal(t, withdrawAmount, diff)
 }
 
