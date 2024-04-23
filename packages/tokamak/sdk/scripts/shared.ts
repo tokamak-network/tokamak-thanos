@@ -1,12 +1,9 @@
-// import hardhat from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { BigNumber, Wallet, Contract, Event, utils } from 'ethers'
-import { predeploys } from '@eth-optimism/core-utils'
-import Artifact__OptimismMintableERC20TokenFactory from '@eth-optimism/contracts-bedrock/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
-import Artifact__OptimismMintableERC20Token from '@eth-optimism/contracts-bedrock/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
+import { BigNumber, Contract, Event, Wallet, utils } from 'ethers'
 
 import Artifact__ERC20 from '../../contracts-bedrock/forge-artifacts/MockERC20.sol/MockERC20.json'
-// import Artifact__L2NativeToken from '../../contracts-bedrock/forge-artifacts/L2NativeToken.sol/L2NativeToken.json'
+import Artifact__OptimismMintableERC20TokenFactory from '../../contracts-bedrock/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
+import Artifact__OptimismMintableERC20Token from '../../contracts-bedrock/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
 import Artifact__MockHello from '../../contracts-bedrock/forge-artifacts/MockHello.sol/MockHello.json'
 
 export const deployERC20 = async (
@@ -35,8 +32,10 @@ export const createOptimismMintableERC20 = async (
   L1ERC20: Contract,
   l2Signer: Wallet
 ): Promise<Contract> => {
+  const OptimismMintableERC20FactoryAddress =
+    '0x4200000000000000000000000000000000000012'
   const OptimismMintableERC20TokenFactory = new Contract(
-    predeploys.OptimismMintableERC20Factory,
+    OptimismMintableERC20FactoryAddress,
     Artifact__OptimismMintableERC20TokenFactory.abi,
     l2Signer
   )
@@ -176,6 +175,16 @@ export const getBalances = async (
     l1MessengerBalance,
     OptomismPortalBalance,
     portal,
+  }
+}
+
+export const getL1ETHBalance = async (
+  accountAddress: string,
+  provider: any
+) => {
+  const ethBalance = await provider.getBalance(accountAddress)
+  return {
+    ethBalance,
   }
 }
 
