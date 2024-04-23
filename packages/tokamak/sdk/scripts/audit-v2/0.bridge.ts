@@ -372,13 +372,6 @@ const bridge_3_depositETH_To_L1_TO_L2 = async (amount: BigNumber) => {
   console.log('\n==== bridge_3_depositETH_To_L1_TO_L2  ====== ')
 
   const l2TesterEthPrev = await getL2Balance(l2TesterWallet, l2EthContract)
-  console.log(
-    'l2TesterEthPrev',
-    ethers.utils.formatEther(l2TesterEthPrev.ethBalance),
-    'native TON',
-    ethers.utils.formatEther(l2TesterEthPrev.ethBalance),
-    'ETH'
-  )
 
   const l1BridgeEthPrev = await getL1ETHBalance(
     l1BridgeContract.address,
@@ -398,7 +391,7 @@ const bridge_3_depositETH_To_L1_TO_L2 = async (amount: BigNumber) => {
   )
   const deposition = await l1BridgeContract
     .connect(l1Wallet)
-    .depositETH(0, '0x', {
+    .depositETHTo(l2TesterWallet.address, 0, '0x', {
       value: amount,
     })
 
@@ -444,10 +437,14 @@ const bridge_3_depositETH_To_L1_TO_L2 = async (amount: BigNumber) => {
 
   const l2TesterEthAfter = await getL2Balance(l2TesterWallet, l2EthContract)
   console.log(
-    'l2TesterEthAfter',
-    ethers.utils.formatEther(l2TesterEthAfter.ethBalance),
-    'native TON',
-    ethers.utils.formatEther(l2TesterEthAfter.ethBalance),
+    'l2TesterEth Difference : ',
+    ethers.utils.formatEther(
+      l2TesterEthAfter.tonBalance.sub(l2TesterEthPrev.tonBalance)
+    ),
+    'native TON, ',
+    ethers.utils.formatEther(
+      l2TesterEthAfter.ethBalance.sub(l2TesterEthPrev.ethBalance)
+    ),
     'ETH'
   )
 }
