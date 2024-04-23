@@ -79,6 +79,7 @@ contract Deploy is Deployer {
         deployProxies();
         deployImplementations();
         deployL1UsdcBridgeProxy();
+        setL1UsdcBridge();
 
         deploySafe();
         transferProxyAdminOwnership(); // to the Safe
