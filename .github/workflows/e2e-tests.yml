@@ -50,13 +50,13 @@ jobs:
         with:
           mode: stop
           github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
+          label: ${{ needs.start-runner-ws.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner-ws.outputs.ec2-instance-id }}
 
   ws-e2e-tests:
     name: 'ws e2e test'
     needs: [start-runner-ws]
-    runs-on: ${{ needs.start-runner.outputs.label }}
+    runs-on: ${{ needs.start-runner-ws.outputs.label }}
     container:
       image: onthertech/thanos-ci-builder:latest
     steps:
@@ -146,13 +146,13 @@ jobs:
         with:
           mode: stop
           github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
+          label: ${{ needs.start-runner-http.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner-http.outputs.ec2-instance-id }}
 
   http-e2e-tests:
     name: 'http-e2e test'
     needs: [start-runner-http]
-    runs-on: ${{ needs.start-runner.outputs.label }}
+    runs-on: ${{ needs.start-runner-http.outputs.label }}
     container:
       image: onthertech/thanos-ci-builder:latest
     steps:
