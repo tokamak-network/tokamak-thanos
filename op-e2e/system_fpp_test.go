@@ -2,11 +2,14 @@ package op_e2e
 
 import (
 	"context"
+	"math"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-program/client/driver"
 	opp "github.com/ethereum-optimism/optimism/op-program/host"
 	oppconf "github.com/ethereum-optimism/optimism/op-program/host/config"
@@ -172,9 +175,25 @@ func testVerifyL2OutputRoot(t *testing.T, detached bool) {
 	aliceKey := cfg.Secrets.Alice
 	opts, err := bind.NewKeyedTransactorWithChainID(aliceKey, cfg.L1ChainIDBig())
 	require.Nil(t, err)
+
+	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	require.NoError(t, err)
+
+	// faucet NativeToken
+	tx, err := nativeTokenContract.Faucet(opts, new(big.Int).SetUint64(math.MaxUint64))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	// Approve NativeToken with the OP
+	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
 	SendDepositTx(t, cfg, l1Client, l2Seq, opts, func(l2Opts *DepositTxOpts) {
 		l2Opts.Value = big.NewInt(100_000_000)
-	})
+	}, big.NewInt(100_000_000))
 	SendL2Tx(t, cfg, l2Seq, aliceKey, func(opts *TxOpts) {
 		opts.ToAddr = &cfg.Secrets.Addresses().Bob
 		opts.Value = big.NewInt(1_000)
@@ -196,7 +215,7 @@ func testVerifyL2OutputRoot(t *testing.T, detached bool) {
 	t.Log("Sending transactions to modify existing state, within challenged period")
 	SendDepositTx(t, cfg, l1Client, l2Seq, opts, func(l2Opts *DepositTxOpts) {
 		l2Opts.Value = big.NewInt(5_000)
-	})
+	}, big.NewInt(5_000))
 	SendL2Tx(t, cfg, l2Seq, cfg.Secrets.Bob, func(opts *TxOpts) {
 		opts.ToAddr = &cfg.Secrets.Addresses().Alice
 		opts.Value = big.NewInt(100)
