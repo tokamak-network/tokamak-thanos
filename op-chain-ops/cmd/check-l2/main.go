@@ -269,6 +269,21 @@ func checkPredeployConfig(client *ethclient.Client, name string) error {
 			if err := checkEAS(p, client); err != nil {
 				return err
 			}
+
+		case predeploys.L2UsdcBridgeAddr:
+			if err := checkL2UsdcBridge(p, client); err != nil {
+				return err
+			}
+
+		case predeploys.MasterMinterAddr:
+			if err := checkMasterMinter(p, client); err != nil {
+				return err
+			}
+
+		case predeploys.FiatTokenV2_2Addr:
+			if err := checkFiatTokenV2_2(p, client); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -883,6 +898,180 @@ func checkEAS(addr common.Address, client *ethclient.Client) error {
 		return err
 	}
 	log.Info("EAS version", "version", version)
+	return nil
+}
+
+func checkL2UsdcBridge(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewL2UsdcBridge(addr, client)
+	if err != nil {
+		return err
+	}
+
+	otherBridge, err := contract.OtherBridge(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if otherBridge == (common.Address{}) {
+		return errors.New("OTHERBRIDGE should not be address(0)")
+	}
+	log.Info("L2UsdcBridge", "OTHERBRIDGE", otherBridge.Hex())
+
+	messenger, err := contract.Messenger(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("L2StandardBridge", "MESSENGER", messenger.Hex())
+	if messenger != predeploys.L2CrossDomainMessengerAddr {
+		return fmt.Errorf("L2UsdcBridge MESSENGER should be %s, got %s", predeploys.L2CrossDomainMessengerAddr, messenger)
+	}
+
+	l1Usdc, err := contract.L1Usdc(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if l1Usdc == (common.Address{}) {
+		return errors.New("L1Usdc should not be address(0)")
+	}
+	log.Info("L2UsdcBridge", "L1Usdc", l1Usdc.Hex())
+
+	l2Usdc, err := contract.L2Usdc(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("L2UsdcBridge", "L2Usdc", l2Usdc.Hex())
+	if l2Usdc != predeploys.FiatTokenV2_2Addr {
+		return fmt.Errorf("L2UsdcBridge L2Usdc should be %s, got %s", predeploys.FiatTokenV2_2Addr, l2Usdc)
+	}
+
+	l2UsdcMasterMinter, err := contract.L2UsdcMasterMinter(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("L2UsdcBridge", "L2UsdcMasterMinter", l2UsdcMasterMinter.Hex())
+	if l2UsdcMasterMinter != predeploys.MasterMinterAddr {
+		return fmt.Errorf("L2UsdcBridge L2UsdcMasterMinter should be %s, got %s", predeploys.MasterMinterAddr, l2UsdcMasterMinter)
+	}
+	return nil
+}
+
+func checkMasterMinter(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewMasterMinter(addr, client)
+	if err != nil {
+		return err
+	}
+	_minterManager, err := contract.GetMinterManager(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("MasterMinter", "GetMinterManager", _minterManager.Hex())
+	if _minterManager != predeploys.FiatTokenV2_2Addr {
+		return fmt.Errorf("MasterMinter GetMinterManager should be %s, got %s", predeploys.FiatTokenV2_2Addr, _minterManager)
+	}
+
+	_owner, err := contract.Owner(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if _owner == (common.Address{}) {
+		return errors.New("Owner should not be address(0)")
+	}
+	log.Info("MasterMinter", "Owner", _owner.Hex())
+
+	_controller := predeploys.L2UsdcBridgeAddr
+	_worker := predeploys.L2UsdcBridgeAddr
+	tx, err := contract.ConfigureController(&bind.TransactOpts{}, _controller, _worker)
+	if err != nil {
+		return err
+	}
+	log.Info("MasterMinter", "ConfigureController", tx)
+	if _controller != predeploys.L2UsdcBridgeAddr && _worker != predeploys.L2UsdcBridgeAddr {
+		return fmt.Errorf("MasterMinter ConfigureController should be %s, %s, got %s, %s", predeploys.L2UsdcBridgeAddr, predeploys.L2UsdcBridgeAddr, _controller, _worker)
+	}
+
+	minterManager, err := contract.GetMinterManager(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("MasterMinter", "GetMinterManager", minterManager.Hex())
+	if minterManager != predeploys.MasterMinterAddr {
+		return fmt.Errorf("MasterMinter GetMinterManager should be %s, got %s", predeploys.MasterMinterAddr, minterManager)
+	}
+	return nil
+}
+
+func checkFiatTokenV2_2(addr common.Address, client *ethclient.Client) error {
+	contract, err := bindings.NewFiatTokenV22(addr, client)
+	if err != nil {
+		return err
+	}
+	_owner, err := contract.Owner(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if _owner == (common.Address{}) {
+		return errors.New("Owner should not be address(0)")
+	}
+	log.Info("FiatTokenV2_2", "Owner", _owner.Hex())
+
+	pauser, err := contract.Pauser(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if pauser == (common.Address{}) {
+		return errors.New("Pauser should not be address(0)")
+	}
+	log.Info("FiatTokenV2_2", "Pauser", pauser.Hex())
+
+	blacklister, err := contract.Blacklister(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	if blacklister == (common.Address{}) {
+		return errors.New("Blacklister should not be address(0)")
+	}
+	log.Info("FiatTokenV2_2", "Blacklister", blacklister.Hex())
+
+	name, err := contract.Name(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("FiatTokenV2_2", "name", name)
+
+	symbol, err := contract.Symbol(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("FiatTokenV2_2", "symbol", symbol)
+	if symbol != "USDC.e" {
+		return fmt.Errorf("FiatTokenV2_2 symbol should be 'USDC.e', got %s", symbol)
+	}
+
+	decimals, err := contract.Decimals(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("FiatTokenV2_2", "Decimals", decimals)
+	if decimals != 6 {
+		return fmt.Errorf("FiatTokenV2_2 decimals should be 6, got %d", decimals)
+	}
+
+	currency, err := contract.Currency(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("FiatTokenV2_2", "currency", currency)
+	if currency != "USD" {
+		return fmt.Errorf("FiatTokenV2_2 currency should be 'USD', got %s", currency)
+	}
+
+	masterMinter, err := contract.MasterMinter(&bind.CallOpts{})
+	if err != nil {
+		return err
+	}
+	log.Info("FiatTokenV2_2", "MasterMinter", masterMinter.Hex())
+	if masterMinter != predeploys.MasterMinterAddr {
+		return fmt.Errorf("FiatTokenV2_2 MESSENGER should be %s, got %s", predeploys.MasterMinterAddr, masterMinter)
+	}
 	return nil
 }
 
