@@ -1057,19 +1057,12 @@ func TestWithdrawals(t *testing.T) {
 	diff = diff.Sub(diff, fees)
 	require.Equal(t, withdrawAmount, diff)
 
-	// Take start balance on L1
-	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 	startBalance, err = nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
 	proveReceipt, finalizeReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["verifier"], ethPrivKey, receipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
-
-	// Verify balance after withdrawal
-	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 
 	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
 	require.NoError(t, err)
