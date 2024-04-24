@@ -94,7 +94,7 @@ const erc20ABI = [
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
-let TON = process.env.TON || ''
+let l2NativeToken = process.env.NATIVE_TOKEN || ''
 let addressManager = process.env.ADDRESS_MANAGER || ''
 let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
@@ -102,9 +102,9 @@ let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
-  if (TON === '') {
-    const Deployment__TON = await hre.deployments.get('L2NativeToken')
-    TON = Deployment__TON.address
+  if (l2NativeToken === '') {
+    const Deployment__l2NativeToken = await hre.deployments.get('L2NativeToken')
+    l2NativeToken = Deployment__l2NativeToken.address
   }
 
   if (addressManager === '') {
@@ -145,9 +145,9 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
 
 const approveAndDepositTON = async (amount: NumberLike) => {
   console.log('Deposit TON:', amount)
-  console.log('TON address:', TON)
+  console.log('TON address:', l2NativeToken)
 
-  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -230,9 +230,9 @@ const approveAndDepositTON = async (amount: NumberLike) => {
 
 const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('Deposit TON via CDM:', amount)
-  console.log('TON address:', TON)
+  console.log('TON address:', l2NativeToken)
 
-  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
   const wtonContract = new ethers.Contract(
     predeploys.WNativeToken,
     erc20ABI,
@@ -319,9 +319,9 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
 
 const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('Deposit TON via Portal:', amount)
-  console.log('TON address:', TON)
+  console.log('TON address:', l2NativeToken)
 
-  const tonContract = new ethers.Contract(TON, erc20ABI, l1Wallet)
+  const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
   const wtonContract = new ethers.Contract(
     predeploys.WNativeToken,
     erc20ABI,
