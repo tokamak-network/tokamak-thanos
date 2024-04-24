@@ -2158,7 +2158,7 @@ export class CrossChainMessenger {
       opts?: {
         recipient?: AddressLike
         l2GasLimit?: NumberLike
-        overrides?: PayableOverrides
+        overrides?: CallOverrides
       },
       isEstimatingGas: boolean = false
     ): Promise<TransactionRequest> => {

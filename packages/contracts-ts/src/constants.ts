@@ -9515,7 +9515,7 @@ export const predeploys = {
     deprecated: true,
     proxied: true,
   },
-  L2Ton: {
+  LegacyERC20ETH: {
     address: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000',
     introduced: 'Legacy',
     deprecated: true,
