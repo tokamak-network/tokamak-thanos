@@ -7,15 +7,13 @@ import { predeploys } from '@tokamak-network/core-utils'
 
 import {
   CrossChainMessenger,
+  ETHBridgeAdapter,
   MessageStatus,
-  NativeTokenBridgeAdapter,
   NumberLike,
   Portals,
 } from '../src'
 
 console.log('Setup task...')
-
-const ETH = '0x0000000000000000000000000000000000000000'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
 
@@ -119,10 +117,10 @@ const depositETH = async (amount: NumberLike) => {
   console.log('l1 contracts:', l1Contracts)
 
   const bridges = {
-    TON: {
+    ETH: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
-      Adapter: NativeTokenBridgeAdapter,
+      Adapter: ETHBridgeAdapter,
     },
   }
 
@@ -191,10 +189,10 @@ const withdrawETH = async (amount: NumberLike) => {
   }
 
   const bridges = {
-    TON: {
+    ETH: {
       l1Bridge: l1Contracts.L1StandardBridge,
       l2Bridge: predeploys.L2StandardBridge,
-      Adapter: NativeTokenBridgeAdapter,
+      Adapter: ETHBridgeAdapter,
     },
   }
 
@@ -218,7 +216,7 @@ const withdrawETH = async (amount: NumberLike) => {
   let l2Balance = await ethContract.balanceOf(l2Wallet.address)
   console.log('l2 eth balance: ', l2Balance.toString())
 
-  const withdraw = await messenger.withdrawERC20(ETH, predeploys.ETH, amount)
+  const withdraw = await messenger.withdrawETH(amount)
   const withdrawalTx = await withdraw.wait()
   console.log(
     ' Withdrawal Tx:',
