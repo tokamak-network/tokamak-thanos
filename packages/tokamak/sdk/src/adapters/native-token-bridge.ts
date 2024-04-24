@@ -20,7 +20,7 @@ import {
   AddressLike,
   MessageDirection,
 } from '../interfaces'
-import { toAddress } from '../utils'
+import { toAddress, omit } from '../utils'
 import { StandardBridgeAdapter } from './standard-bridge'
 
 /**
@@ -216,6 +216,7 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
         throw new Error(`token pair not supported by bridge`)
       }
 
+      // NOTE: don't set the "value" because on ETH is native token in L1
       if (opts?.recipient === undefined) {
         return this.l1Bridge.populateTransaction.depositERC20(
           toAddress(l1Token),
@@ -251,13 +252,17 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
         throw new Error(`token pair not supported by bridge`)
       }
 
+      // we set this value to "amount" because we are withdrawing the native token
       if (opts?.recipient === undefined) {
         return this.l2Bridge.populateTransaction.withdraw(
           toAddress(l2Token),
           amount,
           0, // L1 gas not required.
           '0x', // No data.
-          opts?.overrides || {}
+          {
+            ...omit(opts?.overrides || {}, 'value'),
+            value: amount,
+          }
         )
       } else {
         return this.l2Bridge.populateTransaction.withdrawTo(
@@ -266,7 +271,10 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
           amount,
           0, // L1 gas not required.
           '0x', // No data.
-          opts?.overrides || {}
+          {
+            ...omit(opts?.overrides || {}, 'value'),
+            value: amount,
+          }
         )
       }
     },

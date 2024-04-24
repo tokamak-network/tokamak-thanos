@@ -97,9 +97,9 @@ export class CrossChainMessenger {
   public l2ChainId: number
 
   /**
-   * L1 Native Token Address
+   * L2 Native Token Address
    */
-  public l1NativeTokenAddress: string
+  public l2NativeToken: string
 
   /**
    * Contract objects attached to their respective providers and addresses.
@@ -145,7 +145,7 @@ export class CrossChainMessenger {
     l2SignerOrProvider: SignerOrProviderLike
     l1ChainId: NumberLike
     l2ChainId: NumberLike
-    l1NativeTokenAddress?: AddressLike
+    l2NativeToken?: AddressLike
     depositConfirmationBlocks?: NumberLike
     l1BlockTimeSeconds?: NumberLike
     contracts?: DeepPartial<OEContractsLike>
@@ -169,8 +169,8 @@ export class CrossChainMessenger {
       throw new Error(`L2 chain ID is missing or invalid: ${opts.l2ChainId}`)
     }
 
-    if (opts.l1NativeTokenAddress) {
-      this.l1NativeTokenAddress = toAddress(opts.l1NativeTokenAddress)
+    if (opts.l2NativeToken) {
+      this.l2NativeToken = toAddress(opts.l2NativeToken)
     }
 
     this.depositConfirmationBlocks =
@@ -2166,17 +2166,31 @@ export class CrossChainMessenger {
         if (isEstimatingGas) {
           return opts
         }
-        const gasEstimation = await this.estimateGas.depositTON(amount, opts)
+        // if we don't include the users address the estimation will fail from lack of allowance
+        if (!ethers.Signer.isSigner(this.l1SignerOrProvider)) {
+          throw new Error('unable to deposit without an l1 signer')
+        }
+
+        const from = (this.l1SignerOrProvider as Signer).getAddress()
+
+        const gasEstimation = await this.estimateGas.depositTON(amount, {
+          ...opts,
+          overrides: {
+            ...opts?.overrides,
+            from: opts?.overrides?.from ?? from,
+          },
+        })
         return {
           ...opts,
           overrides: {
             ...opts?.overrides,
             gasLimit: gasEstimation.add(gasEstimation.div(2)),
+            from: opts?.overrides?.from ?? from,
           },
         }
       }
       return this.bridges.NativeToken.populateTransaction.deposit(
-        this.l1NativeTokenAddress,
+        this.l2NativeToken,
         predeploys.LegacyERC20NativeToken,
         amount,
         await getOpts()
@@ -2200,7 +2214,7 @@ export class CrossChainMessenger {
       }
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.withdraw(
-        this.l1NativeTokenAddress,
+        this.l2NativeToken,
         predeploys.LegacyERC20NativeToken,
         amount,
         opts
@@ -2222,7 +2236,7 @@ export class CrossChainMessenger {
       }
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.approve(
-        this.l1NativeTokenAddress,
+        this.l2NativeToken,
         predeploys.LegacyERC20NativeToken,
         amount,
         opts
