@@ -16,7 +16,7 @@ import Artifact__OptimismPortal from '@tokamak-network/thanos-contracts/forge-ar
 import Artifact__L1CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import Artifact__L1StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import Artifact__L2OutputOracle from '@tokamak-network/thanos-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
-import Artifact__WETH9 from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
+import Artifact__WNativeToken from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 
 import {
   CrossChainMessenger,
@@ -32,8 +32,8 @@ const deployWTON = async (
   wrap: boolean
 ): Promise<Contract> => {
   const Factory__WTON = new hre.ethers.ContractFactory(
-    Artifact__WETH9.abi,
-    Artifact__WETH9.bytecode.object,
+    Artifact__WNativeToken.abi,
+    Artifact__WNativeToken.bytecode.object,
     signer
   )
 

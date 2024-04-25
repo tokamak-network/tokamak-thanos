@@ -13,7 +13,7 @@ import {
   ETHBridgeAdapter,
 } from '../src'
 
-let l2NativeToken = process.env.NATIVE_TOKEN || ''
+let nativeTokenAddress = process.env.NATIVE_TOKEN || ''
 
 task('finalize-withdrawal', 'Finalize a withdrawal')
   .addParam(
@@ -64,11 +64,11 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       'OptimismPortalProxy'
     )
 
-    if (l2NativeToken === '') {
+    if (nativeTokenAddress === '') {
       const Deployment__l2NativeToken = await hre.deployments.get(
         'L2NativeToken'
       )
-      l2NativeToken = Deployment__l2NativeToken.address
+      nativeTokenAddress = Deployment__l2NativeToken.address
     }
 
     if (Deployment__L1StandardBridgeProxy?.address === undefined) {
@@ -92,7 +92,7 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId: await l2Signer.getChainId(),
-      l2NativeToken,
+      nativeTokenAddress,
       bridges: {
         Standard: {
           Adapter: StandardBridgeAdapter,
