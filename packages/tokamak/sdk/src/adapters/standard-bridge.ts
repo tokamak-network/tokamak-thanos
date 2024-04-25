@@ -79,16 +79,8 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter(
-        (event) =>
-          this.filterOutEthDepositsAndWithdrawls(
-            event.args.l1Token,
-            event.args.l2Token
-          ) &&
-          this.filterOutTonDepositsAndWithdrawls(
-            event.args.l1Token,
-            event.args.l2Token
-          )
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
       )
       .map((event) => {
         return {
@@ -130,7 +122,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
             event.args.l1Token,
             event.args.l2Token
           ) &&
-          this.filterOutTonDepositsAndWithdrawls(
+          this.filterOutL2NativeTokenDepositsAndWithdrawls(
             event.args.l1Token,
             event.args.l2Token
           )
@@ -172,10 +164,10 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
         return false
       }
 
-      // Specifically filter out TON. TON deposits and withdrawals are handled by the TON bridge
-      // adapter. Bridges that are not the TON bridge should not be able to handle or even
-      // present TON deposits or withdrawals.
-      if (this.filterTonDepositsAndWithdrawls(l1Token, l2Token)) {
+      // Specifically filter out the native token. L2 native token deposits and withdrawals are handled by the L2 native token bridge
+      // adapter. Bridges that are not L2 the native token bridge should not be able to handle or even
+      // present L2 native token deposits or withdrawals.
+      if (this.filterL2NativeTokenDepositsAndWithdrawls(l1Token, l2Token)) {
         return false
       }
 
@@ -290,23 +282,22 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
   }
 
-  public filterOutTonDepositsAndWithdrawls = (
+  public filterOutL2NativeTokenDepositsAndWithdrawls = (
     l1Token: AddressLike,
     l2Token: AddressLike
   ): boolean => {
     return (
-      !hexStringEquals(toAddress(l1Token), this.messenger.l2NativeToken) &&
+      !hexStringEquals(toAddress(l1Token), this.messenger.nativeTokenAddress) &&
       !hexStringEquals(toAddress(l2Token), predeploys.LegacyERC20NativeToken)
     )
   }
 
-  public filterTonDepositsAndWithdrawls = (
+  public filterL2NativeTokenDepositsAndWithdrawls = (
     l1Token: AddressLike,
     l2Token: AddressLike
   ): boolean => {
-    console.log('L1 Ton Address', this.messenger.l2NativeToken)
     return (
-      hexStringEquals(toAddress(l1Token), this.messenger.l2NativeToken) &&
+      hexStringEquals(toAddress(l1Token), this.messenger.nativeTokenAddress) &&
       hexStringEquals(toAddress(l2Token), predeploys.LegacyERC20NativeToken)
     )
   }
