@@ -10,8 +10,8 @@ NORMAL=$(tput sgr0)
 declare -A network_list
 
 network_list+=(
-  ["titan-sepolia-test"]=111551115050
   ["thanos-sepolia-test"]=111551118080
+  ["devnetL1"]=901
 )
 
 function help() {
@@ -27,9 +27,9 @@ function help() {
   done
   echo -e "\n${BOLD}Example:${NORMAL}\n"
   echo -e "  ./verify-predeploy-contracts.sh \\"
-  echo -e "  --network titan-sepolia-test \\"
-  echo -e "  --genesis-url https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json \\"
-  echo -e "  --explorer-url https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "  --network thanos-sepolia-test \\"
+  echo -e "  --genesis-url https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json \\"
+  echo -e "  --explorer-url https://explorer.thanos-sepolia-test.tokamak.network"
 }
 
 while [ $# -gt 0 ]; do
@@ -56,7 +56,7 @@ while [ $# -gt 0 ]; do
       echo -e "${BOLD}argument:${NORMAL}\n"
       echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
       echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-      echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+      echo -e "  thanos-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -69,7 +69,7 @@ while [ $# -gt 0 ]; do
       echo -e "${BOLD}argument:${NORMAL}\n"
       echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
       echo -e "\n${BOLD}explorer url:${NORMAL}\n"
-      echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+      echo -e "  thanos-sepolia-test : https://explorer.thanos-sepolia-test.tokamak.network"
       echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
       exit 1
     fi
@@ -113,7 +113,7 @@ if [ -z $GENESIS_URL ]; then
   echo -e "${BOLD}argument:${NORMAL}\n"
   echo -e "  ${BOLD}-gURL, --genesis-url${NORMAL}"
   echo -e "\n${BOLD}genesis url:${NORMAL}\n"
-  echo -e "  titan-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/titan-sepolia-test/genesis.json"
+  echo -e "  thanos-sepolia-test : https://tokamak-thanos.s3.ap-northeast-2.amazonaws.com/thanos-sepolia-test/genesis.json"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
@@ -123,7 +123,7 @@ if [ -z $VERIFIER_URL ]; then
   echo -e "${BOLD}argument:${NORMAL}\n"
   echo -e "  ${BOLD}-eURL, --explorer-url${NORMAL}"
   echo -e "\n${BOLD}explorer url:${NORMAL}\n"
-  echo -e "  titan-sepolia-test : https://explorer.titan-sepolia-test.tokamak.network"
+  echo -e "  thanos-sepolia-test : https://explorer.thanos-sepolia-test.tokamak.network"
   echo -e "\nFor more information, try '${BOLD}--help${NORMAL}'"
   exit 1
 fi
@@ -134,10 +134,11 @@ fi
 declare -A contracts
 
 contracts+=(
+  ["deaddeaddeaddeaddeaddeaddeaddeaddead0000"]="" # LegacyERC20NativeToken
   ["4200000000000000000000000000000000000001"]="" # Proxy
   ["4200000000000000000000000000000000000016"]="" # L2ToL1MessagePasser
   ["4200000000000000000000000000000000000002"]="" # DeployerWhitelist
-  ["4200000000000000000000000000000000000006"]="" # WTON : No Proxy
+  ["4200000000000000000000000000000000000006"]="" # WNativeToken : No Proxy
   ["4200000000000000000000000000000000000007"]="" # L2CrossDomainMessenger
   ["4200000000000000000000000000000000000010"]="" # L2StandardBridge
   ["4200000000000000000000000000000000000011"]="" # SequencerFeeVault
@@ -154,6 +155,15 @@ contracts+=(
   ["4200000000000000000000000000000000000020"]="" # SchemaRegistry
   ["4200000000000000000000000000000000000021"]="" # EAS
   ["4200000000000000000000000000000000000486"]="" # ETH (TOKAMAK)
+  ["4200000000000000000000000000000000000501"]="" # Permit2
+  ["4200000000000000000000000000000000000502"]="" # QuoterV2
+  ["4200000000000000000000000000000000000503"]="" # SwapRouter02
+  ["4200000000000000000000000000000000000504"]="" # UniswapV3Factory
+  ["4200000000000000000000000000000000000505"]="" # NFTDescriptor
+  ["4200000000000000000000000000000000000506"]="" # NonfungiblePositionManager
+  ["4200000000000000000000000000000000000507"]="" # NonfungibleTokenPositionDescriptor
+  ["4200000000000000000000000000000000000508"]="" # TickLens
+  ["4200000000000000000000000000000000000509"]="" # UniswapInterfaceMulticall
 )
 
 IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
@@ -171,10 +181,11 @@ echo "Successfully getting contracts addresses!"
 
 # Path of contracts
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
+LEGACY_ERC20_NATIVE_TOKEN_PATH=${BASE_PATH}/src/legacy/LegacyERC20NativeToken.sol
 PROXY_PATH=${BASE_PATH}/src/universal/Proxy.sol
 L2_TO_L1_MESSAGE_PASSER_PATH=${BASE_PATH}/src/L2/L2ToL1MessagePasser.sol
 DEPLOYER_WHITE_LIST_PATH=${BASE_PATH}/src/legacy/DeployerWhitelist.sol
-WTON_PATH=${BASE_PATH}/vendor/WTON.sol
+WNATIVE_TOKEN_PATH=${BASE_PATH}/src/vendor/WNativeToken.sol
 L2_CROSS_DOMAIN_MESSENGER_PATH=${BASE_PATH}/src/L2/L2CrossDomainMessenger.sol
 L2_STANDARD_BRIDGE_PATH=${BASE_PATH}/src/L2/L2StandardBridge.sol
 SEQUENCER_FEE_VAULT_PATH=${BASE_PATH}/src/L2/SequencerFeeVault.sol
@@ -191,12 +202,15 @@ L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
+PERMIT2_PATH=${BASE_PATH}/hardhat-artifacts/permit2/Permit2.sol
+
 
 function run() {
+  verify_LegacyERC20NativeToken
   verify_proxy
   verify_L2ToL1MessagePasser
   verify_DeployerWhitelist
-  verify_WTON
+  verify_WNativeToken
   verify_L2CrossDomainMessenger
   verify_L2StandardBridge
   verify_SequencerFeeVault
@@ -213,6 +227,15 @@ function run() {
   verify_SchemaRegistry
   verify_EAS
   verify_ETH
+  verify_Permit2
+  verify_QuoterV2
+  verify_SwapRouter02
+  verify_UniswapV3Factory
+  verify_NFTDescriptor
+  verify_NonfungiblePositionManager
+  verify_NonfungibleTokenPositionDescriptor
+  verify_TickLens
+  verify_UniswapInterfaceMulticall
 }
 
 # Verify contract
@@ -230,6 +253,12 @@ function verify_contract() {
     $([[ -n $2 ]] && echo "--constructor-args $2") \
     $3 \
     $4
+}
+
+function verify_LegacyERC20NativeToken() {
+  CONTRACT_ADDR=${contracts["deaddeaddeaddeaddeaddeaddeaddeaddead0000"]}
+  COMPILER_VERSION=v0.8.15+commit.e14f2714
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${LEGACY_ERC20_NATIVE_TOKEN_PATH}:LegacyERC20NativeToken"
 }
 
 function verify_proxy() {
@@ -251,10 +280,10 @@ function verify_DeployerWhitelist() {
   verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${DEPLOYER_WHITE_LIST_PATH}:DeployerWhitelist"
 }
 
-function verify_WTON() {
+function verify_WNativeToken() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000006"]}
-  COMPILER_VERSION=v0.4.25+commit.59dbf8f1
-  verfy_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WTON_PATH}:WTON"
+  COMPILER_VERSION=v0.5.17+commit.d19bba13
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${WNATIVE_TOKEN_PATH}:WNativeToken"
 }
 
 function verify_L2CrossDomainMessenger() {
@@ -361,6 +390,65 @@ function verify_ETH() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000486"]}
   COMPILER_VERSION=v0.8.15+commit.e14f2714
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${ETH_PATH}:ETH"
+}
+
+function verify_Permit2() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000501"]}
+  COMPILER_VERSION=v0.8.17+commit.8df45f5f
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${PERMIT2_PATH}:Permit2"
+}
+
+function verify_QuoterV2() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address)" 4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000022)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000502"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.sol:QuoterV2"
+}
+
+function verify_SwapRouter02() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address,address,address)" 0x0000000000000000000000000000000000000000 4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000506 0x4200000000000000000000000000000000000022)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000503"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.sol:SwapRouter02"
+
+}
+
+function verify_UniswapV3Factory() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000504"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.sol:UniswapV3Factory"
+}
+
+function verify_NFTDescriptor() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000505"]}
+  COMPILER_VERSION=v0.7.0+commit.9e61f92b
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.sol:NFTDescriptor"
+}
+
+function verify_NonfungiblePositionManager() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address,address)" 4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000022 0x4200000000000000000000000000000000000507)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000506"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.sol:NonfungiblePositionManager"
+}
+
+function verify_NonfungibleTokenPositionDescriptor() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,bytes32)" 0x4200000000000000000000000000000000000022 0x54574F4E00000000000000000000000000000000000000000000000000000000)
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000507"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol:NonfungibleTokenPositionDescriptor"
+}
+
+function verify_TickLens() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000508"]}
+  COMPILER_VERSION=v0.5.0+commit.1d4f565a
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.sol:TickLens"
+}
+
+function verify_UniswapInterfaceMulticall() {
+  CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000509"]}
+  COMPILER_VERSION=v0.7.6+commit.7338295f
+  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.sol:UniswapInterfaceMulticall"
 }
 
 run
