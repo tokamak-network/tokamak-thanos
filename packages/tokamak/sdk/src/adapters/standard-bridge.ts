@@ -300,7 +300,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
   }
 
-  filterTonDepositsAndWithdrawls = (
+  public filterTonDepositsAndWithdrawls = (
     l1Token: AddressLike,
     l2Token: AddressLike
   ): boolean => {
