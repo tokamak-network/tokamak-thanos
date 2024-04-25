@@ -136,6 +136,8 @@ task('deposit-erc20', 'Deposits WTON onto L2.')
       throw new Error('Signer has no balance')
     }
 
+    const l2NativeToken = process.env.NATIVE_TOKEN || ''
+
     const l2Provider = new providers.StaticJsonRpcProvider(args.l2ProviderUrl)
 
     const l2Signer = new hre.ethers.Wallet(
@@ -212,6 +214,7 @@ task('deposit-erc20', 'Deposits WTON onto L2.')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId,
+      l2NativeToken,
       bedrock: true,
       contracts: contractAddrs,
     })
