@@ -1,4 +1,4 @@
-ARG L2_IMAGE=onthertech/titan-op-geth:nightly
+ARG L2_IMAGE=onthertech/thanos-op-geth:nightly
 
 FROM ${L2_IMAGE}
 
