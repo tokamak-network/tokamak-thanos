@@ -168,14 +168,14 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
       // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
       // adapter. Bridges that are not the ETH bridge should not be able to handle or even
       // present ETH deposits or withdrawals.
-      if (this.filterOutEthDepositsAndWithdrawls(l1Token, l2Token)) {
+      if (this.filterEthDepositsAndWithdrawls(l1Token, l2Token)) {
         return false
       }
 
       // Specifically filter out TON. TON deposits and withdrawals are handled by the TON bridge
       // adapter. Bridges that are not the TON bridge should not be able to handle or even
       // present TON deposits or withdrawals.
-      if (this.filterOutTonDepositsAndWithdrawls(l1Token, l2Token)) {
+      if (this.filterTonDepositsAndWithdrawls(l1Token, l2Token)) {
         return false
       }
 
