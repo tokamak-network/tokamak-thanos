@@ -97,9 +97,9 @@ export class CrossChainMessenger {
   public l2ChainId: number
 
   /**
-   * L2 Native Token Address
+   * Native Token Address
    */
-  public l2NativeToken: string
+  public nativeTokenAddress: string
 
   /**
    * Contract objects attached to their respective providers and addresses.
@@ -145,7 +145,7 @@ export class CrossChainMessenger {
     l2SignerOrProvider: SignerOrProviderLike
     l1ChainId: NumberLike
     l2ChainId: NumberLike
-    l2NativeToken?: AddressLike
+    nativeTokenAddress?: AddressLike
     depositConfirmationBlocks?: NumberLike
     l1BlockTimeSeconds?: NumberLike
     contracts?: DeepPartial<OEContractsLike>
@@ -169,8 +169,8 @@ export class CrossChainMessenger {
       throw new Error(`L2 chain ID is missing or invalid: ${opts.l2ChainId}`)
     }
 
-    if (opts.l2NativeToken) {
-      this.l2NativeToken = toAddress(opts.l2NativeToken)
+    if (opts.nativeTokenAddress) {
+      this.nativeTokenAddress = toAddress(opts.nativeTokenAddress)
     }
 
     this.depositConfirmationBlocks =
@@ -260,6 +260,7 @@ export class CrossChainMessenger {
 
     // Convert the input to a transaction hash.
     const txHash = toTransactionHash(transaction)
+    console.log(`tx hash ${txHash}`)
 
     let receipt: TransactionReceipt
     if (opts.direction !== undefined) {
@@ -283,6 +284,7 @@ export class CrossChainMessenger {
     if (!receipt) {
       throw new Error(`unable to find transaction receipt for ${txHash}`)
     }
+    console.log(`Receipt: ${receipt.logs}`)
 
     // By this point opts.direction will always be defined.
     const messenger =
@@ -1685,9 +1687,9 @@ export class CrossChainMessenger {
   }
 
   /**
-   * Deposits some TON into the L2 chain.
+   * Deposits some L2 Native Token into the L2 chain.
    *
-   * @param amount Amount of TON to deposit
+   * @param amount Amount of L2 Native Token to deposit
    * @param opts Additional options.
    * @param opts.signer Optional signer to use to send the transaction.
    * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
@@ -1695,7 +1697,7 @@ export class CrossChainMessenger {
    * @param opts.overrides Optional transaction overrides.
    * @returns Transaction response for the deposit transaction.
    */
-  public async depositTON(
+  public async depositNativeToken(
     amount: NumberLike,
     opts?: {
       recipient?: AddressLike
@@ -1705,21 +1707,21 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l1Signer).sendTransaction(
-      await this.populateTransaction.depositTON(amount, opts)
+      await this.populateTransaction.depositNativeToken(amount, opts)
     )
   }
 
   /**
-   * Withdraws some TON back to the L1 chain.
+   * Withdraws some L2 Native Token back to the L1 chain.
    *
-   * @param amount Amount of TON to withdraw.
+   * @param amount Amount of L2 Native Token to withdraw.
    * @param opts Additional options.
    * @param opts.signer Optional signer to use to send the transaction.
    * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
    * @param opts.overrides Optional transaction overrides.
-   * @returns Transaction response for the withdraw transaction.
+   * @returns Transaction response for the withdrawal transaction.
    */
-  public async withdrawTON(
+  public async withdrawNativeToken(
     amount: NumberLike,
     opts?: {
       recipient?: AddressLike
@@ -1728,20 +1730,20 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l2Signer).sendTransaction(
-      await this.populateTransaction.withdrawTON(amount, opts)
+      await this.populateTransaction.withdrawNativeToken(amount, opts)
     )
   }
 
   /**
-   * Approves a deposit TON into the L2 chain.
+   * Approves a deposit L2 Native Token into the L2 chain.
    *
-   * @param amount Amount of the TON token to approve.
+   * @param amount Amount of the L2 Native Token to approve.
    * @param opts Additional options.
    * @param opts.signer Optional signer to use to send the transaction.
    * @param opts.overrides Optional transaction overrides.
    * @returns Transaction response for the approval transaction.
    */
-  public async approveTON(
+  public async approveNativeToken(
     amount: NumberLike,
     opts?: {
       signer?: Signer
@@ -1749,7 +1751,7 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l1Signer).sendTransaction(
-      await this.populateTransaction.approveTON(amount, opts)
+      await this.populateTransaction.approveNativeToken(amount, opts)
     )
   }
 
@@ -2143,17 +2145,17 @@ export class CrossChainMessenger {
     },
 
     /**
-     * Generates a transaction for depositing some TON into the L2 chain.
+     * Generates a transaction for depositing some L2 Native Token into the L2 chain.
      *
-     * @param amount Amount of TON to deposit.
+     * @param amount Amount of L2 Native Token to deposit.
      * @param opts Additional options.
      * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
      * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
      * @param opts.overrides Optional transaction overrides.
      * @param isEstimatingGas Enable estimation gas
-     * @returns Transaction that can be signed and executed to deposit the TON.
+     * @returns Transaction that can be signed and executed to deposit the L2 Native Token.
      */
-    depositTON: async (
+    depositNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2173,13 +2175,16 @@ export class CrossChainMessenger {
 
         const from = (this.l1SignerOrProvider as Signer).getAddress()
 
-        const gasEstimation = await this.estimateGas.depositTON(amount, {
-          ...opts,
-          overrides: {
-            ...opts?.overrides,
-            from: opts?.overrides?.from ?? from,
-          },
-        })
+        const gasEstimation = await this.estimateGas.depositNativeToken(
+          amount,
+          {
+            ...opts,
+            overrides: {
+              ...opts?.overrides,
+              from: opts?.overrides?.from ?? from,
+            },
+          }
+        )
         return {
           ...opts,
           overrides: {
@@ -2190,7 +2195,7 @@ export class CrossChainMessenger {
         }
       }
       return this.bridges.NativeToken.populateTransaction.deposit(
-        this.l2NativeToken,
+        this.nativeTokenAddress,
         predeploys.LegacyERC20NativeToken,
         amount,
         await getOpts()
@@ -2198,15 +2203,15 @@ export class CrossChainMessenger {
     },
 
     /**
-     * Generates a transaction for withdrawing some TON back to the L1 chain.
+     * Generates a transaction for withdrawing some L2 Native Token back to the L1 chain.
      *
-     * @param amount Amount of TON to withdraw.
+     * @param amount Amount of L2 Native Token to withdraw.
      * @param opts Additional options.
      * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
      * @param opts.overrides Optional transaction overrides.
-     * @returns Transaction that can be signed and executed to withdraw the TON.
+     * @returns Transaction that can be signed and executed to withdraw the L2 Native Token.
      */
-    withdrawTON: async (
+    withdrawNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2214,7 +2219,7 @@ export class CrossChainMessenger {
       }
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.withdraw(
-        this.l2NativeToken,
+        this.nativeTokenAddress,
         predeploys.LegacyERC20NativeToken,
         amount,
         opts
@@ -2222,21 +2227,21 @@ export class CrossChainMessenger {
     },
 
     /**
-     * Generates a transaction for approving TON tokens to deposit into the L2 chain.
+     * Generates a transaction for approving L2 Native Token tokens to deposit into the L2 chain.
      *
-     * @param amount Amount of the TON token to approve.
+     * @param amount Amount of the L2 Native Token to approve.
      * @param opts Additional options.
      * @param opts.overrides Optional transaction overrides.
      * @returns Transaction response for the approval transaction.
      */
-    approveTON: async (
+    approveNativeToken: async (
       amount: NumberLike,
       opts?: {
         overrides?: Overrides
       }
     ): Promise<TransactionRequest> => {
       return this.bridges.NativeToken.populateTransaction.approve(
-        this.l2NativeToken,
+        this.nativeTokenAddress,
         predeploys.LegacyERC20NativeToken,
         amount,
         opts
@@ -2498,16 +2503,16 @@ export class CrossChainMessenger {
     },
 
     /**
-     * Estimates gas required to deposit some TON into the L2 chain.
+     * Estimates gas required to deposit some L2 Native Token into the L2 chain.
      *
-     * @param amount Amount of TON to deposit.
+     * @param amount Amount of L2 Native Token to deposit.
      * @param opts Additional options.
      * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
      * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
      * @param opts.overrides Optional transaction overrides.
      * @returns Gas estimate for the transaction.
      */
-    depositTON: async (
+    depositNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2516,20 +2521,20 @@ export class CrossChainMessenger {
       }
     ): Promise<BigNumber> => {
       return this.l1Provider.estimateGas(
-        await this.populateTransaction.depositTON(amount, opts, true)
+        await this.populateTransaction.depositNativeToken(amount, opts, true)
       )
     },
 
     /**
-     * Estimates gas required to withdraw some TON back to the L1 chain.
+     * Estimates gas required to withdraw some L2 Native Token back to the L1 chain.
      *
-     * @param amount Amount of TON to withdraw.
+     * @param amount Amount of L2 Native Token to withdraw.
      * @param opts Additional options.
      * @param opts.recipient Optional address to receive the funds on L1. Defaults to sender.
      * @param opts.overrides Optional transaction overrides.
      * @returns Gas estimate for the transaction.
      */
-    withdrawTON: async (
+    withdrawNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2537,25 +2542,25 @@ export class CrossChainMessenger {
       }
     ): Promise<BigNumber> => {
       return this.l2Provider.estimateGas(
-        await this.populateTransaction.withdrawTON(amount, opts)
+        await this.populateTransaction.withdrawNativeToken(amount, opts)
       )
     },
     /**
-     * Estimates gas required to approve TON tokens to deposit into the L2 chain.
+     * Estimates gas required to approve L2 Native tokens to deposit into the L2 chain.
      *
      * @param amount Amount of the token to approve.
      * @param opts Additional options.
      * @param opts.overrides Optional transaction overrides.
      * @returns Transaction response for the approval transaction.
      */
-    approveTON: async (
+    approveNativeToken: async (
       amount: NumberLike,
       opts?: {
         overrides?: CallOverrides
       }
     ): Promise<BigNumber> => {
       return this.l1Provider.estimateGas(
-        await this.populateTransaction.approveTON(amount, opts)
+        await this.populateTransaction.approveNativeToken(amount, opts)
       )
     },
 

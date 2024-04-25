@@ -54,7 +54,7 @@ const erc20ABI = [
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
-let l2NativeToken = process.env.NATIVE_TOKEN || ''
+let nativeTokenAddress = process.env.NATIVE_TOKEN || ''
 let addressManager = process.env.ADDRESS_MANAGER || ''
 let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
 let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
@@ -62,9 +62,9 @@ let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
-  if (l2NativeToken === '') {
+  if (nativeTokenAddress === '') {
     const Deployment__L2NativeToken = await hre.deployments.get('L2NativeToken')
-    l2NativeToken = Deployment__L2NativeToken.address
+    nativeTokenAddress = Deployment__L2NativeToken.address
   }
 
   if (addressManager === '') {
@@ -105,13 +105,13 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
 
 const depositNativeToken = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
-  console.log('Native token address:', l2NativeToken)
+  console.log('Native token address:', nativeTokenAddress)
 
   const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
   const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
 
   const l2NativeTokenContract = new ethers.Contract(
-    l2NativeToken,
+    nativeTokenAddress,
     erc20ABI,
     l1Provider
   )
@@ -147,7 +147,7 @@ const depositNativeToken = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
-    l2NativeToken,
+    nativeTokenAddress,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
@@ -156,42 +156,41 @@ const depositNativeToken = async (amount: NumberLike) => {
     l1Wallet.address
   )
   console.log(
-    'L2_NATIVE_TOKEN balance in L1 before depositing:',
+    'L2 native token balance in L1 before depositing:',
     l2NativeTokenBalance.toString()
   )
 
   let l2Balance = await l2Wallet.getBalance()
-  console.log(
-    'NATIVE_TOKEN balance in L2 before depositing: ',
-    l2Balance.toString()
-  )
+  console.log('Balance in L2 before depositing: ', l2Balance.toString())
 
-  const approveTx = await messenger.approveTON(amount)
+  const approveTx = await messenger.approveNativeToken(amount)
   await approveTx.wait()
-  console.log('approveTx:', approveTx.hash)
+  console.log('Approve tx:', approveTx.hash)
 
-  const depositTx = await messenger.depositTON(amount)
+  const depositTx = await messenger.depositNativeToken(amount)
   await depositTx.wait()
-  console.log('deposit TON from L1 to L2, tx_hash:', depositTx.hash)
+  console.log(
+    'Deposit native token from L1 to L2, tx_hash:',
+    depositTx.hash,
+    'amount:',
+    amount
+  )
 
   await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
 
   console.log('Verify balances')
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'L2_NATIVE_TOKEN balance in L1 after depositing:',
+    'L2 native token balance in L1 after depositing:',
     l2NativeTokenBalance.toString()
   )
   l2Balance = await l2Wallet.getBalance()
-  console.log(
-    'NATIVE_TOKEN balance in L2 after depositing: ',
-    l2Balance.toString()
-  )
+  console.log('Balance in L2 after depositing: ', l2Balance.toString())
 }
 
 const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   console.log('Deposit Native token:', amount)
-  console.log('Native token address:', l2NativeToken)
+  console.log('Native token address:', nativeTokenAddress)
 
   const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
   const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
@@ -203,7 +202,7 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   )
 
   const l2NativeTokenContract = new ethers.Contract(
-    l2NativeToken,
+    nativeTokenAddress,
     erc20ABI,
     l1Wallet
   )
@@ -285,7 +284,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   const l2Wallet = new ethers.Wallet(privateKey, asL2Provider(l2Provider))
 
   const l2NativeTokenContract = new ethers.Contract(
-    l2NativeToken,
+    nativeTokenAddress,
     erc20ABI,
     l1Wallet
   )
@@ -320,7 +319,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
-    l2NativeToken,
+    nativeTokenAddress,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
@@ -336,7 +335,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
   const l2Balance = await l2Wallet.getBalance()
   console.log('L2_NATIVE_TOKEN: token balance on L2: ', l2Balance.toString())
 
-  const withdrawal = await messenger.withdrawTON(amount)
+  const withdrawal = await messenger.withdrawNativeToken(amount)
   const withdrawalTx = await withdrawal.wait()
 
   const updatedL2Balance = await l2Wallet.getBalance()

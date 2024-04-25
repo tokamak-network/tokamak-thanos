@@ -109,8 +109,8 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
     l1Token: AddressLike,
     l2Token: AddressLike
   ): Promise<boolean> {
-    // Only support TON deposits and withdrawals.
-    return this.filterTonDepositsAndWithdrawls(l1Token, l2Token)
+    // Only support L2 native token deposits and withdrawals.
+    return this.filterL2NativeTokenDepositsAndWithdrawls(l1Token, l2Token)
   }
 
   public async approval(
