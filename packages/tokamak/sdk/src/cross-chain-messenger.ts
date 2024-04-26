@@ -284,7 +284,6 @@ export class CrossChainMessenger {
     if (!receipt) {
       throw new Error(`unable to find transaction receipt for ${txHash}`)
     }
-    console.log(`Receipt: ${receipt.logs}`)
 
     // By this point opts.direction will always be defined.
     const messenger =
