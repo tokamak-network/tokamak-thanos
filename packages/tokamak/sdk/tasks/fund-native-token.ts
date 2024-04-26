@@ -48,28 +48,31 @@ const l2NativeTokenContract = new ethers.Contract(
 )
 
 const fundNativeToken = async (amount: NumberLike) => {
-  console.log('Fund amount:', amount)
+  console.log('Faucet amount:', amount)
 
   console.log('Native token address:', l2NativeToken)
   const l2NativeTokenBalanceB4 = await l2NativeTokenContract.balanceOf(
     l1Wallet.address
   )
   console.log(
-    'L2 native token balance in L1:',
+    'Native token balance in L1 before funding:',
     l2NativeTokenBalanceB4.toString()
   )
 
   const fundTx = await l2NativeTokenContract
     .connect(l1Wallet)
     .faucet(ethers.BigNumber.from('' + amount))
-  console.log('txid: ', fundTx.hash)
+  console.log('Faucet transaction hash: ', fundTx.hash)
   await fundTx.wait()
 
   const l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
     l1Wallet.address
   )
 
-  console.log('L2 native token balance in L1:', l2NativeTokenBalance.toString())
+  console.log(
+    'Native token balance in L1 after funding:',
+    l2NativeTokenBalance.toString()
+  )
 }
 
 task('fund-native-token', 'Send L2NativeToken to L1.')
