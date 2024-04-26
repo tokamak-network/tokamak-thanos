@@ -7,7 +7,6 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { Event, Contract, Wallet, providers, utils, ethers } from 'ethers'
 import { predeploys, sleep } from '@tokamak-network/core-utils'
-import Artifact__WETH9 from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 import Artifact__OptimismMintableERC20TokenFactory from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
 import Artifact__OptimismMintableERC20Token from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
 import Artifact__L2ToL1MessagePasser from '@tokamak-network/thanos-contracts/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
@@ -17,6 +16,7 @@ import Artifact__OptimismPortal from '@tokamak-network/thanos-contracts/forge-ar
 import Artifact__L1CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
 import Artifact__L1StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import Artifact__L2OutputOracle from '@tokamak-network/thanos-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
+import Artifact__WNativeToken from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 
 import {
   CrossChainMessenger,
@@ -26,31 +26,31 @@ import {
   DEFAULT_L2_CONTRACT_ADDRESSES,
 } from '../src'
 
-const deployWETH9 = async (
+const deployWTON = async (
   hre: HardhatRuntimeEnvironment,
   signer: SignerWithAddress,
   wrap: boolean
 ): Promise<Contract> => {
-  const Factory__WETH9 = new hre.ethers.ContractFactory(
-    Artifact__WETH9.abi,
-    Artifact__WETH9.bytecode.object,
+  const Factory__WTON = new hre.ethers.ContractFactory(
+    Artifact__WNativeToken.abi,
+    Artifact__WNativeToken.bytecode.object,
     signer
   )
 
   console.log('Sending deployment transaction')
-  const WETH9 = await Factory__WETH9.deploy()
-  const receipt = await WETH9.deployTransaction.wait()
-  console.log(`WETH9 deployed: ${receipt.transactionHash}`)
+  const WTON = await Factory__WTON.deploy()
+  const receipt = await WTON.deployTransaction.wait()
+  console.log(`WTON deployed: ${receipt.transactionHash}`)
 
   if (wrap) {
     const deposit = await signer.sendTransaction({
       value: utils.parseEther('1'),
-      to: WETH9.address,
+      to: WTON.address,
     })
     await deposit.wait()
   }
 
-  return WETH9
+  return WTON
 }
 
 const createOptimismMintableERC20 = async (
@@ -95,9 +95,9 @@ const createOptimismMintableERC20 = async (
 
 // TODO(tynes): this task could be modularized in the future
 // so that it can deposit an arbitrary token. Right now it
-// deploys a WETH9 contract, mints some WETH9 and then
+// deploys a WTON contract, mints some WTON and then
 // deposits that into L2 through the StandardBridge.
-task('deposit-erc20', 'Deposits WETH9 onto L2.')
+task('deposit-erc20', 'Deposits WTON onto L2.')
   .addParam(
     'l2ProviderUrl',
     'L2 provider URL.',
@@ -135,6 +135,8 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
     if (balance.eq(0)) {
       throw new Error('Signer has no balance')
     }
+
+    const l2NativeToken = process.env.NATIVE_TOKEN || ''
 
     const l2Provider = new providers.StaticJsonRpcProvider(args.l2ProviderUrl)
 
@@ -212,6 +214,7 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId,
+      nativeTokenAddress: l2NativeToken,
       bedrock: true,
       contracts: contractAddrs,
     })
@@ -220,29 +223,29 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
     console.log('Intial OptimismPortal.params:')
     console.log(params)
 
-    console.log('Deploying WETH9 to L1')
-    const WETH9 = await deployWETH9(hre, signer, true)
-    console.log(`Deployed to ${WETH9.address}`)
+    console.log('Deploying WTON to L1')
+    const WTON = await deployWTON(hre, signer, true)
+    console.log(`Deployed to ${WTON.address}`)
 
-    console.log('Creating L2 WETH9')
+    console.log('Creating L2 WTON')
     const OptimismMintableERC20 = await createOptimismMintableERC20(
       hre,
-      WETH9,
+      WTON,
       l2Signer
     )
 
-    console.log(`Approving WETH9 for deposit`)
+    console.log(`Approving WTON for deposit`)
     const approvalTx = await messenger.approveERC20(
-      WETH9.address,
+      WTON.address,
       OptimismMintableERC20.address,
       hre.ethers.constants.MaxUint256
     )
     await approvalTx.wait()
-    console.log('WETH9 approved')
+    console.log('WTON approved')
 
-    console.log('Depositing WETH9 to L2')
+    console.log('Depositing WTON to L2')
     const depositTx = await messenger.depositERC20(
-      WETH9.address,
+      WTON.address,
       OptimismMintableERC20.address,
       utils.parseEther('1')
     )
@@ -284,9 +287,9 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
     console.log(`Deposit success`)
 
     console.log('Starting withdrawal')
-    const preBalance = await WETH9.balanceOf(signer.address)
+    const preBalance = await WTON.balanceOf(signer.address)
     const withdraw = await messenger.withdrawERC20(
-      WETH9.address,
+      WTON.address,
       OptimismMintableERC20.address,
       utils.parseEther('1')
     )
@@ -386,9 +389,9 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
           console.log()
           break
         }
-        case WETH9.address: {
-          const parsed = WETH9.interface.parseLog(log)
-          console.log(`Log ${parsed.name} from WETH9 (${log.address})`)
+        case WTON.address: {
+          const parsed = WTON.interface.parseLog(log)
+          console.log(`Log ${parsed.name} from WTON (${log.address})`)
           console.log(parsed.args)
           console.log()
           break
@@ -400,7 +403,7 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
       }
     }
 
-    const postBalance = await WETH9.balanceOf(signer.address)
+    const postBalance = await WTON.balanceOf(signer.address)
 
     const expectedBalance = preBalance.add(utils.parseEther('1'))
     if (!expectedBalance.eq(postBalance)) {
