@@ -126,7 +126,7 @@ const depositNativeToken = async (amount: NumberLike) => {
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
   }
-  console.log('l1 contracts:', l1Contracts)
+  console.log('L1 contracts:', l1Contracts)
 
   const bridges = {
     NativeToken: {
@@ -238,6 +238,7 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
+    nativeTokenAddress,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
@@ -245,17 +246,17 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
   let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
     l1Wallet.address
   )
-  console.log('l2 native token balance in L1:', l2NativeTokenBalance.toString())
+  console.log('L2 native token balance in L1:', l2NativeTokenBalance.toString())
 
   let l2Balance = await l2Wallet.getBalance()
-  console.log('l2 native balance: ', l2Balance.toString())
+  console.log('L2 native token balance in L2: ', l2Balance.toString())
 
   const approveTx = await l2NativeTokenContract.approve(
     l1CrossDomainMessenger,
     amount
   )
   await approveTx.wait()
-  console.log('approveTx:', approveTx.hash)
+  console.log('Approve transaction hash:', approveTx.hash)
 
   const depositTx = await l1CrossDomainMessengerContract.sendNativeTokenMessage(
     l2Wallet.address,
@@ -264,17 +265,17 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
     21000
   )
   await depositTx.wait()
-  console.log('depositTx:', depositTx.hash)
+  console.log('Deposit transaction hash:', depositTx.hash)
 
   await messenger.waitForMessageStatus(depositTx.hash, MessageStatus.RELAYED)
 
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'l2 native token balance in L1: ',
+    'L2 native token balance in L1: ',
     l2NativeTokenBalance.toString()
   )
   l2Balance = await l2Wallet.getBalance()
-  console.log('l2 native balance: ', l2Balance.toString())
+  console.log('L2 native balance in L2: ', l2Balance.toString())
 }
 
 const withdrawNativeToken = async (amount: NumberLike) => {
@@ -328,19 +329,19 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     l1Wallet.address
   )
   console.log(
-    'L2_NATIVE_TOKEN: token balance in L1: ',
+    'L2 native token: balance in L1: ',
     l2NativeTokenBalance.toString()
   )
 
   const l2Balance = await l2Wallet.getBalance()
-  console.log('L2_NATIVE_TOKEN: token balance on L2: ', l2Balance.toString())
+  console.log('L2 native token: balance on L2: ', l2Balance.toString())
 
   const withdrawal = await messenger.withdrawNativeToken(amount)
   const withdrawalTx = await withdrawal.wait()
 
   const updatedL2Balance = await l2Wallet.getBalance()
   console.log(
-    'L2_NATIVE_TOKEN: balance after depositing',
+    'L2 native token: balance after depositing',
     updatedL2Balance.toString()
   )
 
@@ -393,7 +394,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
 
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'L2_NATIVE_TOKEN: token balance in L1 after proving: ',
+    'L2 native token: balance in L1 after proving: ',
     l2NativeTokenBalance.toString()
   )
 
@@ -404,7 +405,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
 
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
-    'L2_NATIVE_TOKEN: token balance in L1 after finalizing: ',
+    'L2 native token: balance in L1 after finalizing: ',
     l2NativeTokenBalance.toString()
   )
 }

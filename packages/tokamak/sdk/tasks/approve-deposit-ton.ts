@@ -180,6 +180,7 @@ const approveAndDepositTON = async (amount: NumberLike) => {
     bridges,
     l1ChainId,
     l2ChainId,
+    nativeTokenAddress: l2NativeToken,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
   })
@@ -195,7 +196,7 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   console.log('l1 ton balance:', l1TONBalance.toString())
 
   const l2BalancePrev = await l2Wallet.getBalance()
-  console.log('l2 native balance prev: ', l2BalancePrev.toString())
+  console.log('l2 native balance before depositing: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
     ['address', 'address', 'uint256', 'uint32', 'bytes'],
@@ -267,6 +268,7 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
     contracts: {
       l1: l1Contracts,
     },
+    nativeTokenAddress: l2NativeToken,
     bridges,
     l1ChainId,
     l2ChainId,
