@@ -1,6 +1,7 @@
 package immutables
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -183,6 +184,19 @@ func BuildL2(constructors []deployer.Constructor) (DeploymentResults, error) {
 	}
 	results := make(DeploymentResults)
 	for _, dep := range deployments {
+		if dep.Name == "SignatureChecker" {
+			fmt.Printf("S!!!!!!!ignatureCheckr %+v\n", dep.Bytecode.String())
+			a := dep.Bytecode[:1]
+			b := dep.Bytecode[21:]
+			c := hexutil.Bytes{}
+			d, _ := hex.DecodeString("4200000000000000000000000000000000000776")
+			c = append(c, a...)
+			c = append(c, d...)
+			c = append(c, b...)
+			dep.Bytecode = c
+			fmt.Printf("S!!!!!!!ignatureCheckr %+v\n", dep.Bytecode.String())
+		}
+
 		results[dep.Name] = dep.Bytecode
 	}
 	return results, nil
