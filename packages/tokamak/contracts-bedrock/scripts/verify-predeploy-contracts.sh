@@ -162,8 +162,9 @@ contracts+=(
 )
 
 IMPLEMENTATION_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+IMPLEMENTATIONSLOTFORZEPPLIN="0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
 
-echo "Getting contracts addresses..."
+echo "Getting contracts addresses ImplementationSlot …"
 for address in ${!contracts[@]}; do
   QUERY=.alloc.\"$address\".storage.\"$IMPLEMENTATION_SLOT\"
   contracts[${address}]=$(echo $(curl -fsSL $GENESIS_URL | jq $QUERY) | cut -c 28-67)
@@ -172,7 +173,15 @@ for address in ${!contracts[@]}; do
     contracts[${address}]=${address}
   fi
 done
-echo "Successfully getting contracts addresses!"
+
+echo "Getting contracts addresses for ImplementationSlotForZepplin ...."
+  contract="4200000000000000000000000000000000000778" # FiatTokenV2_2
+  QUERY=.alloc.\"$contract\".storage.\"$IMPLEMENTATIONSLOTFORZEPPLIN\"
+  contracts[${contract}]=$(echo $(curl -fsSL $GENESIS_URL | jq $QUERY) | cut -c 28-67)
+
+echo "Successfully getting contracts addresses …."
+
+
 
 # Path of contracts
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
@@ -197,9 +206,11 @@ L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
+L2_USDC_BRIDGE_PROXY_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol
 L2_USDC_BRIDGE_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol
 SIGNATURECHECKER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol
 MASTERMINTER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol
+FIATTOKENPROXY_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol
 FIATTOKENV2_2_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol
 
 function run() {
@@ -224,9 +235,11 @@ function run() {
   verify_SchemaRegistry
   verify_EAS
   verify_ETH
+  verify_L2UsdcBridgeProxy
   verify_L2UsdcBridge
   verify_SignatureChecker
   verify_MasterMinter
+  verify_FiatTokenProxy
   verify_FiatTokenV2_2
 }
 
@@ -384,6 +397,13 @@ function verify_ETH() {
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${ETH_PATH}:ETH"
 }
 
+function verify_L2UsdcBridgeProxy() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address,bytes)" 0xC0D3c0D3c0D3C0D3c0D3c0d3C0D3c0d3c0D30775 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 0x)
+  CONTRACT_ADDR="4200000000000000000000000000000000000775"
+  COMPILER_VERSION=v0.8.20+commit.a1b79de6
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${L2_USDC_BRIDGE_PROXY_PATH}:L2UsdcBridgeProxy"
+}
+
 function verify_L2UsdcBridge() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000775"]}
   COMPILER_VERSION=v0.8.20+commit.a1b79de6
@@ -403,6 +423,13 @@ function verify_MasterMinter() {
   verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${MASTERMINTER_PATH}:MasterMinter"
 }
 
+function verify_FiatTokenProxy() {
+  CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" 0xc0D3c0d3C0D3C0d3C0D3C0D3C0D3c0D3C0D30778)
+  CONTRACT_ADDR="4200000000000000000000000000000000000778"
+  COMPILER_VERSION=v0.6.12+commit.27d51765
+  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${FIATTOKENPROXY_PATH}:FiatTokenProxy"
+}
+
 function verify_FiatTokenV2_2() {
   CONTRACT_ADDR=${contracts["4200000000000000000000000000000000000778"]}
   COMPILER_VERSION=v0.6.12+commit.27d51765
@@ -410,3 +437,4 @@ function verify_FiatTokenV2_2() {
 }
 
 run
+
