@@ -214,7 +214,7 @@ task('deposit-erc20', 'Deposits WTON onto L2.')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId,
-      l2NativeToken,
+      nativeTokenAddress: l2NativeToken,
       bedrock: true,
       contracts: contractAddrs,
     })
