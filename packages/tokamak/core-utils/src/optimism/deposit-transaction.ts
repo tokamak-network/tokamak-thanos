@@ -284,7 +284,9 @@ export class DepositTx {
     const opaqueData = log.data
 
     let offset = BigNumber.from(hexDataSlice(opaqueData, 0, 32)).toNumber()
-    const metadataLength = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 32)).toNumber()
+    const metadataLength = BigNumber.from(
+      hexDataSlice(opaqueData, offset, offset + 32)
+    ).toNumber()
     offset += 32
     this.mint = BigNumber.from(hexDataSlice(opaqueData, offset, offset + 32))
     offset += 32
@@ -295,7 +297,7 @@ export class DepositTx {
     // bypass isCreation
     offset += 1
 
-    const length = (metadataLength + 64) - offset
+    const length = metadataLength + 64 - offset
     this.isSystemTransaction = false
     this.data = hexDataSlice(opaqueData, offset, offset + length)
     this.domain = SourceHashDomain.UserDeposit

@@ -12,8 +12,7 @@ import {
   TransactionResponse,
   BlockTag,
 } from '@ethersproject/abstract-provider'
-import { predeploys } from '@eth-optimism/contracts'
-import { hexStringEquals } from '@tokamak-network/core-utils'
+import { hexStringEquals, predeploys } from '@tokamak-network/core-utils'
 import l1StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import l2StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import optimismMintableERC20 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
@@ -80,15 +79,9 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
-        // adapter. Bridges that are not the ETH bridge should not be able to handle or even
-        // present ETH deposits or withdrawals.
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L1_TO_L2,
@@ -123,15 +116,17 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
-        // adapter. Bridges that are not the ETH bridge should not be able to handle or even
-        // present ETH deposits or withdrawals.
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter(
+        (event) =>
+          this.filterOutEthDepositsAndWithdrawls(
+            event.args.l1Token,
+            event.args.l2Token
+          ) &&
+          this.filterOutL2NativeTokenDepositsAndWithdrawls(
+            event.args.l1Token,
+            event.args.l2Token
+          )
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L2_TO_L1,
@@ -162,11 +157,17 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
         optimismMintableERC20.abi,
         this.messenger.l2Provider
       )
-      // Don't support ETH deposits or withdrawals via this bridge.
-      if (
-        hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) ||
-        hexStringEquals(toAddress(l2Token), predeploys.OVM_ETH)
-      ) {
+      // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
+      // adapter. Bridges that are not the ETH bridge should not be able to handle or even
+      // present ETH deposits or withdrawals.
+      if (this.filterEthDepositsAndWithdrawls(l1Token, l2Token)) {
+        return false
+      }
+
+      // Specifically filter out the native token. L2 native token deposits and withdrawals are handled by the L2 native token bridge
+      // adapter. Bridges that are not L2 the native token bridge should not be able to handle or even
+      // present L2 native token deposits or withdrawals.
+      if (this.filterL2NativeTokenDepositsAndWithdrawls(l1Token, l2Token)) {
         return false
       }
 
@@ -258,6 +259,46 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
   ): Promise<TransactionResponse> {
     return signer.sendTransaction(
       await this.populateTransaction.withdraw(l1Token, l2Token, amount, opts)
+    )
+  }
+
+  public filterOutEthDepositsAndWithdrawls = (
+    l1Token: AddressLike,
+    l2Token: AddressLike
+  ): boolean => {
+    return (
+      !hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) &&
+      !hexStringEquals(toAddress(l2Token), predeploys.ETH)
+    )
+  }
+
+  public filterEthDepositsAndWithdrawls = (
+    l1Token: AddressLike,
+    l2Token: AddressLike
+  ): boolean => {
+    return (
+      hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) &&
+      hexStringEquals(toAddress(l2Token), predeploys.ETH)
+    )
+  }
+
+  public filterOutL2NativeTokenDepositsAndWithdrawls = (
+    l1Token: AddressLike,
+    l2Token: AddressLike
+  ): boolean => {
+    return (
+      !hexStringEquals(toAddress(l1Token), this.messenger.nativeTokenAddress) &&
+      !hexStringEquals(toAddress(l2Token), predeploys.LegacyERC20NativeToken)
+    )
+  }
+
+  public filterL2NativeTokenDepositsAndWithdrawls = (
+    l1Token: AddressLike,
+    l2Token: AddressLike
+  ): boolean => {
+    return (
+      hexStringEquals(toAddress(l1Token), this.messenger.nativeTokenAddress) &&
+      hexStringEquals(toAddress(l2Token), predeploys.LegacyERC20NativeToken)
     )
   }
 

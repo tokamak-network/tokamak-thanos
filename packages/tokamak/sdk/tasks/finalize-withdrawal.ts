@@ -9,7 +9,11 @@ import {
   CrossChainMessenger,
   StandardBridgeAdapter,
   MessageStatus,
+  NativeTokenBridgeAdapter,
+  ETHBridgeAdapter,
 } from '../src'
+
+let nativeTokenAddress = process.env.NATIVE_TOKEN || ''
 
 task('finalize-withdrawal', 'Finalize a withdrawal')
   .addParam(
@@ -60,6 +64,13 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       'OptimismPortalProxy'
     )
 
+    if (nativeTokenAddress === '') {
+      const Deployment__l2NativeToken = await hre.deployments.get(
+        'L2NativeToken'
+      )
+      nativeTokenAddress = Deployment__l2NativeToken.address
+    }
+
     if (Deployment__L1StandardBridgeProxy?.address === undefined) {
       throw new Error('No L1StandardBridgeProxy deployment')
     }
@@ -81,9 +92,20 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       l2SignerOrProvider: l2Signer,
       l1ChainId: await signer.getChainId(),
       l2ChainId: await l2Signer.getChainId(),
+      nativeTokenAddress,
       bridges: {
         Standard: {
           Adapter: StandardBridgeAdapter,
+          l1Bridge: Deployment__L1StandardBridgeProxy?.address,
+          l2Bridge: predeploys.L2StandardBridge,
+        },
+        NativeToken: {
+          Adapter: NativeTokenBridgeAdapter,
+          l1Bridge: Deployment__L1StandardBridgeProxy?.address,
+          l2Bridge: predeploys.L2StandardBridge,
+        },
+        ETH: {
+          Adapter: ETHBridgeAdapter,
           l1Bridge: Deployment__L1StandardBridgeProxy?.address,
           l2Bridge: predeploys.L2StandardBridge,
         },
@@ -104,8 +126,9 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
     console.log(`Status: ${MessageStatus[status]}`)
 
     if (status === MessageStatus.READY_TO_PROVE) {
+      console.log('Proving the message')
       const proveTx = await messenger.proveMessage(txHash)
-      const proveReceipt = await proveTx.wait()
+      const proveReceipt = await proveTx.wait(3)
       console.log('Prove receipt', proveReceipt)
 
       const finalizeInterval = setInterval(async () => {
@@ -121,6 +144,8 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
       } finally {
         clearInterval(finalizeInterval)
       }
+
+      console.log('Finalize the message')
 
       const tx = await messenger.finalizeMessage(txHash)
       const receipt = await tx.wait()

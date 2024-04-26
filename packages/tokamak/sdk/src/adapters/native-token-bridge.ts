@@ -12,56 +12,21 @@ import {
   TransactionResponse,
   BlockTag,
 } from '@ethersproject/abstract-provider'
-import { predeploys } from '@eth-optimism/contracts'
-import { hexStringEquals } from '@tokamak-network/core-utils'
-import l1StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
-import l2StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import optimismMintableERC20 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
 
-import { CrossChainMessenger } from '../cross-chain-messenger'
 import {
-  IBridgeAdapter,
+  TokenBridgeMessage,
   NumberLike,
   AddressLike,
-  TokenBridgeMessage,
   MessageDirection,
 } from '../interfaces'
-import { toAddress } from '../utils'
+import { toAddress, omit } from '../utils'
+import { StandardBridgeAdapter } from './standard-bridge'
 
 /**
  * Bridge adapter for any token bridge that uses the standard token bridge interface.
  */
-export class NativeTokenBridgeAdapter implements IBridgeAdapter {
-  public messenger: CrossChainMessenger
-  public l1Bridge: Contract
-  public l2Bridge: Contract
-
-  /**
-   * Creates a NativeBridgeAdapter instance.
-   *
-   * @param opts Options for the adapter.
-   * @param opts.messenger Provider used to make queries related to cross-chain interactions.
-   * @param opts.l1Bridge L1 bridge contract.
-   * @param opts.l2Bridge L2 bridge contract.
-   */
-  constructor(opts: {
-    messenger: CrossChainMessenger
-    l1Bridge: AddressLike
-    l2Bridge: AddressLike
-  }) {
-    this.messenger = opts.messenger
-    this.l1Bridge = new Contract(
-      toAddress(opts.l1Bridge),
-      l1StandardBridgeArtifact.abi,
-      this.messenger.l1Provider
-    )
-    this.l2Bridge = new Contract(
-      toAddress(opts.l2Bridge),
-      l2StandardBridgeArtifact.abi,
-      this.messenger.l2Provider
-    )
-  }
-
+export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
   public async getDepositsByAddress(
     address: AddressLike,
     opts?: {
@@ -80,15 +45,9 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        // Specifically filter out ETH. ETH deposits and withdrawals are handled by the ETH bridge
-        // adapter. Bridges that are not the ETH bridge should not be able to handle or even
-        // present ETH deposits or withdrawals.
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L1_TO_L2,
@@ -123,12 +82,9 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter((event) => {
-        return (
-          !hexStringEquals(event.args.l1Token, ethers.constants.AddressZero) &&
-          !hexStringEquals(event.args.l2Token, predeploys.OVM_ETH)
-        )
-      })
+      .filter((event) =>
+        this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      )
       .map((event) => {
         return {
           direction: MessageDirection.L2_TO_L1,
@@ -153,7 +109,8 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
     l1Token: AddressLike,
     l2Token: AddressLike
   ): Promise<boolean> {
-    return true
+    // Only support L2 native token deposits and withdrawals.
+    return this.filterL2NativeTokenDepositsAndWithdrawls(l1Token, l2Token)
   }
 
   public async approval(
@@ -259,6 +216,7 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
         throw new Error(`token pair not supported by bridge`)
       }
 
+      // NOTE: don't set the "value" because on ETH is native token in L1
       if (opts?.recipient === undefined) {
         return this.l1Bridge.populateTransaction.depositERC20(
           toAddress(l1Token),
@@ -294,13 +252,17 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
         throw new Error(`token pair not supported by bridge`)
       }
 
+      // we set this value to "amount" because we are withdrawing the native token
       if (opts?.recipient === undefined) {
         return this.l2Bridge.populateTransaction.withdraw(
           toAddress(l2Token),
           amount,
           0, // L1 gas not required.
           '0x', // No data.
-          opts?.overrides || {}
+          {
+            ...omit(opts?.overrides || {}, 'value'),
+            value: amount,
+          }
         )
       } else {
         return this.l2Bridge.populateTransaction.withdrawTo(
@@ -309,7 +271,10 @@ export class NativeTokenBridgeAdapter implements IBridgeAdapter {
           amount,
           0, // L1 gas not required.
           '0x', // No data.
-          opts?.overrides || {}
+          {
+            ...omit(opts?.overrides || {}, 'value'),
+            value: amount,
+          }
         )
       }
     },
