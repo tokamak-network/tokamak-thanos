@@ -18,6 +18,7 @@ import {
   ProvenWithdrawal,
   WithdrawalMessageInfo,
   WithdrawalTransactionRequest,
+  MessageStatus,
 } from './interfaces'
 import {
   calculateWithdrawalMessage,
@@ -188,6 +189,12 @@ export class Portals {
       totalTimeMs += Date.now() - tick
     }
     throw new Error(`timed out waiting for relayed deposit transaction`)
+  }
+
+  public async getL1ToL2MessageStatusByReceipt(
+    txReceipt: TransactionReceipt
+  ): Promise<MessageStatus> {
+    return txReceipt.blockNumber < await this.getL1BlockNumber()? MessageStatus.UNCONFIRMED_L1_TO_L2_MESSAGE : MessageStatus.RELAYED
   }
 
   public async waitingDepositTransactionRelayedUsingL1Tx(
