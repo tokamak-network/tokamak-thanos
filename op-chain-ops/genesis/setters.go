@@ -77,6 +77,7 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 		case predeploys.FiatTokenV2_2Addr:
 			db.SetCode(addr, fiatTokenProxyBytecode)
 			db.SetState(addr, AdminSlotForZepplin, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
+		case predeploys.NonfungibleTokenPositionDescriptorAddr:
 		default:
 			db.SetCode(addr, depBytecode)
 			db.SetState(addr, AdminSlot, eth.AddressAsLeftPaddedHash(proxyAdminAddr))
