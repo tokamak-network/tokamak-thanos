@@ -88,6 +88,14 @@ func IsProxied(predeployAddr common.Address) bool {
 	case ETHAddr:
 	case SignatureCheckerAddr:
 	case MasterMinterAddr:
+	case Permit2Addr:
+	case QuoterV2Addr:
+	case SwapRouter02Addr:
+	case UniswapV3FactoryAddr:
+	case NFTDescriptorAddr:
+	case NonfungiblePositionManagerAddr:
+	case TickLensAddr:
+	case UniswapInterfaceMulticallAddr:
 	default:
 		return true
 	}
