@@ -181,8 +181,6 @@ echo "Getting contracts addresses for ImplementationSlotForZepplin ...."
 
 echo "Successfully getting contracts addresses …."
 
-
-
 # Path of contracts
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
 LEGACY_ERC20_NATIVE_TOKEN_PATH=${BASE_PATH}/src/legacy/LegacyERC20NativeToken.sol
