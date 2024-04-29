@@ -185,7 +185,6 @@ func BuildL2(constructors []deployer.Constructor) (DeploymentResults, error) {
 	results := make(DeploymentResults)
 	for _, dep := range deployments {
 		if dep.Name == "SignatureChecker" {
-			fmt.Printf("S!!!!!!!ignatureCheckr %+v\n", dep.Bytecode.String())
 			a := dep.Bytecode[:1]
 			b := dep.Bytecode[21:]
 			c := hexutil.Bytes{}
@@ -194,7 +193,6 @@ func BuildL2(constructors []deployer.Constructor) (DeploymentResults, error) {
 			c = append(c, d...)
 			c = append(c, b...)
 			dep.Bytecode = c
-			fmt.Printf("S!!!!!!!ignatureCheckr %+v\n", dep.Bytecode.String())
 		}
 
 		results[dep.Name] = dep.Bytecode
