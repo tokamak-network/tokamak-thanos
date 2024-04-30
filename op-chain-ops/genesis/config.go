@@ -242,7 +242,7 @@ type DeployConfig struct {
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
 	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
 	// as part of building the L2 genesis state.
-	L1UsdcBridgeAddr common.Address `json:"l1UsdcBridgeAddr"`
+	L1UsdcBridge common.Address `json:"l1UsdcBridge"`
 	// L1UsdcBridgeProxy represents the address of the L1UsdcBridgeProxy on L1 and is used
 	// as part of building the L2 genesis state.
 	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
@@ -416,7 +416,7 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 	d.SystemConfigProxy = deployments.SystemConfigProxy
 	d.OptimismPortalProxy = deployments.OptimismPortalProxy
 	d.NativeTokenAddress = deployments.L2NativeToken
-	d.L1UsdcBridgeAddr = deployments.L1UsdcBridge
+	d.L1UsdcBridgeProxy = deployments.L1UsdcBridgeProxy
 }
 
 // GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
@@ -830,7 +830,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["L2UsdcBridge"] = state.StorageValues{
 		"messenger":          predeploys.L2CrossDomainMessengerAddr,
-		"otherBridge":        config.L1UsdcBridgeAddr,
+		"otherBridge":        config.L1UsdcBridge,
 		"l1Usdc":             config.L1UsdcAddr,
 		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
 		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
