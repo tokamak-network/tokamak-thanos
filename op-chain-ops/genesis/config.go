@@ -240,12 +240,42 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
+	// UnsupportedAddress represents an address that is not supported by the system.
+	UnsupportedAddress common.Address `json:"unsupportedAddress"`
 	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
 	// as part of building the L2 genesis state.
 	L1UsdcBridge common.Address `json:"l1UsdcBridge"`
 	// L1UsdcBridgeProxy represents the address of the L1UsdcBridgeProxy on L1 and is used
 	// as part of building the L2 genesis state.
 	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
+	//FacroryV2addr - address of the factoryV2 contract 0x0000000000...
+	FactoryV2addr common.Address `json:"factoryV2addr"`
+	// NativeCurrencyLabelBytes represents the bytes of the native currency label.
+	NativeCurrencyLabelBytes [32]byte `json:"nativeCurrencyLabelBytes"`
+	// UniswapV3FactoryOwner represents the owner of the UniswapV3Factory.
+	UniswapV3FactoryOwner common.Address `json:"uniswapV3FactoryOwner"`
+	// UniswapV3FactoryFee is the fee for UniswapV3Factory.
+	UniswapV3FactoryFee500 uint32 `json:"uniswapV3FactoryFee500"`
+	// UniswapV3FactoryTickSpacing is the tick spacing for UniswapV3Factory.
+	UniswapV3FactoryTickSpacing10 int32 `json:"uniswapV3FactoryTickSpacing10"`
+	// UniswapV3FactoryFee is the fee for UniswapV3Factory.
+	UniswapV3FactoryFee3000 uint32 `json:"uniswapV3FactoryFee3000"`
+	// UniswapV3FactoryTickSpacing is the tick spacing for UniswapV3Factory.
+	UniswapV3FactoryTickSpacing60 int32 `json:"uniswapV3FactoryTickSpacing60"`
+	// UniswapV3FactoryFee is the fee for UniswapV3Factory.
+	UniswapV3FactoryFee10000 uint32 `json:"uniswapV3FactoryFee10000"`
+	// UniswapV3FactoryTickSpacing is the tick spacing for UniswapV3Factory.
+	UniswapV3FactoryTickSpacing200 int32 `json:"uniswapV3FactoryTickSpacing200"`
+	// UniswapV3FactoryFee is the fee for UniswapV3Factory.
+	UniswapV3FactoryFee100 uint32 `json:"uniswapV3FactoryFee100"`
+	// UniswapV3FactoryTickSpacing is the tick spacing for UniswapV3Factory.
+	UniswapV3FactoryTickSpacing1 int32 `json:"uniswapV3FactoryTickSpacing1"`
+	// UniversalRouterPairInitCodeHash is the initialization code hash for Uniswap pairs.
+	UniversalRouterPairInitCodeHash common.Hash `json:"pairInitCodeHash"`
+	// UniversalRouterPoolInitCodeHash is the initialization code hash for Uniswap pools.
+	UniversalRouterPoolInitCodeHash common.Hash `json:"poolInitCodeHash"`
+	// UniversalRouterRewardsDistributor is the address handling rewards distribution in the UniversalRouter.
+	UniversalRouterRewardsDistributor common.Address `json:"universalRouterRewardsDistributor"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -763,7 +793,52 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 		"_minterManager": predeploys.FiatTokenV2_2Addr,
 	}
 	immutable["FiatTokenV2_2"] = immutables.ImmutableValues{}
-
+	immutable["Permit2"] = immutables.ImmutableValues{}
+	immutable["QuoterV2"] = immutables.ImmutableValues{
+		"factory": predeploys.UniswapV3FactoryAddr,
+		"WETH9":   predeploys.WNativeTokenAddr,
+	}
+	immutable["SwapRouter02"] = immutables.ImmutableValues{
+		"_factoryV2":       config.FactoryV2addr,
+		"factoryV3":        predeploys.UniswapV3FactoryAddr,
+		"_positionManager": predeploys.NonfungiblePositionManagerAddr,
+		"WETH9":            predeploys.WNativeTokenAddr,
+	}
+	immutable["UniswapV3Factory"] = immutables.ImmutableValues{}
+	immutable["NFTDescriptor"] = immutables.ImmutableValues{}
+	immutable["NonfungiblePositionManager"] = immutables.ImmutableValues{
+		"_factory":          predeploys.UniswapV3FactoryAddr,
+		"_WETH9":            predeploys.WNativeTokenAddr,
+		"_tokenDescriptor_": predeploys.NonfungibleTokenPositionDescriptorAddr,
+	}
+	immutable["NonfungibleTokenPositionDescriptor"] = immutables.ImmutableValues{
+		"_WETH9":                    predeploys.WNativeTokenAddr,
+		"_nativeCurrencyLabelBytes": config.NativeCurrencyLabelBytes,
+	}
+	immutable["TickLens"] = immutables.ImmutableValues{}
+	immutable["UniswapInterfaceMulticall"] = immutables.ImmutableValues{}
+	immutable["UniversalRouter"] = immutables.ImmutableValues{
+		"permit2":                     predeploys.Permit2Addr,
+		"weth9":                       predeploys.WNativeTokenAddr,
+		"seaportV1_5":                 config.UnsupportedAddress,
+		"seaportV1_4":                 config.UnsupportedAddress,
+		"openseaConduit":              config.UnsupportedAddress,
+		"nftxZap":                     config.UnsupportedAddress,
+		"x2y2":                        config.UnsupportedAddress,
+		"foundation":                  config.UnsupportedAddress,
+		"sudoswap":                    config.UnsupportedAddress,
+		"elementMarket":               config.UnsupportedAddress,
+		"nft20Zap":                    config.UnsupportedAddress,
+		"cryptopunks":                 config.UnsupportedAddress,
+		"looksRareV2":                 config.UnsupportedAddress,
+		"routerRewardsDistributor":    config.UnsupportedAddress,
+		"looksRareRewardsDistributor": config.UnsupportedAddress,
+		"looksRareToken":              config.UnsupportedAddress,
+		"v2Factory":                   config.FactoryV2addr,
+		"v3Factory":                   predeploys.UniswapV3FactoryAddr,
+		"pairInitCodeHash":            config.UniversalRouterPairInitCodeHash,
+		"poolInitCodeHash":            config.UniversalRouterPoolInitCodeHash,
+	}
 	return immutable, nil
 }
 
@@ -862,6 +937,16 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"initialized":         true,
 		"_initializedVersion": 3,
 	}
+	storage["UniswapV3Factory"] = state.StorageValues{
+		"owner": config.UniswapV3FactoryOwner,
+		"feeAmountTickSpacing": map[any]any{
+			config.UniswapV3FactoryFee500:   config.UniswapV3FactoryTickSpacing10,
+			config.UniswapV3FactoryFee3000:  config.UniswapV3FactoryTickSpacing60,
+			config.UniswapV3FactoryFee10000: config.UniswapV3FactoryTickSpacing200,
+			config.UniswapV3FactoryFee100:   config.UniswapV3FactoryTickSpacing1,
+		},
+	}
+	storage["NonfungiblePositionManager"] = state.StorageValues{}
 	return storage, nil
 }
 
