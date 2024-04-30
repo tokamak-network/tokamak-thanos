@@ -260,7 +260,6 @@ export class CrossChainMessenger {
 
     // Convert the input to a transaction hash.
     const txHash = toTransactionHash(transaction)
-    console.log(`tx hash ${txHash}`)
 
     let receipt: TransactionReceipt
     if (opts.direction !== undefined) {
