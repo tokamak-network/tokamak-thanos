@@ -218,18 +218,14 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
 
       // NOTE: don't set the "value" because on ETH is native token in L1
       if (opts?.recipient === undefined) {
-        return this.l1Bridge.populateTransaction.depositERC20(
-          toAddress(l1Token),
-          toAddress(l2Token),
+        return this.l1Bridge.populateTransaction.depositNativeToken(
           amount,
           opts?.l2GasLimit || 200_000, // Default to 200k gas limit.
           '0x', // No data.
           opts?.overrides || {}
         )
       } else {
-        return this.l1Bridge.populateTransaction.depositERC20To(
-          toAddress(l1Token),
-          toAddress(l2Token),
+        return this.l1Bridge.populateTransaction.depositNativeTokenTo(
           toAddress(opts.recipient),
           amount,
           opts?.l2GasLimit || 200_000, // Default to 200k gas limit.
