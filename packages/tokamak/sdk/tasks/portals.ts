@@ -229,7 +229,7 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   console.log('withdrawalMessageInfo:', withdrawalMessageInfo)
 
   let status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check publish L2\'s root:', status)
+  console.log('[Withdrawal Status] check publish L2 root:', status)
 
   await portals.waitForWithdrawalTxReadyForRelay(withdrawalReceipt)
 
@@ -315,7 +315,7 @@ const withdrawViaBedrockMessagePasserV2 = async (amount: NumberLike) => {
   const withdrawalReceipt = await withdrawalTx.wait()
 
   let status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check publish L2\'s root:', status)
+  console.log('[Withdrawal Status] check publish L2 root:', status)
 
   await portals.waitForWithdrawalTxReadyForRelayUsingL2Tx(
     withdrawalReceipt.transactionHash
