@@ -219,40 +219,33 @@ export class Portals {
     const l2BlockNumber = txReceipt.blockNumber
     if (l2BlockNumber > (await this.getL2BlockNumberInOO())) {
       return MessageStatus.STATE_ROOT_NOT_PUBLISHED
-    } else {
-      const withdrawalMessageInfo = await this.calculateWithdrawalMessage(
-        txReceipt
-      )
-      const provenWithdrawal = await this.getProvenWithdrawal(
-        withdrawalMessageInfo.withdrawalHash
-      )
-      if (
-        provenWithdrawal === undefined ||
-        provenWithdrawal === null ||
-        provenWithdrawal.timestamp.toNumber() === 0
-      ) {
-        return MessageStatus.READY_TO_PROVE
-      } else {
-        const BUFFER_TIME = 12
-        const currentTimestamp = Date.now()
-        const finalizedPeriod = await this.getChallengePeriodSeconds()
-        if (
-          currentTimestamp / 1000 - BUFFER_TIME <
-          provenWithdrawal.timestamp.toNumber() + finalizedPeriod
-        ) {
-          return MessageStatus.IN_CHALLENGE_PERIOD
-        } else {
-          const finalizedStatus = await this.getFinalizedWithdrawalStatus(
-            withdrawalMessageInfo.withdrawalHash
-          )
-          if (!finalizedStatus) {
-            return MessageStatus.READY_FOR_RELAY
-          } else {
-            return MessageStatus.RELAYED
-          }
-        }
-      }
     }
+    const withdrawalMessageInfo = await this.calculateWithdrawalMessage(
+      txReceipt
+    )
+    const provenWithdrawal = await this.getProvenWithdrawal(
+      withdrawalMessageInfo.withdrawalHash
+    )
+    if (
+      !provenWithdrawal ||
+      provenWithdrawal.timestamp.toNumber() === 0
+    ) {
+      return MessageStatus.READY_TO_PROVE
+    }
+
+    const BUFFER_TIME = 12
+    const currentTimestamp = Date.now()
+    const finalizedPeriod = await this.getChallengePeriodSeconds()
+    if (
+      currentTimestamp / 1000 - BUFFER_TIME <
+      provenWithdrawal.timestamp.toNumber() + finalizedPeriod
+    ) {
+      return MessageStatus.IN_CHALLENGE_PERIOD
+    }
+    const finalizedStatus = await this.getFinalizedWithdrawalStatus(
+      withdrawalMessageInfo.withdrawalHash
+    )
+    return finalizedStatus ? MessageStatus.RELAYED : MessageStatus.READY_FOR_RELAY
   }
 
   public async waitingDepositTransactionRelayedUsingL1Tx(
