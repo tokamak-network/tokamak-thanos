@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/receipts"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
@@ -31,13 +32,13 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.Nil(t, err, "Error starting up system")
 	defer sys.Close()
 
-	log := testlog.Logger(t, log.LvlInfo)
+	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	// Deploy wNativeToken
@@ -57,13 +58,13 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(params.Ether), wNativeBalance)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	optimismMintableTokenFactory, err := bindings.NewOptimismMintableERC20Factory(predeploys.OptimismMintableERC20FactoryAddr, l2Client)
 	require.NoError(t, err)
 	tx, err = optimismMintableTokenFactory.CreateOptimismMintableERC20(l2Opts, wNativeTokenAddress, "L2-WETH", "L2-WETH")
 	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	rcpt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
 	require.NoError(t, err)
 
 	// Get the deployment event to have access to the L2 WNativeToken address
@@ -97,13 +98,8 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	portal, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
 	require.NoError(t, err)
 
-	depIt, err := portal.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
-	require.NoError(t, err)
-	var depositEvent *bindings.OptimismPortalTransactionDeposited
-	for depIt.Next() {
-		depositEvent = depIt.Event
-	}
-	require.NotNil(t, depositEvent)
+	depositEvent, err := receipts.FindLog(depositReceipt.Logs, portal.ParseTransactionDeposited)
+	require.NoError(t, err, "Should emit deposit event")
 
 	depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
 	require.NoError(t, err)

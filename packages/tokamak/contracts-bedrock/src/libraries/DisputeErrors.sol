@@ -72,6 +72,9 @@ error OutOfOrderResolution();
 /// @notice Thrown when resolving a claim that has already been resolved.
 error ClaimAlreadyResolved();
 
+/// @notice Thrown when a supplied bond is too low to cover the cost of the interaction.
+error InsufficientBond();
+
 ////////////////////////////////////////////////////////////////
 //              `AttestationDisputeGame` Errors               //
 ////////////////////////////////////////////////////////////////
