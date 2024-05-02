@@ -48,14 +48,14 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	require.NoError(t, err)
 
 	for name, predeploy := range predeploys.Predeploys {
-		addr := *predeploy
+		addr := predeploy.Address
 
 		account, ok := gen.Alloc[addr]
 		require.Equal(t, true, ok, name)
 		require.Greater(t, len(account.Code), 0)
 
 		adminSlot, ok := account.Storage[genesis.AdminSlot]
-		isProxy := predeploys.IsProxied(addr) ||
+		isProxy := !predeploy.ProxyDisabled ||
 			(!config.EnableGovernance && addr == predeploys.GovernanceTokenAddr)
 		if isProxy {
 			require.Equal(t, true, ok, name)
@@ -74,6 +74,10 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 			require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
 		}
 	}
+
+	create2Deployer := gen.Alloc[predeploys.Create2DeployerAddr]
+	codeHash := crypto.Keccak256Hash(create2Deployer.Code)
+	require.Equal(t, codeHash, bindings.Create2DeployerCodeHash)
 
 	if writeFile {
 		file, _ := json.MarshalIndent(gen, "", " ")

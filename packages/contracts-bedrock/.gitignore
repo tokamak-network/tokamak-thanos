@@ -3,11 +3,16 @@ artifacts
 forge-artifacts
 cache
 broadcast
-typechain
+kout-deployment
+kout-proofs
+test/kontrol/logs
 
 # Metrics
 coverage.out
 .resource-metering.csv
+
+# Testing State
+.testdata
 
 # Scripts
 scripts/go-ffi/go-ffi
@@ -26,3 +31,6 @@ deployments/1337
 
 # Devnet config which changes with each 'make devnet-up'
 deploy-config/devnetL1.json
+
+# Getting Started guide deploy config
+deploy-config/getting-started.json
