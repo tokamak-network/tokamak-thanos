@@ -7,7 +7,12 @@ import {
 } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
 import { BigNumber, PayableOverrides, ethers } from 'ethers'
-import { sleep, DepositTx, toRpcHexString, predeploys } from '@tokamak-network/core-utils'
+import {
+  sleep,
+  DepositTx,
+  toRpcHexString,
+  predeploys,
+} from '@tokamak-network/core-utils'
 
 import {
   DepositTransactionRequest,
@@ -194,27 +199,33 @@ export class Portals {
   public async getMessageStatus(
     txReceipt: TransactionReceipt
   ): Promise<MessageStatus> {
-    return (txReceipt.to === predeploys.L2ToL1MessagePasser) ? this.getL2ToL1MessageStatusByReceipt(txReceipt) : this.getL1ToL2MessageStatusByReceipt(txReceipt)
+    return txReceipt.to === predeploys.L2ToL1MessagePasser
+      ? this.getL2ToL1MessageStatusByReceipt(txReceipt)
+      : this.getL1ToL2MessageStatusByReceipt(txReceipt)
   }
 
   public async getL1ToL2MessageStatusByReceipt(
     txReceipt: TransactionReceipt
   ): Promise<MessageStatus> {
     const l1BlockNumber = await this.getL1BlockNumber()
-    return (txReceipt.blockNumber > l1BlockNumber)? MessageStatus.UNCONFIRMED_L1_TO_L2_MESSAGE : MessageStatus.RELAYED
+    return txReceipt.blockNumber > l1BlockNumber
+      ? MessageStatus.UNCONFIRMED_L1_TO_L2_MESSAGE
+      : MessageStatus.RELAYED
   }
 
   public async getL2ToL1MessageStatusByReceipt(
     txReceipt: TransactionReceipt
   ): Promise<MessageStatus> {
     const l2BlockNumber = txReceipt.blockNumber
-    if (l2BlockNumber > await this.getL2BlockNumberInOO()) {
-      return MessageStatus.STATE_ROOT_NOT_PUBLISHED;
+    if (l2BlockNumber > (await this.getL2BlockNumberInOO())) {
+      return MessageStatus.STATE_ROOT_NOT_PUBLISHED
     } else {
       const withdrawalMessageInfo = await this.calculateWithdrawalMessage(
         txReceipt
       )
-      const provenWithdrawal = await this.getProvenWithdrawal(withdrawalMessageInfo.withdrawalHash)
+      const provenWithdrawal = await this.getProvenWithdrawal(
+        withdrawalMessageInfo.withdrawalHash
+      )
       if (
         provenWithdrawal === undefined ||
         provenWithdrawal === null ||
