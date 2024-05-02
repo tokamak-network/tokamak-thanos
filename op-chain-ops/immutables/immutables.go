@@ -190,12 +190,6 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		},
 		{
 			Name: "UniswapV3Factory",
-			Args: []interface{}{
-				predeploys.UniswapV3FactoryAddr,
-				immutable["UniswapV3Factory"]["feeAmountTickSpacing500"],
-				immutable["UniswapV3Factory"]["feeAmountTickSpacing3000"],
-				immutable["UniswapV3Factory"]["feeAmountTickSpacing10000"],
-			},
 		},
 		{
 			Name: "NonfungiblePositionManager",
