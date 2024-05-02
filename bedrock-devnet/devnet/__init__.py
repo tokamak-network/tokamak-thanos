@@ -35,6 +35,10 @@ parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.en
 
 log = logging.getLogger()
 
+# Global environment variables
+DEVNET_NO_BUILD = os.getenv('DEVNET_NO_BUILD') == "true"
+DEVNET_FPAC = os.getenv('DEVNET_FPAC') == "true"
+
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
@@ -69,6 +73,7 @@ def main():
     devnet_dir = pjoin(monorepo_dir, '.devnet')
     contracts_bedrock_dir = pjoin(monorepo_dir, 'packages', 'tokamak', 'contracts-bedrock')
     deployment_dir = pjoin(contracts_bedrock_dir, 'deployments', 'devnetL1')
+    forge_dump_path = pjoin(contracts_bedrock_dir, 'Deploy-900.json')
     op_node_dir = pjoin(args.monorepo_dir, 'op-node')
     ops_bedrock_dir = pjoin(monorepo_dir, 'ops-bedrock')
     deploy_config_dir = pjoin(contracts_bedrock_dir, 'deploy-config')
@@ -92,6 +97,7 @@ def main():
       devnet_dir=devnet_dir,
       contracts_bedrock_dir=contracts_bedrock_dir,
       deployment_dir=deployment_dir,
+      forge_dump_path=forge_dump_path,
       l1_deployments_path=pjoin(deployment_dir, '.deploy'),
       deploy_config_dir=deploy_config_dir,
       devnet_config_path=devnet_config_path,
@@ -128,7 +134,7 @@ def main():
     git_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     git_date = subprocess.run(['git', 'show', '-s', "--format=%ct"], capture_output=True, text=True).stdout.strip()
     # CI loads the images from workspace, and does not otherwise know the images are good as-is
-    if os.getenv('DEVNET_NO_BUILD') == "true":
+    if DEVNET_NO_BUILD:
         log.info('Skipping docker images build')
     else:
         log.info(f'Building docker images for git commit {git_commit} ({git_date})')
@@ -193,6 +199,9 @@ def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
     deploy_config = read_json(paths.devnet_config_template_path) if temp else read_json(paths.devnet_config_path)
     if update_timestamp:
         deploy_config['l1GenesisBlockTimestamp'] = '{:#x}'.format(int(time.time()))
+    if DEVNET_FPAC:
+        deploy_config['useFaultProofs'] = True
+        deploy_config['faultGameMaxDuration'] = 10
     write_json(paths.devnet_config_path, deploy_config)
 
 def init_admin_geth(paths):
@@ -273,6 +282,7 @@ def devnet_l1_genesis(paths):
     finally:
         geth.terminate()
 
+    shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
 
 # Bring up the devnet where the contracts are deployed to L1
 def devnet_deploy(paths, args):
@@ -280,7 +290,11 @@ def devnet_deploy(paths, args):
         log.info('L1 genesis already generated.')
     else:
         log.info('Generating L1 genesis.')
-        if os.path.exists(paths.allocs_path) == False:
+        if os.path.exists(paths.allocs_path) == False or DEVNET_FPAC == True:
+            # If this is the FPAC devnet then we need to generate the allocs
+            # file here always. This is because CI will run devnet-allocs
+            # without DEVNET_FPAC=true which means the allocs will be wrong.
+            # Re-running this step means the allocs will be correct.
             devnet_l1_genesis(paths)
 
         # It's odd that we want to regenerate the devnetL1.json file with
@@ -295,7 +309,7 @@ def devnet_deploy(paths, args):
             '--deploy-config', paths.devnet_config_path,
             '--l1-allocs', paths.allocs_path,
             '--l1-deployments', paths.addresses_json_path,
-            '--outfile.l1', outfile_l1,
+            '--outfile.l1', paths.genesis_l1_path,
         ], cwd=paths.op_node_dir)
 
     log.info('Starting L1.')
@@ -315,29 +329,35 @@ def devnet_deploy(paths, args):
             'go', 'run', 'cmd/main.go', 'genesis', 'l2',
             '--l1-rpc', 'http://localhost:8545',
             '--deploy-config', paths.devnet_config_path,
-            '--deployment-dir', paths.deployment_dir,
-            '--outfile.l2', pjoin(paths.devnet_dir, 'genesis-l2.json'),
-            '--outfile.rollup', pjoin(paths.devnet_dir, 'rollup.json')
+            '--l1-deployments', paths.addresses_json_path,
+            '--outfile.l2', paths.genesis_l2_path,
+            '--outfile.rollup', paths.rollup_config_path
         ], cwd=paths.op_node_dir)
 
     rollup_config = read_json(paths.rollup_config_path)
     addresses = read_json(paths.addresses_json_path)
 
+    # Start the L2.
     log.info('Bringing up L2.')
     run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
          'L2_IMAGE': args.l2_image
     })
+
+    # Wait for the L2 to be available.
     wait_up(9545)
     wait_for_rpc_server('127.0.0.1:9545')
 
+    # Print out the addresses being used for easier debugging.
     l2_output_oracle = addresses['L2OutputOracleProxy']
-    log.info(f'Using L2OutputOracle {l2_output_oracle}')
+    dispute_game_factory = addresses['DisputeGameFactoryProxy']
     batch_inbox_address = rollup_config['batch_inbox_address']
+    log.info(f'Using L2OutputOracle {l2_output_oracle}')
+    log.info(f'Using DisputeGameFactory {dispute_game_factory}')
     log.info(f'Using batch inbox {batch_inbox_address}')
 
-    log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
-    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher'], cwd=paths.ops_bedrock_dir, env={
+    # Set up the base docker environment.
+    docker_env = {
         'PWD': paths.ops_bedrock_dir,
         'L2OO_ADDRESS': l2_output_oracle,
         'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address,
@@ -345,7 +365,7 @@ def devnet_deploy(paths, args):
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
         'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
-    })
+    }
 
     log.info('Bringing up `artifact-server`')
     run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
@@ -408,33 +428,29 @@ def debug_dumpBlock(url):
 def wait_for_rpc_server(url):
     log.info(f'Waiting for RPC server at {url}')
 
-    conn = http.client.HTTPConnection(url)
     headers = {'Content-type': 'application/json'}
     body = '{"id":1, "jsonrpc":"2.0", "method": "eth_chainId", "params":[]}'
 
     while True:
         try:
+            conn = http.client.HTTPConnection(url)
             conn.request('POST', '/', body, headers)
             response = conn.getresponse()
-            conn.close()
             if response.status < 300:
                 log.info(f'RPC server at {url} ready')
                 return
         except Exception as e:
             log.info(f'Waiting for RPC server at {url}')
             time.sleep(1)
+        finally:
+            if conn:
+                conn.close()
 
 
 CommandPreset = namedtuple('Command', ['name', 'args', 'cwd', 'timeout'])
 
 
 def devnet_test(paths):
-    # Check the L2 config
-    run_command(
-        ['go', 'run', 'cmd/check-l2/main.go', '--l2-rpc-url', 'http://localhost:9545', '--l1-rpc-url', 'http://localhost:8545'],
-        cwd=paths.ops_chain_ops,
-    )
-
     # Run the two commands with different signers, so the ethereum nonce management does not conflict
     # And do not use devnet system addresses, to avoid breaking fee-estimation or nonce values.
     run_commands([

@@ -1151,7 +1151,7 @@ contract Deploy is Deployer {
                 })
             );
 
-            uint8 rawGameType = GameType.unwrap(_gameType);
+            uint32 rawGameType = GameType.unwrap(_gameType);
             console.log(
                 "DisputeGameFactoryProxy: set `FaultDisputeGame` implementation (Backend: %s | GameType: %s)",
                 rawGameType == 0 ? "Cannon" : "Alphabet",

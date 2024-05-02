@@ -123,6 +123,18 @@ type DeployConfig struct {
 	// L2GenesisCanyonTimeOffset is the number of seconds after genesis block that Canyon hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Canyon.
 	L2GenesisCanyonTimeOffset *hexutil.Uint64 `json:"L2GenesisCanyonTimeOffset,omitempty"`
+	// L2GenesisDeltaTimeOffset is the number of seconds after genesis block that Delta hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Delta.
+	L2GenesisDeltaTimeOffset *hexutil.Uint64 `json:"l2GenesisDeltaTimeOffset,omitempty"`
+	// L2GenesisEcotoneTimeOffset is the number of seconds after genesis block that Ecotone hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Ecotone.
+	L2GenesisEcotoneTimeOffset *hexutil.Uint64 `json:"l2GenesisEcotoneTimeOffset,omitempty"`
+	// L2GenesisFjordTimeOffset is the number of seconds after genesis block that Fjord hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Fjord.
+	L2GenesisFjordTimeOffset *hexutil.Uint64 `json:"l2GenesisFjordTimeOffset,omitempty"`
+	// L2GenesisInteropTimeOffset is the number of seconds after genesis block that the Interop hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Interop.
+	L2GenesisInteropTimeOffset *hexutil.Uint64 `json:"l2GenesisInteropTimeOffset,omitempty"`
 	// L2GenesisSpanBatchTimeOffset is the number of seconds after genesis block that Span Batch hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable SpanBatch.
 	L2GenesisSpanBatchTimeOffset *hexutil.Uint64 `json:"l2GenesisSpanBatchTimeOffset,omitempty"`
@@ -242,6 +254,8 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
+	// When Cancun activates. Relative to L1 genesis.
+	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -505,6 +519,50 @@ func (d *DeployConfig) SpanBatchTime(genesisTime uint64) *uint64 {
 	return &v
 }
 
+func (d *DeployConfig) DeltaTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisDeltaTimeOffset == nil {
+		return nil
+	}
+	v := uint64(0)
+	if offset := *d.L2GenesisDeltaTimeOffset; offset > 0 {
+		v = genesisTime + uint64(offset)
+	}
+	return &v
+}
+
+func (d *DeployConfig) EcotoneTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisEcotoneTimeOffset == nil {
+		return nil
+	}
+	v := uint64(0)
+	if offset := *d.L2GenesisEcotoneTimeOffset; offset > 0 {
+		v = genesisTime + uint64(offset)
+	}
+	return &v
+}
+
+func (d *DeployConfig) FjordTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisFjordTimeOffset == nil {
+		return nil
+	}
+	v := uint64(0)
+	if offset := *d.L2GenesisFjordTimeOffset; offset > 0 {
+		v = genesisTime + uint64(offset)
+	}
+	return &v
+}
+
+func (d *DeployConfig) InteropTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisInteropTimeOffset == nil {
+		return nil
+	}
+	v := uint64(0)
+	if offset := *d.L2GenesisInteropTimeOffset; offset > 0 {
+		v = genesisTime + uint64(offset)
+	}
+	return &v
+}
+
 // RollupConfig converts a DeployConfig to a rollup.Config
 func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHash common.Hash, l2GenesisBlockNumber uint64) (*rollup.Config, error) {
 	if d.OptimismPortalProxy == (common.Address{}) {
@@ -543,7 +601,10 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		L1SystemConfigAddress:  d.SystemConfigProxy,
 		RegolithTime:           d.RegolithTime(l1StartBlock.Time()),
 		CanyonTime:             d.CanyonTime(l1StartBlock.Time()),
-		SpanBatchTime:          d.SpanBatchTime(l1StartBlock.Time()),
+		DeltaTime:              d.DeltaTime(l1StartBlock.Time()),
+		EcotoneTime:            d.EcotoneTime(l1StartBlock.Time()),
+		FjordTime:              d.FjordTime(l1StartBlock.Time()),
+		InteropTime:            d.InteropTime(l1StartBlock.Time()),
 	}, nil
 }
 
