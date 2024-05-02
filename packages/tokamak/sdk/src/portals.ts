@@ -7,7 +7,12 @@ import {
 } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
 import { BigNumber, PayableOverrides, ethers } from 'ethers'
-import { sleep, DepositTx, toRpcHexString } from '@tokamak-network/core-utils'
+import {
+  sleep,
+  DepositTx,
+  toRpcHexString,
+  predeploys,
+} from '@tokamak-network/core-utils'
 
 import {
   DepositTransactionRequest,
@@ -18,6 +23,7 @@ import {
   ProvenWithdrawal,
   WithdrawalMessageInfo,
   WithdrawalTransactionRequest,
+  MessageStatus,
 } from './interfaces'
 import {
   calculateWithdrawalMessage,
@@ -190,6 +196,57 @@ export class Portals {
     throw new Error(`timed out waiting for relayed deposit transaction`)
   }
 
+  public async getMessageStatus(
+    txReceipt: TransactionReceipt
+  ): Promise<MessageStatus> {
+    return txReceipt.to === predeploys.L2ToL1MessagePasser
+      ? this.getL2ToL1MessageStatusByReceipt(txReceipt)
+      : this.getL1ToL2MessageStatusByReceipt(txReceipt)
+  }
+
+  public async getL1ToL2MessageStatusByReceipt(
+    txReceipt: TransactionReceipt
+  ): Promise<MessageStatus> {
+    const l1BlockNumber = await this.getL1BlockNumber()
+    return txReceipt.blockNumber > l1BlockNumber
+      ? MessageStatus.UNCONFIRMED_L1_TO_L2_MESSAGE
+      : MessageStatus.RELAYED
+  }
+
+  public async getL2ToL1MessageStatusByReceipt(
+    txReceipt: TransactionReceipt
+  ): Promise<MessageStatus> {
+    const l2BlockNumber = txReceipt.blockNumber
+    if (l2BlockNumber > (await this.getL2BlockNumberInOO())) {
+      return MessageStatus.STATE_ROOT_NOT_PUBLISHED
+    }
+    const withdrawalMessageInfo = await this.calculateWithdrawalMessage(
+      txReceipt
+    )
+    const provenWithdrawal = await this.getProvenWithdrawal(
+      withdrawalMessageInfo.withdrawalHash
+    )
+    if (!provenWithdrawal || provenWithdrawal.timestamp.toNumber() === 0) {
+      return MessageStatus.READY_TO_PROVE
+    }
+
+    const BUFFER_TIME = 12
+    const currentTimestamp = Date.now()
+    const finalizedPeriod = await this.getChallengePeriodSeconds()
+    if (
+      currentTimestamp / 1000 - BUFFER_TIME <
+      provenWithdrawal.timestamp.toNumber() + finalizedPeriod
+    ) {
+      return MessageStatus.IN_CHALLENGE_PERIOD
+    }
+    const finalizedStatus = await this.getFinalizedWithdrawalStatus(
+      withdrawalMessageInfo.withdrawalHash
+    )
+    return finalizedStatus
+      ? MessageStatus.RELAYED
+      : MessageStatus.READY_FOR_RELAY
+  }
+
   public async waitingDepositTransactionRelayedUsingL1Tx(
     transactionHash: string,
     opts?: {
@@ -222,7 +279,7 @@ export class Portals {
     return promiseString
   }
 
-  public async getL2BlockNumber(): Promise<number> {
+  public async getL2BlockNumberInOO(): Promise<number> {
     return this.contracts.l1.L2OutputOracle.latestBlockNumber()
   }
 
@@ -258,7 +315,7 @@ export class Portals {
     let totalTimeMs = 0
     while (totalTimeMs < (opts?.timeoutMs || Infinity)) {
       const tick = Date.now()
-      if (l2BlockNumber <= (await this.getL2BlockNumber())) {
+      if (l2BlockNumber <= (await this.getL2BlockNumberInOO())) {
         return
       }
       await sleep(opts?.pollIntervalMs || 1000)
@@ -314,6 +371,12 @@ export class Portals {
     withdrawalHash: string
   ): Promise<ProvenWithdrawal> {
     return this.contracts.l1.OptimismPortal.provenWithdrawals(withdrawalHash)
+  }
+
+  public async getFinalizedWithdrawalStatus(
+    withdrawalHash: string
+  ): Promise<boolean> {
+    return this.contracts.l1.OptimismPortal.finalizedWithdrawals(withdrawalHash)
   }
 
   public async depositTransaction(
