@@ -226,10 +226,7 @@ export class Portals {
     const provenWithdrawal = await this.getProvenWithdrawal(
       withdrawalMessageInfo.withdrawalHash
     )
-    if (
-      !provenWithdrawal ||
-      provenWithdrawal.timestamp.toNumber() === 0
-    ) {
+    if (!provenWithdrawal || provenWithdrawal.timestamp.toNumber() === 0) {
       return MessageStatus.READY_TO_PROVE
     }
 
@@ -245,7 +242,9 @@ export class Portals {
     const finalizedStatus = await this.getFinalizedWithdrawalStatus(
       withdrawalMessageInfo.withdrawalHash
     )
-    return finalizedStatus ? MessageStatus.RELAYED : MessageStatus.READY_FOR_RELAY
+    return finalizedStatus
+      ? MessageStatus.RELAYED
+      : MessageStatus.READY_FOR_RELAY
   }
 
   public async waitingDepositTransactionRelayedUsingL1Tx(
