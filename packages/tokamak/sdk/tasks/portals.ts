@@ -228,12 +228,12 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   )
   console.log('withdrawalMessageInfo:', withdrawalMessageInfo)
 
-  let status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  let status = await portals.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check publish L2 root:', status)
 
   await portals.waitForWithdrawalTxReadyForRelay(withdrawalReceipt)
 
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  status = await portals.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check ready for proving:', status)
 
   const proveTransaction = await portals.proveWithdrawalTransaction(
@@ -241,7 +241,7 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   )
   await proveTransaction.wait()
 
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  status = await portals.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check in challenging:', status)
 
   await portals.waitForFinalization(withdrawalMessageInfo)
@@ -251,7 +251,7 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   const finalizedTransactionReceipt = await finalizedTransaction.wait()
   console.log('finalized transaction receipt:', finalizedTransactionReceipt)
 
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  status = await portals.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check relayed:', status)
 
   const transferTx = await l2NativeTokenContract.transferFrom(
