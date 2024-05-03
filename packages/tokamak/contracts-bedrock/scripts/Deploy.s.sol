@@ -617,7 +617,11 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the PreimageOracle
     function deployPreimageOracle() public onlyDevnet broadcast returns (address addr_) {
-        PreimageOracle preimageOracle = new PreimageOracle{ salt: implSalt() }();
+        PreimageOracle preimageOracle = new PreimageOracle{ salt: implSalt() }({
+            _minProposalSize: cfg.preimageOracleMinProposalSize(),
+            _challengePeriod: cfg.preimageOracleChallengePeriod(),
+            _cancunActivation: cfg.preimageOracleCancunActivationTimestamp()
+        });
         save("PreimageOracle", address(preimageOracle));
         console.log("PreimageOracle deployed at %s", address(preimageOracle));
 
