@@ -52,3 +52,6 @@
 	path = packages/tokamak/contracts-bedrock/lib/openzeppelin-contracts_v3.1.0
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
 	branch = release-v3.1.0
+[submodule "packages/tokamak/contracts-bedrock/lib/lib-keccak"]
+	path = packages/tokamak/contracts-bedrock/lib/lib-keccak
+	url = https://github.com/ethereum-optimism/lib-keccak
