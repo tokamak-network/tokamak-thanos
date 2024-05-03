@@ -109,7 +109,8 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 		ConductorRpc:        ctx.String(flags.ConductorRpcFlag.Name),
 		ConductorRpcTimeout: ctx.Duration(flags.ConductorRpcTimeoutFlag.Name),
 
-		Plasma: plasma.ReadCLIConfig(ctx),
+		Plasma:              plasma.ReadCLIConfig(ctx),
+		IsForkPublicNetwork: ctx.Bool(flags.IsForkPublicNetworkFlag.Name),
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {

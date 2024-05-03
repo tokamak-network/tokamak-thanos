@@ -399,6 +399,7 @@ var optionalFlags = []cli.Flag{
 	ConductorEnabledFlag,
 	ConductorRpcFlag,
 	ConductorRpcTimeoutFlag,
+	IsForkPublicNetworkFlag,
 }
 
 var DeprecatedFlags = []cli.Flag{
