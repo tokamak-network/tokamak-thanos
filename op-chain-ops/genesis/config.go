@@ -770,7 +770,6 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 // NewL2StorageConfig will create a StorageConfig given an instance of a
 // Hardhat and a DeployConfig.
 func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.StorageConfig, error) {
-	fmt.Printf("L1UsdcBridgeProxyConfigAddr", config.L1UsdcBridgeProxy)
 	storage := make(state.StorageConfig)
 
 	if block.Number() == nil {
