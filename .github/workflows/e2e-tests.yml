@@ -47,7 +47,7 @@ jobs:
     needs: [start-runner-ws]
     runs-on: ${{ needs.start-runner-ws.outputs.label }}
     steps:
-      - name: set timeout
+      - name: update shutdown behavior
         run: |
           aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ needs.start-runner-ws.outputs.ec2-instance-id }}
 
