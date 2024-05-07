@@ -356,8 +356,8 @@ def devnet_deploy(paths, args):
     log.info(f'Using DisputeGameFactory {dispute_game_factory}')
     log.info(f'Using batch inbox {batch_inbox_address}')
 
-    # Set up the base docker environment.
-    docker_env = {
+    log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
+    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
         'L2OO_ADDRESS': l2_output_oracle,
         'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address,
@@ -365,7 +365,7 @@ def devnet_deploy(paths, args):
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
         'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
-    }
+    })
 
     log.info('Bringing up `artifact-server`')
     run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
