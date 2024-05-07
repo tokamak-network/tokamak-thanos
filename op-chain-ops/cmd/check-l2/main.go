@@ -993,8 +993,8 @@ func checkMasterMinter(addr common.Address, client *ethclient.Client) error {
 		return err
 	}
 	log.Info("MasterMinter", "GetMinterManager", minterManager.Hex())
-	if minterManager != predeploys.MasterMinterAddr {
-		return fmt.Errorf("MasterMinter GetMinterManager should be %s, got %s", predeploys.MasterMinterAddr, minterManager)
+	if minterManager != predeploys.FiatTokenV2_2Addr {
+		return fmt.Errorf("MasterMinter GetMinterManager should be %s, got %s", predeploys.FiatTokenV2_2Addr, minterManager)
 	}
 	return nil
 }
