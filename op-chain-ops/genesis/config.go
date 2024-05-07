@@ -475,6 +475,14 @@ func (d *DeployConfig) GetDeployedAddresses(hh *hardhat.Hardhat) error {
 		d.OptimismPortalProxy = optimismPortalProxyDeployment.Address
 	}
 
+	if d.L1UsdcBridgeProxy == (common.Address{}) {
+		l1UsdcBridgeProxyDeployment, err := hh.GetDeployment("L1UsdcBridgeProxy")
+		if err != nil {
+			return err
+		}
+		d.L1UsdcBridgeProxy = l1UsdcBridgeProxyDeployment.Address
+	}
+
 	return nil
 }
 
@@ -762,6 +770,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 // NewL2StorageConfig will create a StorageConfig given an instance of a
 // Hardhat and a DeployConfig.
 func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.StorageConfig, error) {
+	fmt.Printf("L1UsdcBridgeProxyConfigAddr", config.L1UsdcBridgeProxy)
 	storage := make(state.StorageConfig)
 
 	if block.Number() == nil {
@@ -830,7 +839,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["L2UsdcBridge"] = state.StorageValues{
 		"messenger":          predeploys.L2CrossDomainMessengerAddr,
-		"otherBridge":        config.L1UsdcBridge,
+		"otherBridge":        config.L1UsdcBridgeProxy,
 		"l1Usdc":             config.L1UsdcAddr,
 		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
 		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
@@ -840,7 +849,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"controllers": map[any]any{
 			predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
 		},
-		"minterManager": predeploys.MasterMinterAddr,
+		"minterManager": predeploys.FiatTokenV2_2Addr,
 	}
 	storage["FiatTokenV2_2"] = state.StorageValues{
 		"_owner":              config.FiatTokenOwner,
