@@ -1,5 +1,9 @@
 name: 'Tokamak Contract Bedrock Test'
-on: push
+on:
+  pull_request:
+    paths:
+      - 'op-node/**'
+      - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
   start-runner:
