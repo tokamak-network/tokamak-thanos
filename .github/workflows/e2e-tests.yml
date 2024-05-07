@@ -1,5 +1,14 @@
 name: 'Tokamak End to End Test'
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - 'op-node/**'
+      - 'op-batcher/**'
+      - 'op-proposer/**'
+      - 'op-bindings/**'
+      - 'op-chain-ops/**'
+      - 'op-service/**'
+      - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
   start-runner-ws:
