@@ -1,9 +1,6 @@
 name: Publish Docker images (nightly)
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   version:
