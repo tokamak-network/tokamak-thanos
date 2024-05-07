@@ -244,6 +244,12 @@ export const getPortalsContracts = (
     l1: {
       OptimismPortal: undefined,
       L2OutputOracle: undefined,
+      AddressManager: undefined,
+      L1CrossDomainMessenger: undefined,
+      StateCommitmentChain: undefined,
+      CanonicalTransactionChain: undefined,
+      BondManager: undefined,
+      L1StandardBridge: undefined
     },
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   }
