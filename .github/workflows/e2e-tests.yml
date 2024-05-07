@@ -1,5 +1,5 @@
 name: 'Tokamak End to End Test'
-on: push
+on: pull_request
 
 jobs:
   start-runner-ws:
