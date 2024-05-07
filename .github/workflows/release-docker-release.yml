@@ -199,6 +199,18 @@ jobs:
         with:
           matrix-step-name: start-runners
 
+  ec2-update-arm64:
+    name: Update EC2 ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
+    needs: [runners, version]
+    strategy:
+      matrix:
+        number: [0, 1, 2, 3, 4]
+    runs-on: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
+    steps:
+      - name: update shutdown behavior
+        run: |
+          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
+
   chain-mon-amd64:
     name: Publish ${{ matrix.target }}
     needs: [version]
@@ -243,7 +255,7 @@ jobs:
 
   chain-mon-arm64:
     name: Publish ${{ matrix.target }}
-    needs: [runners, version]
+    needs: [runners, ec2-update-arm64, version]
     runs-on: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
     strategy:
       matrix:
