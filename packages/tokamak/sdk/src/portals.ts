@@ -26,17 +26,16 @@ import {
   MessageStatus,
 } from './interfaces'
 import {
-  calculateWithdrawalMessage,
   hashLowLevelMessage,
   hashMessageHash,
   makeStateTrieProof,
   toSignerOrProvider,
   toNumber,
   DeepPartial,
-  getPortalsContracts,
   DEPOSIT_CONFIRMATION_BLOCKS,
   CHAIN_BLOCK_TIMES,
   calculateWithdrawalMessageUsingRecept,
+  getAllOEContracts,
 } from './utils'
 
 export class Portals {
@@ -121,7 +120,7 @@ export class Portals {
         ? toNumber(opts.l1BlockTimeSeconds)
         : CHAIN_BLOCK_TIMES[this.l1ChainId] || 1
 
-    this.contracts = getPortalsContracts(this.l2ChainId, {
+    this.contracts = getAllOEContracts(this.l2ChainId, {
       l1SignerOrProvider: this.l1SignerOrProvider,
       l2SignerOrProvider: this.l2SignerOrProvider,
       overrides: opts.contracts,
