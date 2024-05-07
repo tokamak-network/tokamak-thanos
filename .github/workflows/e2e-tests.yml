@@ -1,5 +1,5 @@
 name: 'Tokamak End to End Test'
-on: pull_request
+on: push
 
 jobs:
   start-runner-ws:
@@ -96,27 +96,6 @@ jobs:
         run: OP_TESTLOG_DISABLE_COLOR=true OP_E2E_DISABLE_PARALLEL=false gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 ./...
         working-directory: op-e2e
 
-  stop-runner-ws:
-    name: Stop self-hosted EC2 runner for ws tests
-    needs: [start-runner-ws, ws-e2e-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-ws.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-ws.outputs.ec2-instance-id }}
-
   start-runner-http:
     name: Start EC2 Runner for http tests
     runs-on: ubuntu-latest
@@ -203,24 +182,3 @@ jobs:
       - name: Run e2e http test
         run: OP_E2E_USE_HTTP=true OP_TESTLOG_DISABLE_COLOR=true OP_E2E_DISABLE_PARALLEL=false gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 ./...
         working-directory: op-e2e
-
-  stop-runner-http:
-    name: Stop self-hosted EC2 runner for http tests
-    needs: [start-runner-http, http-e2e-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-http.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-http.outputs.ec2-instance-id }}

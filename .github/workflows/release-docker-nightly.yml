@@ -1,9 +1,6 @@
 name: Publish Docker images (nightly)
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   version:
@@ -306,30 +303,6 @@ jobs:
           push: true
           provenance: false
           tags: ${{ steps.docker-image-name.outputs.docker-image-name }}
-
-  stop-runners:
-    name: Stop self-hosted EC2 runners
-    strategy:
-      matrix:
-        number: [0, 1, 2, 3, 4]
-    needs: [runners, chain-mon-arm64]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
-          ec2-instance-id: ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
 
   merge:
     name: Build multi-arch images
