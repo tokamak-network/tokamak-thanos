@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const QuoterV2StorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const QuoterV2StorageLayoutJSON = "{\"storage\":[{\"astId\":10159,\"contract\":\"contracts/lens/QuoterV2.sol:QuoterV2\",\"label\":\"amountOutCached\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_uint256\"}],\"types\":{\"t_uint256\":{\"encoding\":\"inplace\",\"label\":\"uint256\",\"numberOfBytes\":\"32\"}}}"
 
 var QuoterV2StorageLayout = new(solc.StorageLayout)
 

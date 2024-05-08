@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const SwapRouter02StorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const SwapRouter02StorageLayoutJSON = "{\"storage\":[{\"astId\":6601,\"contract\":\"contracts/SwapRouter02.sol:SwapRouter02\",\"label\":\"amountInCached\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_uint256\"}],\"types\":{\"t_uint256\":{\"encoding\":\"inplace\",\"label\":\"uint256\",\"numberOfBytes\":\"32\"}}}"
 
 var SwapRouter02StorageLayout = new(solc.StorageLayout)
 

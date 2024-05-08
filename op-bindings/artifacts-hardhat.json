@@ -8,5 +8,6 @@
   "NonfungiblePositionManager",
   "NonfungibleTokenPositionDescriptor",
   "TickLens",
-  "UniswapInterfaceMulticall"
+  "UniswapInterfaceMulticall",
+  "UniversalRouter"
 ]

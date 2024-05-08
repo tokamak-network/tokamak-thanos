@@ -276,6 +276,8 @@ type DeployConfig struct {
 	UniversalRouterPoolInitCodeHash common.Hash `json:"poolInitCodeHash"`
 	// UniversalRouterRewardsDistributor is the address handling rewards distribution in the UniversalRouter.
 	UniversalRouterRewardsDistributor common.Address `json:"universalRouterRewardsDistributor"`
+	// UnsupportedAddress represents an address that is not supported by the system.
+	UnsupportedAddress common.Address `json:"unsupportedAddress"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -947,6 +949,10 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		},
 	}
 	storage["NonfungiblePositionManager"] = state.StorageValues{}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 10c182681 (Update Storagelayout & build-info set-up for UNISWAPV3 contracts)
 	return storage, nil
 }
 

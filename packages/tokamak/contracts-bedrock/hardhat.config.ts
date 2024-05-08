@@ -24,6 +24,14 @@ export default {
           apiURL: "http://localhost/api",
           browserURL: "http://localhost"
         }
+      },
+      {
+        network: "thanos-sepolia-test",
+        chainId: 111551118080,
+        urls: {
+          apiURL: "https://rpc.titan-sepolia.tokamak.network",
+          browserURL: "https://explorer.thanos-sepolia-test.tokamak.network"
+        }
       }
     ]
   },

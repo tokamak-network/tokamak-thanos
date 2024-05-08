@@ -27,6 +27,30 @@ type ImmutableValues map[string]any
 // contracts.
 type ImmutableConfig map[string]ImmutableValues
 
+// RouterParameters is an auto generated low-level Go binding around an user-defined struct.
+type RouterParameters struct {
+	Permit2                     common.Address
+	Weth9                       common.Address
+	SeaportV15                  common.Address
+	SeaportV14                  common.Address
+	OpenseaConduit              common.Address
+	NftxZap                     common.Address
+	X2y2                        common.Address
+	Foundation                  common.Address
+	Sudoswap                    common.Address
+	ElementMarket               common.Address
+	Nft20Zap                    common.Address
+	Cryptopunks                 common.Address
+	LooksRareV2                 common.Address
+	RouterRewardsDistributor    common.Address
+	LooksRareRewardsDistributor common.Address
+	LooksRareToken              common.Address
+	V2Factory                   common.Address
+	V3Factory                   common.Address
+	PairInitCodeHash            [32]byte
+	PoolInitCodeHash            [32]byte
+}
+
 // Check does a sanity check that the specific values that
 // Optimism uses are set inside of the ImmutableConfig.
 func (i ImmutableConfig) Check() error {
@@ -213,6 +237,31 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "UniswapInterfaceMulticall",
 		},
+		{
+			Name: "UniversalRouter",
+			Args: []interface{}{
+				predeploys.Permit2Addr,
+				predeploys.WNativeTokenAddr,
+				immutable["UniversalRouter"]["seaportV1_5"],
+				immutable["UniversalRouter"]["seaportV1_4"],
+				immutable["UniversalRouter"]["openseaConduit"],
+				immutable["UniversalRouter"]["nftxZap"],
+				immutable["UniversalRouter"]["x2y2"],
+				immutable["UniversalRouter"]["foundation"],
+				immutable["UniversalRouter"]["sudoswap"],
+				immutable["UniversalRouter"]["elementMarket"],
+				immutable["UniversalRouter"]["nft20Zap"],
+				immutable["UniversalRouter"]["cryptopunks"],
+				immutable["UniversalRouter"]["looksRareV2"],
+				immutable["UniversalRouter"]["routerRewardsDistributor"],
+				immutable["UniversalRouter"]["looksRareRewardsDistributor"],
+				immutable["UniversalRouter"]["looksRareToken"],
+				immutable["UniversalRouter"]["v2Factory"],
+				predeploys.UniswapV3FactoryAddr,
+				immutable["UniversalRouter"]["pairInitCodeHash"],
+				immutable["UniversalRouter"]["poolInitCodeHash"],
+			},
+		},
 	}
 	return BuildL2(deployments)
 }
@@ -382,9 +431,17 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		_, tx, _, err = bindings.DeployTickLens(opts, backend)
 	case "UniswapInterfaceMulticall":
 		_, tx, _, err = bindings.DeployUniswapInterfaceMulticall(opts, backend)
+	case "UniversalRouter":
+		localParams, ok := deployment.Args[0].(RouterParameters)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for RouterParameters")
+		}
+		convertedParams := ConvertRouterParameters(localParams)
+		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
+
 	return tx, err
 }
 
@@ -439,4 +496,30 @@ func PrepareNonfungiblePositionManager(deployment deployer.Constructor) (common.
 	}
 
 	return _factory, _WETH9, _tokenDescriptor_, nil
+}
+
+// ConvertRouterParameters converts local RouterParameters to bindings RouterParameters.
+func ConvertRouterParameters(localParams RouterParameters) bindings.RouterParameters {
+	return bindings.RouterParameters{
+		Permit2:                     localParams.Permit2,
+		Weth9:                       localParams.Weth9,
+		SeaportV15:                  localParams.SeaportV15,
+		SeaportV14:                  localParams.SeaportV14,
+		OpenseaConduit:              localParams.OpenseaConduit,
+		NftxZap:                     localParams.NftxZap,
+		X2y2:                        localParams.X2y2,
+		Foundation:                  localParams.Foundation,
+		Sudoswap:                    localParams.Sudoswap,
+		ElementMarket:               localParams.ElementMarket,
+		Nft20Zap:                    localParams.Nft20Zap,
+		Cryptopunks:                 localParams.Cryptopunks,
+		LooksRareV2:                 localParams.LooksRareV2,
+		RouterRewardsDistributor:    localParams.RouterRewardsDistributor,
+		LooksRareRewardsDistributor: localParams.LooksRareRewardsDistributor,
+		LooksRareToken:              localParams.LooksRareToken,
+		V2Factory:                   localParams.V2Factory,
+		V3Factory:                   localParams.V3Factory,
+		PairInitCodeHash:            localParams.PairInitCodeHash,
+		PoolInitCodeHash:            localParams.PoolInitCodeHash,
+	}
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const UniswapInterfaceMulticallStorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const UniswapInterfaceMulticallStorageLayoutJSON = "{\"storage\":[],\"types\":null}"
 
 var UniswapInterfaceMulticallStorageLayout = new(solc.StorageLayout)
 

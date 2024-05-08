@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const NFTDescriptorStorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const NFTDescriptorStorageLayoutJSON = "{\"storage\":[],\"types\":null}"
 
 var NFTDescriptorStorageLayout = new(solc.StorageLayout)
 

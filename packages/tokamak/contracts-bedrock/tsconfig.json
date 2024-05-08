@@ -4,9 +4,8 @@
     "outDir": "./dist"
   },
   "include": [
-    "deploy-config/**/*",
-    "deploy-config/**/*.json",
+    "deploy-config/*.json",
     "scripts/**/*",
-    "**/*.ts"
+    "*.ts"
   ]
 }

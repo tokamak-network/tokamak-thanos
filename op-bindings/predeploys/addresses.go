@@ -35,6 +35,7 @@ const (
 	NonfungibleTokenPositionDescriptor = "0x4200000000000000000000000000000000000507"
 	TickLens                           = "0x4200000000000000000000000000000000000508"
 	UniswapInterfaceMulticall          = "0x4200000000000000000000000000000000000509"
+	UniversalRouter                    = "0x4200000000000000000000000000000000000510"
 	L2UsdcBridge                       = "0x4200000000000000000000000000000000000775"
 	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
@@ -71,6 +72,7 @@ var (
 	NonfungibleTokenPositionDescriptorAddr = common.HexToAddress(NonfungibleTokenPositionDescriptor)
 	TickLensAddr                           = common.HexToAddress(TickLens)
 	UniswapInterfaceMulticallAddr          = common.HexToAddress(UniswapInterfaceMulticall)
+	UniversalRouterAddr                    = common.HexToAddress(UniversalRouter)
 	L2UsdcBridgeAddr                       = common.HexToAddress(L2UsdcBridge)
 	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
@@ -94,8 +96,10 @@ func IsProxied(predeployAddr common.Address) bool {
 	case UniswapV3FactoryAddr:
 	case NFTDescriptorAddr:
 	case NonfungiblePositionManagerAddr:
+	case NonfungibleTokenPositionDescriptorAddr:
 	case TickLensAddr:
 	case UniswapInterfaceMulticallAddr:
+	case UniversalRouterAddr:
 	default:
 		return true
 	}
@@ -133,6 +137,7 @@ func init() {
 	Predeploys["NonfungibleTokenPositionDescriptor"] = &NonfungibleTokenPositionDescriptorAddr
 	Predeploys["TickLens"] = &TickLensAddr
 	Predeploys["UniswapInterfaceMulticall"] = &UniswapInterfaceMulticallAddr
+	Predeploys["UniversalRouter"] = &UniversalRouterAddr
 	Predeploys["L2UsdcBridge"] = &L2UsdcBridgeAddr
 	Predeploys["SignatureChecker"] = &SignatureCheckerAddr
 	Predeploys["MasterMinter"] = &MasterMinterAddr

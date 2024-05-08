@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const TickLensStorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const TickLensStorageLayoutJSON = "{\"storage\":[],\"types\":null}"
 
 var TickLensStorageLayout = new(solc.StorageLayout)
 

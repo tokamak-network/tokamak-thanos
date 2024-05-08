@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 )
 
-const NonfungibleTokenPositionDescriptorStorageLayoutJSON = "{\"storage\":null,\"types\":null}"
+const NonfungibleTokenPositionDescriptorStorageLayoutJSON = "{\"storage\":[],\"types\":null}"
 
 var NonfungibleTokenPositionDescriptorStorageLayout = new(solc.StorageLayout)
 

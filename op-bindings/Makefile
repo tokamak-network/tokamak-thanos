@@ -39,6 +39,8 @@ hardhat-bindings:
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/universal-router/UniversalRouter.sol/UniversalRouter.json $(pkg)
+
 
 mkdir:
 	mkdir -p $(pkg)
