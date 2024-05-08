@@ -362,6 +362,8 @@ func (n *OpNode) initL2(ctx context.Context, cfg *Config, snapshotLog log.Logger
 		return fmt.Errorf("failed to setup L2 execution-engine RPC client: %w", err)
 	}
 
+	rpcCfg.IsForkPublicNetwork = cfg.IsForkPublicNetwork
+
 	n.l2Source, err = sources.NewEngineClient(
 		client.NewInstrumentedRPC(rpcClient, n.metrics), n.log, n.metrics.L2SourceCache, rpcCfg,
 	)
