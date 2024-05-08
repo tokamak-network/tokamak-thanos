@@ -306,3 +306,103 @@
 | gameImpls        | mapping(GameType => contract IDisputeGame) | 101  | 0      | 32    | src/dispute/DisputeGameFactory.sol:DisputeGameFactory |
 | _disputeGames    | mapping(Hash => GameId)                    | 102  | 0      | 32    | src/dispute/DisputeGameFactory.sol:DisputeGameFactory |
 | _disputeGameList | GameId[]                                   | 103  | 0      | 32    | src/dispute/DisputeGameFactory.sol:DisputeGameFactory |
+
+=======================
+➡ src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge
+=======================
+
+| Name        | Type                                            | Slot | Offset | Bytes | Contract                                                                       |
+|-------------|-------------------------------------------------|------|--------|-------|--------------------------------------------------------------------------------|
+| messenger   | address                                         | 0    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge |
+| otherBridge | address                                         | 1    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge |
+| l1Usdc      | address                                         | 2    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge |
+| l2Usdc      | address                                         | 3    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge |
+| deposits    | mapping(address => mapping(address => uint256)) | 4    | 0      | 32    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge |
+
+=======================
+➡ src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy
+=======================
+
+| Name        | Type                                            | Slot | Offset | Bytes | Contract                                                                                 |
+|-------------|-------------------------------------------------|------|--------|-------|------------------------------------------------------------------------------------------|
+| messenger   | address                                         | 0    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy |
+| otherBridge | address                                         | 1    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy |
+| l1Usdc      | address                                         | 2    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy |
+| l2Usdc      | address                                         | 3    | 0      | 20    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy |
+| deposits    | mapping(address => mapping(address => uint256)) | 4    | 0      | 32    | src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy |
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge
+=======================
+
+| Name               | Type    | Slot | Offset | Bytes | Contract                                                                       |
+|--------------------|---------|------|--------|-------|--------------------------------------------------------------------------------|
+| messenger          | address | 0    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge |
+| otherBridge        | address | 1    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge |
+| l1Usdc             | address | 2    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge |
+| l2Usdc             | address | 3    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge |
+| l2UsdcMasterMinter | address | 4    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge |
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy
+=======================
+
+| Name               | Type    | Slot | Offset | Bytes | Contract                                                                                 |
+|--------------------|---------|------|--------|-------|------------------------------------------------------------------------------------------|
+| messenger          | address | 0    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy |
+| otherBridge        | address | 1    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy |
+| l1Usdc             | address | 2    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy |
+| l2Usdc             | address | 3    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy |
+| l2UsdcMasterMinter | address | 4    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy |
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter
+=======================
+
+| Name          | Type                               | Slot | Offset | Bytes | Contract                                                                         |
+|---------------|------------------------------------|------|--------|-------|----------------------------------------------------------------------------------|
+| _owner        | address                            | 0    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter |
+| controllers   | mapping(address => address)        | 1    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter |
+| minterManager | contract MinterManagementInterface | 2    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter |
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol:SignatureChecker
+=======================
+
+| Name | Type | Slot | Offset | Bytes | Contract |
+|------|------|------|--------|-------|----------|
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2
+=======================
+
+| Name                                | Type                                            | Slot | Offset | Bytes | Contract                                                                      |
+|-------------------------------------|-------------------------------------------------|------|--------|-------|-------------------------------------------------------------------------------|
+| _owner                              | address                                         | 0    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| pauser                              | address                                         | 1    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| paused                              | bool                                            | 1    | 20     | 1     | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| blacklister                         | address                                         | 2    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _deprecatedBlacklisted              | mapping(address => bool)                        | 3    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| name                                | string                                          | 4    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| symbol                              | string                                          | 5    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| decimals                            | uint8                                           | 6    | 0      | 1     | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| currency                            | string                                          | 7    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| masterMinter                        | address                                         | 8    | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| initialized                         | bool                                            | 8    | 20     | 1     | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| balanceAndBlacklistStates           | mapping(address => uint256)                     | 9    | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| allowed                             | mapping(address => mapping(address => uint256)) | 10   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| totalSupply_                        | uint256                                         | 11   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| minters                             | mapping(address => bool)                        | 12   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| minterAllowed                       | mapping(address => uint256)                     | 13   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _rescuer                            | address                                         | 14   | 0      | 20    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _DEPRECATED_CACHED_DOMAIN_SEPARATOR | bytes32                                         | 15   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _authorizationStates                | mapping(address => mapping(bytes32 => bool))    | 16   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _permitNonces                       | mapping(address => uint256)                     | 17   | 0      | 32    | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+| _initializedVersion                 | uint8                                           | 18   | 0      | 1     | src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2 |
+
+=======================
+➡ src/tokamak-contracts/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol:FiatTokenProxy
+=======================
+
+| Name | Type | Slot | Offset | Bytes | Contract |
+|------|------|------|--------|-------|----------|

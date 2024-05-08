@@ -26,7 +26,7 @@ bytecode_hash = 'none'
 build_info = true
 build_info_path = 'artifacts/build-info'
 
-libraries = ["src/L2-tokamak/USDC/usdc-contracts/v2/FiatTokenV2_2.sol:SignatureChecker:0x4200000000000000000000000000000000000776"]
+libraries = ["src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:SignatureChecker:0x4200000000000000000000000000000000000776"]
 
 # Test / Script Runner Settings
 ffi = true
