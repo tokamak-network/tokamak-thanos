@@ -97,6 +97,7 @@ services:
       --metrics.port=7300
       --pprof.enabled
       --rpc.enable-admin
+      --l1.beacon=${L1_BEACON}
       --l1.trustrpc"
     ports:
       - "7545:8545"

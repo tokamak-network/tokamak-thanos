@@ -31,7 +31,8 @@ parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=
 parser.add_argument('--block-number', help='From block number', type=int, default=os.environ.get('BLOCK_NUMBER'))
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
-parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/titan-op-geth:nightly')
+parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/thanos-op-geth:nightly')
+parser.add_argument('--l1-beacon', help='Using beacon RPC', type=str, default=os.environ.get('L1_BEACON'))
 
 log = logging.getLogger()
 
@@ -117,7 +118,8 @@ def main():
       block_number=block_number,
       l2_native_token=args.l2_native_token,
       bedrock_devnet_path=bedrock_devnet_dir,
-      admin_key=args.admin_key
+      admin_key=args.admin_key,
+      l1_beacon=args.l1_beacon,
     )
 
     if args.test:
@@ -148,7 +150,8 @@ def main():
             'L1_DOCKER_FILE': 'Dockerfile.l1.fork' if paths.fork_public_network else 'Dockerfile.l1',
             'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
             'BLOCK_NUMBER': paths.block_number,
-            'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
+            'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network),
+            'L1_RPC_BEACON': paths.l1_beacon if paths.l1_beacon else ''
         })
 
     log.info('Devnet starting')
@@ -303,7 +306,6 @@ def devnet_deploy(paths, args):
         # If someone reads this comment and understands why this is being done, please
         # update this comment to explain.
         init_devnet_l1_deploy_config(paths, update_timestamp=True, temp=False)
-        outfile_l1 = pjoin(paths.devnet_dir, 'genesis-l1.json')
         run_command([
             'go', 'run', 'cmd/main.go', 'genesis', 'l1',
             '--deploy-config', paths.devnet_config_path,
@@ -341,7 +343,7 @@ def devnet_deploy(paths, args):
     log.info('Bringing up L2.')
     run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
-         'L2_IMAGE': args.l2_image
+        'L2_IMAGE': args.l2_image
     })
 
     # Wait for the L2 to be available.
@@ -364,7 +366,7 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
-        'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
+        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else ''
     })
 
     log.info('Bringing up `artifact-server`')
