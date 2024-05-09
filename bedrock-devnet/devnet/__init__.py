@@ -19,14 +19,6 @@ from collections import namedtuple
 
 pjoin = os.path.join
 
-# test
-os.environ['L1_FORK_PUBLIC_NETWORK'] = 'true'
-os.environ['L1_RPC'] = 'https://sepolia.infura.io/v3/1e6d020f0fef4fd892ab19d14b964238'
-os.environ['BLOCK_NUMBER'] = '5780000'
-os.environ['IMPL_SALT'] = 'tokamak network'
-os.environ['L2_NATIVE_TOKEN'] = '0xa30fe40285b8f5c0457dbc3b7c8a280373c40044'
-os.environ['L1_BEACON'] = 'https://radial-wispy-sea.ethereum-sepolia.quiknode.pro/34f9ef603b8ad43763dd0e99159454ae035645e6'
-
 parser = argparse.ArgumentParser(description='Bedrock devnet launcher')
 parser.add_argument('--monorepo-dir', help='Directory of the monorepo', default=os.getcwd())
 parser.add_argument('--allocs', help='Only create the allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
