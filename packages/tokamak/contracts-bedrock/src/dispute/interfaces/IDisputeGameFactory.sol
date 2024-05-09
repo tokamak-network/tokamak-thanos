@@ -80,8 +80,8 @@ interface IDisputeGameFactory {
         Claim _rootClaim,
         bytes calldata _extraData
     )
-        payable
         external
+        payable
         returns (IDisputeGame proxy_);
 
     /// @notice Sets the implementation contract for a specific `GameType`.

@@ -30,7 +30,8 @@ import { Ownable } from "./Ownable.sol";
 /**
  * @notice Base contract which allows children to implement an emergency stop
  * mechanism
- * @dev Forked from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/feb665136c0dae9912e08397c1a21c4af3651ef3/contracts/lifecycle/Pausable.sol
+ * @dev Forked from
+ * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/feb665136c0dae9912e08397c1a21c4af3651ef3/contracts/lifecycle/Pausable.sol
  * Modifications:
  * 1. Added pauser role, switched pause/unpause to be onlyPauser (6/14/2018)
  * 2. Removed whenNotPause/whenPaused from pause/unpause (6/14/2018)
@@ -85,10 +86,7 @@ contract Pausable is Ownable {
      * @param _newPauser The address of the new pauser.
      */
     function updatePauser(address _newPauser) external onlyOwner {
-        require(
-            _newPauser != address(0),
-            "Pausable: new pauser is the zero address"
-        );
+        require(_newPauser != address(0), "Pausable: new pauser is the zero address");
         pauser = _newPauser;
         emit PauserChanged(pauser);
     }

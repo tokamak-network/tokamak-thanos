@@ -25,7 +25,8 @@ import { Address } from "@openzeppelin/contracts_v3.1.0/utils/Address.sol";
  * @notice This contract implements a proxy that allows to change the
  * implementation address to which it will delegate.
  * Such a change is called an implementation upgrade.
- * @dev Forked from https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/UpgradeabilityProxy.sol
+ * @dev Forked from
+ * https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/UpgradeabilityProxy.sol
  * Modifications:
  * 1. Reformat, conform to Solidity 0.6 syntax, and add error messages (5/13/20)
  * 2. Use Address utility library from the latest OpenZeppelin (5/13/20)
@@ -42,18 +43,14 @@ contract UpgradeabilityProxy is Proxy {
      * This is the keccak-256 hash of "org.zeppelinos.proxy.implementation", and is
      * validated in the constructor.
      */
-    bytes32
-        private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
+    bytes32 private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
 
     /**
      * @dev Contract constructor.
      * @param implementationContract Address of the initial implementation.
      */
     constructor(address implementationContract) public {
-        assert(
-            IMPLEMENTATION_SLOT ==
-                keccak256("org.zeppelinos.proxy.implementation")
-        );
+        assert(IMPLEMENTATION_SLOT == keccak256("org.zeppelinos.proxy.implementation"));
 
         _setImplementation(implementationContract);
     }
@@ -62,7 +59,7 @@ contract UpgradeabilityProxy is Proxy {
      * @dev Returns the current implementation.
      * @return impl Address of the current implementation
      */
-    function _implementation() internal override view returns (address impl) {
+    function _implementation() internal view override returns (address impl) {
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
             impl := sload(slot)
@@ -83,10 +80,7 @@ contract UpgradeabilityProxy is Proxy {
      * @param newImplementation Address of the new implementation.
      */
     function _setImplementation(address newImplementation) private {
-        require(
-            Address.isContract(newImplementation),
-            "Cannot set a proxy implementation to a non-contract address"
-        );
+        require(Address.isContract(newImplementation), "Cannot set a proxy implementation to a non-contract address");
 
         bytes32 slot = IMPLEMENTATION_SLOT;
 

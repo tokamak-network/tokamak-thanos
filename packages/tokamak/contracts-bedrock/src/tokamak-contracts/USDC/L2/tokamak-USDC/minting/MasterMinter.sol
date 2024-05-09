@@ -27,5 +27,5 @@ import { MintController } from "./MintController.sol";
  * @dev MasterMinter inherits all its functionality from MintController.
  */
 contract MasterMinter is MintController {
-    constructor(address _minterManager) public MintController(_minterManager) {}
+    constructor(address _minterManager) public MintController(_minterManager) { }
 }
