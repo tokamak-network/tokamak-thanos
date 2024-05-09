@@ -23,12 +23,12 @@ func GetStorageLayout(name string) (*solc.StorageLayout, error) {
 		artifactPath := "/Users/aaron/aaron.lee/OR-Ticket/OR-1550/tokamak-thanos/packages/tokamak/contracts-bedrock/hardhat-artifacts/"
 		hh, err := hardhat.New("DevnetL1", []string{artifactPath}, []string{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to create hardhat instance: %v", err)
+			return nil, fmt.Errorf("failed to create hardhat instance: %w", err)
 		}
 
 		layout, err = hh.GetStorageLayout(name)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find storage layout for %s using hardhat: %v", name, err)
+			return nil, fmt.Errorf("failed to find storage layout for %s using hardhat: %w", name, err)
 		}
 
 		layouts[name] = layout
