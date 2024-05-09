@@ -391,7 +391,6 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		_, tx, _, err = bindings.DeployFiatTokenV22(opts, backend)
 	case "Permit2":
 		_, tx, _, err = bindings.DeployPermit2(opts, backend)
-
 	case "QuoterV2":
 		_factory, ok := deployment.Args[0].(common.Address)
 		if !ok {
