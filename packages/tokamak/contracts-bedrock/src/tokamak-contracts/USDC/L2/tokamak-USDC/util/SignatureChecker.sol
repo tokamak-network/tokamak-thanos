@@ -25,21 +25,19 @@ import { IERC1271 } from "../interface/IERC1271.sol";
  * @dev Signature verification helper that can be used instead of `ECRecover.recover` to seamlessly support both ECDSA
  * signatures from externally owned accounts (EOAs) as well as ERC1271 signatures from smart contract wallets.
  *
- * Adapted from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/21bb89ef5bfc789b9333eb05e3ba2b7b284ac77c/contracts/utils/cryptography/SignatureChecker.sol
+ * Adapted from
+ * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/21bb89ef5bfc789b9333eb05e3ba2b7b284ac77c/contracts/utils/cryptography/SignatureChecker.sol
  */
 library SignatureChecker {
     /**
      * @dev Checks if a signature is valid for a given signer and data hash. If the signer is a smart contract, the
-     * signature is validated against that smart contract using ERC1271, otherwise it's validated using `ECRecover.recover`.
+     * signature is validated against that smart contract using ERC1271, otherwise it's validated using
+     * `ECRecover.recover`.
      * @param signer        Address of the claimed signer
      * @param digest        Keccak-256 hash digest of the signed message
      * @param signature     Signature byte array associated with hash
      */
-    function isValidSignatureNow(
-        address signer,
-        bytes32 digest,
-        bytes memory signature
-    ) external view returns (bool) {
+    function isValidSignatureNow(address signer, bytes32 digest, bytes memory signature) external view returns (bool) {
         if (!isContract(signer)) {
             return ECRecover.recover(digest, signature) == signer;
         }
@@ -60,18 +58,17 @@ library SignatureChecker {
         address signer,
         bytes32 digest,
         bytes memory signature
-    ) internal view returns (bool) {
-        (bool success, bytes memory result) = signer.staticcall(
-            abi.encodeWithSelector(
-                IERC1271.isValidSignature.selector,
-                digest,
-                signature
-            )
+    )
+        internal
+        view
+        returns (bool)
+    {
+        (bool success, bytes memory result) =
+            signer.staticcall(abi.encodeWithSelector(IERC1271.isValidSignature.selector, digest, signature));
+        return (
+            success && result.length >= 32
+                && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector)
         );
-        return (success &&
-            result.length >= 32 &&
-            abi.decode(result, (bytes32)) ==
-            bytes32(IERC1271.isValidSignature.selector));
     }
 
     /**

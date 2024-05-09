@@ -56,16 +56,15 @@ contract FiatTokenUtil {
         bytes calldata params,
         bytes calldata signatures,
         bool atomic
-    ) external returns (bool) {
+    )
+        external
+        returns (bool)
+    {
         uint256 num = params.length / _TRANSFER_PARAM_SIZE;
         require(num > 0, "FiatTokenUtil: no transfer provided");
+        require(num * _TRANSFER_PARAM_SIZE == params.length, "FiatTokenUtil: length of params is invalid");
         require(
-            num * _TRANSFER_PARAM_SIZE == params.length,
-            "FiatTokenUtil: length of params is invalid"
-        );
-        require(
-            signatures.length / _SIGNATURE_SIZE == num &&
-                num * _SIGNATURE_SIZE == signatures.length,
+            signatures.length / _SIGNATURE_SIZE == num && num * _SIGNATURE_SIZE == signatures.length,
             "FiatTokenUtil: length of signatures is invalid"
         );
 
@@ -76,30 +75,18 @@ contract FiatTokenUtil {
             uint256 sigOffset = i * _SIGNATURE_SIZE;
 
             // extract from and to
-            bytes memory fromTo = _unpackAddresses(
-                abi.encodePacked(params[paramsOffset:paramsOffset + 40])
-            );
+            bytes memory fromTo = _unpackAddresses(abi.encodePacked(params[paramsOffset:paramsOffset + 40]));
             // extract value, validAfter, validBefore, and nonce
-            bytes memory other4 = abi.encodePacked(
-                params[paramsOffset + 40:paramsOffset + _TRANSFER_PARAM_SIZE]
-            );
+            bytes memory other4 = abi.encodePacked(params[paramsOffset + 40:paramsOffset + _TRANSFER_PARAM_SIZE]);
             // extract v
             uint8 v = uint8(signatures[sigOffset]);
             // extract r and s
-            bytes memory rs = abi.encodePacked(
-                signatures[sigOffset + 1:sigOffset + _SIGNATURE_SIZE]
-            );
+            bytes memory rs = abi.encodePacked(signatures[sigOffset + 1:sigOffset + _SIGNATURE_SIZE]);
 
             // Call transferWithAuthorization with the extracted parameters
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, bytes memory returnData) = _fiatToken.call(
-                abi.encodePacked(
-                    _TRANSFER_WITH_AUTHORIZATION_SELECTOR,
-                    fromTo,
-                    other4,
-                    abi.encode(v),
-                    rs
-                )
+                abi.encodePacked(_TRANSFER_WITH_AUTHORIZATION_SELECTOR, fromTo, other4, abi.encode(v), rs)
             );
 
             // Revert if atomic is true, and the call was not successful
@@ -112,12 +99,9 @@ contract FiatTokenUtil {
                 numSuccessful++;
             } else {
                 // extract from
-                (address from, ) = abi.decode(fromTo, (address, address));
+                (address from,) = abi.decode(fromTo, (address, address));
                 // extract nonce
-                (, , , bytes32 nonce) = abi.decode(
-                    other4,
-                    (uint256, uint256, uint256, bytes32)
-                );
+                (,,, bytes32 nonce) = abi.decode(other4, (uint256, uint256, uint256, bytes32));
                 emit TransferFailed(from, nonce);
             }
         }
@@ -132,11 +116,7 @@ contract FiatTokenUtil {
      * @param packed Packed data (40 bytes)
      * @return Unpacked data (64 bytes)
      */
-    function _unpackAddresses(bytes memory packed)
-        private
-        pure
-        returns (bytes memory)
-    {
+    function _unpackAddresses(bytes memory packed) private pure returns (bytes memory) {
         address addr1;
         address addr2;
         assembly {
@@ -150,10 +130,7 @@ contract FiatTokenUtil {
      * @dev Revert with reason string extracted from the return data
      * @param returnData    Return data from a call
      */
-    function _revertWithReasonFromReturnData(bytes memory returnData)
-        private
-        pure
-    {
+    function _revertWithReasonFromReturnData(bytes memory returnData) private pure {
         // Return data will be at least 100 bytes if it contains the reason
         // string: Error(string) selector[4] + string offset[32] + string
         // length[32] + string data[32] = 100

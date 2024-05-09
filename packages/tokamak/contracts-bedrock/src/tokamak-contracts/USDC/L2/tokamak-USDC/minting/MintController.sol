@@ -44,28 +44,15 @@ contract MintController is Controller {
      */
     MinterManagementInterface internal minterManager;
 
-    event MinterManagerSet(
-        address indexed _oldMinterManager,
-        address indexed _newMinterManager
-    );
-    event MinterConfigured(
-        address indexed _msgSender,
-        address indexed _minter,
-        uint256 _allowance
-    );
+    event MinterManagerSet(address indexed _oldMinterManager, address indexed _newMinterManager);
+    event MinterConfigured(address indexed _msgSender, address indexed _minter, uint256 _allowance);
     event MinterRemoved(address indexed _msgSender, address indexed _minter);
     event MinterAllowanceIncremented(
-        address indexed _msgSender,
-        address indexed _minter,
-        uint256 _increment,
-        uint256 _newAllowance
+        address indexed _msgSender, address indexed _minter, uint256 _increment, uint256 _newAllowance
     );
 
     event MinterAllowanceDecremented(
-        address indexed msgSender,
-        address indexed minter,
-        uint256 decrement,
-        uint256 newAllowance
+        address indexed msgSender, address indexed minter, uint256 decrement, uint256 newAllowance
     );
 
     /**
@@ -79,11 +66,7 @@ contract MintController is Controller {
     /**
      * @notice gets the minterManager
      */
-    function getMinterManager()
-        external
-        view
-        returns (MinterManagementInterface)
-    {
+    function getMinterManager() external view returns (MinterManagementInterface) {
         return minterManager;
     }
 
@@ -113,11 +96,7 @@ contract MintController is Controller {
      * @notice Enables the minter and sets its allowance.
      * @param _newAllowance New allowance to be set for minter.
      */
-    function configureMinter(uint256 _newAllowance)
-        public
-        onlyController
-        returns (bool)
-    {
+    function configureMinter(uint256 _newAllowance) public onlyController returns (bool) {
         address minter = controllers[msg.sender];
         emit MinterConfigured(msg.sender, minter, _newAllowance);
         return internal_setMinterAllowance(minter, _newAllowance);
@@ -129,30 +108,15 @@ contract MintController is Controller {
      * @dev An minter is considered active if minterManager.isMinter(minter)
      * returns true.
      */
-    function incrementMinterAllowance(uint256 _allowanceIncrement)
-        public
-        onlyController
-        returns (bool)
-    {
-        require(
-            _allowanceIncrement > 0,
-            "Allowance increment must be greater than 0"
-        );
+    function incrementMinterAllowance(uint256 _allowanceIncrement) public onlyController returns (bool) {
+        require(_allowanceIncrement > 0, "Allowance increment must be greater than 0");
         address minter = controllers[msg.sender];
-        require(
-            minterManager.isMinter(minter),
-            "Can only increment allowance for minters in minterManager"
-        );
+        require(minterManager.isMinter(minter), "Can only increment allowance for minters in minterManager");
 
         uint256 currentAllowance = minterManager.minterAllowance(minter);
         uint256 newAllowance = currentAllowance.add(_allowanceIncrement);
 
-        emit MinterAllowanceIncremented(
-            msg.sender,
-            minter,
-            _allowanceIncrement,
-            newAllowance
-        );
+        emit MinterAllowanceIncremented(msg.sender, minter, _allowanceIncrement, newAllowance);
 
         return internal_setMinterAllowance(minter, newAllowance);
     }
@@ -163,35 +127,17 @@ contract MintController is Controller {
      * decrementMinterAllowance() transaction to a minter and not worry
      * about it being used to undo a removeMinter() transaction.
      */
-    function decrementMinterAllowance(uint256 _allowanceDecrement)
-        public
-        onlyController
-        returns (bool)
-    {
-        require(
-            _allowanceDecrement > 0,
-            "Allowance decrement must be greater than 0"
-        );
+    function decrementMinterAllowance(uint256 _allowanceDecrement) public onlyController returns (bool) {
+        require(_allowanceDecrement > 0, "Allowance decrement must be greater than 0");
         address minter = controllers[msg.sender];
-        require(
-            minterManager.isMinter(minter),
-            "Can only decrement allowance for minters in minterManager"
-        );
+        require(minterManager.isMinter(minter), "Can only decrement allowance for minters in minterManager");
 
         uint256 currentAllowance = minterManager.minterAllowance(minter);
-        uint256 actualAllowanceDecrement = (
-            currentAllowance > _allowanceDecrement
-                ? _allowanceDecrement
-                : currentAllowance
-        );
+        uint256 actualAllowanceDecrement =
+            (currentAllowance > _allowanceDecrement ? _allowanceDecrement : currentAllowance);
         uint256 newAllowance = currentAllowance.sub(actualAllowanceDecrement);
 
-        emit MinterAllowanceDecremented(
-            msg.sender,
-            minter,
-            actualAllowanceDecrement,
-            newAllowance
-        );
+        emit MinterAllowanceDecremented(msg.sender, minter, actualAllowanceDecrement, newAllowance);
 
         return internal_setMinterAllowance(minter, newAllowance);
     }
@@ -204,10 +150,7 @@ contract MintController is Controller {
      * @param _minter Minter to set new allowance of.
      * @param _newAllowance New allowance to be set for minter.
      */
-    function internal_setMinterAllowance(address _minter, uint256 _newAllowance)
-        internal
-        returns (bool)
-    {
+    function internal_setMinterAllowance(address _minter, uint256 _newAllowance) internal returns (bool) {
         return minterManager.configureMinter(_minter, _newAllowance);
     }
 }

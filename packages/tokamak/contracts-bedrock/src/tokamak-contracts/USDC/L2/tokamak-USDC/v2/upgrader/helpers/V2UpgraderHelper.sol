@@ -32,10 +32,7 @@ contract V2UpgraderHelper is AbstractUpgraderHelper {
      * @notice Constructor
      * @param fiatTokenProxy    Address of the FiatTokenProxy contract
      */
-    constructor(address fiatTokenProxy)
-        public
-        AbstractUpgraderHelper(fiatTokenProxy)
-    {}
+    constructor(address fiatTokenProxy) public AbstractUpgraderHelper(fiatTokenProxy) { }
 
     /**
      * @notice Call name()
@@ -118,11 +115,7 @@ contract V2UpgraderHelper is AbstractUpgraderHelper {
      * @param value    Amount
      * @return result
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) external returns (bool) {
+    function transferFrom(address from, address to, uint256 value) external returns (bool) {
         return FiatTokenV1(_proxy).transferFrom(from, to, value);
     }
 }
