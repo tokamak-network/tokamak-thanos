@@ -240,11 +240,7 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
-<<<<<<< HEAD
 	// UnsupportedAddress represents an address that is not supported by the system.
-=======
-    // UnsupportedAddress represents an address that is not supported by the system.
->>>>>>> 0be983ab7 (fix format)
 	UnsupportedAddress common.Address `json:"unsupportedAddress"`
 	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
 	// as part of building the L2 genesis state.
