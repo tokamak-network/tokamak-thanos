@@ -14,14 +14,13 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
-import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -395,11 +394,12 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _to         Target address on L2.
+    /// @param _mint       Native token value to deposit into L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
-        _depositTransaction(msg.sender, _to, _value, _gasLimit, _data);
+    function depositTransaction(address _to, uint256 _mint, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
+        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _data);
     }
 
     // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
@@ -409,12 +409,14 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _sender       Sender address
     /// @param _to         Target address on L2.
+    /// @param _mint       Native token value to deposit into L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _data       Data to trigger the recipient with.
     function _depositTransaction(
         address _sender,
         address _to,
+        uint256 _mint,
         uint256 _value,
         uint64 _gasLimit,
         bytes calldata _data
@@ -423,9 +425,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         metered(_gasLimit)
     {
         // Lock token in this contract
-        if (_value > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
-            depositedAmount += _value;
+        if (_mint > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
+            depositedAmount += _mint;
         }
 
         // Prevent depositing transactions that have too small of a gas limit. Users should pay
@@ -447,7 +449,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, (_to == address(0)), _data);
+        bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, (_to == address(0)), _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
