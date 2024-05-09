@@ -126,9 +126,6 @@ type EthClient struct {
 	// common.Hash -> *HeaderInfo
 	headersCache *caching.LRUCache[common.Hash, eth.BlockInfo]
 
-	// [OPTIONAL] The flag determines whatever the network is the fork public network
-	isForkPublicNetwork bool
-
 	// cache payloads by hash
 	// common.Hash -> *eth.ExecutionPayload
 	payloadsCache *caching.LRUCache[common.Hash, *eth.ExecutionPayloadEnvelope]
@@ -144,15 +141,14 @@ func NewEthClient(client client.RPC, log log.Logger, metrics caching.Metrics, co
 	client = LimitRPC(client, config.MaxConcurrentRequests)
 	recProvider := newRecProviderFromConfig(client, log, metrics, config)
 	return &EthClient{
-		client:              client,
-		recProvider:         recProvider,
-		trustRPC:            config.TrustRPC,
-		mustBePostMerge:     config.MustBePostMerge,
-		log:                 log,
-		transactionsCache:   caching.NewLRUCache[common.Hash, types.Transactions](metrics, "txs", config.TransactionsCacheSize),
-		headersCache:        caching.NewLRUCache[common.Hash, eth.BlockInfo](metrics, "headers", config.HeadersCacheSize),
-		payloadsCache:       caching.NewLRUCache[common.Hash, *eth.ExecutionPayloadEnvelope](metrics, "payloads", config.PayloadsCacheSize),
-		isForkPublicNetwork: config.IsForkPublicNetwork,
+		client:            client,
+		recProvider:       recProvider,
+		trustRPC:          config.TrustRPC,
+		mustBePostMerge:   config.MustBePostMerge,
+		log:               log,
+		transactionsCache: caching.NewLRUCache[common.Hash, types.Transactions](metrics, "txs", config.TransactionsCacheSize),
+		headersCache:      caching.NewLRUCache[common.Hash, eth.BlockInfo](metrics, "headers", config.HeadersCacheSize),
+		payloadsCache:     caching.NewLRUCache[common.Hash, *eth.ExecutionPayloadEnvelope](metrics, "payloads", config.PayloadsCacheSize),
 	}, nil
 }
 

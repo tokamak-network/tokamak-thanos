@@ -57,7 +57,7 @@ func (los *L1OriginSelector) FindL1Origin(ctx context.Context, l2Head eth.L2Bloc
 	// The L1 source can be shimmed to hide new L1 blocks and enforce a sequencer confirmation distance.
 	nextOrigin, err := los.l1.L1BlockRefByNumber(ctx, currentOrigin.Number+1)
 	if err != nil {
-		if pastSeqDrift {
+		if pastSeqDrift && !los.cfg.IsForkPublicNetwork {
 			return eth.L1BlockRef{}, fmt.Errorf("cannot build next L2 block past current L1 origin %s by more than sequencer time drift, and failed to find next L1 origin: %w", currentOrigin, err)
 		}
 		if errors.Is(err, ethereum.NotFound) {
