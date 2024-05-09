@@ -67,7 +67,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
-        PORTAL.depositTransaction(_to, _value, _gasLimit, _data);
+        PORTAL.depositTransaction(_to, _value, _value, _gasLimit, _data);
     }
 
     /// @notice unpack onApprove data
