@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-contracts",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Contracts for Optimism Specs",
   "license": "MIT",
   "files": [
@@ -8,6 +8,18 @@
     "deployments/**/*.json",
     "src/**/*.sol"
   ],
+  "keywords": [
+    "tokamak",
+    "thanos",
+    "ethereum",
+    "sdk"
+  ],
+  "homepage": "https://github.com/tokamak-network/tokamak-thanos/tree/main/packages/tokamak/contracts-bedrock#readme",
+  "author": "Optimism PBC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tokamak-network/tokamak-thanos.git"
+  },
   "scripts": {
     "bindings": "pnpm bindings:ts && pnpm bindings:go",
     "bindings:ts": "nx generate @eth-optimism/contracts-ts",
