@@ -113,6 +113,8 @@ type Config struct {
 
 	// L1 DataAvailabilityChallenge contract proxy address
 	DAChallengeAddress common.Address `json:"da_challenge_address,omitempty"`
+
+	IsForkPublicNetwork bool
 }
 
 // ValidateL1Config checks L1 config variables for errors.

@@ -253,6 +253,9 @@ func applyOverrides(ctx *cli.Context, rollupConfig *rollup.Config) {
 		ecotone := ctx.Uint64(opflags.EcotoneOverrideFlagName)
 		rollupConfig.EcotoneTime = &ecotone
 	}
+	if ctx.IsSet(flags.IsForkPublicNetworkFlag.Name) {
+		rollupConfig.IsForkPublicNetwork = ctx.Bool(flags.IsForkPublicNetworkFlag.Name)
+	}
 }
 
 func NewSnapshotLogger(ctx *cli.Context) (log.Logger, error) {

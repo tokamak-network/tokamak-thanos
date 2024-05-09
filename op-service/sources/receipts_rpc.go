@@ -21,6 +21,7 @@ func newRPCRecProviderFromConfig(client client.RPC, log log.Logger, metrics cach
 		MaxBatchSize:        config.MaxRequestsPerBatch,
 		ProviderKind:        config.RPCProviderKind,
 		MethodResetDuration: config.MethodResetDuration,
+		IsForkPublicNetwork: config.IsForkPublicNetwork,
 	}
 	return NewCachingRPCReceiptsProvider(client, log, recCfg, metrics, config.ReceiptsCacheSize)
 }
@@ -50,15 +51,20 @@ type RPCReceiptsFetcher struct {
 
 	// methodResetDuration defines how long we take till we reset lastMethodsReset
 	methodResetDuration time.Duration
+
+	// [OPTIONAL] The flag determines whatever the network is the fork public network
+	IsForkPublicNetwork bool
 }
 
 type RPCReceiptsConfig struct {
 	MaxBatchSize        int
 	ProviderKind        RPCProviderKind
 	MethodResetDuration time.Duration
+	IsForkPublicNetwork bool
 }
 
 func NewRPCReceiptsFetcher(client rpcClient, log log.Logger, config RPCReceiptsConfig) *RPCReceiptsFetcher {
+	log.Info("Initializing RPC Receipts Fetcher", "config", config)
 	return &RPCReceiptsFetcher{
 		client:                  client,
 		basic:                   NewBasicRPCReceiptsFetcher(client, config.MaxBatchSize),
@@ -67,6 +73,7 @@ func NewRPCReceiptsFetcher(client rpcClient, log log.Logger, config RPCReceiptsC
 		availableReceiptMethods: AvailableReceiptsFetchingMethods(config.ProviderKind),
 		lastMethodsReset:        time.Now(),
 		methodResetDuration:     config.MethodResetDuration,
+		IsForkPublicNetwork:     config.IsForkPublicNetwork,
 	}
 }
 
@@ -106,7 +113,13 @@ func (f *RPCReceiptsFetcher) FetchReceipts(ctx context.Context, blockInfo eth.Bl
 	}
 
 	if err = validateReceipts(block, blockInfo.ReceiptHash(), txHashes, result); err != nil {
-		return nil, err
+		// In the case we use the fork public network, anvil has the issue with the receipt when we fetch by the block hash
+		// So, in this case, we will ignore the error when validating the receipts we get from the l1 node by the block hash
+		// ref: https://github.com/foundry-rs/foundry/issues/3840
+		if f.IsForkPublicNetwork {
+			return result, nil
+		}
+		//return nil, err
 	}
 
 	return
