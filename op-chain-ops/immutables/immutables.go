@@ -435,8 +435,7 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 	case "UniversalRouter":
 		localParams, ok := deployment.Args[0].(RouterParameters)
 		if !ok {
-			log.Error("Deployment failed: RouterParameters has invalid type")
-			return nil, fmt.Errorf("invalid type for RouterParameters, expected RouterParameters got %T", deployment.Args[0])
+			return nil, fmt.Errorf("invalid type for RouterParameters")
 		}
 		convertedParams := ConvertRouterParameters(localParams)
 		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)

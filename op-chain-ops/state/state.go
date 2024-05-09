@@ -53,7 +53,6 @@ func SetStorage(name string, address common.Address, values StorageValues, db vm
 	if err != nil {
 		return fmt.Errorf("cannot set storage: %w", err)
 	}
-	fmt.Printf("start!!!!! %v \n", name)
 	slots, err := ComputeStorageSlots(layout, values)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -67,7 +66,6 @@ func SetStorage(name string, address common.Address, values StorageValues, db vm
 
 // ComputeStorageSlots will compute the storage slots for a given contract.
 func ComputeStorageSlots(layout *solc.StorageLayout, values StorageValues) ([]*EncodedStorage, error) {
-	PrintAllStorageEntries(layout)
 	encodedStorage := make([]*EncodedStorage, 0)
 
 	for label, value := range values {
@@ -123,11 +121,4 @@ func MergeStorage(storage []*EncodedStorage) []*EncodedStorage {
 		results = append(results, &EncodedStorage{key, val})
 	}
 	return results
-}
-
-func PrintAllStorageEntries(layout *solc.StorageLayout) {
-	fmt.Println("Printing all storage entries:")
-	for _, entry := range layout.Storage {
-		fmt.Printf("Entry: %v\n", entry)
-	}
 }

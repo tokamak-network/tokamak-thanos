@@ -2,7 +2,6 @@ package bindings
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-bindings/hardhat"
@@ -17,29 +16,22 @@ var layouts = make(map[string]*solc.StorageLayout)
 // in an init function.
 var deployedBytecodes = make(map[string]string)
 
+// GetStorageLayout returns the storage layout for the given contract name.
 func GetStorageLayout(name string) (*solc.StorageLayout, error) {
 	layout := layouts[name]
 	if len(layout.Storage) == 0 {
 		artifactPath := "/Users/aaron/aaron.lee/OR-Ticket/OR-1550/tokamak-thanos/packages/tokamak/contracts-bedrock/hardhat-artifacts/"
-		log.Printf("Loading artifacts from: %s", artifactPath)
 		hh, err := hardhat.New("DevnetL1", []string{artifactPath}, []string{})
 		if err != nil {
-			log.Printf("Failed to create hardhat instance for %s: %v", name, err)
 			return nil, fmt.Errorf("failed to create hardhat instance: %v", err)
 		}
 
 		layout, err = hh.GetStorageLayout(name)
 		if err != nil {
-			log.Printf("Failed to find storage layout for %s using hardhat: %v", name, err)
 			return nil, fmt.Errorf("failed to find storage layout for %s using hardhat: %v", name, err)
 		}
 
 		layouts[name] = layout
-		log.Printf("Successfully retrieved and cached storage layout for %s", name)
-		log.Printf("Layout data: %+v", layout)
-	} else {
-		log.Printf("Using cached storage layout for %s", name)
-		log.Printf("Cached Layout data: %+v", layout)
 	}
 	return layout, nil
 }
