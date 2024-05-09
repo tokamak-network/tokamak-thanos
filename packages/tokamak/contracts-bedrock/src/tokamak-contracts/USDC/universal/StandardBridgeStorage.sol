@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract StandardBridgeStorage  {
+contract StandardBridgeStorage {
     address public messenger;
     address public otherBridge;
     address public l1Usdc;

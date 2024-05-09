@@ -8,37 +8,32 @@ import { SafeERC20 } from "@openzeppelin/contracts_v5.0.1/token/ERC20/utils/Safe
 import { L1UsdcBridgeStorage } from "./L1UsdcBridgeStorage.sol";
 
 interface ICrossDomainMessenger {
-    function xDomainMessageSender() external view returns (address) ;
-    function sendMessage(
-        address _target,
-        bytes calldata _message,
-        uint32 _minGasLimit
-    ) external payable;
+    function xDomainMessageSender() external view returns (address);
+    function sendMessage(address _target, bytes calldata _message, uint32 _minGasLimit) external payable;
 }
 
 interface IL2USDCBridge {
-     function finalizeDeposit(
+    function finalizeDeposit(
         address _l1Token,
         address _l2Token,
         address _from,
         address _to,
         uint256 _amount,
         bytes calldata _extraData
-    ) external;
+    )
+        external;
 }
 
 contract L1UsdcBridge is L1UsdcBridgeStorage {
     using SafeERC20 for IERC20;
-     /**
+    /**
      * @notice Only allow EOAs to call the functions. Note that this is not safe against contracts
      *         calling code within their constructors, but also doesn't really matter since we're
      *         just trying to prevent users accidentally depositing with smart contract wallets.
      */
+
     modifier onlyEOA() {
-        require(
-            !Address.isContract(msg.sender),
-            "StandardBridge: function can only be called from an EOA"
-        );
+        require(!Address.isContract(msg.sender), "StandardBridge: function can only be called from an EOA");
         _;
     }
 
@@ -47,14 +42,13 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
      */
     modifier onlyOtherBridge() {
         require(
-            msg.sender == messenger &&
-                ICrossDomainMessenger(messenger).xDomainMessageSender() == otherBridge,
+            msg.sender == messenger && ICrossDomainMessenger(messenger).xDomainMessageSender() == otherBridge,
             "StandardBridge: function can only be called from the other bridge"
         );
         _;
     }
 
-    constructor() {}
+    constructor() { }
 
     /**
      * @custom:legacy
@@ -96,7 +90,6 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
         bytes extraData
     );
 
-
     /**
      * @custom:legacy
      * @notice Deposits some amount of ERC20 tokens into the sender's account on L2.
@@ -115,16 +108,12 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
-    ) external virtual onlyEOA {
-        _initiateERC20Deposit(
-            _l1Token,
-            _l2Token,
-            msg.sender,
-            msg.sender,
-            _amount,
-            _minGasLimit,
-            _extraData
-        );
+    )
+        external
+        virtual
+        onlyEOA
+    {
+        _initiateERC20Deposit(_l1Token, _l2Token, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
     /**
@@ -147,16 +136,11 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
-    ) external virtual  {
-        _initiateERC20Deposit(
-            _l1Token,
-            _l2Token,
-            msg.sender,
-            _to,
-            _amount,
-            _minGasLimit,
-            _extraData
-        );
+    )
+        external
+        virtual
+    {
+        _initiateERC20Deposit(_l1Token, _l2Token, msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
     /**
@@ -177,7 +161,12 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
         address _to,
         uint256 _amount,
         bytes calldata _extraData
-    ) external onlyOtherBridge onlyL1Usdc(_l1Token) onlyL2Usdc(_l2Token) {
+    )
+        external
+        onlyOtherBridge
+        onlyL1Usdc(_l1Token)
+        onlyL2Usdc(_l2Token)
+    {
         deposits[_l1Token][_l2Token] = deposits[_l1Token][_l2Token] - _amount;
         IERC20(_l1Token).safeTransfer(_to, _amount);
         emit ERC20WithdrawalFinalized(_l1Token, _l2Token, _from, _to, _amount, _extraData);
@@ -192,7 +181,6 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
     function l2TokenBridge() external view returns (address) {
         return address(otherBridge);
     }
-
 
     /**
      * @notice Internal function for initiating an ERC20 deposit.
@@ -213,26 +201,21 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
-    ) internal onlyL1Usdc(_l1Token) onlyL2Usdc(_l2Token) {
-
+    )
+        internal
+        onlyL1Usdc(_l1Token)
+        onlyL2Usdc(_l2Token)
+    {
         IERC20(_l1Token).safeTransferFrom(_from, address(this), _amount);
         deposits[_l1Token][_l2Token] = deposits[_l1Token][_l2Token] + _amount;
 
         ICrossDomainMessenger(messenger).sendMessage(
             otherBridge,
             abi.encodeWithSelector(
-                IL2USDCBridge.finalizeDeposit.selector,
-                _l1Token,
-                _l2Token,
-                _from,
-                _to,
-                _amount,
-                _extraData
+                IL2USDCBridge.finalizeDeposit.selector, _l1Token, _l2Token, _from, _to, _amount, _extraData
             ),
             _minGasLimit
         );
-         emit ERC20DepositInitiated(_l1Token, _l2Token, _from, _to, _amount, _extraData);
-
+        emit ERC20DepositInitiated(_l1Token, _l2Token, _from, _to, _amount, _extraData);
     }
-
 }

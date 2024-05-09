@@ -167,6 +167,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
         emit ImplementationSet(address(_impl), _gameType);
     }
     /// @inheritdoc IDisputeGameFactory
+
     function setInitBond(GameType _gameType, uint256 _initBond) external onlyOwner {
         initBonds[_gameType] = _initBond;
         emit InitBondUpdated(_gameType, _initBond);
