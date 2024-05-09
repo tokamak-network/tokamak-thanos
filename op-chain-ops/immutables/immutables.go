@@ -206,7 +206,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "SwapRouter02",
 			Args: []interface{}{
-				immutable["SwapRouter02"]["factoryV2"],
+				immutable["SwapRouter02"]["_factoryV2"],
 				predeploys.UniswapV3FactoryAddr,
 				predeploys.NonfungiblePositionManagerAddr,
 				predeploys.WNativeTokenAddr,
@@ -227,8 +227,7 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			Name: "NonfungibleTokenPositionDescriptor",
 			Args: []interface{}{
 				predeploys.WNativeTokenAddr,
-				immutable["NonfungibleTokenPositionDescriptor"]["NativeCurrencyLabelBytes"],
-				//predeploys.NonfungibleTokenPositionDescriptorAddr,
+				immutable["NonfungibleTokenPositionDescriptor"]["_nativeCurrencyLabelBytes"],
 			},
 		},
 		{
@@ -240,26 +239,28 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 		{
 			Name: "UniversalRouter",
 			Args: []interface{}{
-				predeploys.Permit2Addr,
-				predeploys.WNativeTokenAddr,
-				immutable["UniversalRouter"]["seaportV1_5"],
-				immutable["UniversalRouter"]["seaportV1_4"],
-				immutable["UniversalRouter"]["openseaConduit"],
-				immutable["UniversalRouter"]["nftxZap"],
-				immutable["UniversalRouter"]["x2y2"],
-				immutable["UniversalRouter"]["foundation"],
-				immutable["UniversalRouter"]["sudoswap"],
-				immutable["UniversalRouter"]["elementMarket"],
-				immutable["UniversalRouter"]["nft20Zap"],
-				immutable["UniversalRouter"]["cryptopunks"],
-				immutable["UniversalRouter"]["looksRareV2"],
-				immutable["UniversalRouter"]["routerRewardsDistributor"],
-				immutable["UniversalRouter"]["looksRareRewardsDistributor"],
-				immutable["UniversalRouter"]["looksRareToken"],
-				immutable["UniversalRouter"]["v2Factory"],
-				predeploys.UniswapV3FactoryAddr,
-				immutable["UniversalRouter"]["pairInitCodeHash"],
-				immutable["UniversalRouter"]["poolInitCodeHash"],
+				RouterParameters{
+					predeploys.Permit2Addr,
+					predeploys.WNativeTokenAddr,
+					immutable["UniversalRouter"]["seaportV1_5"].(common.Address),
+					immutable["UniversalRouter"]["seaportV1_4"].(common.Address),
+					immutable["UniversalRouter"]["openseaConduit"].(common.Address),
+					immutable["UniversalRouter"]["nftxZap"].(common.Address),
+					immutable["UniversalRouter"]["x2y2"].(common.Address),
+					immutable["UniversalRouter"]["foundation"].(common.Address),
+					immutable["UniversalRouter"]["sudoswap"].(common.Address),
+					immutable["UniversalRouter"]["elementMarket"].(common.Address),
+					immutable["UniversalRouter"]["nft20Zap"].(common.Address),
+					immutable["UniversalRouter"]["cryptopunks"].(common.Address),
+					immutable["UniversalRouter"]["looksRareV2"].(common.Address),
+					immutable["UniversalRouter"]["routerRewardsDistributor"].(common.Address),
+					immutable["UniversalRouter"]["looksRareRewardsDistributor"].(common.Address),
+					immutable["UniversalRouter"]["looksRareToken"].(common.Address),
+					immutable["UniversalRouter"]["v2Factory"].(common.Address),
+					predeploys.UniswapV3FactoryAddr,
+					immutable["UniversalRouter"]["pairInitCodeHash"].(common.Hash),
+					immutable["UniversalRouter"]["poolInitCodeHash"].(common.Hash),
+				},
 			},
 		},
 	}
@@ -434,7 +435,8 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 	case "UniversalRouter":
 		localParams, ok := deployment.Args[0].(RouterParameters)
 		if !ok {
-			return nil, fmt.Errorf("invalid type for RouterParameters")
+			log.Error("Deployment failed: RouterParameters has invalid type")
+			return nil, fmt.Errorf("invalid type for RouterParameters, expected RouterParameters got %T", deployment.Args[0])
 		}
 		convertedParams := ConvertRouterParameters(localParams)
 		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)
