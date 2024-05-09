@@ -68,8 +68,6 @@ class ChildProcess:
 def main():
     args = parser.parse_args()
 
-    print('args = ', args)
-
     validate_fork_public_network(args)
 
     monorepo_dir = os.path.abspath(args.monorepo_dir)
@@ -368,8 +366,9 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
-        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else ''
-    })
+        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else '',
+        'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
+        })
 
     log.info('Bringing up `artifact-server`')
     run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
