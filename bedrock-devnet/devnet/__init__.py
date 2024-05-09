@@ -68,6 +68,8 @@ class ChildProcess:
 def main():
     args = parser.parse_args()
 
+    print('args = ', args)
+
     validate_fork_public_network(args)
 
     monorepo_dir = os.path.abspath(args.monorepo_dir)
