@@ -238,8 +238,6 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
-	// L1UsdcBridgeAddr - remove after deploy L1UsdcBridge
-	L1UsdcBridgeAddr common.Address `json:"l1UsdcBridgeAddr"`
 	// L1UsdcAddr - standard USDC address
 	L1UsdcAddr common.Address `json:"l1UsdcAddr"`
 	// UsdcTokenName - ERC20 name of the token e.g. "Bridged USDC (Own Company Name)"
@@ -256,6 +254,12 @@ type DeployConfig struct {
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
 	// When Cancun activates. Relative to L1 genesis.
 	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
+	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
+	// as part of building the L2 genesis state.
+	L1UsdcBridge common.Address `json:"l1UsdcBridge"`
+	// L1UsdcBridgeProxy represents the address of the L1UsdcBridgeProxy on L1 and is used
+	// as part of building the L2 genesis state.
+	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -414,6 +418,7 @@ func (d *DeployConfig) CheckAddresses() error {
 	if d.OptimismPortalProxy == (common.Address{}) {
 		return fmt.Errorf("%w: OptimismPortalProxy cannot be address(0)", ErrInvalidDeployConfig)
 	}
+
 	return nil
 }
 
@@ -425,6 +430,7 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 	d.SystemConfigProxy = deployments.SystemConfigProxy
 	d.OptimismPortalProxy = deployments.OptimismPortalProxy
 	d.NativeTokenAddress = deployments.L2NativeToken
+	d.L1UsdcBridgeProxy = deployments.L1UsdcBridgeProxy
 }
 
 // GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
@@ -481,6 +487,14 @@ func (d *DeployConfig) GetDeployedAddresses(hh *hardhat.Hardhat) error {
 			return err
 		}
 		d.OptimismPortalProxy = optimismPortalProxyDeployment.Address
+	}
+
+	if d.L1UsdcBridgeProxy == (common.Address{}) {
+		l1UsdcBridgeProxyDeployment, err := hh.GetDeployment("L1UsdcBridgeProxy")
+		if err != nil {
+			return err
+		}
+		d.L1UsdcBridgeProxy = l1UsdcBridgeProxyDeployment.Address
 	}
 
 	return nil
@@ -658,6 +672,8 @@ type L1Deployments struct {
 	ProtocolVersions                  common.Address `json:"ProtocolVersions"`
 	ProtocolVersionsProxy             common.Address `json:"ProtocolVersionsProxy"`
 	L2NativeToken                     common.Address `json:"L2NativeToken"`
+	L1UsdcBridge                      common.Address `json:"L1UsdcBridge"`
+	L1UsdcBridgeProxy                 common.Address `json:"L1UsdcBridgeProxy"`
 }
 
 // GetName will return the name of the contract given an address.
@@ -883,7 +899,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["L2UsdcBridge"] = state.StorageValues{
 		"messenger":          predeploys.L2CrossDomainMessengerAddr,
-		"otherBridge":        config.L1UsdcBridgeAddr,
+		"otherBridge":        config.L1UsdcBridgeProxy,
 		"l1Usdc":             config.L1UsdcAddr,
 		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
 		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
@@ -893,7 +909,7 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"controllers": map[any]any{
 			predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
 		},
-		"minterManager": predeploys.MasterMinterAddr,
+		"minterManager": predeploys.FiatTokenV2_2Addr,
 	}
 	storage["FiatTokenV2_2"] = state.StorageValues{
 		"_owner":              config.FiatTokenOwner,

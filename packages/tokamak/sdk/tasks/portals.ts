@@ -4,7 +4,7 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { BigNumber, BytesLike, ethers } from 'ethers'
 
-import { Portals, NumberLike, asL2Provider } from '../src'
+import { Portals, NumberLike, asL2Provider, MessageStatus } from '../src'
 
 console.log('Setup task...')
 
@@ -160,6 +160,8 @@ const depositViaOP = async (amount: NumberLike) => {
     depositReceipt,
     {}
   )
+  const status = await portals.getMessageStatus(depositReceipt)
+  console.log('deposit status relayed:', status === MessageStatus.RELAYED)
   console.log('relayedTxHash:', relayedTxHash)
   const depositedTxReceipt = await l2Provider.getTransactionReceipt(
     relayedTxHash
@@ -225,11 +227,22 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     withdrawalReceipt
   )
   console.log('withdrawalMessageInfo:', withdrawalMessageInfo)
+
+  let status = await portals.getMessageStatus(withdrawalReceipt)
+  console.log('[Withdrawal Status] check publish L2 root:', status)
+
   await portals.waitForWithdrawalTxReadyForRelay(withdrawalReceipt)
+
+  status = await portals.getMessageStatus(withdrawalReceipt)
+  console.log('[Withdrawal Status] check ready for proving:', status)
+
   const proveTransaction = await portals.proveWithdrawalTransaction(
     withdrawalMessageInfo
   )
   await proveTransaction.wait()
+
+  status = await portals.getMessageStatus(withdrawalReceipt)
+  console.log('[Withdrawal Status] check in challenging:', status)
 
   await portals.waitForFinalization(withdrawalMessageInfo)
   const finalizedTransaction = await portals.finalizeWithdrawalTransaction(
@@ -237,6 +250,9 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   )
   const finalizedTransactionReceipt = await finalizedTransaction.wait()
   console.log('finalized transaction receipt:', finalizedTransactionReceipt)
+
+  status = await portals.getMessageStatus(withdrawalReceipt)
+  console.log('[Withdrawal Status] check relayed:', status)
 
   const transferTx = await l2NativeTokenContract.transferFrom(
     l1Contracts.OptimismPortal,
@@ -298,21 +314,37 @@ const withdrawViaBedrockMessagePasserV2 = async (amount: NumberLike) => {
   })
   const withdrawalReceipt = await withdrawalTx.wait()
 
+  let status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  console.log('[Withdrawal Status] check publish L2 root:', status)
+
   await portals.waitForWithdrawalTxReadyForRelayUsingL2Tx(
     withdrawalReceipt.transactionHash
   )
+
+  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  console.log('[Withdrawal Status] check ready for proving:', status)
+
   const proveTransaction = await portals.proveWithdrawalTransactionUsingL2Tx(
     withdrawalReceipt.transactionHash
   )
   await proveTransaction.wait()
 
+  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  console.log('[Withdrawal Status] check in challenging:', status)
+
   await portals.waitForFinalizationUsingL2Tx(withdrawalReceipt.transactionHash)
+  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  console.log('[Withdrawal Status] check ready for relay:', status)
+
   const finalizedTransaction =
     await portals.finalizeWithdrawalTransactionUsingL2Tx(
       withdrawalReceipt.transactionHash
     )
   const finalizedTransactionReceipt = await finalizedTransaction.wait()
   console.log('finalized transaction receipt:', finalizedTransactionReceipt)
+
+  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
+  console.log('[Withdrawal Status] check relayed:', status)
 
   const transferTx = await l2NativeTokenContract.transferFrom(
     l1Contracts.OptimismPortal,

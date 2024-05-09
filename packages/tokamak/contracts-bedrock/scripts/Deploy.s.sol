@@ -36,6 +36,8 @@ import { MIPS } from "src/cannon/MIPS.sol";
 import { BlockOracle } from "src/dispute/BlockOracle.sol";
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
 import { ProtocolVersions, ProtocolVersion } from "src/L1/ProtocolVersions.sol";
+import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
+import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Chains } from "scripts/Chains.sol";
@@ -76,6 +78,8 @@ contract Deploy is Deployer {
         deployL2NativeToken();
         deployProxies();
         deployImplementations();
+        deployL1UsdcBridgeProxy();
+        setL1UsdcBridge();
 
         deploySafe();
         transferProxyAdminOwnership(); // to the Safe
@@ -190,6 +194,7 @@ contract Deploy is Deployer {
         deployPreimageOracle();
         deployMips();
         deployProtocolVersions();
+        deployL1UsdcBridge();
     }
 
     // @notice Gets the address of the SafeProxyFactory and Safe singleton for use in deploying a new GnosisSafe.
@@ -613,6 +618,54 @@ contract Deploy is Deployer {
         console.log("ProtocolVersions deployed at %s", address(versions));
 
         addr_ = address(versions);
+    }
+
+    /// @notice Deploy the L1UsdcBridge
+    function deployL1UsdcBridge() public broadcast returns (address addr_) { 
+        L1UsdcBridge bridge = new L1UsdcBridge{ salt: implSalt() }();
+
+        require(address(bridge.messenger()) == address(0));
+        require(address(bridge.otherBridge()) == address(0));
+        require(address(bridge.l1Usdc()) == address(0));
+        require(address(bridge.l2Usdc()) == address(0));
+
+        save("L1UsdcBridge", address(bridge));
+        console.log("L1UsdcBridge deployed at %s", address(bridge));
+
+        addr_ = address(bridge);
+    }
+
+    /// @notice Deploy the L1UsdcBridgeProxy
+    function deployL1UsdcBridgeProxy() public broadcast returns (address addr_) {
+        address l1UsdcBridge = mustGetAddress("L1UsdcBridge");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        L1UsdcBridgeProxy proxy = new L1UsdcBridgeProxy({
+            _logic: l1UsdcBridge,
+            initialOwner: msg.sender,
+            _data: abi.encode()
+        });
+
+        address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
+        require(admin == address(msg.sender));
+
+        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
+        proxy.upgradeTo(l1UsdcBridge);
+        
+        save("L1UsdcBridgeProxy", address(proxy));
+        console.log("L1UsdcBridgeProxy deployed at %s", address(proxy));
+        addr_ = address(proxy);
+    }
+
+    function setL1UsdcBridge() public broadcast {
+        address l1UsdcBridgeProxy = mustGetAddress("L1UsdcBridgeProxy");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+
+        L1UsdcBridge bridge = L1UsdcBridge(l1UsdcBridgeProxy);
+
+        require(address(bridge.messenger()) == l1CrossDomainMessengerProxy);
+        require(address(bridge.otherBridge()) == Predeploys.L2_USDC_BRIDGE);
+        require(address(bridge.l1Usdc()) == cfg.l1UsdcAddr());
+        require(address(bridge.l2Usdc()) == Predeploys.FIATTOKENV2_2);
     }
 
     /// @notice Deploy the PreimageOracle

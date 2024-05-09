@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-sdk",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Tools for working with Thanos",
   "main": "dist/index",
   "types": "dist/index",
@@ -24,7 +24,8 @@
     "autogen:docs": "typedoc --out docs src/index.ts"
   },
   "keywords": [
-    "optimism",
+    "tokamak",
+    "thanos",
     "ethereum",
     "sdk"
   ],
