@@ -83,7 +83,7 @@ contract GasBenchMark_OptimismPortal is Portal_Initializer {
         token.faucet(NON_ZERO_VALUE);
         vm.prank(address(this));
         token.approve(address(op), NON_ZERO_VALUE);
-        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     function test_depositTransaction_benchmark_1() external {
@@ -91,7 +91,7 @@ contract GasBenchMark_OptimismPortal is Portal_Initializer {
         token.faucet(NON_ZERO_VALUE);
         vm.prank(address(this));
         token.approve(address(op), NON_ZERO_VALUE);
-        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
+        op.depositTransaction(NON_ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, NON_ZERO_DATA);
     }
 
     function test_proveWithdrawalTransaction_benchmark() external {

@@ -80,7 +80,7 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
             bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
         );
 
-        try portal.depositTransaction(_to, value, gasLimit, _data) {
+        try portal.depositTransaction(_to, value, value, gasLimit, _data) {
             // Do nothing; Call succeeded
         } catch {
             failedToComplete = true;
