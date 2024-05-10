@@ -3,6 +3,8 @@ SHELL := /usr/bin/env bash
 pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
+contracts-list := ./artifacts.json
+log-level := info
 
 all: version mkdir bindings
 
@@ -15,30 +17,19 @@ compile:
 		forge clean && \
 		pnpm build
 
-bindings: compile bindings-build
+bindings: bindgen-local
 
-bindings-build:
-	go run ./gen/main.go \
-    -forge-artifacts $(contracts-dir)/forge-artifacts \
-    -hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
-    -out ./bindings \
-    -forge-contracts ./artifacts.json \
-    -hardhat-contracts ./artifacts-hardhat.json \
-    -source-maps MIPS,PreimageOracle \
-    -package $(pkg) \
-    -monorepo-base $(monorepo-base)
+bindgen-local: compile bindgen-generate-local
 
-hardhat-bindings:
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/permit2/Permit2.sol/Permit2.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungiblePositionManager.sol/NonfungiblePositionManager.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
+bindgen-generate-local:
+	go run ./cmd/ \
+		generate \
+		--metadata-out ./$(pkg) \
+		--bindings-package $(pkg) \
+		--contracts-list $(contracts-list) \
+		--log.level $(log-level) \
+		local \
+		--forge-artifacts $(contracts-dir)/forge-artifacts
 
 mkdir:
 	mkdir -p $(pkg)

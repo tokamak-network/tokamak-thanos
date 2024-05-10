@@ -1,5 +1,6 @@
-[
-  "SystemConfig",
+{
+  "local": [
+    "SystemConfig",
   "L1CrossDomainMessenger",
   "L1StandardBridge",
   "OptimismPortal",
@@ -52,4 +53,5 @@
   "FiatTokenProxy",
   "L1UsdcBridge",
   "L1UsdcBridgeProxy"
-]
+  ]
+}
