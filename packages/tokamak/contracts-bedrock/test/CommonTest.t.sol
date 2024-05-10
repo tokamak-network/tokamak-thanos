@@ -92,9 +92,7 @@ contract CommonTest is Test {
     )
         internal
     {
-        emit TransactionDeposited(
-            _from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data)
-        );
+        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
     }
 }
 
