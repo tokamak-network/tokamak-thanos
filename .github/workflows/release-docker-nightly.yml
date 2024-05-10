@@ -167,10 +167,10 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-01f36d9fbf17b3974
+          ec2-image-id: ami-0ceeb1418a9676af7
           ec2-instance-type: t4g.2xlarge
-          subnet-id: subnet-4aa53021
-          security-group-id: sg-03165a21a3ba6e8b3
+          subnet-id: subnet-04958ddab1cb88c55
+          security-group-id: sg-031082ccee7540e7a
           iam-role-name: ec2-runner
           pre-runner-script: shutdown -P +40
 
