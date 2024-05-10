@@ -1,70 +1,13 @@
 name: 'Tokamak End to End Test'
 on:
-  pull_request:
-    paths:
-      - 'cannon/**'
-      - 'op-node/**'
-      - 'op-batcher/**'
-      - 'op-proposer/**'
-      - 'op-bindings/**'
-      - 'op-chain-ops/**'
-      - 'op-service/**'
-      - 'packages/tokamak/contracts-bedrock/**'
+  push:
+    branches:
+      - OR-1586-change-runners-to-e2e-tests.yml
 
 jobs:
-  start-runner-ws:
-    name: Start EC2 Runner for ws tests
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Install aws
-        id: install-aws-cli
-        uses: unfor19/install-aws-cli-action@master
-
-      - run: aws --version
-        shell: bash
-
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0ceeb1418a9676af7
-          ec2-instance-type: c7g.4xlarge
-          subnet-id: subnet-04958ddab1cb88c55
-          security-group-id: sg-031082ccee7540e7a
-          iam-role-name: ec2-runner
-          pre-runner-script: shutdown -P +40
-
-      - name: Runner status
-        id: status
-        run: |
-          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
-          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-  ws-e2e-update:
-    name: 'ec2 update attribute for ws test'
-    needs: [start-runner-ws]
-    runs-on: ${{ needs.start-runner-ws.outputs.label }}
-    steps:
-      - name: update shutdown behavior
-        run: |
-          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ needs.start-runner-ws.outputs.ec2-instance-id }}
-
   ws-e2e-tests:
     name: 'ws e2e test'
-    needs: [ws-e2e-update, start-runner-ws]
-    runs-on: ${{ needs.start-runner-ws.outputs.label }}
+    runs-on: onther4
     container:
       image: onthertech/thanos-ci-builder:latest
     steps:
@@ -106,73 +49,10 @@ jobs:
         run: OP_TESTLOG_DISABLE_COLOR=true OP_E2E_DISABLE_PARALLEL=false gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 ./...
         working-directory: op-e2e
 
-  stop-runner-ws:
-    name: Stop self-hosted EC2 runner for ws tests
-    needs: [start-runner-ws, ws-e2e-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-ws.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-ws.outputs.ec2-instance-id }}
-
-  start-runner-http:
-    name: Start EC2 Runner for http tests
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0ceeb1418a9676af7
-          ec2-instance-type: c7g.4xlarge
-          subnet-id: subnet-04958ddab1cb88c55
-          security-group-id: sg-031082ccee7540e7a
-          iam-role-name: ec2-runner
-          pre-runner-script: shutdown -P +40
-
-      - name: Runner status
-        id: status
-        run: |
-          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
-          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-  http-e2e-update:
-    name: 'ec2 update attribute for http test'
-    needs: [start-runner-http]
-    runs-on: ${{ needs.start-runner-http.outputs.label }}
-    steps:
-      - name: set timeout
-        run: |
-          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ needs.start-runner-http.outputs.ec2-instance-id }}
-
   http-e2e-tests:
     name: 'http-e2e test'
-    needs: [http-e2e-update, start-runner-http]
-    runs-on: ${{ needs.start-runner-http.outputs.label }}
+    needs: [ws-e2e-tests]
+    runs-on: onther4
     container:
       image: onthertech/thanos-ci-builder:latest
     steps:
@@ -213,24 +93,3 @@ jobs:
       - name: Run e2e http test
         run: OP_E2E_USE_HTTP=true OP_TESTLOG_DISABLE_COLOR=true OP_E2E_DISABLE_PARALLEL=false gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 ./...
         working-directory: op-e2e
-
-  stop-runner-http:
-    name: Stop self-hosted EC2 runner for http tests
-    needs: [start-runner-http, http-e2e-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner-http.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner-http.outputs.ec2-instance-id }}
