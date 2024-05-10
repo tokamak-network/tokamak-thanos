@@ -209,3 +209,73 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, balanceAfterFinalization, balanceBeforeFinalization.Add(balanceBeforeFinalization, amount))
 }
+
+func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
+	InitParallel(t)
+
+	cfg := DefaultSystemConfig(t)
+
+	sys, err := cfg.Start(t)
+	require.Nil(t, err, "Error starting up system")
+	defer sys.Close()
+
+	log := testlog.Logger(t, log.LvlInfo)
+	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
+
+	l1Client := sys.Clients["l1"]
+	l2Client := sys.Clients["sequencer"]
+
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	require.Nil(t, err)
+
+	var amount = big.NewInt(2000)
+
+	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	require.NoError(t, err)
+
+	// faucet NativeToken
+	tx, err := nativeTokenContract.Faucet(opts, amount)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	calldata := EncodeCallData(opts.From, opts.From, amount, uint32(200000), []byte{})
+
+	l1BalanceBeforeDeposit, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
+	require.NoError(t, err)
+
+	l2BalanceBeforeDeposit, err := l2Client.BalanceAt(context.Background(), opts.From, nil)
+	require.NoError(t, err)
+
+	// Approve NativeToken with the OP
+	tx, err = nativeTokenContract.ApproveAndCall(opts, cfg.L1Deployments.L1CrossDomainMessengerProxy, amount, calldata)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	optimismPortal, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
+	require.NoError(t, err)
+
+	depIt, err := optimismPortal.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
+	require.NoError(t, err)
+	var depositEvent *bindings.OptimismPortalTransactionDeposited
+	for depIt.Next() {
+		depositEvent = depIt.Event
+	}
+	require.NotNil(t, depositEvent)
+
+	// Calculate relayed depositTx
+	depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
+	require.NoError(t, err)
+
+	l1BalanceAfterDeposit, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
+	require.NoError(t, err)
+
+	l2BalanceAfterDeposit, err := l2Client.BalanceAt(context.Background(), opts.From, nil)
+	require.NoError(t, err)
+
+	require.Equal(t, l1BalanceBeforeDeposit, l1BalanceAfterDeposit.Add(l1BalanceAfterDeposit, amount))
+	require.Equal(t, l2BalanceAfterDeposit, l2BalanceBeforeDeposit.Add(l2BalanceBeforeDeposit, amount))
+}
