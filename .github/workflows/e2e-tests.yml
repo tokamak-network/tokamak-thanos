@@ -2,7 +2,7 @@ name: 'Tokamak End to End Test'
 on:
   push:
     branches:
-      - OR-1586-change-runners-to-e2e-tests.yml
+      - OR-1586-change-runners-to-e2e-tests
 
 jobs:
   ws-e2e-tests:
