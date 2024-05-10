@@ -36,7 +36,7 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
 	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, amount, amount, l2Opts.GasLimit, false, l2Opts.Data)
+		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, amount, amount, l2Opts.GasLimit, l2Opts.ToAddr == common.Address{}, l2Opts.Data)
 	})
 	require.Nil(t, err, "with deposit tx")
 
@@ -66,8 +66,10 @@ type DepositTxOptsFn func(l2Opts *DepositTxOpts)
 
 type DepositTxOpts struct {
 	ToAddr         common.Address
+	Mint           *big.Int
 	Value          *big.Int
 	GasLimit       uint64
+	IsCreation     bool
 	Data           []byte
 	ExpectedStatus uint64
 }
@@ -75,9 +77,11 @@ type DepositTxOpts struct {
 func defaultDepositTxOpts(opts *bind.TransactOpts) *DepositTxOpts {
 	return &DepositTxOpts{
 		ToAddr:         opts.From,
+		Mint:           common.Big0,
 		Value:          common.Big0,
 		GasLimit:       1_000_000,
 		Data:           nil,
+		IsCreation:     false,
 		ExpectedStatus: types.ReceiptStatusSuccessful,
 	}
 }
