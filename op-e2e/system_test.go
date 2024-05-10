@@ -180,7 +180,10 @@ func TestSystemE2E(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {}, mintAmount)
+	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
+		l2Opts.Mint = mintAmount
+		l2Opts.Value = mintAmount
+	})
 
 	// Confirm balance
 	ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
@@ -1014,8 +1017,9 @@ func TestWithdrawals(t *testing.T) {
 
 	// opts.Value = mintAmount
 	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		// l2Opts.Value = common.Big0
-	}, mintAmount)
+		l2Opts.Value = mintAmount
+		l2Opts.Mint = mintAmount
+	})
 
 	// Confirm L2 balance
 	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
