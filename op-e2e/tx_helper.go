@@ -23,9 +23,8 @@ import (
 // The L2 transaction options can be configured by modifying the DepositTxOps value supplied to applyL2Opts
 // Will verify that the transaction is included with the expected status on L1 and L2
 // Returns the receipt of the L2 transaction
-func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn, amount *big.Int) *types.Receipt {
+func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn) *types.Receipt {
 	l2Opts := defaultDepositTxOpts(l1Opts)
-	l2Opts.Value = amount
 	applyL2Opts(l2Opts)
 
 	// Find deposit contract
@@ -36,7 +35,7 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
 	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, amount, amount, l2Opts.GasLimit, l2Opts.ToAddr == common.Address{}, l2Opts.Data)
+		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Mint, l2Opts.Value, l2Opts.GasLimit, l2Opts.ToAddr == common.Address{}, l2Opts.Data)
 	})
 	require.Nil(t, err, "with deposit tx")
 
