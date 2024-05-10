@@ -621,7 +621,7 @@ contract Deploy is Deployer {
     }
 
     /// @notice Deploy the L1UsdcBridge
-    function deployL1UsdcBridge() public broadcast returns (address addr_) { 
+    function deployL1UsdcBridge() public broadcast returns (address addr_) {
         L1UsdcBridge bridge = new L1UsdcBridge{ salt: implSalt() }();
 
         require(address(bridge.messenger()) == address(0));
@@ -648,9 +648,11 @@ contract Deploy is Deployer {
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == address(msg.sender));
 
-        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
+        proxy.setAddress(
+            l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2
+        );
         proxy.upgradeTo(l1UsdcBridge);
-        
+
         save("L1UsdcBridgeProxy", address(proxy));
         console.log("L1UsdcBridgeProxy deployed at %s", address(proxy));
         addr_ = address(proxy);
