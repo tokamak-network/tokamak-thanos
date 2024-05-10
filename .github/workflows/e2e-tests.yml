@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'cannon/**'
+      - 'op-e2e/**'
       - 'op-node/**'
       - 'op-batcher/**'
       - 'op-proposer/**'
