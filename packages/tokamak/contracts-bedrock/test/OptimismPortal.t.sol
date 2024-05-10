@@ -191,7 +191,9 @@ contract OptimismPortal_Test is Portal_Initializer {
         vm.prank(address(this), address(this));
 
         vm.expectEmit(true, true, false, true);
-        emitTransactionDeposited(address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
+        emitTransactionDeposited(
+            address(this), ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA
+        );
 
         op.depositTransaction(ZERO_ADDRESS, ZERO_VALUE, ZERO_VALUE, NON_ZERO_GASLIMIT, true, NON_ZERO_DATA);
     }
@@ -258,7 +260,9 @@ contract OptimismPortal_Test is Portal_Initializer {
         token.approve(address(op), type(uint256).max);
 
         vm.expectEmit(true, true, true, true);
-        emitTransactionDeposited(address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
+        emitTransactionDeposited(
+            address(this), ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex""
+        );
         vm.prank(address(this), address(this));
         op.depositTransaction(ZERO_ADDRESS, NON_ZERO_VALUE, NON_ZERO_VALUE, NON_ZERO_GASLIMIT, true, hex"");
         assertEq(token.balanceOf(address(op)), NON_ZERO_VALUE);
