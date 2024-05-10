@@ -491,7 +491,7 @@ func TestMixedWithdrawalValidity(t *testing.T) {
 			t.Log("l2SeqBalance:", l2SeqBalance)
 
 			// Deposit NativeToken
-			tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, 200000, []byte{})
+			tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, amount, 200000, false, []byte{})
 			require.NoError(t, err)
 
 			depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
