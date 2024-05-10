@@ -141,8 +141,10 @@ func TestDepositTxCreateContract(t *testing.T) {
 
 	l2Receipt := SendDepositTx(t, cfg, l1Client, l2Client, opts, func(l2Opts *DepositTxOpts) {
 		l2Opts.Data = deployData
+		l2Opts.Mint = common.Big0
 		l2Opts.Value = common.Big0
 		l2Opts.ToAddr = common.Address{}
+		l2Opts.IsCreation = true
 		l2Opts.GasLimit = 1_000_000
 	}, common.Big0)
 	require.NotEqual(t, common.Address{}, l2Receipt.ContractAddress, "should not have zero address")
