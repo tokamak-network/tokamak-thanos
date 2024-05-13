@@ -10,7 +10,6 @@ import { IFaultDisputeGame } from "../src/dispute/interfaces/IFaultDisputeGame.s
 
 import "../src/libraries/DisputeTypes.sol";
 import "../src/libraries/DisputeErrors.sol";
-import { LibClock } from "../src/dispute/lib/LibClock.sol";
 import { LibPosition } from "../src/dispute/lib/LibPosition.sol";
 
 /**
