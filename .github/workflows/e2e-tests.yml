@@ -51,7 +51,6 @@ jobs:
 
   http-e2e-tests:
     name: 'http-e2e test'
-    needs: [ws-e2e-tests]
     runs-on: onther4
     container:
       image: onthertech/thanos-ci-builder:latest
