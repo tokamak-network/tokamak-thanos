@@ -50,7 +50,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
                 OptimismPortal.depositTransaction.selector,
                 Predeploys.L2_CROSS_DOMAIN_MESSENGER,
                 NON_ZERO_VALUE,
+                NON_ZERO_VALUE,
                 L1Messenger.baseGas(hex"ff", 100),
+                false,
                 Encoding.encodeCrossDomainMessage(
                     L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
                 )
@@ -65,6 +67,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             NON_ZERO_VALUE,
             NON_ZERO_VALUE,
             L1Messenger.baseGas(hex"ff", 100),
+            false,
             Encoding.encodeCrossDomainMessage(
                 L1Messenger.messageNonce(), alice, recipient, NON_ZERO_VALUE, 100, hex"ff"
             )
@@ -105,7 +108,9 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
                 OptimismPortal.depositTransaction.selector,
                 Predeploys.L2_CROSS_DOMAIN_MESSENGER,
                 0,
+                0,
                 L1Messenger.baseGas(hex"ff", 100),
+                false,
                 Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, 0, 100, hex"ff")
             )
         );
@@ -118,6 +123,7 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             0,
             0,
             L1Messenger.baseGas(hex"ff", 100),
+            false,
             Encoding.encodeCrossDomainMessage(L1Messenger.messageNonce(), alice, recipient, 0, 100, hex"ff")
         );
 
