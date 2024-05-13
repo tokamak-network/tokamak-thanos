@@ -248,7 +248,7 @@ func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
 	require.NoError(t, err)
 
 	// Approve NativeToken with the OP
-	tx, err = nativeTokenContract.ApproveAndCall(opts, cfg.L1Deployments.OptimismPortalProxy, amount, calldata)
+	tx, err = nativeTokenContract.ApproveAndCall(opts, cfg.L1Deployments.L1CrossDomainMessengerProxy, amount, calldata)
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)

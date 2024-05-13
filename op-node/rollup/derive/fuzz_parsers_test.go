@@ -211,7 +211,7 @@ func FuzzUnmarshallLogEvent(f *testing.F) {
 		opts.NoSend = true
 		opts.Nonce = common.Big0
 		// Create the deposit transaction
-		tx, err := portalContract.DepositTransaction(opts, to, value, l2GasLimit, data)
+		tx, err := portalContract.DepositTransaction(opts, to, value, value, l2GasLimit, false, data)
 		if err != nil {
 			t.Fatal(err)
 		}

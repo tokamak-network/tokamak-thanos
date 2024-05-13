@@ -65,8 +65,10 @@ contract CrossDomainOwnableThroughPortal_Test is Portal_Initializer {
         vm.prank(alice);
         op.depositTransaction({
             _to: address(setter),
+            _mint: 0,
             _value: 0,
             _gasLimit: 30_000,
+            _isCreation: false,
             _data: abi.encodeWithSelector(XDomainSetter.set.selector, 1)
         });
 

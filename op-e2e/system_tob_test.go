@@ -329,8 +329,10 @@ func TestMixedDepositValidity(t *testing.T) {
 			l2Opts.GasLimit = 100_000
 			l2Opts.Data = nil
 			l2Opts.ToAddr = toAddr
+			l2Opts.Mint = mintAmount
+			l2Opts.Value = mintAmount
 			l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
-		}, mintAmount)
+		})
 
 		if transactor != receiver {
 			receiver.ExpectedL2Balance = new(big.Int).Add(receiver.ExpectedL2Balance, mintAmount)
@@ -491,7 +493,7 @@ func TestMixedWithdrawalValidity(t *testing.T) {
 			t.Log("l2SeqBalance:", l2SeqBalance)
 
 			// Deposit NativeToken
-			tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, 200000, []byte{})
+			tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, amount, 200000, false, []byte{})
 			require.NoError(t, err)
 
 			depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
