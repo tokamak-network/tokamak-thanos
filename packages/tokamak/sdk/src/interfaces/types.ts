@@ -180,8 +180,10 @@ export enum MessageDirection {
  */
 export interface DepositTransactionRequest {
   to: AddressLike
+  mint: BigNumber
   value: BigNumber
   gasLimit: BigNumber
+  isCreation: boolean
   data: string
 }
 

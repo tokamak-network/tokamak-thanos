@@ -116,7 +116,6 @@ const depositViaOP = async (amount: NumberLike) => {
   )
 
   const l1Contracts = {
-    AddressManager: addressManager,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
   }
@@ -149,8 +148,10 @@ const depositViaOP = async (amount: NumberLike) => {
 
   const depositTx = await portals.depositTransaction({
     to: l2Wallet.address,
+    mint: BigNumber.from(amount),
     value: BigNumber.from(amount),
     gasLimit: BigNumber.from('200000'),
+    isCreation: false,
     data: '0x',
   })
   const depositReceipt = await depositTx.wait()
