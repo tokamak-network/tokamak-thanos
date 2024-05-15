@@ -8,6 +8,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3
+	github.com/ethereum-optimism/optimism v0.0.0-00010101000000-000000000000
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20231211205353-d76a12d35ff8
 	github.com/ethereum/go-ethereum v1.13.1
 	github.com/fsnotify/fsnotify v1.7.0
@@ -52,7 +53,6 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.1 // indirect
-	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
@@ -130,7 +130,6 @@ require (
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
@@ -210,6 +209,8 @@ require (
 )
 
 replace github.com/ethereum/go-ethereum v1.13.1 => github.com/ethereum-optimism/op-geth v1.101304.0-rc.2.0.20231030225546-cd491fa3b588
+
 replace github.com/ethereum-optimism/optimism => ./
+
 //replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 //replace github.com/ethereum/go-ethereum v1.13.1 => ../go-ethereum
