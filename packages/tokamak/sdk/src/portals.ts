@@ -493,8 +493,10 @@ export class Portals {
     ): Promise<TransactionRequest> => {
       return this.contracts.l1.OptimismPortal.populateTransaction.depositTransaction(
         request.to,
+        request.mint,
         request.value,
         request.gasLimit,
+        request.isCreation,
         request.data
       )
     },
