@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/crossdomain"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
+	"tokamak-network/tokamak-thanos/op-node/rollup"
+	"tokamak-network/tokamak-thanos/op-node/rollup/derive"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
