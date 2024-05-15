@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"tokamak-network/tokamak-thanos/cannon/mipsevm"
-	"tokamak-network/tokamak-thanos/op-bindings/predeploys"
-	"tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"

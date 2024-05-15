@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"tokamak-network/tokamak-thanos/op-bindings/bindings"
-	"tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
-	"tokamak-network/tokamak-thanos/op-node/rollup"
-	"tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
