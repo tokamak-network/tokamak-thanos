@@ -178,6 +178,87 @@ const depositViaOP = async (amount: NumberLike) => {
   console.log('l2 native balance: ', l2Balance.toString())
 }
 
+const depositViaOPV1 = async (mint: NumberLike, value: NumberLike) => {
+  console.log('Deposit Native token:', mint)
+  console.log('L2 transaction Value:', value)
+  console.log('Native token address:', l2NativeToken)
+
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
+  const l2NativeTokenContract = new ethers.Contract(
+    l2NativeToken,
+    erc20ABI,
+    l1Wallet
+  )
+
+  const l1Contracts = {
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  console.log('l1 contracts:', l1Contracts)
+
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const portals = new Portals({
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+
+  const l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
+    l1Wallet.address
+  )
+  console.log('l2 native token balance in L1:', l2NativeTokenBalance.toString())
+
+  const l2Balance = await l2Wallet.getBalance()
+  console.log('l2 native balance: ', l2Balance.toString())
+
+  const approveTx = await l2NativeTokenContract.approve(optimismPortal, mint)
+  await approveTx.wait()
+  console.log('approveTx:', approveTx.hash)
+
+  const toAddress = l2NativeToken
+
+  const depositTx = await portals.depositTransaction({
+    to: toAddress,
+    mint: BigNumber.from(mint),
+    value: BigNumber.from(value),
+    gasLimit: BigNumber.from('200000'),
+    isCreation: false,
+    data: '0x',
+  })
+  const depositReceipt = await depositTx.wait()
+  console.log('depositTx:', depositReceipt.transactionHash)
+
+  const relayedTxHash = await portals.waitingDepositTransactionRelayed(
+    depositReceipt,
+    {}
+  )
+  const status = await portals.getMessageStatus(depositReceipt)
+  console.log('deposit status relayed:', status === MessageStatus.RELAYED)
+  console.log('relayedTxHash:', relayedTxHash)
+  const depositedTxReceipt = await l2Provider.getTransactionReceipt(
+    relayedTxHash
+  )
+  console.log('depositedTxReceipt:', depositedTxReceipt)
+
+  const l2BalanceAfterDeposit = await l2Wallet.getBalance()
+  console.log('l2 balance after depositing: ', l2BalanceAfterDeposit.toString())
+
+  const toAddressBalance = await asL2Provider(l2Provider).getBalance(toAddress)
+  console.log('l2 toAddres balance: ', toAddressBalance.toString())
+  console.log(
+    'l2 sender balance changed:',
+    l2BalanceAfterDeposit.sub(l2Balance).toString()
+  )
+}
+
 const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   console.log('Withdraw Native token:', amount)
   console.log('Native token address:', l2NativeToken)
@@ -365,6 +446,14 @@ task('deposit-portal', 'Deposit L2NativeToken to L2 via OP.')
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await depositViaOP(args.amount)
+  })
+
+task('deposit-portal-mint-value', 'Deposit L2NativeToken to L2 via OP.')
+  .addParam('mint', 'mint', '1000', types.string)
+  .addParam('value', 'value', '10', types.string)
+  .setAction(async (args, hre) => {
+    await updateAddresses(hre)
+    await depositViaOPV1(args.mint, args.value)
   })
 
 task(
