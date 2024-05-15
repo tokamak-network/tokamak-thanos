@@ -6,7 +6,7 @@ package bindings
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 const MasterMinterStorageLayoutJSON = "{\"storage\":[{\"astId\":1000,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter\",\"label\":\"_owner\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_address\"},{\"astId\":1001,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter\",\"label\":\"controllers\",\"offset\":0,\"slot\":\"1\",\"type\":\"t_mapping(t_address,t_address)\"},{\"astId\":1002,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter\",\"label\":\"minterManager\",\"offset\":0,\"slot\":\"2\",\"type\":\"t_contract(MinterManagementInterface)1003\"}],\"types\":{\"t_address\":{\"encoding\":\"inplace\",\"label\":\"address\",\"numberOfBytes\":\"20\"},\"t_contract(MinterManagementInterface)1003\":{\"encoding\":\"inplace\",\"label\":\"contract MinterManagementInterface\",\"numberOfBytes\":\"20\"},\"t_mapping(t_address,t_address)\":{\"encoding\":\"mapping\",\"label\":\"mapping(address =\u003e address)\",\"numberOfBytes\":\"32\",\"key\":\"t_address\",\"value\":\"t_address\"}}}"

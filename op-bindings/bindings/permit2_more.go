@@ -6,7 +6,7 @@ package bindings
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 const Permit2StorageLayoutJSON = "{\"storage\":null,\"types\":null}"

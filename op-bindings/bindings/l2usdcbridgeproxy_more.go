@@ -6,7 +6,7 @@ package bindings
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 const L2UsdcBridgeProxyStorageLayoutJSON = "{\"storage\":[{\"astId\":1000,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy\",\"label\":\"messenger\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_address\"},{\"astId\":1001,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy\",\"label\":\"otherBridge\",\"offset\":0,\"slot\":\"1\",\"type\":\"t_address\"},{\"astId\":1002,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy\",\"label\":\"l1Usdc\",\"offset\":0,\"slot\":\"2\",\"type\":\"t_address\"},{\"astId\":1003,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy\",\"label\":\"l2Usdc\",\"offset\":0,\"slot\":\"3\",\"type\":\"t_address\"},{\"astId\":1004,\"contract\":\"src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy\",\"label\":\"l2UsdcMasterMinter\",\"offset\":0,\"slot\":\"4\",\"type\":\"t_address\"}],\"types\":{\"t_address\":{\"encoding\":\"inplace\",\"label\":\"address\",\"numberOfBytes\":\"20\"}}}"
