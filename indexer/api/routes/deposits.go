@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
-	"github.com/ethereum-optimism/optimism/indexer/api/models"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/models"
 
-	"github.com/ethereum-optimism/optimism/indexer/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
 )
 
 // newDepositResponse ... Converts a database.L1BridgeDepositsResponse to an api.DepositResponse

@@ -9,14 +9,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	openum "github.com/ethereum-optimism/optimism/op-service/enum"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	oppprof "github.com/ethereum-optimism/optimism/op-service/pprof"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	openum "github.com/tokamak-network/tokamak-thanos/op-service/enum"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	oppprof "github.com/tokamak-network/tokamak-thanos/op-service/pprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 const (

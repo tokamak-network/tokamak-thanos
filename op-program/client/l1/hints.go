@@ -3,7 +3,7 @@ package l1
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 const (

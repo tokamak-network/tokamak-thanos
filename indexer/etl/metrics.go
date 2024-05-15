@@ -3,9 +3,9 @@ package etl
 import (
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
 var (

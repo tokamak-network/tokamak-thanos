@@ -1,9 +1,9 @@
 package metrics
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 )

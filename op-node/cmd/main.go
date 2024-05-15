@@ -9,18 +9,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	opnode "github.com/ethereum-optimism/optimism/op-node"
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-node/cmd/genesis"
-	"github.com/ethereum-optimism/optimism/op-node/cmd/p2p"
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	"github.com/ethereum-optimism/optimism/op-node/metrics"
-	"github.com/ethereum-optimism/optimism/op-node/node"
-	"github.com/ethereum-optimism/optimism/op-node/version"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/metrics/doc"
+	opnode "github.com/tokamak-network/tokamak-thanos/op-node"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/node"
+	"github.com/tokamak-network/tokamak-thanos/op-node/version"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics/doc"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 // DecayToZero is the decay factor for a peer's score to zero.

@@ -17,8 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/hardhat"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/hardhat"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 )
 
 var Subcommands = cli.Commands{

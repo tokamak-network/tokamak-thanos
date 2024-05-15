@@ -15,13 +15,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/clients"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/clients"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 )
 
 var defaultCrossDomainMessageSender = common.HexToAddress("0x000000000000000000000000000000000000dead")

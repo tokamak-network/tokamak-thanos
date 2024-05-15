@@ -3,8 +3,8 @@ package alphabet
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 // alphabetUpdater is a [types.OracleUpdater] that exposes a

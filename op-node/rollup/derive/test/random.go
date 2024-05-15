@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 // RandomL2Block returns a random block whose first transaction is a random

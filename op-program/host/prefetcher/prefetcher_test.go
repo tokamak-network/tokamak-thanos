@@ -12,14 +12,14 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/client/l1"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l1"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l2"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/mpt"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/kvstore"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func TestNoHint(t *testing.T) {

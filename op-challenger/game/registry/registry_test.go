@@ -3,10 +3,10 @@ package registry
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler/test"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler/test"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 )
 
 func TestUnknownGameType(t *testing.T) {

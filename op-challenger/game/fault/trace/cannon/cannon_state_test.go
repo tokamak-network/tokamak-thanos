@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
 )
 
 //go:embed test_data/state.json

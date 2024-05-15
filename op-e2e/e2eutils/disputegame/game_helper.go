@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 const defaultTimeout = 5 * time.Minute

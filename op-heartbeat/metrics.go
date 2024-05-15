@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/ethereum-optimism/optimism/op-node/heartbeat"
+	"github.com/tokamak-network/tokamak-thanos/op-node/heartbeat"
 )
 
 const (

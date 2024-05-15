@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/config"
-	"github.com/ethereum-optimism/optimism/op-e2e/external"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/onsi/gomega/gexec"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/external"
 )
 
 type ExternalRunner struct {

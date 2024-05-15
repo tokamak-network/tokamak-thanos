@@ -5,13 +5,13 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/compressor"
-	"github.com/ethereum-optimism/optimism/op-batcher/flags"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	oppprof "github.com/ethereum-optimism/optimism/op-service/pprof"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	oppprof "github.com/tokamak-network/tokamak-thanos/op-service/pprof"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 type CLIConfig struct {
@@ -63,7 +63,7 @@ type CLIConfig struct {
 }
 
 func (c *CLIConfig) Check() error {
-	// TODO(7512): check the sanity of flags loaded directly https://github.com/ethereum-optimism/optimism/issues/7512
+	// TODO(7512): check the sanity of flags loaded directly https://github.com/tokamak-network/tokamak-thanos/issues/7512
 
 	if err := c.MetricsConfig.Check(); err != nil {
 		return err

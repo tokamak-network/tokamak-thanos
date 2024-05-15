@@ -6,7 +6,7 @@ import (
 	"net/http/pprof"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 )
 
 func StartServer(hostname string, port int) (*httputil.HTTPServer, error) {

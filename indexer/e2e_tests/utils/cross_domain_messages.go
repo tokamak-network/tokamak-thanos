@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/indexer/processors/contracts"
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors/contracts"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

@@ -7,9 +7,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/compressor"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 )
 
 func randomBytes(t *testing.T, length int) []byte {

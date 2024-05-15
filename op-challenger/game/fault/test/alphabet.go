@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/alphabet"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 func NewAlphabetWithProofProvider(t *testing.T, maxDepth int, oracleError error) *alphabetWithProofProvider {

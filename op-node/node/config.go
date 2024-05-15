@@ -7,13 +7,13 @@ import (
 	"math"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
-	oppprof "github.com/ethereum-optimism/optimism/op-service/pprof"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/driver"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	oppprof "github.com/tokamak-network/tokamak-thanos/op-service/pprof"
 )
 
 type Config struct {

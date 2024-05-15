@@ -6,11 +6,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"

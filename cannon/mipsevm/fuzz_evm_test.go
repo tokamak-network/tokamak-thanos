@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 const syscallInsn = uint32(0x00_00_00_0c)

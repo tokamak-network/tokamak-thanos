@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/eth/catalyst"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/sources/caching"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/caching"
 )
 
 type EngineClientConfig struct {

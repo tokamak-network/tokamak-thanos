@@ -1,4 +1,4 @@
-module github.com/ethereum-optimism/optimism
+module github.com/tokamak-network/tokamak-thanos
 
 go 1.21
 

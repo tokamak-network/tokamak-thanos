@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 	"github.com/urfave/cli/v2"
 )
 

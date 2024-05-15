@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler/test"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler/test"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 
 	"github.com/stretchr/testify/require"
 )

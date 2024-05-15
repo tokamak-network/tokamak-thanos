@@ -4,12 +4,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 // TestBatchInLastPossibleBlocks tests that the derivation pipeline

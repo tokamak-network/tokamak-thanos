@@ -14,17 +14,17 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/metrics"
-	"github.com/ethereum-optimism/optimism/op-batcher/rpc"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	"github.com/ethereum-optimism/optimism/op-service/dial"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	oppprof "github.com/ethereum-optimism/optimism/op-service/pprof"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	oppprof "github.com/tokamak-network/tokamak-thanos/op-service/pprof"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 type BatcherConfig struct {

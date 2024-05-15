@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-preimage"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 type rawHint string

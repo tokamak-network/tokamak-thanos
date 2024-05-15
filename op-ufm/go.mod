@@ -1,11 +1,11 @@
-module github.com/ethereum-optimism/optimism/op-ufm
+module github.com/tokamak-network/tokamak-thanos/op-ufm
 
 go 1.20
 
 require (
 	cloud.google.com/go/kms v1.12.1
 	github.com/BurntSushi/toml v1.3.2
-	github.com/ethereum-optimism/optimism/op-service v0.10.14
+	github.com/tokamak-network/tokamak-thanos/op-service v0.10.14
 	github.com/ethereum/go-ethereum v1.12.1
 	github.com/gorilla/mux v1.8.0
 	github.com/pkg/errors v0.9.1

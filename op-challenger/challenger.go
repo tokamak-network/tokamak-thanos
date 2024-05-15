@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-challenger/game"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game"
 )
 
 // Main is the programmatic entry-point for running op-challenger

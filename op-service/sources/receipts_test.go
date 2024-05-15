@@ -8,10 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,6 +15,10 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 type ethBackend struct {

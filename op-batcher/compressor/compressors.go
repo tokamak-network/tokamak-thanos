@@ -1,7 +1,7 @@
 package compressor
 
 import (
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 )
 
 type FactoryFunc func(Config) (derive.Compressor, error)

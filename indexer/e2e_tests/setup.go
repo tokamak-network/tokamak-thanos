@@ -8,16 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/indexer"
-	"github.com/ethereum-optimism/optimism/indexer/api"
-	"github.com/ethereum-optimism/optimism/indexer/client"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api"
+	"github.com/tokamak-network/tokamak-thanos/indexer/client"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
 
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"

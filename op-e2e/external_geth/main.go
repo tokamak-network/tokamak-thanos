@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/external"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/external"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

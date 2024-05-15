@@ -12,7 +12,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	txmgr "github.com/ethereum-optimism/optimism/op-service/txmgr"
+	txmgr "github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 
 	types "github.com/ethereum/go-ethereum/core/types"
 )

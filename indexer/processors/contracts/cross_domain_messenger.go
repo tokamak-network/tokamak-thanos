@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 )
 
 var (

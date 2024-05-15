@@ -7,14 +7,14 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-proposer/flags"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-proposer/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	oppprof "github.com/ethereum-optimism/optimism/op-service/pprof"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	oppprof "github.com/tokamak-network/tokamak-thanos/op-service/pprof"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 // Config contains the well typed fields that are used to initialize the output submitter.

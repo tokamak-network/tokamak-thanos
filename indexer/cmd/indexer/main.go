@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
 	"github.com/ethereum/go-ethereum/log"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (

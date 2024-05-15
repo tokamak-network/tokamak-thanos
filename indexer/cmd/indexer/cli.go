@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/ethereum-optimism/optimism/indexer"
-	"github.com/ethereum-optimism/optimism/indexer/api"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/tokamak-network/tokamak-thanos/indexer"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 
 	"github.com/urfave/cli/v2"
 )

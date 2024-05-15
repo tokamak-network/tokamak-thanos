@@ -4,8 +4,8 @@ VERSION := v0.0.0
 
 LDFLAGSSTRING +=-X main.GitCommit=$(GITCOMMIT)
 LDFLAGSSTRING +=-X main.GitDate=$(GITDATE)
-LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/op-node/version.Version=$(VERSION)
-LDFLAGSSTRING +=-X github.com/ethereum-optimism/optimism/op-node/version.Meta=$(VERSION_META)
+LDFLAGSSTRING +=-X github.com/tokamak-network/tokamak-thanos/op-node/version.Version=$(VERSION)
+LDFLAGSSTRING +=-X github.com/tokamak-network/tokamak-thanos/op-node/version.Meta=$(VERSION_META)
 LDFLAGS := -ldflags "$(LDFLAGSSTRING)"
 
 op-node:

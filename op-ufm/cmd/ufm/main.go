@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum-optimism/optimism/op-ufm/pkg/config"
-	"github.com/ethereum-optimism/optimism/op-ufm/pkg/service"
+	"github.com/tokamak-network/tokamak-thanos/op-ufm/pkg/config"
+	"github.com/tokamak-network/tokamak-thanos/op-ufm/pkg/service"
 
 	"github.com/ethereum/go-ethereum/log"
 )

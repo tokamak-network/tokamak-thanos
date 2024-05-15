@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/alphabet"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/cannon"
-	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/cannon"
+	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 var (

@@ -18,17 +18,17 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/hardhat"
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/immutables"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/state"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/hardhat"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/immutables"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/state"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // initialzedValue represents the `Initializable` contract value. It should be kept in
 // sync with the constant in `Constants.sol`.
-// https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/libraries/Constants.sol
+// https://github.com/tokamak-network/tokamak-thanos/blob/develop/packages/contracts-bedrock/src/libraries/Constants.sol
 const initializedValue = 3
 
 var (

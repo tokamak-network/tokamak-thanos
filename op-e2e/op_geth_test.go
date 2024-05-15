@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -19,6 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // TestMissingGasLimit tests that op-geth cannot build a block without gas limit while optimism is active in the chain config.

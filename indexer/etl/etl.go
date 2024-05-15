@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/indexer/node"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/indexer/node"
 )
 
 type Config struct {

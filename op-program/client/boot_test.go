@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/chainconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-program/chainconfig"
 )
 
 func TestBootstrapClient(t *testing.T) {

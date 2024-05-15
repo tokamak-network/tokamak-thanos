@@ -6,18 +6,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 // TestERC20BridgeDeposits tests the the L1StandardBridge bridge ERC20

@@ -18,8 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type PayloadAttributesV2 struct {

@@ -13,8 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-service/clock"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 // fakePoS is a testing-only utility to attach to Geth,

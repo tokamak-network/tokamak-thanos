@@ -132,7 +132,7 @@ Response example
 }
 ```
 
-See [op-node receipt fetcher](https://github.com/ethereum-optimism/optimism/blob/186e46a47647a51a658e699e9ff047d39444c2de/op-node/sources/receipts.go#L186-L253).
+See [op-node receipt fetcher](https://github.com/tokamak-network/tokamak-thanos/blob/186e46a47647a51a658e699e9ff047d39444c2de/op-node/sources/receipts.go#L186-L253).
 
 
 ## Metrics

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/ethereum-optimism/optimism/proxyd"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
 )
 
 func TestCaching(t *testing.T) {

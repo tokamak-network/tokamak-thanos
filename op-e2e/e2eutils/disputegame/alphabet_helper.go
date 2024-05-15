@@ -3,8 +3,8 @@ package disputegame
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/alphabet"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
 )
 
 type AlphabetGameHelper struct {

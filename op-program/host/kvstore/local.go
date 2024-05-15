@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-program/client"
-	"github.com/ethereum-optimism/optimism/op-program/host/config"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/config"
 )
 
 type LocalPreimageSource struct {

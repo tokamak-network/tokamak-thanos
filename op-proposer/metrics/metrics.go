@@ -9,10 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	txmetrics "github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	txmetrics "github.com/tokamak-network/tokamak-thanos/op-service/txmgr/metrics"
 )
 
 const Namespace = "op_proposer"

@@ -17,8 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-service/retry"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr/metrics"
 )
 
 const (

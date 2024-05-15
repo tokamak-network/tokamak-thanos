@@ -7,12 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-e2e/config"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-node/withdrawals"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,6 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-node/withdrawals"
 )
 
 func SendWithdrawal(t *testing.T, cfg SystemConfig, l2Client *ethclient.Client, privKey *ecdsa.PrivateKey, applyOpts WithdrawalTxOptsFn) (*types.Transaction, *types.Receipt) {

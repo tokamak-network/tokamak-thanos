@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	"github.com/ethereum-optimism/optimism/indexer/api/models"
-	"github.com/ethereum-optimism/optimism/indexer/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/models"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
 )
 
 // FIXME make a pure function that returns a struct instead of newWithdrawalResponse

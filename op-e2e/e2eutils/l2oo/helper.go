@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 type L2OOHelper struct {

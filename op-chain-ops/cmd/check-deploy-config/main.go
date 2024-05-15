@@ -8,8 +8,8 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 )
 
 func main() {

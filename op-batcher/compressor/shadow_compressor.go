@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 )
 
 type ShadowCompressor struct {

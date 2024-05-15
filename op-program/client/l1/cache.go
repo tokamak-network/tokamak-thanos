@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // Cache size is quite high as retrieving data from the pre-image oracle can be quite expensive

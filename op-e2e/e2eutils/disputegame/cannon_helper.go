@@ -4,14 +4,14 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/cannon"
-	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/cannon"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 type CannonGameHelper struct {

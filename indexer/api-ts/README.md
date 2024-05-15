@@ -1,1 +1,1 @@
-Generated typescript types for https://github.com/ethereum-optimism/optimism/tree/develop/indexer
+Generated typescript types for https://github.com/tokamak-network/tokamak-thanos/tree/develop/indexer

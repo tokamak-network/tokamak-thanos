@@ -4,16 +4,16 @@ import (
 	"context"
 	"os"
 
-	op_challenger "github.com/ethereum-optimism/optimism/op-challenger"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum/go-ethereum/log"
+	op_challenger "github.com/tokamak-network/tokamak-thanos/op-challenger"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-challenger/flags"
-	"github.com/ethereum-optimism/optimism/op-challenger/version"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/version"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 )
 
 var (

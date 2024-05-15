@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/alphabet"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame"
-	l2oo2 "github.com/ethereum-optimism/optimism/op-e2e/e2eutils/l2oo"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
+	l2oo2 "github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/l2oo"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 func TestMultipleCannonGames(t *testing.T) {

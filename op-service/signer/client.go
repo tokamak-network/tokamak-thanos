@@ -10,13 +10,13 @@ import (
 	"os"
 	"time"
 
-	optls "github.com/ethereum-optimism/optimism/op-service/tls"
-	"github.com/ethereum-optimism/optimism/op-service/tls/certman"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	optls "github.com/tokamak-network/tokamak-thanos/op-service/tls"
+	"github.com/tokamak-network/tokamak-thanos/op-service/tls/certman"
 )
 
 type SignerClient struct {

@@ -8,15 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 
 	//nolint:all
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
 
-	p2pMocks "github.com/ethereum-optimism/optimism/op-node/p2p/mocks"
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
-	testlog "github.com/ethereum-optimism/optimism/op-service/testlog"
 	log "github.com/ethereum/go-ethereum/log"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
@@ -27,6 +23,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 	tswarm "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
+	p2pMocks "github.com/tokamak-network/tokamak-thanos/op-node/p2p/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	testlog "github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	op_challenger "github.com/ethereum-optimism/optimism/op-challenger"
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	op_challenger "github.com/tokamak-network/tokamak-thanos/op-challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 type Helper struct {

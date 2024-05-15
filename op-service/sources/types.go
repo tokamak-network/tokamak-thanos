@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type BatchCallContextFn func(ctx context.Context, b []rpc.BatchElem) error

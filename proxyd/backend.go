@@ -24,7 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/semaphore"
 
-	sw "github.com/ethereum-optimism/optimism/proxyd/pkg/avg-sliding-window"
+	sw "github.com/tokamak-network/tokamak-thanos/proxyd/pkg/avg-sliding-window"
 )
 
 const (

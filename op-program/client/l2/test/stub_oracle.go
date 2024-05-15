@@ -3,11 +3,11 @@ package test
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // Same as l2.StateOracle but need to use our own copy to avoid dependency loops

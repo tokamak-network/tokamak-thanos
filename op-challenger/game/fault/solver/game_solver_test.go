@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	faulttest "github.com/ethereum-optimism/optimism/op-challenger/game/fault/test"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	faulttest "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/test"
 )
 
 func TestCalculateNextActions(t *testing.T) {

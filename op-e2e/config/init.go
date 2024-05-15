@@ -14,9 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	"github.com/ethereum-optimism/optimism/op-e2e/external"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/external"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 )
 
 var (

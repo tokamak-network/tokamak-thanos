@@ -5,11 +5,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/indexer/etl"
-	"github.com/ethereum-optimism/optimism/indexer/processors/bridge"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer/etl"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors/bridge"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"

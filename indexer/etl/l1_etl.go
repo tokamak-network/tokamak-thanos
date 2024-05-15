@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/indexer/node"
-	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer/node"
+	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 )
 
 type L1ETL struct {

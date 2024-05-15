@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var (

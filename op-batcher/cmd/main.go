@@ -3,16 +3,16 @@ package main
 import (
 	"os"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/batcher"
-	"github.com/ethereum-optimism/optimism/op-batcher/flags"
-	"github.com/ethereum-optimism/optimism/op-batcher/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/metrics/doc"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/batcher"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics/doc"
 )
 
 var (

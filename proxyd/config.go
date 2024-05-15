@@ -22,9 +22,9 @@ type ServerConfig struct {
 
 	MaxUpstreamBatchSize int `toml:"max_upstream_batch_size"`
 
-	EnableRequestLog     bool `toml:"enable_request_log"`
-	MaxRequestBodyLogLen int  `toml:"max_request_body_log_len"`
-	EnablePprof          bool `toml:"enable_pprof"`
+	EnableRequestLog      bool `toml:"enable_request_log"`
+	MaxRequestBodyLogLen  int  `toml:"max_request_body_log_len"`
+	EnablePprof           bool `toml:"enable_pprof"`
 	EnableXServedByHeader bool `toml:"enable_served_by_header"`
 }
 

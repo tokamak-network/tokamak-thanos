@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/cmd/batch_decoder/fetch"
-	"github.com/ethereum-optimism/optimism/op-node/cmd/batch_decoder/reassemble"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/batch_decoder/fetch"
+	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/batch_decoder/reassemble"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/urfave/cli/v2"
 )
 

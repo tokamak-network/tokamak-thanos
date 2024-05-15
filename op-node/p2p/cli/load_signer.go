@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
 )
 
 // TODO: implement remote signer setup (config to authenticated endpoint)

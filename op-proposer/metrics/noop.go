@@ -1,9 +1,9 @@
 package metrics
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	txmetrics "github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	txmetrics "github.com/tokamak-network/tokamak-thanos/op-service/txmgr/metrics"
 )
 
 type noopMetrics struct {

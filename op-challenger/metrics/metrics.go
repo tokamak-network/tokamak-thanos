@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	txmetrics "github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	txmetrics "github.com/tokamak-network/tokamak-thanos/op-service/txmgr/metrics"
 )
 
 const Namespace = "op_challenger"
