@@ -34,4 +34,10 @@ contract Storage_Roundtrip_Test is Test {
         assertEq(setter.getBytes32(slot), hash);
         assertEq(hash, vm.load(address(setter), slot));
     }
+
+    function test_setGetBool_succeeds(bytes32 slot, bool value) external {
+        setter.setBool(slot, value);
+        assertEq(setter.getBool(slot), value);
+        assertEq(value, vm.load(address(setter), slot) == bytes32(uint256(1)));
+    }
 }
