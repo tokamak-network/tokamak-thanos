@@ -213,17 +213,9 @@ func l2Deployer(backend *backends.SimulatedBackend, opts *bind.TransactOpts, dep
 		// No arguments required for the L1Block contract
 		_, tx, _, err = bindings.DeployL1Block(opts, backend)
 	case "L2CrossDomainMessenger":
-		otherMessenger, ok := deployment.Args[0].(common.Address)
-		if !ok {
-			return nil, fmt.Errorf("invalid type for otherMessenger")
-		}
-		_, tx, _, err = bindings.DeployL2CrossDomainMessenger(opts, backend, otherMessenger)
+		_, tx, _, err = bindings.DeployL2CrossDomainMessenger(opts, backend)
 	case "L2StandardBridge":
-		otherBridge, ok := deployment.Args[0].(common.Address)
-		if !ok {
-			return nil, fmt.Errorf("invalid type for otherBridge")
-		}
-		_, tx, _, err = bindings.DeployL2StandardBridge(opts, backend, otherBridge)
+		_, tx, _, err = bindings.DeployL2StandardBridge(opts, backend)
 	case "L2ToL1MessagePasser":
 		// No arguments required for L2ToL1MessagePasser
 		_, tx, _, err = bindings.DeployL2ToL1MessagePasser(opts, backend)

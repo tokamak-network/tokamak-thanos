@@ -36,14 +36,15 @@ library Address {
      * IMPORTANT: because control is transferred to `recipient`, care must be
      * taken to not create reentrancy vulnerabilities. Consider using
      * {ReentrancyGuard} or the
-     * https://solidity.readthedocs.io/en/v0.8.20/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
+     * https://solidity.readthedocs.io/en/v0.8.20/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions
+     * pattern].
      */
     function sendValue(address payable recipient, uint256 amount) internal {
         if (address(this).balance < amount) {
             revert AddressInsufficientBalance(address(this));
         }
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success,) = recipient.call{ value: amount }("");
         if (!success) {
             revert FailedInnerCall();
         }
@@ -60,7 +61,8 @@ library Address {
      * {FailedInnerCall} error.
      *
      * Returns the raw returned data. To convert to the expected return value,
-     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].
+     * use
+     * https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].
      *
      * Requirements:
      *
@@ -84,7 +86,7 @@ library Address {
         if (address(this).balance < value) {
             revert AddressInsufficientBalance(address(this));
         }
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{ value: value }(data);
         return verifyCallResultFromTarget(target, success, returndata);
     }
 
@@ -115,7 +117,11 @@ library Address {
         address target,
         bool success,
         bytes memory returndata
-    ) internal view returns (bytes memory) {
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
         if (!success) {
             _revert(returndata);
         } else {

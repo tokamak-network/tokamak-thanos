@@ -22,7 +22,7 @@ contract Initializer_Test is ERC721Bridge_Initializer {
         L1Bridge.initialize(CrossDomainMessenger(address(0)), address(0));
 
         vm.expectRevert("Initializable: contract is already initialized");
-        oracle.initialize(0, 0, address(0), address(0));
+        oracle.initialize(0, 0, 0, 0, address(0), address(0), 0);
 
         vm.expectRevert("Initializable: contract is already initialized");
         op.initialize(address(0), L2OutputOracle(address(0)), address(0), SystemConfig(address(0)), false);
@@ -43,7 +43,6 @@ contract Initializer_Test is ERC721Bridge_Initializer {
                 systemTxMaxGas: 0,
                 maximumBaseFee: 0
             }),
-            _startBlock: type(uint256).max,
             _batchInbox: address(0),
             _addresses: SystemConfig.Addresses({
                 l1CrossDomainMessenger: address(0),
