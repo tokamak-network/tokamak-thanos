@@ -1,9 +1,7 @@
 name: Check Go lint
 
-on:
-  pull_request:
-    paths:
-      - '**/*.go'
+on: push
+
 jobs:
   go-lint:
     runs-on: ubuntu-latest
