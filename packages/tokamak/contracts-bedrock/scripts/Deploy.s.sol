@@ -361,9 +361,7 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the ProxyAdmin
     function deployProxyAdmin() public broadcast returns (address addr_) {
-        ProxyAdmin admin = new ProxyAdmin({
-            _owner: msg.sender
-        });
+        ProxyAdmin admin = new ProxyAdmin({ _owner: msg.sender });
         require(admin.owner() == msg.sender);
 
         AddressManager addressManager = AddressManager(mustGetAddress("AddressManager"));
@@ -394,9 +392,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the L2OutputOracleProxy
     function deployL2OutputOracleProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -428,9 +424,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the OptimismPortalProxy
     function deployOptimismPortalProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -444,9 +438,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the OptimismMintableERC20FactoryProxy
     function deployOptimismMintableERC20FactoryProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -460,9 +452,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the L1ERC721BridgeProxy
     function deployL1ERC721BridgeProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -476,9 +466,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the SystemConfigProxy
     function deploySystemConfigProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -492,9 +480,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the DisputeGameFactoryProxy
     function deployDisputeGameFactoryProxy() public onlyDevnet broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -508,9 +494,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the ProtocolVersionsProxy
     function deployProtocolVersionsProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -625,16 +609,15 @@ contract Deploy is Deployer {
     function deployL1UsdcBridgeProxy() public broadcast returns (address addr_) {
         address l1UsdcBridge = mustGetAddress("L1UsdcBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        L1UsdcBridgeProxy proxy = new L1UsdcBridgeProxy({
-            _logic: l1UsdcBridge,
-            initialOwner: msg.sender,
-            _data: abi.encode()
-        });
+        L1UsdcBridgeProxy proxy =
+            new L1UsdcBridgeProxy({ _logic: l1UsdcBridge, initialOwner: msg.sender, _data: abi.encode() });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == address(msg.sender));
 
-        proxy.setAddress(l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2);
+        proxy.setAddress(
+            l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2
+        );
         proxy.upgradeTo(l1UsdcBridge);
 
         save("L1UsdcBridgeProxy", address(proxy));
@@ -1010,7 +993,8 @@ contract Deploy is Deployer {
                     cfg.l2OutputOracleStartingTimestamp(),
                     cfg.l2OutputOracleProposer(),
                     cfg.l2OutputOracleChallenger(),
-                    cfg.finalizationPeriodSeconds()                )
+                    cfg.finalizationPeriodSeconds()
+                )
                 )
         });
 
@@ -1122,7 +1106,7 @@ contract Deploy is Deployer {
         }
     }
 
-        /// @notice Loads the mips absolute prestate from the prestate-proof for devnets otherwise
+    /// @notice Loads the mips absolute prestate from the prestate-proof for devnets otherwise
     ///         from the config.
     function loadMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {

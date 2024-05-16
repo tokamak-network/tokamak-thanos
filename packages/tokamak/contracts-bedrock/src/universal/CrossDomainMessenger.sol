@@ -316,6 +316,7 @@ abstract contract CrossDomainMessenger is
     ///         Public getter is legacy and will be removed in the future. Use `otherMessenger()` instead.
     /// @return CrossDomainMessenger contract on the other chain.
     /// @custom:legacy
+
     function OTHER_MESSENGER() public view returns (CrossDomainMessenger) {
         return otherMessenger;
     }
@@ -323,6 +324,7 @@ abstract contract CrossDomainMessenger is
     ///         bytes of the message nonce. Message version allows us to treat messages as having
     ///         different structures.
     /// @return Nonce of the next message to be sent, with added message version.
+
     function messageNonce() public view returns (uint256) {
         return Encoding.encodeVersionedNonce(msgNonce, MESSAGE_VERSION);
     }

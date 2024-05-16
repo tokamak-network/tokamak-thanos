@@ -133,7 +133,8 @@
 
 //         // Ensure that the `create` function reverts when called with parameters that would result in the same UUID.
 //         vm.expectRevert(
-//             abi.encodeWithSelector(GameAlreadyExists.selector, disputeGameFactory.getGameUUID(gt, rootClaim, extraData))
+//             abi.encodeWithSelector(GameAlreadyExists.selector, disputeGameFactory.getGameUUID(gt, rootClaim,
+// extraData))
 //         );
 //         disputeGameFactory.create(gt, rootClaim, extraData);
 //     }
@@ -240,7 +241,8 @@
 //         }
 //     }
 
-//     /// @dev Tests that `findLatestGames` returns an empty array when the passed starting index is greater than or equal
+//     /// @dev Tests that `findLatestGames` returns an empty array when the passed starting index is greater than or
+// equal
 //     ///      to the game count.
 //     function testFuzz_findLatestGames_greaterThanLength_succeeds(uint256 _start) public {
 //         // Create some dispute games of varying game types.
@@ -291,7 +293,8 @@
 //         assertEq(createdAt.raw(), block.timestamp);
 //     }
 
-//     /// @dev Tests that `findLatestGames` returns the correct games, if there are less than `_n` games of the given type
+//     /// @dev Tests that `findLatestGames` returns the correct games, if there are less than `_n` games of the given
+// type
 //     ///      available.
 //     function test_findLatestGames_lessThanNAvailable_succeeds() public {
 //         // Create some dispute games of varying game types.

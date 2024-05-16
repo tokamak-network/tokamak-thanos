@@ -48,9 +48,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     {
         portal = _portal;
         nativeTokenAddress = _nativeTokenAddress;
-        __CrossDomainMessenger_init({
-            _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER)
-        });
+        __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
     }
 
     /// @notice Getter for the OptimismPortal address.
