@@ -14,14 +14,13 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
-import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -388,53 +387,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         }
     }
 
-    /// @notice unpack onApprove data
-    /// @param _data     Data used in OnApprove contract
-    function unpackOnApproveData(bytes calldata _data)
-        public
-        pure
-        returns (address _from, address _to, uint256 _amount, uint32 _gasLimit, bytes calldata _message)
-    {
-        require(_data.length >= 76, "invalid onApprove data");
-        assembly {
-            // The layout of a "bytes calldata" is:
-            // The first 20 bytes: _from
-            // The next 20 bytes: _to
-            // The next 32 bytes: _amount
-            // The next 4 bytes: _gasLimit
-            // The rest: _message
-            _from := shr(96, calldataload(_data.offset))
-            _to := shr(96, calldataload(add(_data.offset, 20)))
-            _amount := calldataload(add(_data.offset, 40))
-            _gasLimit := shr(224, calldataload(add(_data.offset, 72)))
-            _message.offset := add(_data.offset, 76)
-            _message.length := sub(_data.length, 76)
-        }
-    }
-
-    /// @notice ERC20 onApprove callback
-    /// @param _owner    Account that called approveAndCall
-    /// @param _amount   Approved amount
-    /// @param _data     Data used in OnApprove contract
-    function onApprove(
-        address _owner,
-        address,
-        uint256 _amount,
-        bytes calldata _data
-    )
-        external
-        override
-        returns (bool)
-    {
-        (address from, address to, uint256 amount, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
-        if (msg.sender == nativeTokenAddress && _owner == from && _amount == amount) {
-            _depositTransaction(from, to, amount, gasLimit, message, true);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     // @notice Public interface for Accepting deposits of L1's ERC20 as L2's native token and data, and emits a
     // TransactionDeposited event for use
     // in
@@ -442,11 +394,22 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _to         Target address on L2.
+    /// @param _mint       Native token value to deposit into L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bytes calldata _data) external {
-        _depositTransaction(msg.sender, _to, _value, _gasLimit, _data, false);
+    function depositTransaction(
+        address _to,
+        uint256 _mint,
+        uint256 _value,
+        uint64 _gasLimit,
+        bool _isCreation,
+        bytes calldata _data
+    )
+        external
+    {
+        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
     }
 
     // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
@@ -456,24 +419,31 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
     /// @param _sender       Sender address
     /// @param _to         Target address on L2.
+    /// @param _mint       Native token value to deposit into L2.
     /// @param _value      Native token value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
     function _depositTransaction(
         address _sender,
         address _to,
+        uint256 _mint,
         uint256 _value,
         uint64 _gasLimit,
-        bytes calldata _data,
-        bool isOnApproveTrigger
+        bool _isCreation,
+        bytes calldata _data
     )
         internal
         metered(_gasLimit)
     {
         // Lock token in this contract
-        if (_value > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _value);
-            depositedAmount += _value;
+        if (_mint > 0) {
+            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
+            depositedAmount += _mint;
+        }
+
+        if (_isCreation) {
+            require(_to == address(0), "OptimismPortal: must send to address(0) when creating a contract");
         }
 
         // Prevent depositing transactions that have too small of a gas limit. Users should pay
@@ -488,14 +458,14 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
         // Transform the from-address to its alias if the caller is a contract.
         address from = _sender;
-        if (_sender != tx.origin && !isOnApproveTrigger) {
+        if (_sender != tx.origin) {
             from = AddressAliasHelper.applyL1ToL2Alias(_sender);
         }
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_value, _value, _gasLimit, (_to == address(0)), _data);
+        bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.

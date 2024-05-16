@@ -232,8 +232,9 @@ func testVerifyL2OutputRoot(t *testing.T, detached bool, spanBatchActivated bool
 	require.NoError(t, err)
 
 	SendDepositTx(t, cfg, l1Client, l2Seq, opts, func(l2Opts *DepositTxOpts) {
+		l2Opts.Mint = big.NewInt(100_000_000)
 		l2Opts.Value = big.NewInt(100_000_000)
-	}, big.NewInt(100_000_000))
+	})
 	SendL2Tx(t, cfg, l2Seq, aliceKey, func(opts *TxOpts) {
 		opts.ToAddr = &cfg.Secrets.Addresses().Bob
 		opts.Value = big.NewInt(1_000)
@@ -254,8 +255,9 @@ func testVerifyL2OutputRoot(t *testing.T, detached bool, spanBatchActivated bool
 
 	t.Log("Sending transactions to modify existing state, within challenged period")
 	SendDepositTx(t, cfg, l1Client, l2Seq, opts, func(l2Opts *DepositTxOpts) {
+		l2Opts.Mint = big.NewInt(5_000)
 		l2Opts.Value = big.NewInt(5_000)
-	}, big.NewInt(5_000))
+	})
 	SendL2Tx(t, cfg, l2Seq, cfg.Secrets.Bob, func(opts *TxOpts) {
 		opts.ToAddr = &cfg.Secrets.Addresses().Alice
 		opts.Value = big.NewInt(100)
