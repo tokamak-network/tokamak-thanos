@@ -8,7 +8,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	thanos "github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -67,7 +67,7 @@ func hashWithdrawal(nonce *big.Int, sender common.Address, target common.Address
 
 // hashOutputRootProof hashes an output root proof.
 func hashOutputRootProof(version common.Hash, stateRoot common.Hash, messagePasserStorageRoot common.Hash, latestBlockHash common.Hash) (common.Hash, error) {
-	hash, err := rollup.ComputeL2OutputRoot(&bindings.TypesOutputRootProof{
+	hash, err := rollup.ComputeL2OutputRoot(&thanos.TypesOutputRootProof{
 		Version:                  version,
 		StateRoot:                stateRoot,
 		MessagePasserStorageRoot: messagePasserStorageRoot,
