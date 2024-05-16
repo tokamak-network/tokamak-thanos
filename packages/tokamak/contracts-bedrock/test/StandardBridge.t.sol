@@ -10,12 +10,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /// @notice Simple wrapper around the StandardBridge contract that exposes
 ///         internal functions so they can be more easily tested directly.
 contract StandardBridgeTester is StandardBridge {
-    constructor(
-        address payable _messenger,
-        address payable _otherBridge
-    )
-        StandardBridge()
-    { }
+    constructor(address payable _messenger, address payable _otherBridge) StandardBridge() { }
 
     function isOptimismMintableERC20(address _token) external view returns (bool) {
         return _isOptimismMintableERC20(_token);
@@ -65,10 +60,7 @@ contract StandardBridge_Stateless_Test is CommonTest {
     function setUp() public override {
         super.setUp();
 
-        bridge = new StandardBridgeTester({
-            _messenger: payable(address(0)),
-            _otherBridge: payable(address(0))
-        });
+        bridge = new StandardBridgeTester({ _messenger: payable(address(0)), _otherBridge: payable(address(0)) });
 
         mintable = new OptimismMintableERC20({
             _bridge: address(0),
