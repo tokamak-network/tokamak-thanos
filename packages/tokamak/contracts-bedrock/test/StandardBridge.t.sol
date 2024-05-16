@@ -14,7 +14,7 @@ contract StandardBridgeTester is StandardBridge {
         address payable _messenger,
         address payable _otherBridge
     )
-        StandardBridge(StandardBridge(_otherBridge))
+        StandardBridge()
     { }
 
     function isOptimismMintableERC20(address _token) external view returns (bool) {
