@@ -185,14 +185,16 @@
 
 //         assertEq(address(gameProxy).balance, 0);
 //         gameProxy =
-//             FaultDisputeGame(address(disputeGameFactory.create{ value: _value }(GAME_TYPE, ROOT_CLAIM, abi.encode(1))));
+//             FaultDisputeGame(address(disputeGameFactory.create{ value: _value }(GAME_TYPE, ROOT_CLAIM,
+// abi.encode(1))));
 //         assertEq(address(gameProxy).balance, _value);
 //     }
 
 //     /// @dev Tests that the game cannot be initialized with extra data > 64 bytes long (root claim + l2 block number
 //     ///      concatenated)
 //     function testFuzz_initialize_extraDataTooLong_reverts(uint256 _extraDataLen) public {
-//         // The `DisputeGameFactory` will pack the root claim and the extra data into a single array, which is enforced
+//         // The `DisputeGameFactory` will pack the root claim and the extra data into a single array, which is
+// enforced
 //         // to be at least 64 bytes long.
 //         // We bound the upper end to 23.5KB to ensure that the minimal proxy never surpasses the contract size limit
 //         // in this test, as CWIA proxies store the immutable args in their bytecode.
@@ -786,7 +788,8 @@
 //         // Initiate the reentrant credit claim.
 //         reenter.claimCredit(address(reenter));
 
-//         // The reenter contract should have performed 5 calls to `claimCredit`, but only received the amount bonded for
+//         // The reenter contract should have performed 5 calls to `claimCredit`, but only received the amount bonded
+// for
 //         // the gindex 1 subgame.
 //         // The root claim bond and the unregistered ETH should still exist in the game proxy.
 //         assertEq(reenter.numCalls(), 5);

@@ -163,7 +163,18 @@ contract L2OutputOracle_Initializer is CommonTest {
         vm.prank(multisig);
         proxy.upgradeToAndCall(
             address(oracleImpl),
-            abi.encodeCall(L2OutputOracle.initialize, (submissionInterval, l2BlockTime, startingBlockNumber, startingTimestamp, proposer, owner, finalizationPeriodSeconds))
+            abi.encodeCall(
+                L2OutputOracle.initialize,
+                (
+                    submissionInterval,
+                    l2BlockTime,
+                    startingBlockNumber,
+                    startingTimestamp,
+                    proposer,
+                    owner,
+                    finalizationPeriodSeconds
+                )
+            )
         );
         oracle = L2OutputOracle(address(proxy));
         vm.label(address(oracle), "L2OutputOracle");
@@ -302,10 +313,7 @@ contract Messenger_Initializer is Portal_Initializer {
         // Setup the address manager and proxy
         vm.prank(multisig);
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
-        ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(
-            addressManager,
-            "OVM_L1CrossDomainMessenger"
-        );
+        ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
         L1Messenger.initialize(op, address(token));
 

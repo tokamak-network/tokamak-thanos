@@ -143,6 +143,7 @@ library Encoding {
     /// @param blobBaseFee         L1 blob base fee.
     /// @param hash                L1 blockhash.
     /// @param batcherHash         Versioned hash to authenticate batcher by.
+
     function encodeSetL1BlockValuesEcotone(
         uint32 baseFeeScalar,
         uint32 blobBaseFeeScalar,
