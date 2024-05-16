@@ -10,22 +10,22 @@ jobs:
     container:
       image: onthertech/thanos-ci-builder:latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4.1.0
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
 
-    - name: Add repository to git safe directories
-      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    - name: Setup Go
-      uses: actions/setup-go@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
 
-    - name: Go mod tidy
-      run: make mod-tidy && git diff --exit-code
+      - name: Go mod tidy
+        run: go mod tidy && git diff --exit-code
 
-    - name: GolangCI Lint
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: v1.54
-        args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
-      env:
-        GOFLAGS: "-buildvcs=false"
+      - name: GolangCI Lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
+        env:
+          GOFLAGS: '-buildvcs=false'
