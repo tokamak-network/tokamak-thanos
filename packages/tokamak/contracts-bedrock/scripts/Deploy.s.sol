@@ -31,6 +31,7 @@ import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
 import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+import { PermissionedDisputeGame } from "src/dispute/PermissionedDisputeGame.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
@@ -43,7 +44,7 @@ import { Chains } from "scripts/Chains.sol";
 
 import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
-import { AlphabetVM } from "../test/FaultDisputeGame.t.sol";
+import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import "src/libraries/DisputeTypes.sol";
 
 /// @title Deploy
@@ -93,8 +94,8 @@ contract Deploy is Deployer {
         initializeOptimismPortal();
         initializeProtocolVersions();
 
-        setAlphabetFaultGameImplementation();
-        setCannonFaultGameImplementation();
+        setAlphabetFaultGameImplementation({ _allowUpgrade: false });
+        setCannonFaultGameImplementation({ _allowUpgrade: false });
 
         transferDisputeGameFactoryOwnership();
     }
@@ -553,11 +554,7 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the L2OutputOracle
     function deployL2OutputOracle() public broadcast returns (address addr_) {
-        L2OutputOracle oracle = new L2OutputOracle{ salt: implSalt() }({
-            _submissionInterval: cfg.l2OutputOracleSubmissionInterval(),
-            _l2BlockTime: cfg.l2BlockTime(),
-            _finalizationPeriodSeconds: cfg.finalizationPeriodSeconds()
-        });
+        L2OutputOracle oracle = new L2OutputOracle{ salt: implSalt() }();
 
         require(oracle.SUBMISSION_INTERVAL() == cfg.l2OutputOracleSubmissionInterval());
         require(oracle.submissionInterval() == cfg.l2OutputOracleSubmissionInterval());
@@ -732,7 +729,7 @@ contract Deploy is Deployer {
         L1ERC721Bridge bridge = new L1ERC721Bridge{ salt: implSalt() }();
 
         require(address(bridge.MESSENGER()) == address(0));
-        require(bridge.OTHER_BRIDGE() == Predeploys.L2_ERC721_BRIDGE);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE);
 
         save("L1ERC721Bridge", address(bridge));
         console.log("L1ERC721Bridge deployed at %s", address(bridge));
@@ -829,7 +826,6 @@ contract Deploy is Deployer {
                     uint64(cfg.l2GenesisBlockGasLimit()),
                     cfg.p2pSequencerAddress(),
                     Constants.DEFAULT_RESOURCE_CONFIG(),
-                    startBlock,
                     cfg.batchInboxAddress(),
                     SystemConfig.Addresses({
                         l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
@@ -927,7 +923,7 @@ contract Deploy is Deployer {
         console.log("L1ERC721Bridge version: %s", version);
 
         require(address(bridge.MESSENGER()) == l1CrossDomainMessengerProxy);
-        require(bridge.OTHER_BRIDGE() == Predeploys.L2_ERC721_BRIDGE);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE);
     }
 
     /// @notice Ininitialize the OptimismMintableERC20Factory
@@ -1008,11 +1004,13 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L2OutputOracle.initialize,
                 (
+                    cfg.l2OutputOracleSubmissionInterval(),
+                    cfg.l2BlockTime(),
                     cfg.l2OutputOracleStartingBlockNumber(),
                     cfg.l2OutputOracleStartingTimestamp(),
                     cfg.l2OutputOracleProposer(),
-                    cfg.l2OutputOracleChallenger()
-                )
+                    cfg.l2OutputOracleChallenger(),
+                    cfg.finalizationPeriodSeconds()                )
                 )
         });
 
@@ -1124,14 +1122,12 @@ contract Deploy is Deployer {
         }
     }
 
-    /// @notice Sets the implementation for the `FAULT` game type in the `DisputeGameFactory`
-    function setCannonFaultGameImplementation() public onlyDevnet broadcast {
-        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
-
-        Claim mipsAbsolutePrestate;
+        /// @notice Loads the mips absolute prestate from the prestate-proof for devnets otherwise
+    ///         from the config.
+    function loadMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             // Fetch the absolute prestate dump
-            string memory filePath = string.concat(vm.projectRoot(), "/../../../op-program/bin/prestate-proof.json");
+            string memory filePath = string.concat(vm.projectRoot(), "/../../op-program/bin/prestate-proof.json");
             string[] memory commands = new string[](3);
             commands[0] = "bash";
             commands[1] = "-c";
@@ -1140,37 +1136,50 @@ contract Deploy is Deployer {
                 revert("Cannon prestate dump not found, generate it with `make cannon-prestate` in the monorepo root.");
             }
             commands[2] = string.concat("cat ", filePath, " | jq -r .pre");
-            mipsAbsolutePrestate = Claim.wrap(abi.decode(vm.ffi(commands), (bytes32)));
+            mipsAbsolutePrestate_ = Claim.wrap(abi.decode(vm.ffi(commands), (bytes32)));
             console.log(
                 "[Cannon Dispute Game] Using devnet MIPS Absolute prestate: %s",
-                vm.toString(Claim.unwrap(mipsAbsolutePrestate))
+                vm.toString(Claim.unwrap(mipsAbsolutePrestate_))
             );
         } else {
             console.log(
-                "[Cannon Dispute Game] Using absolute prestate from config: %s", cfg.faultGameAbsolutePrestate()
+                "[Cannon Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()
             );
-            mipsAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+            mipsAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
         }
-
-        // Set the Cannon FaultDisputeGame implementation in the factory.
-        _setFaultGameImplementation(
-            factory, GameTypes.FAULT, mipsAbsolutePrestate, IBigStepper(mustGetAddress("Mips")), cfg.faultGameMaxDepth()
-        );
     }
 
-    /// @notice Sets the implementation for the alphabet game type in the `DisputeGameFactory`
-    function setAlphabetFaultGameImplementation() public onlyDevnet broadcast {
+    /// @notice Sets the implementation for the `CANNON` game type in the `DisputeGameFactory`
+    function setCannonFaultGameImplementation(bool _allowUpgrade) public broadcast {
+        console.log("Setting Cannon FaultDisputeGame implementation");
         DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
 
-        // Set the Alphabet FaultDisputeGame implementation in the factory.
-        Claim alphabetAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
-        _setFaultGameImplementation(
-            factory,
-            GameType.wrap(255),
-            alphabetAbsolutePrestate,
-            IBigStepper(new AlphabetVM(alphabetAbsolutePrestate)),
-            4 // The max game depth of the alphabet game is always 4.
-        );
+        // Set the Cannon FaultDisputeGame implementation in the factory.
+        _setFaultGameImplementation({
+            _factory: factory,
+            _gameType: GameTypes.CANNON,
+            _absolutePrestate: loadMipsAbsolutePrestate(),
+            _faultVm: IBigStepper(mustGetAddress("Mips")),
+            _maxGameDepth: cfg.faultGameMaxDepth(),
+            _allowUpgrade: _allowUpgrade
+        });
+    }
+
+    /// @notice Sets the implementation for the `ALPHABET` game type in the `DisputeGameFactory`
+    function setAlphabetFaultGameImplementation(bool _allowUpgrade) public onlyDevnet broadcast {
+        console.log("Setting Alphabet FaultDisputeGame implementation");
+        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
+
+        Claim outputAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+        _setFaultGameImplementation({
+            _factory: factory,
+            _gameType: GameTypes.ALPHABET,
+            _absolutePrestate: outputAbsolutePrestate,
+            _faultVm: IBigStepper(new AlphabetVM(outputAbsolutePrestate, PreimageOracle(mustGetAddress("PreimageOracle")))),
+            // The max depth for the alphabet trace is always 3. Add 1 because split depth is fully inclusive.
+            _maxGameDepth: cfg.faultGameSplitDepth() + 3 + 1,
+            _allowUpgrade: _allowUpgrade
+        });
     }
 
     /// @notice Sets the implementation for the given fault game type in the `DisputeGameFactory`.

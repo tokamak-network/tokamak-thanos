@@ -394,7 +394,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `proveWithdrawalTransaction` reverts when the target is the portal contract.
     function test_proveWithdrawalTransaction_onSelfCall_reverts() external {
         _defaultTx.target = address(op);
-        vm.expectRevert("OptimismPortal: cannot send messages to this");
+        vm.expectRevert("OptimismPortal: you cannot send messages to the portal contract");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 
@@ -422,7 +422,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
-        vm.expectRevert("OptimismPortal: already been proven");
+        vm.expectRevert("OptimismPortal: withdrawal hash has already been proven");
         op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
     }
 

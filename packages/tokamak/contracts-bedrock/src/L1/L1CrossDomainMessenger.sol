@@ -21,26 +21,24 @@ import { OnApprove } from "./OnApprove.sol";
 contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
-    /// @notice Address of the OptimismPortal. The public getter for this
-    ///         is legacy and will be removed in the future. Use `portal()` instead.
+    /// @notice Contract of the OptimismPortal.
     /// @custom:network-specific
-    /// @custom:legacy
-    OptimismPortal public PORTAL;
+    OptimismPortal public portal;
 
     /// @notice Address of native token (ERC-20 token)
     address public nativeTokenAddress;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.7.1
-    string public constant version = "1.7.1";
+    /// @custom:semver 2.3.0
+    string public constant version = "2.3.0";
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
-    constructor() CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) {
+    constructor() CrossDomainMessenger() {
         initialize({ _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
     }
 
     /// @notice Initializes the contract.
-    /// @param _portal Address of the OptimismPortal contract on this network.
+    /// @param _portal Contract of the OptimismPortal contract on this network.
     function initialize(
         OptimismPortal _portal,
         address _nativeTokenAddress
@@ -48,14 +46,17 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
-        PORTAL = _portal;
+        portal = _portal;
         nativeTokenAddress = _nativeTokenAddress;
-        __CrossDomainMessenger_init();
+        __CrossDomainMessenger_init({
+            _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER)
+        });
     }
 
     /// @notice Getter for the OptimismPortal address.
-    function portal() external view returns (address) {
-        return address(PORTAL);
+    /// @return Contract of the OptimismPortal on this chain.
+    function PORTAL() external view returns (OptimismPortal) {
+        return portal;
     }
 
     // /// @inheritdoc CrossDomainMessenger
@@ -67,7 +68,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         require(msg.value == 0, "Deny depositing ETH");
-        PORTAL.depositTransaction(_to, _value, _gasLimit, _data);
+        portal.depositTransaction(_to, _value, _gasLimit, _data);
     }
 
     /// @notice unpack onApprove data
@@ -118,12 +119,12 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
     /// @inheritdoc CrossDomainMessenger
     function _isOtherMessenger() internal view override returns (bool) {
-        return msg.sender == address(PORTAL) && PORTAL.l2Sender() == OTHER_MESSENGER;
+        return msg.sender == address(portal) && portal.l2Sender() == address(otherMessenger);
     }
 
     /// @inheritdoc CrossDomainMessenger
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
-        return _target == address(this) || _target == address(PORTAL);
+        return _target == address(this) || _target == address(portal);
     }
 
     /// @notice Sends a deposit native token message to some target address on the other chain. Note that if the call
@@ -171,7 +172,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         // Collect native token
         if (_amount > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
-            IERC20(nativeTokenAddress).approve(address(PORTAL), _amount);
+            IERC20(nativeTokenAddress).approve(address(portal), _amount);
         }
 
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
@@ -179,7 +180,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         // guarantee the property that the call to the target contract will always have at least
         // the minimum gas limit specified by the user.
         _sendMessage(
-            OTHER_MESSENGER,
+            address(otherMessenger),
             baseGas(_message, _minGasLimit),
             _amount,
             abi.encodeWithSelector(
@@ -238,7 +239,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             // opposed to being replayed).
             assert(!failedMessages[versionedHash]);
             if (_value > 0) {
-                IERC20(nativeTokenAddress).safeTransferFrom(address(PORTAL), address(this), _value);
+                IERC20(nativeTokenAddress).safeTransferFrom(address(portal), address(this), _value);
             }
         } else {
             require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
