@@ -212,5 +212,7 @@ replace github.com/ethereum/go-ethereum v1.13.1 => github.com/ethereum-optimism/
 
 replace github.com/tokamak-network/tokamak-thanos => ./
 
+replace github.com/ethereum-optimism/optimism => ./
+
 //replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 //replace github.com/ethereum/go-ethereum v1.13.1 => ../go-ethereum
