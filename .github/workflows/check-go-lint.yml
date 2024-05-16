@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-go@v4
 
       - name: Go mod tidy
-        run: go mod tidy && git diff --exit-code
+        run: make mod-tidy && git diff --exit-code
 
       - name: GolangCI Lint
         uses: golangci/golangci-lint-action@v3
