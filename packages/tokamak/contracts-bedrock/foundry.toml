@@ -49,7 +49,7 @@ line_length=120
 multiline_func_header='all'
 bracket_spacing=true
 wrap_comments=true
-ignore = ['src/vendor/WNativeToken.sol']
+ignore = ['src/vendor/WNativeToken.sol', 'src/tokamak-contracts/**/*.sol']
 
 ################################################################
 #                         PROFILE: CI                          #
