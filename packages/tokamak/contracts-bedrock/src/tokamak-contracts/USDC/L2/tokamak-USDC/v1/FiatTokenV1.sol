@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { SafeMath } from "@openzeppelin/contracts_v3.1.0/math/SafeMath.sol";

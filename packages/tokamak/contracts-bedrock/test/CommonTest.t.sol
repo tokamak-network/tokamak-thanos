@@ -158,16 +158,23 @@ contract L2OutputOracle_Initializer is CommonTest {
         vm.warp(initL1Time);
         vm.roll(startingBlockNumber);
         // Deploy the L2OutputOracle and transfer owernship to the proposer
-        oracleImpl = new L2OutputOracle({
-            _submissionInterval: submissionInterval,
-            _l2BlockTime: l2BlockTime,
-            _finalizationPeriodSeconds: finalizationPeriodSeconds
-        });
+        oracleImpl = new L2OutputOracle();
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
         proxy.upgradeToAndCall(
             address(oracleImpl),
-            abi.encodeCall(L2OutputOracle.initialize, (startingBlockNumber, startingTimestamp, proposer, owner))
+            abi.encodeCall(
+                L2OutputOracle.initialize,
+                (
+                    submissionInterval,
+                    l2BlockTime,
+                    startingBlockNumber,
+                    startingTimestamp,
+                    proposer,
+                    owner,
+                    finalizationPeriodSeconds
+                )
+            )
         );
         oracle = L2OutputOracle(address(proxy));
         vm.label(address(oracle), "L2OutputOracle");
@@ -231,7 +238,6 @@ contract Portal_Initializer is NativeToken_Initializer {
                     30_000_000, //_gasLimit,
                     address(0), //_unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), //_config,
-                    0, //_startBlock
                     address(0xff), // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: address(0),
@@ -307,16 +313,13 @@ contract Messenger_Initializer is Portal_Initializer {
         // Setup the address manager and proxy
         vm.prank(multisig);
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
-        ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(
-            addressManager,
-            "OVM_L1CrossDomainMessenger"
-        );
+        ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
         L1Messenger.initialize(op, address(token));
 
-        vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger(address(L1Messenger))).code);
+        vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger()).code);
 
-        L2Messenger.initialize();
+        L2Messenger.initialize(L1Messenger);
 
         // Label addresses
         vm.label(address(addressManager), "AddressManager");
@@ -413,9 +416,9 @@ contract Bridge_Initializer is Messenger_Initializer {
         // Deploy the L2StandardBridge, move it to the correct predeploy
         // address and then initialize it. It is safe to call initialize directly
         // on the proxy because the bytecode was set in state with `etch`.
-        vm.etch(Predeploys.L2_STANDARD_BRIDGE, address(new L2StandardBridge(StandardBridge(payable(proxy)))).code);
+        vm.etch(Predeploys.L2_STANDARD_BRIDGE, address(new L2StandardBridge()).code);
         L2Bridge = L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
-        L2Bridge.initialize();
+        L2Bridge.initialize(L1Bridge);
 
         // Set up the L2 mintable token factory
         OptimismMintableERC20Factory factory = new OptimismMintableERC20Factory();
