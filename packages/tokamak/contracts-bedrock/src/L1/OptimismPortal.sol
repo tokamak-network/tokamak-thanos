@@ -108,8 +108,8 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.10.0
-    string public constant version = "1.10.0";
+    /// @custom:semver 2.5.0
+    string public constant version = "2.5.0";
 
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
@@ -231,7 +231,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: cannot send messages to this");
+        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
 
         // Get the output root and load onto the stack to prevent multiple mloads. This will
         // revert if there is no output root for the given block number.
@@ -255,7 +255,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         require(
             provenWithdrawal.timestamp == 0
                 || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
-            "OptimismPortal: already been proven"
+            "OptimismPortal: withdrawal hash has already been proven"
         );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.

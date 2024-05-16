@@ -3,9 +3,9 @@
 
 pragma solidity ^0.8.0;
 
-import {IBeacon} from "./IBeacon.sol";
-import {Address} from "./Address.sol";
-import {StorageSlot} from "./StorageSlot.sol";
+import { IBeacon } from "./IBeacon.sol";
+import { Address } from "./Address.sol";
+import { StorageSlot } from "./StorageSlot.sol";
 
 /**
  * @dev This abstract contract provides getters and event emitting update functions for

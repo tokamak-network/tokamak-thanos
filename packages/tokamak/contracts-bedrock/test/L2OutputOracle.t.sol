@@ -33,26 +33,6 @@ contract L2OutputOracle_constructor_Test is L2OutputOracle_Initializer {
         assertEq(oracle.FINALIZATION_PERIOD_SECONDS(), finalizationPeriodSeconds);
     }
 
-    /// @dev Tests that the constructor reverts if the l2BlockTime is invalid.
-    function test_constructor_l2BlockTimeZero_reverts() external {
-        vm.expectRevert("L2OutputOracle: L2 block time must be greater than 0");
-        new L2OutputOracle({
-            _submissionInterval: submissionInterval,
-            _l2BlockTime: 0,
-            _finalizationPeriodSeconds: 7 days
-        });
-    }
-
-    /// @dev Tests that the constructor reverts if the submissionInterval is zero.
-    function test_constructor_submissionInterval_reverts() external {
-        vm.expectRevert("L2OutputOracle: submission interval must be greater than 0");
-        new L2OutputOracle({
-            _submissionInterval: 0,
-            _l2BlockTime: l2BlockTime,
-            _finalizationPeriodSeconds: 7 days
-        });
-    }
-
     /// @dev Tests that initialize reverts if the starting timestamp is invalid.
     function test_initialize_badTimestamp_reverts() external {
         // Reset the initialized field in the 0th storage slot
@@ -60,10 +40,13 @@ contract L2OutputOracle_constructor_Test is L2OutputOracle_Initializer {
         vm.store(address(oracle), bytes32(uint256(0)), bytes32(uint256(0)));
         vm.expectRevert("L2OutputOracle: starting L2 timestamp must be less than current time");
         oracle.initialize({
+            _submissionInterval: 1,
+            _l2BlockTime: l2BlockTime,
             _startingBlockNumber: 0,
             _startingTimestamp: block.timestamp + 1,
             _proposer: address(0),
-            _challenger: address(0)
+            _challenger: address(0),
+            _finalizationPeriodSeconds: 7 days
         });
     }
 }
@@ -419,29 +402,17 @@ contract L2OutputOracleUpgradeable_Test is L2OutputOracle_Initializer {
         assertEq(oracle.challenger(), owner);
     }
 
-    /// @dev Tests that the impl is created with the correct values.
-    function test_initValuesOnImpl_succeeds() external {
-        assertEq(submissionInterval, oracleImpl.SUBMISSION_INTERVAL());
-        assertEq(l2BlockTime, oracleImpl.L2_BLOCK_TIME());
-
-        // The values that are set in the initialize function should be all
-        // zero values in the implementation contract.
-        assertEq(oracleImpl.startingBlockNumber(), 0);
-        assertEq(oracleImpl.startingTimestamp(), 0);
-        assertEq(oracleImpl.PROPOSER(), address(0));
-        assertEq(oracleImpl.proposer(), address(0));
-        assertEq(oracleImpl.CHALLENGER(), address(0));
-        assertEq(oracleImpl.challenger(), address(0));
-    }
-
     /// @dev Tests that the proxy cannot be initialized twice.
     function test_initializeProxy_alreadyInitialized_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         L2OutputOracle(payable(proxy)).initialize({
+            _submissionInterval: submissionInterval,
+            _l2BlockTime: l2BlockTime,
             _startingBlockNumber: startingBlockNumber,
             _startingTimestamp: startingTimestamp,
             _proposer: address(1),
-            _challenger: address(2)
+            _challenger: address(2),
+            _finalizationPeriodSeconds: finalizationPeriodSeconds
         });
     }
 
@@ -449,10 +420,13 @@ contract L2OutputOracleUpgradeable_Test is L2OutputOracle_Initializer {
     function test_initializeImpl_alreadyInitialized_reverts() external {
         vm.expectRevert("Initializable: contract is already initialized");
         L2OutputOracle(oracleImpl).initialize({
+            _submissionInterval: submissionInterval,
+            _l2BlockTime: l2BlockTime,
             _startingBlockNumber: startingBlockNumber,
             _startingTimestamp: startingTimestamp,
             _proposer: address(1),
-            _challenger: address(2)
+            _challenger: address(2),
+            _finalizationPeriodSeconds: finalizationPeriodSeconds
         });
     }
 

@@ -43,4 +43,14 @@ contract StorageSetter is ISemver {
     function getAddress(bytes32 _slot) external view returns (address) {
         return Storage.getAddress(_slot);
     }
+
+    /// @notice Stores a bool `_value` at `_slot`.
+    function setBool(bytes32 _slot, bool _value) public {
+        Storage.setBool(_slot, _value);
+    }
+
+    /// @notice Retrieves a bool value from `_slot`.
+    function getBool(bytes32 _slot) external view returns (bool value_) {
+        value_ = Storage.getBool(_slot);
+    }
 }
