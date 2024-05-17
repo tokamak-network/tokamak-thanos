@@ -96,7 +96,6 @@ func IsProxied(predeployAddr common.Address) bool {
 	case UniswapV3FactoryAddr:
 	case NFTDescriptorAddr:
 	case NonfungiblePositionManagerAddr:
-	case NonfungibleTokenPositionDescriptorAddr:
 	case TickLensAddr:
 	case UniswapInterfaceMulticallAddr:
 	case UniversalRouterAddr:
