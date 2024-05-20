@@ -28,6 +28,7 @@ contract SystemConfig_Init is CommonTest {
     address constant l2OutputOracle = address(0x23);
     address constant optimismPortal = address(0x24);
     address constant optimismMintableERC20Factory = address(0x25);
+    address constant nativeTokenAddress = address(0x2525);
     uint256 constant overhead = 2100;
     uint256 constant scalar = 1000000;
     bytes32 constant batcherHash = bytes32(hex"abcd");
@@ -61,7 +62,8 @@ contract SystemConfig_Init is CommonTest {
                         l1StandardBridge: l1StandardBridge,
                         l2OutputOracle: l2OutputOracle,
                         optimismPortal: optimismPortal,
-                        optimismMintableERC20Factory: optimismMintableERC20Factory
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
                     })
                 )
             )
@@ -81,6 +83,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(sysConf.optimismPortal(), optimismPortal);
         assertEq(sysConf.optimismMintableERC20Factory(), optimismMintableERC20Factory);
         assertEq(sysConf.batchInbox(), batchInbox);
+        assertEq(sysConf.nativeTokenAddress(), nativeTokenAddress);
         assertEq(sysConf.owner(), alice);
         assertEq(sysConf.overhead(), overhead);
         assertEq(sysConf.scalar(), scalar);
@@ -133,7 +136,8 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                         l1StandardBridge: l1StandardBridge,
                         l2OutputOracle: l2OutputOracle,
                         optimismPortal: optimismPortal,
-                        optimismMintableERC20Factory: optimismMintableERC20Factory
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
                     })
                 )
             )
@@ -172,7 +176,8 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                         l1StandardBridge: l1StandardBridge,
                         l2OutputOracle: l2OutputOracle,
                         optimismPortal: optimismPortal,
-                        optimismMintableERC20Factory: optimismMintableERC20Factory
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
                     })
                 )
             )
@@ -222,7 +227,8 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                         l1StandardBridge: l1StandardBridge,
                         l2OutputOracle: l2OutputOracle,
                         optimismPortal: optimismPortal,
-                        optimismMintableERC20Factory: optimismMintableERC20Factory
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
                     })
                 )
             )
@@ -261,7 +267,8 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Init {
                         l1StandardBridge: address(0),
                         l2OutputOracle: address(0),
                         optimismPortal: address(0),
-                        optimismMintableERC20Factory: address(0)
+                        optimismMintableERC20Factory: address(0),
+                        nativeTokenAddress: address(0)
                     })
                 )
             )
