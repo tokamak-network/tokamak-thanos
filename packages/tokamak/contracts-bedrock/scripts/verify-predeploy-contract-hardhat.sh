@@ -161,6 +161,8 @@ echo "Successfully fetched contract addresses!"
 
 # Contract path
 BASE_PATH=$(cd $(dirname $0)/.. && pwd -P)
+echo "BASE_PATH is set to: $BASE_PATH"  # 추가된 부분
+echo "Verifying UniswapV3Factory at path: ${BASE_PATH}/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.sol:UniswapV3Factory"
 
 
 function run() {
@@ -173,6 +175,7 @@ function run() {
   verify_NonfungibleTokenPositionDescriptor
   verify_TickLens
   verify_UniswapInterfaceMulticall
+  verify_UniversalRouter
 }
 
 # Verify contract
@@ -181,65 +184,62 @@ function run() {
 # $3 : Contract address
 # $4 : Contract path
 function verify_contract() {
-  npx hardhat verify --network $NETWORK_NAME $3 $4 $([[ -n $2 ]] && echo "$2")
+  echo $1 $2 $3
+  npx hardhat verify --network $NETWORK_NAME $2 $3 $([[ -n $1 ]] && echo "$1")
 }
 
 function verify_Permit2() {
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000501"]}
-  COMPILER_VERSION=v0.8.17+commit.8df45f5f
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${PERMIT2_PATH}:Permit2"
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/permit2/Permit2.sol/Permit2.sol:Permit2"
 }
 
 function verify_QuoterV2() {
   CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address)" 0x4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000022)
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000502"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.sol:QuoterV2"
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.sol:QuoterV2"
 }
 
 function verify_SwapRouter02() {
   CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address,address,address)" 0x0000000000000000000000000000000000000000 0x4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000506 0x4200000000000000000000000000000000000022)
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000503"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.sol:SwapRouter02"
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.sol:SwapRouter02"
 }
 
 function verify_UniswapV3Factory() {
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000504"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.sol:UniswapV3Factory"
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.sol:UniswapV3Factory"
 }
 
 function verify_NFTDescriptor() {
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000505"]}
-  COMPILER_VERSION=v0.7.0+commit.9e61f92b
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.sol:NFTDescriptor"
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.sol:NFTDescriptor"
 }
 
 function verify_NonfungiblePositionManager() {
   CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,address,address)" 0x4200000000000000000000000000000000000504 0x4200000000000000000000000000000000000022 0x4200000000000000000000000000000000000507)
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000506"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.sol:NonfungiblePositionManager"
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.sol:NonfungiblePositionManager"
 }
 
 function verify_NonfungibleTokenPositionDescriptor() {
   CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address,bytes32)" 0x4200000000000000000000000000000000000022 0x54574F4E00000000000000000000000000000000000000000000000000000000)
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000507"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol:NonfungibleTokenPositionDescriptor"
+  verify_contract $CONSTRUCTOR_ARGS $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol:NonfungibleTokenPositionDescriptor"
 }
 
 function verify_TickLens() {
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000508"]}
-  COMPILER_VERSION=v0.5.0+commit.1d4f565a
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.sol:TickLens"
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.sol:TickLens"
 }
 
 function verify_UniswapInterfaceMulticall() {
   CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000509"]}
-  COMPILER_VERSION=v0.7.6+commit.7338295f
-  verify_contract $COMPILER_VERSION "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.sol:UniswapInterfaceMulticall"
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.sol:UniswapInterfaceMulticall"
 }
 
+function verify_UniversalRouter() {
+  CONTRACT_ADDR=${contracts["0x4200000000000000000000000000000000000510"]}
+  verify_contract "" $CONTRACT_ADDR "${BASE_PATH}/hardhat-artifacts/universal-router/UniversalRouter.sol/UniversalRouter.sol:UniversalRouter"
+
+}
 run

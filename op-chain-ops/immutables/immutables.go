@@ -216,6 +216,9 @@ func BuildOptimism(immutable ImmutableConfig) (DeploymentResults, error) {
 			Name: "UniswapV3Factory",
 		},
 		{
+			Name: "NFTDescriptor",
+		},
+		{
 			Name: "NonfungiblePositionManager",
 			Args: []interface{}{
 				predeploys.UniswapV3FactoryAddr,

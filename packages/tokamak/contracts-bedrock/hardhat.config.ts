@@ -3,7 +3,25 @@ import "@nomicfoundation/hardhat-verify";
 import 'hardhat-deploy';
 
 export default {
-  solidity: "0.8.9",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.9"
+      },
+      {
+        version: "0.7.6"
+      },
+      {
+        version: "0.7.0"
+      },
+      {
+        version: "0.5.0"
+      },
+      {
+        version: "0.8.17"
+      }
+    ]
+  },
   networks: {
     devnetL1: {
       url: "http://localhost:9545",
@@ -21,7 +39,7 @@ export default {
         network: "devnetL1",
         chainId: 901,
         urls: {
-          apiURL: "http://localhost/api",
+          apiURL: "http://localhost/api?",
           browserURL: "http://localhost"
         }
       },
