@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -289,6 +288,9 @@ func TestSystemE2E(t *testing.T) {
 }
 
 func runE2ESystemTest(t *testing.T, sys *System) {
+
+	cfg := DefaultSystemConfig(t)
+
 	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
@@ -1166,10 +1168,10 @@ func TestWithdrawals(t *testing.T) {
 	diff = diff.Sub(diff, fees)
 	require.Equal(t, withdrawAmount, diff)
 
-	startBalance, err = nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	startBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
-	proveReceipt, finalizeReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["verifier"], ethPrivKey, receipt)
+	proveReceipt, finalizeReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
 
@@ -1179,7 +1181,7 @@ func TestWithdrawals(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	endBalance, err = nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
 	diff = new(big.Int).Sub(endBalance, startBalance)
