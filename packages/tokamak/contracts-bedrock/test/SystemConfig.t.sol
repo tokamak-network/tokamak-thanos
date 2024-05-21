@@ -28,6 +28,7 @@ contract SystemConfig_Init is CommonTest {
     address constant l2OutputOracle = address(0x23);
     address constant optimismPortal = address(0x24);
     address constant optimismMintableERC20Factory = address(0x25);
+    address constant nativeTokenAddress = address(0x2525);
     uint256 constant overhead = 2100;
     uint256 constant scalar = 1000000;
     bytes32 constant batcherHash = bytes32(hex"abcd");
@@ -60,7 +61,8 @@ contract SystemConfig_Init is CommonTest {
                         l1StandardBridge: l1StandardBridge,
                         l2OutputOracle: l2OutputOracle,
                         optimismPortal: optimismPortal,
-                        optimismMintableERC20Factory: optimismMintableERC20Factory
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
                     })
                 )
             )
@@ -80,6 +82,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(sysConf.optimismPortal(), optimismPortal);
         assertEq(sysConf.optimismMintableERC20Factory(), optimismMintableERC20Factory);
         assertEq(sysConf.batchInbox(), batchInbox);
+        assertEq(sysConf.nativeTokenAddress(), nativeTokenAddress);
         assertEq(sysConf.owner(), alice);
         assertEq(sysConf.overhead(), overhead);
         assertEq(sysConf.scalar(), scalar);
@@ -97,6 +100,132 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(actual.minimumBaseFee, cfg.minimumBaseFee);
         assertEq(actual.systemTxMaxGas, cfg.systemTxMaxGas);
         assertEq(actual.maximumBaseFee, cfg.maximumBaseFee);
+    }
+
+    /// @dev Ensures that the start block override can be used to set the start block.
+    function test_initialize_startBlockOverride_succeeds() external {
+        uint256 startBlock = 100;
+
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(sysConf), bytes32(0), bytes32(0));
+        assertEq(sysConf.startBlock(), block.number);
+
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(startBlock));
+        assertEq(sysConf.startBlock(), startBlock);
+
+        vm.prank(multisig);
+        Proxy(payable(address(sysConf))).upgradeToAndCall(
+            address(systemConfigImpl),
+            abi.encodeCall(
+                SystemConfig.initialize,
+                (
+                    alice, // _owner,
+                    overhead, // _overhead,
+                    scalar, // _scalar,
+                    batcherHash, // _batcherHash
+                    gasLimit, // _gasLimit,
+                    unsafeBlockSigner, // _unsafeBlockSigner,
+                    Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
+                    batchInbox, // _batchInbox
+                    SystemConfig.Addresses({ // _addresses
+                        l1CrossDomainMessenger: l1CrossDomainMessenger,
+                        l1ERC721Bridge: l1ERC721Bridge,
+                        l1StandardBridge: l1StandardBridge,
+                        l2OutputOracle: l2OutputOracle,
+                        optimismPortal: optimismPortal,
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
+                    })
+                )
+            )
+        );
+        assertEq(sysConf.startBlock(), startBlock);
+    }
+
+    /// @dev Tests that initialization with start block already set is a noop.
+    function test_initialize_startBlockNoop_reverts() external {
+        // wipe out initialized slot so we can initialize again
+        vm.store(address(sysConf), bytes32(0), bytes32(0));
+        // the startBlock slot is 106, set it to something non zero
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(uint256(0xff)));
+
+        // Initialize with a non zero start block, should see a revert
+        vm.prank(multisig);
+        // The call to initialize reverts due to: "SystemConfig: cannot override an already set start block"
+        // but the proxy revert message bubbles up.
+        Proxy(payable(address(sysConf))).upgradeToAndCall(
+            address(systemConfigImpl),
+            abi.encodeCall(
+                SystemConfig.initialize,
+                (
+                    alice, // _owner,
+                    overhead, // _overhead,
+                    scalar, // _scalar,
+                    batcherHash, // _batcherHash
+                    gasLimit, // _gasLimit,
+                    unsafeBlockSigner, // _unsafeBlockSigner,
+                    Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
+                    batchInbox, // _batchInbox
+                    SystemConfig.Addresses({ // _addresses
+                        l1CrossDomainMessenger: l1CrossDomainMessenger,
+                        l1ERC721Bridge: l1ERC721Bridge,
+                        l1StandardBridge: l1StandardBridge,
+                        l2OutputOracle: l2OutputOracle,
+                        optimismPortal: optimismPortal,
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
+                    })
+                )
+            )
+        );
+
+        // It was initialized with 1 but it was already set so the override
+        // should be ignored.
+        uint256 startBlock = sysConf.startBlock();
+        assertEq(startBlock, 0xff);
+    }
+
+    /// @dev Ensures that the events are emitted during initialization.
+    function test_initialize_events_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(sysConf), bytes32(0), bytes32(0));
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(0));
+        assertEq(sysConf.startBlock(), 0);
+
+        // The order depends here
+        vm.expectEmit(true, true, true, true, address(sysConf));
+        emit ConfigUpdate(0, SystemConfig.UpdateType.BATCHER, abi.encode(batcherHash));
+        vm.expectEmit(true, true, true, true, address(sysConf));
+        emit ConfigUpdate(0, SystemConfig.UpdateType.GAS_CONFIG, abi.encode(overhead, scalar));
+        vm.expectEmit(true, true, true, true, address(sysConf));
+        emit ConfigUpdate(0, SystemConfig.UpdateType.GAS_LIMIT, abi.encode(gasLimit));
+
+        vm.prank(multisig);
+        Proxy(payable(address(sysConf))).upgradeToAndCall(
+            address(systemConfigImpl),
+            abi.encodeCall(
+                SystemConfig.initialize,
+                (
+                    alice, // _owner,
+                    overhead, // _overhead,
+                    scalar, // _scalar,
+                    batcherHash, // _batcherHash
+                    gasLimit, // _gasLimit,
+                    unsafeBlockSigner, // _unsafeBlockSigner,
+                    Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
+                    batchInbox, // _batchInbox
+                    SystemConfig.Addresses({ // _addresses
+                        l1CrossDomainMessenger: l1CrossDomainMessenger,
+                        l1ERC721Bridge: l1ERC721Bridge,
+                        l1StandardBridge: l1StandardBridge,
+                        l2OutputOracle: l2OutputOracle,
+                        optimismPortal: optimismPortal,
+                        optimismMintableERC20Factory: optimismMintableERC20Factory,
+                        nativeTokenAddress: nativeTokenAddress
+                    })
+                )
+            )
+        );
     }
 }
 
@@ -130,7 +259,8 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Init {
                         l1StandardBridge: address(0),
                         l2OutputOracle: address(0),
                         optimismPortal: address(0),
-                        optimismMintableERC20Factory: address(0)
+                        optimismMintableERC20Factory: address(0),
+                        nativeTokenAddress: address(0)
                     })
                 )
             )

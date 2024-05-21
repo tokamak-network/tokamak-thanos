@@ -50,7 +50,8 @@ contract Initializer_Test is ERC721Bridge_Initializer {
                 l1StandardBridge: address(0),
                 l2OutputOracle: address(0),
                 optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0)
+                optimismMintableERC20Factory: address(0),
+                nativeTokenAddress: address(0)
             })
         });
 
