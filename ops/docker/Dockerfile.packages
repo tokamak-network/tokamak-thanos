@@ -30,7 +30,7 @@ RUN mkdir manifests && \
   # .nvmrc
   cp .nvmrc ../manifests/
 
-FROM onthertech/thanos-ci-builder:latest as foundry
+FROM onthertech/thanos-ci-builder:ecotone as foundry
 # bullseye-slim is debian based
 # we use it rather than alpine because it's not much
 # bigger and alpine is often missing packages for node applications

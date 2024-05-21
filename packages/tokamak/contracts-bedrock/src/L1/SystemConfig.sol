@@ -34,6 +34,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         address l2OutputOracle;
         address optimismPortal;
         address optimismMintableERC20Factory;
+        address nativeTokenAddress;
     }
 
     /// @notice Version identifier, used for upgrades.
@@ -74,6 +75,10 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice Storage slot for block at which the op-node can start searching for logs from.
     bytes32 public constant START_BLOCK_SLOT = bytes32(uint256(keccak256("systemconfig.startBlock")) - 1);
+
+    /// @notice Storage slot that the native token address is stored at.
+    bytes32 public constant NATIVE_TOKEN_ADDRESS_SLOT =
+        bytes32(uint256(keccak256("systemconfig.nativetokenaddress")) - 1);
 
     /// @notice Fixed L2 gas overhead. Used as part of the L2 fee calculation.
     uint256 public overhead;
@@ -133,7 +138,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
                 l1StandardBridge: address(0),
                 l2OutputOracle: address(0),
                 optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0)
+                optimismMintableERC20Factory: address(0),
+                nativeTokenAddress: address(0)
             })
         });
     }
@@ -180,6 +186,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         Storage.setAddress(L2_OUTPUT_ORACLE_SLOT, _addresses.l2OutputOracle);
         Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
         Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
+        Storage.setAddress(NATIVE_TOKEN_ADDRESS_SLOT, _addresses.nativeTokenAddress);
 
         _setStartBlock();
 
@@ -243,6 +250,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     /// @notice Getter for the StartBlock number.
     function startBlock() external view returns (uint256 startBlock_) {
         startBlock_ = Storage.getUint(START_BLOCK_SLOT);
+    }
+
+    /// @notice Getter for the native token address.
+    function nativeTokenAddress() external view returns (address addr_) {
+        addr_ = Storage.getAddress(NATIVE_TOKEN_ADDRESS_SLOT);
     }
 
     /// @notice Updates the unsafe block signer address. Can only be called by the owner.
