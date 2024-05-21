@@ -25,8 +25,8 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0ceeb1418a9676af7
-          ec2-instance-type: t4g.2xlarge
+          ec2-image-id: ami-0e7de4bc9fe84bd4f
+          ec2-instance-type: t3.xlarge
           subnet-id: subnet-04958ddab1cb88c55
           security-group-id: sg-031082ccee7540e7a
           iam-role-name: ec2-runner
@@ -72,7 +72,7 @@ jobs:
     needs: [start-runner, ec2-update-attribute]
     runs-on: ${{ needs.start-runner.outputs.label }}
     container:
-      image: onthertech/thanos-ci-builder:latest
+      image: onthertech/thanos-ci-builder:ecotone
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.0
