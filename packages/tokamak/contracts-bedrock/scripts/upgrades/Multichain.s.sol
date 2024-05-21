@@ -480,7 +480,8 @@ contract Multichain is SafeBuilder {
                                     l1StandardBridge: prox.L1StandardBridge,
                                     l2OutputOracle: prox.L2OutputOracle,
                                     optimismPortal: prox.OptimismPortal,
-                                    optimismMintableERC20Factory: prox.OptimismMintableERC20Factory
+                                    optimismMintableERC20Factory: prox.OptimismMintableERC20Factory,
+                                    nativeTokenAddress: cfg.nativeTokenAddress()
                                 })
                             )
                         )
