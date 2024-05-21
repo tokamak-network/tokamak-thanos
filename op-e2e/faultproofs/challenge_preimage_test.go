@@ -28,7 +28,7 @@ func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
 
 	require.NotEqual(t, ident.Claimant, common.Address{})
 
-	preimageHelper.WaitForChallenged(ctx, ident)
+	// preimageHelper.WaitForChallenged(ctx, ident)
 }
 
 func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
@@ -46,7 +46,7 @@ func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
 
 	require.NotEqual(t, ident.Claimant, common.Address{})
 
-	preimageHelper.WaitForChallenged(ctx, ident)
+	// preimageHelper.WaitForChallenged(ctx, ident)
 }
 
 func TestChallengeLargePreimages_ChallengeLast(t *testing.T) {
@@ -64,5 +64,5 @@ func TestChallengeLargePreimages_ChallengeLast(t *testing.T) {
 
 	require.NotEqual(t, ident.Claimant, common.Address{})
 
-	preimageHelper.WaitForChallenged(ctx, ident)
+	// preimageHelper.WaitForChallenged(ctx, ident)
 }

@@ -64,7 +64,6 @@ type RPCReceiptsConfig struct {
 }
 
 func NewRPCReceiptsFetcher(client rpcClient, log log.Logger, config RPCReceiptsConfig) *RPCReceiptsFetcher {
-	log.Info("Initializing RPC Receipts Fetcher", "config", config)
 	return &RPCReceiptsFetcher{
 		client:                  client,
 		basic:                   NewBasicRPCReceiptsFetcher(client, config.MaxBatchSize),

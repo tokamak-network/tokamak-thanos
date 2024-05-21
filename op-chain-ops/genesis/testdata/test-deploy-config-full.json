@@ -21,6 +21,7 @@
   "l1GenesisBlockGasLimit": "0x1c9c380",
   "l1GenesisBlockDifficulty": "0x1",
   "finalSystemOwner": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+  "portalGuardian": "0x0000000000000000000000000000000000000112",
   "superchainConfigGuardian": "0x0000000000000000000000000000000000000112",
   "finalizationPeriodSeconds": 2,
   "l1GenesisBlockMixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -81,5 +82,17 @@
   "proofMaturityDelaySeconds": 12,
   "disputeGameFinalityDelaySeconds": 6,
   "respectedGameType": 0,
-  "useFaultProofs": false
+  "useFaultProofs": false,
+  "fiatTokenOwner": "0x0000000000000000000000000000000000000222",
+  "l1UsdcAddr": "0x0000000000000000000000000000000000000222",
+  "l1UsdcBridge": "0x0000000000000000000000000000000000000000",
+  "l1UsdcBridgeProxy": "0x0000000000000000000000000000000000000000",
+  "masterMinterOwner": "0x0000000000000000000000000000000000000000",
+  "nativeTokenAddress": "0x0000000000000000000000000000000000000000",
+  "nativeTokenName": "",
+  "nativeTokenSymbol": "",
+  "newBlacklister": "0x0000000000000000000000000000000000000000",
+  "newMasterMinter": "0x0000000000000000000000000000000000000000",
+  "newPauser": "0x0000000000000000000000000000000000000000",
+  "usdcTokenName": ""
 }

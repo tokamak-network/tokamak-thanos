@@ -2,6 +2,7 @@ package sources
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -31,6 +32,7 @@ func NewCachingReceiptsProvider(inner ReceiptsProvider, m caching.Metrics, cache
 }
 
 func NewCachingRPCReceiptsProvider(client rpcClient, log log.Logger, config RPCReceiptsConfig, m caching.Metrics, cacheSize int) *CachingReceiptsProvider {
+	fmt.Println(client, log, config)
 	return NewCachingReceiptsProvider(NewRPCReceiptsFetcher(client, log, config), m, cacheSize)
 }
 

@@ -261,29 +261,14 @@ def devnet_l1_genesis(paths):
     log.info('Generating L1 genesis state')
     init_devnet_l1_deploy_config(paths)
 
-    if paths.admin_key is not None and not os.path.exists(pjoin(paths.bedrock_devnet_path, 'data')) :
-      init_admin_geth(paths)
+    fqn = 'scripts/Deploy.s.sol:Deploy'
+    run_command([
+        'forge', 'script', '--chain-id', '900', fqn, "--sig", "runWithStateDump()"
+    ], env={}, cwd=paths.contracts_bedrock_dir)
 
-    geth = subprocess.Popen([
-      'geth', '--dev', '--dev.period', '2', '--http', '--http.api', 'eth,debug',
-      '--verbosity', '4', '--gcmode', 'archive', '--dev.gaslimit', '30000000',
-      '--rpc.allow-unprotected-txs'
-    ], cwd=pjoin(paths.mono_repo_dir, 'bedrock-devnet'))
-
-    try:
-        forge = ChildProcess(deploy_contracts, paths)
-        forge.start()
-        forge.join()
-        err = forge.get_error()
-        if err:
-            raise Exception(f"Exception occurred in child process: {err}")
-
-        res = debug_dumpBlock('127.0.0.1:8545')
-        response = json.loads(res)
-        allocs = response['result']
-        write_json(paths.allocs_path, allocs)
-    finally:
-        geth.terminate()
+    forge_dump = read_json(paths.forge_dump_path)
+    write_json(paths.allocs_path, { "accounts": forge_dump })
+    os.remove(paths.forge_dump_path)
 
     shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
 
