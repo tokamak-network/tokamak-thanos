@@ -55,7 +55,7 @@ func TestE2EReorgDeletion(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, deposits.Deposits, 1)
 
-	withdrawTx, err := l2StandardBridge.Withdraw(l2Opts, predeploys.LegacyERC20ETHAddr, l2Opts.Value, 200_000, []byte{byte(1)})
+	withdrawTx, err := l2StandardBridge.Withdraw(l2Opts, predeploys.LegacyERC20NativeTokenAddr, l2Opts.Value, 200_000, []byte{byte(1)})
 	require.NoError(t, err)
 	withdrawReceipt, err := wait.ForReceiptOK(context.Background(), testSuite.L2Client, withdrawTx.Hash())
 	require.NoError(t, err)
