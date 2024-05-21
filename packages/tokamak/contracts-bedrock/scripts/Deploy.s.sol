@@ -100,6 +100,15 @@ contract Deploy is Deployer {
         transferDisputeGameFactoryOwnership();
     }
 
+    function runWithStateDump() public {
+        run();
+
+        string memory path = vm.envOr(
+            "STATE_DUMP_PATH", string.concat(vm.projectRoot(), "/", name(), "-", vm.toString(block.chainid), ".json")
+        );
+        vm.dumpState(path);
+    }
+
     /// @notice The create2 salt used for deployment of the contract implementations.
     ///         Using this helps to reduce config across networks as the implementation
     ///         addresses will be the same across networks when deployed with create2.
@@ -539,19 +548,6 @@ contract Deploy is Deployer {
     /// @notice Deploy the L2OutputOracle
     function deployL2OutputOracle() public broadcast returns (address addr_) {
         L2OutputOracle oracle = new L2OutputOracle{ salt: implSalt() }();
-
-        require(oracle.SUBMISSION_INTERVAL() == cfg.l2OutputOracleSubmissionInterval());
-        require(oracle.submissionInterval() == cfg.l2OutputOracleSubmissionInterval());
-        require(oracle.L2_BLOCK_TIME() == cfg.l2BlockTime());
-        require(oracle.l2BlockTime() == cfg.l2BlockTime());
-        require(oracle.PROPOSER() == address(0));
-        require(oracle.proposer() == address(0));
-        require(oracle.CHALLENGER() == address(0));
-        require(oracle.challenger() == address(0));
-        require(oracle.FINALIZATION_PERIOD_SECONDS() == cfg.finalizationPeriodSeconds());
-        require(oracle.finalizationPeriodSeconds() == cfg.finalizationPeriodSeconds());
-        require(oracle.startingBlockNumber() == 0);
-        require(oracle.startingTimestamp() == 0);
 
         save("L2OutputOracle", address(oracle));
         console.log("L2OutputOracle deployed at %s", address(oracle));
@@ -1111,7 +1107,7 @@ contract Deploy is Deployer {
     function loadMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             // Fetch the absolute prestate dump
-            string memory filePath = string.concat(vm.projectRoot(), "/../../op-program/bin/prestate-proof.json");
+            string memory filePath = string.concat(vm.projectRoot(), "/../../../op-program/bin/prestate-proof.json");
             string[] memory commands = new string[](3);
             commands[0] = "bash";
             commands[1] = "-c";

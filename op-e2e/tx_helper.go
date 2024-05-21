@@ -43,7 +43,7 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	// Wait for transaction on L1
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	l1Receipt, err := wait.ForReceiptOK(ctx, l1Client, tx.Hash())
+	_, err = wait.ForReceiptOK(ctx, l1Client, tx.Hash())
 	require.Nil(t, err, "Waiting for deposit tx on L1")
 
 	depIt, err := depositContract.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)

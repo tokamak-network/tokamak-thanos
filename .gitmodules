@@ -55,3 +55,6 @@
 [submodule "packages/tokamak/contracts-bedrock/lib/lib-keccak"]
 	path = packages/tokamak/contracts-bedrock/lib/lib-keccak
 	url = https://github.com/ethereum-optimism/lib-keccak
+[submodule "packages/tokamak/contracts-bedrock/lib/solady"]
+	path = packages/tokamak/contracts-bedrock/lib/solady
+	url = https://github.com/Vectorized/solady
