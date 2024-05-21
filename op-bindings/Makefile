@@ -1,17 +1,18 @@
-SHELL := /usr/bin/env bash
-
 pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
 contracts-list := ./artifacts.json
 log-level := info
+ETHERSCAN_APIKEY_ETH ?=
+ETHERSCAN_APIKEY_OP ?=
+RPC_URL_ETH ?=
+RPC_URL_OP ?=
 
 all: version mkdir bindings
 
 version:
 	forge --version
 	abigen --version
-
 compile:
 	cd $(contracts-dir) && \
 		forge clean && \
@@ -30,6 +31,39 @@ bindgen-generate-local:
 		--log.level $(log-level) \
 		local \
 		--forge-artifacts $(contracts-dir)/forge-artifacts
+
+bindgen-remote:
+	go run ./cmd/ \
+		generate \
+		--metadata-out ./$(pkg) \
+		--bindings-package $(pkg) \
+		--contracts-list $(contracts-list) \
+		--log.level $(log-level) \
+		remote \
+		--etherscan.apikey.eth $(ETHERSCAN_APIKEY_ETH) \
+		--etherscan.apikey.op $(ETHERSCAN_APIKEY_OP) \
+		--rpc.url.eth $(RPC_URL_ETH) \
+		--rpc.url.op $(RPC_URL_OP)
+
+bindings-legacy:
+	go run ./gen/main.go \
+    -hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
+    -out ./bindings \
+    -hardhat-contracts ./artifacts-hardhat.json \
+    -source-maps MIPS,PreimageOracle \
+    -package $(pkg) \
+    -monorepo-base $(monorepo-base)
+
+hardhat-bindings:
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungiblePositionManager.sol/NonfungiblePositionManager.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
 
 mkdir:
 	mkdir -p $(pkg)
