@@ -238,7 +238,8 @@ contract Portal_Initializer is NativeToken_Initializer {
                         l1StandardBridge: address(0),
                         l2OutputOracle: address(oracle),
                         optimismPortal: address(op),
-                        optimismMintableERC20Factory: address(0)
+                        optimismMintableERC20Factory: address(0),
+                        nativeTokenAddress: address(0)
                     })
                 )
             )
