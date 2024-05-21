@@ -68,11 +68,9 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	}
 
 	// All of the precompile addresses should be funded with a single wei
-	if config.SetPrecompileBalances {
-		for i := 0; i < genesis.PrecompileCount; i++ {
-			addr := common.BytesToAddress([]byte{byte(i)})
-			require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
-		}
+	for i := 0; i < genesis.PrecompileCount; i++ {
+		addr := common.BytesToAddress([]byte{byte(i)})
+		require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
 	}
 
 	create2Deployer := gen.Alloc[predeploys.Create2DeployerAddr]
