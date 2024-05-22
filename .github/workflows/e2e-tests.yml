@@ -58,6 +58,6 @@ jobs:
           make cannon-prestate
           DEPLOYMENT_CONTEXT=devnetL1 make devnet-allocs
 
-      - name: Run ws e2e test
-        run: OP_TESTLOG_DISABLE_COLOR=true OP_E2E_CANNON_ENABLED=false OP_E2E_USE_FPAC=false OP_E2E_DISABLE_PARALLEL=false  gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 -failfast ./...
+      - name: Run e2e test
+        run: OP_TESTLOG_DISABLE_COLOR=true OP_E2E_CANNON_ENABLED=false OP_E2E_DISABLE_PARALLEL=false gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 -failfast ./...
         working-directory: op-e2e
