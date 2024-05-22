@@ -13,59 +13,9 @@ on:
       - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
-  start-runner:
-    name: Start EC2 Runner for e2e tests
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Install aws
-        id: install-aws-cli
-        uses: unfor19/install-aws-cli-action@master
-
-      - run: aws --version
-        shell: bash
-
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0e7de4bc9fe84bd4f
-          ec2-instance-type: c5.4xlarge
-          subnet-id: subnet-04958ddab1cb88c55
-          security-group-id: sg-031082ccee7540e7a
-          iam-role-name: ec2-runner
-          pre-runner-script: shutdown -P +40
-
-      - name: Runner status
-        id: status
-        run: |
-          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
-          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-  runner-update:
-    name: 'update attribute for e2e test'
-    needs: [start-runner]
-    runs-on: ${{ needs.start-runner.outputs.label }}
-    steps:
-      - name: update shutdown behavior
-        run: |
-          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ needs.start-runner.outputs.ec2-instance-id }}
-
   e2e-tests:
     name: 'e2e test'
-    needs: [runner-update, start-runner]
-    runs-on: ${{ needs.start-runner.outputs.label }}
+    runs-on: ubuntu-latest-l
     container:
       image: onthertech/thanos-ci-builder:ecotone
     steps:
@@ -111,24 +61,3 @@ jobs:
       - name: Run ws e2e test
         run: OP_TESTLOG_DISABLE_COLOR=true OP_E2E_CANNON_ENABLED=false OP_E2E_USE_FPAC=false OP_E2E_DISABLE_PARALLEL=false  gotestsum --format=standard-verbose -- -timeout=25m -parallel=16 -failfast ./...
         working-directory: op-e2e
-
-  stop-runner:
-    name: Stop self-hosted EC2 runner for ws tests
-    needs: [start-runner, e2e-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
