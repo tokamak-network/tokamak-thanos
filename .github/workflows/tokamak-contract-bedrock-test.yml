@@ -25,7 +25,7 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0e7de4bc9fe84bd4f
+          ec2-image-id: ami-0dd9d571d57ab8470
           ec2-instance-type: t3.xlarge
           subnet-id: subnet-04958ddab1cb88c55
           security-group-id: sg-031082ccee7540e7a
@@ -81,15 +81,20 @@ jobs:
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Restore Node Modules
-        uses: actions/cache@v3.3.2
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
         with:
-          key: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
           path: node_modules
-          restore-keys: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Fetch dependencies
         run: pnpm fetch --frozen-lockfile --prefer-offline
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --offline
