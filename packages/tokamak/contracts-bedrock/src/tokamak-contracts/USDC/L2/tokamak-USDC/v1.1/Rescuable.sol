@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { Ownable } from "../v1/Ownable.sol";
@@ -51,11 +50,7 @@ contract Rescuable is Ownable {
      * @param to        Recipient address
      * @param amount    Amount to withdraw
      */
-    function rescueERC20(
-        IERC20 tokenContract,
-        address to,
-        uint256 amount
-    ) external onlyRescuer {
+    function rescueERC20(IERC20 tokenContract, address to, uint256 amount) external onlyRescuer {
         tokenContract.safeTransfer(to, amount);
     }
 
@@ -64,10 +59,7 @@ contract Rescuable is Ownable {
      * @param newRescuer The address of the new rescuer.
      */
     function updateRescuer(address newRescuer) external onlyOwner {
-        require(
-            newRescuer != address(0),
-            "Rescuable: new rescuer is the zero address"
-        );
+        require(newRescuer != address(0), "Rescuable: new rescuer is the zero address");
         _rescuer = newRescuer;
         emit RescuerChanged(newRescuer);
     }

@@ -6,7 +6,6 @@ import { ERC1967Utils } from "../libraries/ERC1967Utils.sol";
 import { L1UsdcBridgeStorage } from "./L1UsdcBridgeStorage.sol";
 
 contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
-
     modifier onlyProxyOwner() {
         require(msg.sender == owner(), "not owner");
         _;
@@ -17,10 +16,8 @@ contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
         _;
     }
 
-    constructor(address _logic, address initialOwner, bytes memory _data)
-        payable  ERC1967Proxy(_logic, _data)
-    {
-            ERC1967Utils.changeAdmin(initialOwner);
+    constructor(address _logic, address initialOwner, bytes memory _data) payable ERC1967Proxy(_logic, _data) {
+        ERC1967Utils.changeAdmin(initialOwner);
     }
 
     receive() external payable {
@@ -36,7 +33,9 @@ contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
         address _otherBridge,
         address _l1Usdc,
         address _l2Usdc
-    ) external onlyProxyOwner
+    )
+        external
+        onlyProxyOwner
         nonZeroAddress(_messenger)
         nonZeroAddress(_otherBridge)
         nonZeroAddress(_l1Usdc)
@@ -49,7 +48,7 @@ contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
     }
 
     function upgradeTo(address newImplementation) external onlyProxyOwner {
-        ERC1967Utils.upgradeToAndCall(newImplementation, bytes(''));
+        ERC1967Utils.upgradeToAndCall(newImplementation, bytes(""));
     }
 
     function upgradeToAndCall(address newImplementation, bytes memory data) external onlyProxyOwner {
@@ -63,5 +62,4 @@ contract L1UsdcBridgeProxy is L1UsdcBridgeStorage, ERC1967Proxy {
     function implementation() external view returns (address) {
         return _implementation();
     }
-
 }
