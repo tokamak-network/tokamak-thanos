@@ -288,12 +288,10 @@ func TestSystemE2E(t *testing.T) {
 }
 
 func runE2ESystemTest(t *testing.T, sys *System) {
-
-	cfg := DefaultSystemConfig(t)
-
 	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
+	cfg := DefaultSystemConfig(t)
 	l1Client := sys.Clients["l1"]
 	l2Seq := sys.Clients["sequencer"]
 	l2Verif := sys.Clients["verifier"]

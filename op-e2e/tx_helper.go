@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
@@ -42,7 +41,9 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	require.Nil(t, err, "with deposit tx")
 
 	// Wait for transaction on L1
-	_, err = geth.WaitForTransaction(tx.Hash(), l1Client, 10*time.Duration(cfg.DeployConfig.L1BlockTime)*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, err = wait.ForReceiptOK(ctx, l1Client, tx.Hash())
 	require.Nil(t, err, "Waiting for deposit tx on L1")
 
 	depIt, err := depositContract.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
@@ -57,9 +58,7 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	reconstructedDep, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
 	require.NoError(t, err, "Could not reconstruct L2 Deposit")
 	tx = types.NewTx(reconstructedDep)
-	l2Receipt, err := geth.WaitForTransaction(tx.Hash(), l2Client, 10*time.Duration(cfg.DeployConfig.L2BlockTime)*time.Second)
-	require.NoError(t, err)
-	require.Equal(t, l2Opts.ExpectedStatus, l2Receipt.Status, "l2 transaction status")
+	l2Receipt, err := wait.ForReceipt(ctx, l2Client, tx.Hash(), l2Opts.ExpectedStatus)
 	require.NoError(t, err, "Waiting for deposit tx on L2")
 	return l2Receipt
 }

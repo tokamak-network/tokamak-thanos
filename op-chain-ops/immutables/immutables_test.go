@@ -8,15 +8,25 @@ import (
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/immutables"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuildOptimism(t *testing.T) {
 	cfg := immutables.PredeploysImmutableConfig{
+		LegacyERC20NativeToken: struct {
+			RemoteToken common.Address
+			Bridge      common.Address
+			Decimals    uint8
+		}{
+			RemoteToken: common.Address{},
+			Bridge:      predeploys.L2StandardBridgeAddr,
+			Decimals:    18,
+		},
 		L2ToL1MessagePasser:    struct{}{},
 		DeployerWhitelist:      struct{}{},
-		WETH9:                  struct{}{},
+		WNativeToken:           struct{}{},
 		L2CrossDomainMessenger: struct{}{},
 		L2StandardBridge:       struct{}{},
 		SequencerFeeVault: struct {
@@ -65,6 +75,28 @@ func TestBuildOptimism(t *testing.T) {
 		EAS: struct{ Name string }{
 			Name: "EAS",
 		},
+		ETH: struct {
+			RemoteToken common.Address
+			Bridge      common.Address
+			Decimals    uint8
+		}{
+			RemoteToken: common.Address{},
+			Bridge:      predeploys.L2StandardBridgeAddr,
+			Decimals:    18,
+		},
+		L2UsdcBridge:                       struct{}{},
+		SignatureChecker:                   struct{}{},
+		MasterMinter:                       struct{}{},
+		FiatTokenV2_2:                      struct{}{},
+		QuoterV2:                           struct{}{},
+		SwapRouter02:                       struct{}{},
+		UniswapV3Factory:                   struct{}{},
+		NFTDescriptor:                      struct{}{},
+		NonfungiblePositionManager:         struct{}{},
+		NonfungibleTokenPositionDescriptor: struct{}{},
+		TickLens:                           struct{}{},
+		UniswapInterfaceMulticall:          struct{}{},
+
 		Create2Deployer:              struct{}{},
 		MultiCall3:                   struct{}{},
 		Safe_v130:                    struct{}{},
