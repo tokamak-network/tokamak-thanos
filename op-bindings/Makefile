@@ -1,28 +1,54 @@
-SHELL := /usr/bin/env bash
-
 pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
+contracts-list := ./artifacts.json
+log-level := info
+ETHERSCAN_APIKEY_ETH ?=
+ETHERSCAN_APIKEY_OP ?=
+RPC_URL_ETH ?=
+RPC_URL_OP ?=
 
 all: version mkdir bindings
 
 version:
 	forge --version
 	abigen --version
-
 compile:
 	cd $(contracts-dir) && \
 		forge clean && \
 		pnpm build
 
-bindings: compile bindings-build
+bindings: bindgen-local
 
-bindings-build:
+bindgen-local: compile bindgen-generate-local
+
+bindgen-generate-local:
+	go run ./cmd/ \
+		generate \
+		--metadata-out ./$(pkg) \
+		--bindings-package $(pkg) \
+		--contracts-list $(contracts-list) \
+		--log.level $(log-level) \
+		local \
+		--forge-artifacts $(contracts-dir)/forge-artifacts
+
+bindgen-remote:
+	go run ./cmd/ \
+		generate \
+		--metadata-out ./$(pkg) \
+		--bindings-package $(pkg) \
+		--contracts-list $(contracts-list) \
+		--log.level $(log-level) \
+		remote \
+		--etherscan.apikey.eth $(ETHERSCAN_APIKEY_ETH) \
+		--etherscan.apikey.op $(ETHERSCAN_APIKEY_OP) \
+		--rpc.url.eth $(RPC_URL_ETH) \
+		--rpc.url.op $(RPC_URL_OP)
+
+bindings-legacy:
 	go run ./gen/main.go \
-    -forge-artifacts $(contracts-dir)/forge-artifacts \
     -hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
     -out ./bindings \
-    -forge-contracts ./artifacts.json \
     -hardhat-contracts ./artifacts-hardhat.json \
     -source-maps MIPS,PreimageOracle \
     -package $(pkg) \
@@ -30,7 +56,6 @@ bindings-build:
 
 hardhat-bindings:
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/permit2/Permit2.sol/Permit2.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.json $(pkg)

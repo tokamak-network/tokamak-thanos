@@ -51,7 +51,7 @@
   },
   "targetDefaults": {
     "lint": {
-      "inputs": ["{workspaceRoot}/.markdownlint.json", "default"]
+      "inputs": ["default"]
     },
     "test": {
       "inputs": ["default", "testing", "^production"],
@@ -79,6 +79,5 @@
       "dependsOn": ["^build", "build:contracts"],
       "outputs": ["{projectRoot}/dist"]
     }
-  },
-  "$schema": "./node_modules/nx/schemas/nx-schema.json"
+  }
 }

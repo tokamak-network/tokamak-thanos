@@ -9,36 +9,31 @@ import { ERC1967Utils } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC19
 import { L2UsdcBridgeStorage } from "./L2UsdcBridgeStorage.sol";
 
 interface ICrossDomainMessenger {
-    function xDomainMessageSender() external view returns (address) ;
-    function sendMessage(
-        address _target,
-        bytes calldata _message,
-        uint32 _minGasLimit
-    ) external payable;
+    function xDomainMessageSender() external view returns (address);
+    function sendMessage(address _target, bytes calldata _message, uint32 _minGasLimit) external payable;
 }
 
 interface IUSDC {
     function mint(address to, uint256 amount) external;
     function burn(uint256 amount) external;
-    function minterAllowance(address minter) external view returns (uint256) ;
-    function balanceOf(address account) external view returns (uint256) ;
-
+    function minterAllowance(address minter) external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
 }
 
 interface IL1USDCBridge {
-     function finalizeERC20Withdrawal(
+    function finalizeERC20Withdrawal(
         address _l1Token,
         address _l2Token,
         address _from,
         address _to,
         uint256 _amount,
         bytes calldata _extraData
-    ) external;
+    )
+        external;
 }
 
 interface IMasterMinter {
     function configureMinter(uint256 _newAllowance) external returns (bool);
-
 }
 
 contract L2UsdcBridge is L2UsdcBridgeStorage {
@@ -90,10 +85,7 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
      *         just trying to prevent users accidentally depositing with smart contract wallets.
      */
     modifier onlyEOA() {
-        require(
-            !Address.isContract(msg.sender),
-            "StandardBridge: function can only be called from an EOA"
-        );
+        require(!Address.isContract(msg.sender), "StandardBridge: function can only be called from an EOA");
         _;
     }
 
@@ -102,8 +94,7 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
      */
     modifier onlyOtherBridge() {
         require(
-            msg.sender == messenger &&
-                ICrossDomainMessenger(messenger).xDomainMessageSender() == otherBridge,
+            msg.sender == messenger && ICrossDomainMessenger(messenger).xDomainMessageSender() == otherBridge,
             "StandardBridge: function can only be called from the other bridge"
         );
         _;
@@ -123,7 +114,12 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
-    ) external payable virtual onlyEOA {
+    )
+        external
+        payable
+        virtual
+        onlyEOA
+    {
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -145,8 +141,12 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
         address _to,
         uint256 _amount,
         bytes calldata _extraData
-    ) external onlyOtherBridge onlyL1Usdc(_l1Token) onlyL2Usdc(_l2Token) {
-
+    )
+        external
+        onlyOtherBridge
+        onlyL1Usdc(_l1Token)
+        onlyL2Usdc(_l2Token)
+    {
         uint256 allowance = IUSDC(_l2Token).minterAllowance(address(this));
 
         if (allowance < _amount) IMasterMinter(l2UsdcMasterMinter).configureMinter(type(uint256).max);
@@ -174,8 +174,10 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
-    ) internal onlyL2Usdc(_l2Token) {
-
+    )
+        internal
+        onlyL2Usdc(_l2Token)
+    {
         uint256 allowance = IUSDC(_l2Token).minterAllowance(address(this));
         if (allowance < _amount) IMasterMinter(l2UsdcMasterMinter).configureMinter(type(uint256).max);
 
@@ -201,6 +203,4 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
 
         emit WithdrawalInitiated(l1Usdc, _l2Token, _from, _to, _amount, _extraData);
     }
-
-
 }

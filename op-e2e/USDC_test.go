@@ -36,9 +36,9 @@ func TestUsdcDepositsAndWithdrawal(t *testing.T) {
 	var depositedAmount int64 = 9
 	var withdrawalAmount int64 = 8
 
-	bobAddress := sys.cfg.Secrets.Addresses().Bob
+	bobAddress := sys.Cfg.Secrets.Addresses().Bob
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	// Deploy FiatToken and FiatTokenproxy in L1
@@ -154,7 +154,7 @@ func TestUsdcDepositsAndWithdrawal(t *testing.T) {
 	l2UsdcBridge, err := bindings.NewL2UsdcBridge(predeploys.L2UsdcBridgeAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
 	// Approve
@@ -173,7 +173,7 @@ func TestUsdcDepositsAndWithdrawal(t *testing.T) {
 	l2BalanceAfterWithdraw, err := FiatTokenContractL2.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 

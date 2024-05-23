@@ -6,73 +6,11 @@ on:
       - 'packages/tokamak/contracts-bedrock/**'
 
 jobs:
-  start-runner:
-    name: Start EC2 Runner
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0ceeb1418a9676af7
-          ec2-instance-type: t4g.2xlarge
-          subnet-id: subnet-04958ddab1cb88c55
-          security-group-id: sg-031082ccee7540e7a
-          iam-role-name: ec2-runner
-          pre-runner-script: shutdown -P +40
-      - name: Runner status
-        id: status
-        run: |
-          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
-          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-  ec2-update-attribute:
-    name: Update EC2 shutdown behavior
-    needs: [start-runner]
-    runs-on: ${{ needs.start-runner.outputs.label }}
-    steps:
-      - name: update shutdown behavior
-        run: |
-          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ needs.start-runner.outputs.ec2-instance-id }}
-
-  stop-runner:
-    name: Stop self-hosted EC2 runner
-    needs: [start-runner, contracts-bedrock-tests]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ needs.start-runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
-
   contracts-bedrock-tests:
     name: 'Contract Bedrock test'
-    needs: [start-runner, ec2-update-attribute]
-    runs-on: ${{ needs.start-runner.outputs.label }}
+    runs-on: ubuntu-latest
     container:
-      image: onthertech/thanos-ci-builder:latest
+      image: onthertech/thanos-ci-builder:ecotone
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.0
@@ -81,15 +19,20 @@ jobs:
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Restore Node Modules
-        uses: actions/cache@v3.3.2
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v3
         with:
-          key: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
           path: node_modules
-          restore-keys: pnpm-packages-v2-{{ checksum "pnpm-lock.yaml" }}
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Fetch dependencies
         run: pnpm fetch --frozen-lockfile --prefer-offline
+
+      - name: Save PNPM Package Cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --offline

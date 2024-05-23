@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 // solhint-disable func-name-mixedcase
@@ -40,7 +39,7 @@ contract EIP712Domain {
      * @dev Internal method to get the EIP712 Domain Separator.
      * @return The bytes32 EIP712 domain separator.
      */
-    function _domainSeparator() internal virtual view returns (bytes32) {
+    function _domainSeparator() internal view virtual returns (bytes32) {
         return _DEPRECATED_CACHED_DOMAIN_SEPARATOR;
     }
 }

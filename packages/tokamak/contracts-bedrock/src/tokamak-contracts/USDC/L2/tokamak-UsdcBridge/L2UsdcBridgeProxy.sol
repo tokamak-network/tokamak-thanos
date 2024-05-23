@@ -6,7 +6,6 @@ import { ERC1967Utils } from "@openzeppelin/contracts_v5.0.1/proxy/ERC1967/ERC19
 import { L2UsdcBridgeStorage } from "./L2UsdcBridgeStorage.sol";
 
 contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
-
     modifier onlyProxyOwner() {
         require(msg.sender == owner(), "not owner");
         _;
@@ -17,10 +16,8 @@ contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
         _;
     }
 
-    constructor(address _logic, address initialOwner, bytes memory _data)
-        payable  ERC1967Proxy(_logic, _data)
-    {
-            ERC1967Utils.changeAdmin(initialOwner);
+    constructor(address _logic, address initialOwner, bytes memory _data) payable ERC1967Proxy(_logic, _data) {
+        ERC1967Utils.changeAdmin(initialOwner);
     }
 
     receive() external payable {
@@ -37,7 +34,9 @@ contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
         address _l1Usdc,
         address _l2Usdc,
         address _l2UsdcMasterMinter
-    ) external onlyProxyOwner
+    )
+        external
+        onlyProxyOwner
         nonZeroAddress(_messenger)
         nonZeroAddress(_otherBridge)
         nonZeroAddress(_l1Usdc)
@@ -52,7 +51,7 @@ contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
     }
 
     function upgradeTo(address newImplementation) external onlyProxyOwner {
-        ERC1967Utils.upgradeToAndCall(newImplementation, bytes(''));
+        ERC1967Utils.upgradeToAndCall(newImplementation, bytes(""));
     }
 
     function upgradeToAndCall(address newImplementation, bytes memory data) external onlyProxyOwner {
@@ -66,5 +65,4 @@ contract L2UsdcBridgeProxy is L2UsdcBridgeStorage, ERC1967Proxy {
     function implementation() external view returns (address) {
         return _implementation();
     }
-
 }

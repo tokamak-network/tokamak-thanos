@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { UpgradeabilityProxy } from "./UpgradeabilityProxy.sol";
@@ -23,7 +22,8 @@ import { UpgradeabilityProxy } from "./UpgradeabilityProxy.sol";
 /**
  * @notice This contract combines an upgradeability proxy with an authorization
  * mechanism for administrative tasks.
- * @dev Forked from https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/AdminUpgradeabilityProxy.sol
+ * @dev Forked from
+ * https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/AdminUpgradeabilityProxy.sol
  * Modifications:
  * 1. Reformat, conform to Solidity 0.6 syntax, and add error messages (5/13/20)
  * 2. Remove ifAdmin modifier from admin() and implementation() (5/13/20)
@@ -41,8 +41,7 @@ contract AdminUpgradeabilityProxy is UpgradeabilityProxy {
      * This is the keccak-256 hash of "org.zeppelinos.proxy.admin", and is
      * validated in the constructor.
      */
-    bytes32
-        private constant ADMIN_SLOT = 0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b;
+    bytes32 private constant ADMIN_SLOT = 0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b;
 
     /**
      * @dev Modifier to check whether the `msg.sender` is the admin.
@@ -62,10 +61,7 @@ contract AdminUpgradeabilityProxy is UpgradeabilityProxy {
      * It sets the `msg.sender` as the proxy administrator.
      * @param implementationContract address of the initial implementation.
      */
-    constructor(address implementationContract)
-        public
-        UpgradeabilityProxy(implementationContract)
-    {
+    constructor(address implementationContract) public UpgradeabilityProxy(implementationContract) {
         assert(ADMIN_SLOT == keccak256("org.zeppelinos.proxy.admin"));
 
         _setAdmin(msg.sender);
@@ -91,10 +87,7 @@ contract AdminUpgradeabilityProxy is UpgradeabilityProxy {
      * @param newAdmin Address to transfer proxy administration to.
      */
     function changeAdmin(address newAdmin) external ifAdmin {
-        require(
-            newAdmin != address(0),
-            "Cannot change the admin of a proxy to the zero address"
-        );
+        require(newAdmin != address(0), "Cannot change the admin of a proxy to the zero address");
         emit AdminChanged(_admin(), newAdmin);
         _setAdmin(newAdmin);
     }
@@ -118,15 +111,11 @@ contract AdminUpgradeabilityProxy is UpgradeabilityProxy {
      * called, as described in
      * https://solidity.readthedocs.io/en/develop/abi-spec.html#function-selector-and-argument-encoding.
      */
-    function upgradeToAndCall(address newImplementation, bytes calldata data)
-        external
-        payable
-        ifAdmin
-    {
+    function upgradeToAndCall(address newImplementation, bytes calldata data) external payable ifAdmin {
         _upgradeTo(newImplementation);
         // prettier-ignore
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success,) = address(this).call{value: msg.value}(data);
+        (bool success,) = address(this).call{ value: msg.value }(data);
         // solhint-disable-next-line reason-string
         require(success);
     }
@@ -158,10 +147,7 @@ contract AdminUpgradeabilityProxy is UpgradeabilityProxy {
      * @dev Only fall back when the sender is not the admin.
      */
     function _willFallback() internal override {
-        require(
-            msg.sender != _admin(),
-            "Cannot call fallback function from the proxy admin"
-        );
+        require(msg.sender != _admin(), "Cannot call fallback function from the proxy admin");
         super._willFallback();
     }
 }

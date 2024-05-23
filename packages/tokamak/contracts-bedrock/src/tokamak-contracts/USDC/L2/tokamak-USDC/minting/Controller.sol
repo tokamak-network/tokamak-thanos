@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { Ownable } from "../v1/Ownable.sol";
@@ -33,10 +32,7 @@ contract Controller is Ownable {
      */
     mapping(address => address) internal controllers;
 
-    event ControllerConfigured(
-        address indexed _controller,
-        address indexed _worker
-    );
+    event ControllerConfigured(address indexed _controller, address indexed _worker);
     event ControllerRemoved(address indexed _controller);
 
     /**
@@ -44,10 +40,7 @@ contract Controller is Ownable {
      * address.
      */
     modifier onlyController() {
-        require(
-            controllers[msg.sender] != address(0),
-            "The value of controllers[msg.sender] must be non-zero"
-        );
+        require(controllers[msg.sender] != address(0), "The value of controllers[msg.sender] must be non-zero");
         _;
     }
 
@@ -67,14 +60,8 @@ contract Controller is Ownable {
      * _worker must not be a non-zero address. To disable a worker,
      * use removeController instead.
      */
-    function configureController(address _controller, address _worker)
-        public
-        onlyOwner
-    {
-        require(
-            _controller != address(0),
-            "Controller must be a non-zero address"
-        );
+    function configureController(address _controller, address _worker) public onlyOwner {
+        require(_controller != address(0), "Controller must be a non-zero address");
         require(_worker != address(0), "Worker must be a non-zero address");
         controllers[_controller] = _worker;
         emit ControllerConfigured(_controller, _worker);
@@ -85,14 +72,8 @@ contract Controller is Ownable {
      * @param _controller The controller to disable.
      */
     function removeController(address _controller) public onlyOwner {
-        require(
-            _controller != address(0),
-            "Controller must be a non-zero address"
-        );
-        require(
-            controllers[_controller] != address(0),
-            "Worker must be a non-zero address"
-        );
+        require(_controller != address(0), "Controller must be a non-zero address");
+        require(controllers[_controller] != address(0), "Worker must be a non-zero address");
         controllers[_controller] = address(0);
         emit ControllerRemoved(_controller);
     }
