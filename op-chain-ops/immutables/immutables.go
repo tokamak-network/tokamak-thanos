@@ -1,6 +1,7 @@
 package immutables
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -290,6 +291,23 @@ func BuildL2(constructors []deployer.Constructor) (DeploymentResults, error) {
 			c = append(c, d...)
 			c = append(c, b...)
 			dep.Bytecode = c
+		}
+
+		if dep.Name == "UniswapV3Factory" {
+			originalCode := "5dd3b493c018519303654a439129ea01197ba012"
+			newCode := "4200000000000000000000000000000000000504"
+			originalBytes, _ := hex.DecodeString(originalCode)
+			newBytes, _ := hex.DecodeString(newCode)
+			startIndex := bytes.Index(dep.Bytecode, originalBytes)
+			if startIndex != -1 {
+				a := dep.Bytecode[:startIndex]
+				b := dep.Bytecode[startIndex+len(originalBytes):]
+				c := hexutil.Bytes{}
+				c = append(c, a...)
+				c = append(c, newBytes...)
+				c = append(c, b...)
+				dep.Bytecode = c
+			}
 		}
 
 		results[dep.Name] = dep.Bytecode

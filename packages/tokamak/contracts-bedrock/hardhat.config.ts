@@ -1,26 +1,27 @@
 import "@nomiclabs/hardhat-waffle";
-import "@nomicfoundation/hardhat-verify";
+// import "@nomicfoundation/hardhat-verify";
+import "@nomiclabs/hardhat-etherscan";
 import 'hardhat-deploy';
+
+const LOWEST_OPTIMIZER_COMPILER_SETTINGS = {
+  version: '0.7.6',
+  settings: {
+    evmVersion: 'istanbul',
+    optimizer: {
+      enabled: true,
+      runs: 1_000_000,
+    },
+    metadata: {
+      bytecodeHash: 'none',
+    },
+  },
+};
 
 export default {
   solidity: {
     compilers: [
-      {
-        version: "0.8.9"
-      },
-      {
-        version: "0.7.6"
-      },
-      {
-        version: "0.7.0"
-      },
-      {
-        version: "0.5.0"
-      },
-      {
-        version: "0.8.17"
-      }
-    ]
+      LOWEST_OPTIMIZER_COMPILER_SETTINGS,
+    ],
   },
   networks: {
     devnetL1: {
@@ -30,7 +31,7 @@ export default {
     'thanos-sepolia-test': {
       url: "https://explorer.thanos-sepolia-test.tokamak.network",
       chainId: 111551118080,
-    }
+    },
   },
   etherscan: {
     apiKey: "YOUR_API_KEY",
@@ -39,21 +40,21 @@ export default {
         network: "devnetL1",
         chainId: 901,
         urls: {
-          apiURL: "http://localhost/api?",
-          browserURL: "http://localhost"
-        }
+          apiURL: "http://localhost/api",
+          browserURL: "http://localhost",
+        },
       },
       {
         network: "thanos-sepolia-test",
         chainId: 111551118080,
         urls: {
           apiURL: "https://rpc.titan-sepolia.tokamak.network",
-          browserURL: "https://explorer.thanos-sepolia-test.tokamak.network"
-        }
-      }
-    ]
+          browserURL: "https://explorer.thanos-sepolia-test.tokamak.network",
+        },
+      },
+    ],
   },
   sourcify: {
-    enabled: false
-  }
+    enabled: false,
+  },
 };

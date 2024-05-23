@@ -795,14 +795,14 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (immutables.
 	immutable["FiatTokenV2_2"] = immutables.ImmutableValues{}
 	immutable["Permit2"] = immutables.ImmutableValues{}
 	immutable["QuoterV2"] = immutables.ImmutableValues{
-		"factory": predeploys.UniswapV3FactoryAddr,
-		"WETH9":   predeploys.WNativeTokenAddr,
+		"_factory": predeploys.UniswapV3FactoryAddr,
+		"_WETH9":   predeploys.WNativeTokenAddr,
 	}
 	immutable["SwapRouter02"] = immutables.ImmutableValues{
 		"_factoryV2":       config.FactoryV2addr,
 		"factoryV3":        predeploys.UniswapV3FactoryAddr,
 		"_positionManager": predeploys.NonfungiblePositionManagerAddr,
-		"WETH9":            predeploys.WNativeTokenAddr,
+		"_WETH9":           predeploys.WNativeTokenAddr,
 	}
 	immutable["UniswapV3Factory"] = immutables.ImmutableValues{}
 	immutable["NFTDescriptor"] = immutables.ImmutableValues{}
@@ -946,7 +946,6 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 			config.UniswapV3FactoryFee100:   config.UniswapV3FactoryTickSpacing1,
 		},
 	}
-	storage["NonfungiblePositionManager"] = state.StorageValues{}
 	return storage, nil
 }
 
