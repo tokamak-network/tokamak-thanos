@@ -18,18 +18,12 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/hardhat"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/immutables"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/state"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
-
-// initialzedValue represents the `Initializable` contract value. It should be kept in
-// sync with the constant in `Constants.sol`.
-// https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/libraries/Constants.sol
-const initializedValue = 3
 
 var (
 	ErrInvalidDeployConfig     = errors.New("invalid deploy config")
@@ -122,7 +116,7 @@ type DeployConfig struct {
 	L2GenesisRegolithTimeOffset *hexutil.Uint64 `json:"l2GenesisRegolithTimeOffset,omitempty"`
 	// L2GenesisCanyonTimeOffset is the number of seconds after genesis block that Canyon hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Canyon.
-	L2GenesisCanyonTimeOffset *hexutil.Uint64 `json:"L2GenesisCanyonTimeOffset,omitempty"`
+	L2GenesisCanyonTimeOffset *hexutil.Uint64 `json:"l2GenesisCanyonTimeOffset,omitempty"`
 	// L2GenesisDeltaTimeOffset is the number of seconds after genesis block that Delta hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Delta.
 	L2GenesisDeltaTimeOffset *hexutil.Uint64 `json:"l2GenesisDeltaTimeOffset,omitempty"`
@@ -135,9 +129,6 @@ type DeployConfig struct {
 	// L2GenesisInteropTimeOffset is the number of seconds after genesis block that the Interop hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Interop.
 	L2GenesisInteropTimeOffset *hexutil.Uint64 `json:"l2GenesisInteropTimeOffset,omitempty"`
-	// L2GenesisSpanBatchTimeOffset is the number of seconds after genesis block that Span Batch hard fork activates.
-	// Set it to 0 to activate at genesis. Nil to disable SpanBatch.
-	L2GenesisSpanBatchTimeOffset *hexutil.Uint64 `json:"l2GenesisSpanBatchTimeOffset,omitempty"`
 	// L2GenesisBlockExtraData is configurable extradata. Will default to []byte("BEDROCK") if left unspecified.
 	L2GenesisBlockExtraData []byte `json:"l2GenesisBlockExtraData"`
 	// ProxyAdminOwner represents the owner of the ProxyAdmin predeploy on L2.
@@ -147,6 +138,8 @@ type DeployConfig struct {
 	FinalSystemOwner common.Address `json:"finalSystemOwner"`
 	// PortalGuardian represents the GUARDIAN account in the OptimismPortal. Has the ability to pause withdrawals.
 	PortalGuardian common.Address `json:"portalGuardian"`
+	// SuperchainConfigGuardian represents the GUARDIAN account in the SuperchainConfig. Has the ability to pause withdrawals.
+	SuperchainConfigGuardian common.Address `json:"superchainConfigGuardian"`
 	// BaseFeeVaultRecipient represents the recipient of fees accumulated in the BaseFeeVault.
 	// Can be an account on L1 or L2, depending on the BaseFeeVaultWithdrawalNetwork value.
 	BaseFeeVaultRecipient common.Address `json:"baseFeeVaultRecipient"`
@@ -212,10 +205,6 @@ type DeployConfig struct {
 	// FaultGameAbsolutePrestate is the absolute prestate of Cannon. This is computed
 	// by generating a proof from the 0th -> 1st instruction and grabbing the prestate from
 	// the output JSON. All honest challengers should agree on the setup state of the program.
-	// TODO(clabby): Right now, the build of the `op-program` is nondeterministic, meaning that
-	// the binary must be distributed in order for honest actors to agree. In the future, we'll
-	// look to make the build deterministic so that users may build Cannon / the `op-program`
-	// from source.
 	FaultGameAbsolutePrestate common.Hash `json:"faultGameAbsolutePrestate"`
 	// FaultGameMaxDepth is the maximum depth of the position tree within the fault dispute game.
 	// `2^{FaultGameMaxDepth}` is how many instructions the execution trace bisection game
@@ -226,6 +215,18 @@ type DeployConfig struct {
 	// game can run for before it is ready to be resolved. Each side receives half of this value
 	// on their chess clock at the inception of the dispute.
 	FaultGameMaxDuration uint64 `json:"faultGameMaxDuration"`
+	// FaultGameGenesisBlock is the block number for genesis.
+	FaultGameGenesisBlock uint64 `json:"faultGameGenesisBlock"`
+	// FaultGameGenesisOutputRoot is the output root for the genesis block.
+	FaultGameGenesisOutputRoot common.Hash `json:"faultGameGenesisOutputRoot"`
+	// FaultGameSplitDepth is the depth at which the fault dispute game splits from output roots to execution trace claims.
+	FaultGameSplitDepth uint64 `json:"faultGameSplitDepth"`
+	// PreimageOracleMinProposalSize is the minimum number of bytes that a large preimage oracle proposal can be.
+	PreimageOracleMinProposalSize uint64 `json:"preimageOracleMinProposalSize"`
+	// PreimageOracleChallengePeriod is the number of seconds that challengers have to challenge a large preimage proposal.
+	PreimageOracleChallengePeriod uint64 `json:"preimageOracleChallengePeriod"`
+	// PreimageOracleCancunActivationTimestamp is the timestamp at which blob preimages are able to be loaded into the preimage oracle.
+	PreimageOracleCancunActivationTimestamp uint64 `json:"preimageOracleCancunActivationTimestamp"`
 	// FundDevAccounts configures whether or not to fund the dev accounts. Should only be used
 	// during devnet deployments.
 	FundDevAccounts bool `json:"fundDevAccounts"`
@@ -238,6 +239,21 @@ type DeployConfig struct {
 	// RequiredProtocolVersion indicates the protocol version that
 	// nodes are recommended to adopt, to stay in sync with the network.
 	RecommendedProtocolVersion params.ProtocolVersion `json:"recommendedProtocolVersion"`
+	// ProofMaturityDelaySeconds is the number of seconds that a proof must be
+	// mature before it can be used to finalize a withdrawal.
+	ProofMaturityDelaySeconds uint64 `json:"proofMaturityDelaySeconds"`
+	// DisputeGameFinalityDelaySeconds is an additional number of seconds a
+	// dispute game must wait before it can be used to finalize a withdrawal.
+	DisputeGameFinalityDelaySeconds uint64 `json:"disputeGameFinalityDelaySeconds"`
+	// RespectedGameType is the dispute game type that the OptimismPortal
+	// contract will respect for finalizing withdrawals.
+	RespectedGameType uint32 `json:"respectedGameType"`
+	// UseFaultProofs is a flag that indicates if the system is using fault
+	// proofs instead of the older output oracle mechanism.
+	UseFaultProofs bool `json:"useFaultProofs"`
+
+	// When Cancun activates. Relative to L1 genesis.
+	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
 	// L1UsdcAddr - standard USDC address
 	L1UsdcAddr common.Address `json:"l1UsdcAddr"`
 	// UsdcTokenName - ERC20 name of the token e.g. "Bridged USDC (Own Company Name)"
@@ -252,11 +268,7 @@ type DeployConfig struct {
 	MasterMinterOwner common.Address `json:"masterMinterOwner"`
 	// FiatTokenOwner - can configure master minter, pauser, and blacklister
 	FiatTokenOwner common.Address `json:"fiatTokenOwner"`
-	// When Cancun activates. Relative to L1 genesis.
-	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
-	// L1UsdcBridge represents the address of the L1UsdcBridge on L1 and is used
-	// as part of building the L2 genesis state.
-	L1UsdcBridge common.Address `json:"l1UsdcBridge"`
+	L1UsdcBridge   common.Address `json:"l1UsdcBridge"`
 	// L1UsdcBridgeProxy represents the address of the L1UsdcBridgeProxy on L1 and is used
 	// as part of building the L2 genesis state.
 	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
@@ -297,8 +309,8 @@ func (d *DeployConfig) Check() error {
 	if d.L2OutputOracleStartingBlockNumber == 0 {
 		log.Warn("L2OutputOracleStartingBlockNumber is 0, should only be 0 for fresh chains")
 	}
-	if d.PortalGuardian == (common.Address{}) {
-		return fmt.Errorf("%w: PortalGuardian cannot be address(0)", ErrInvalidDeployConfig)
+	if d.SuperchainConfigGuardian == (common.Address{}) {
+		return fmt.Errorf("%w: SuperchainConfigGuardian cannot be address(0)", ErrInvalidDeployConfig)
 	}
 	if d.MaxSequencerDrift == 0 {
 		return fmt.Errorf("%w: MaxSequencerDrift cannot be 0", ErrInvalidDeployConfig)
@@ -395,6 +407,46 @@ func (d *DeployConfig) Check() error {
 	if d.L1BlockTime < d.L2BlockTime {
 		return fmt.Errorf("L2 block time (%d) is larger than L1 block time (%d)", d.L2BlockTime, d.L1BlockTime)
 	}
+	if d.RequiredProtocolVersion == (params.ProtocolVersion{}) {
+		log.Warn("RequiredProtocolVersion is empty")
+	}
+	if d.RecommendedProtocolVersion == (params.ProtocolVersion{}) {
+		log.Warn("RecommendedProtocolVersion is empty")
+	}
+	if d.ProofMaturityDelaySeconds == 0 {
+		log.Warn("ProofMaturityDelaySeconds is 0")
+	}
+	if d.DisputeGameFinalityDelaySeconds == 0 {
+		log.Warn("DisputeGameFinalityDelaySeconds is 0")
+	}
+	// checkFork checks that fork A is before or at the same time as fork B
+	checkFork := func(a, b *hexutil.Uint64, aName, bName string) error {
+		if a == nil && b == nil {
+			return nil
+		}
+		if a == nil && b != nil {
+			return fmt.Errorf("fork %s set (to %d), but prior fork %s missing", bName, *b, aName)
+		}
+		if a != nil && b == nil {
+			return nil
+		}
+		if *a > *b {
+			return fmt.Errorf("fork %s set to %d, but prior fork %s has higher offset %d", bName, *b, aName, *a)
+		}
+		return nil
+	}
+	if err := checkFork(d.L2GenesisRegolithTimeOffset, d.L2GenesisCanyonTimeOffset, "regolith", "canyon"); err != nil {
+		return err
+	}
+	if err := checkFork(d.L2GenesisCanyonTimeOffset, d.L2GenesisDeltaTimeOffset, "canyon", "delta"); err != nil {
+		return err
+	}
+	if err := checkFork(d.L2GenesisDeltaTimeOffset, d.L2GenesisEcotoneTimeOffset, "delta", "ecotone"); err != nil {
+		return err
+	}
+	if err := checkFork(d.L2GenesisEcotoneTimeOffset, d.L2GenesisFjordTimeOffset, "ecotone", "fjord"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -418,7 +470,6 @@ func (d *DeployConfig) CheckAddresses() error {
 	if d.OptimismPortalProxy == (common.Address{}) {
 		return fmt.Errorf("%w: OptimismPortalProxy cannot be address(0)", ErrInvalidDeployConfig)
 	}
-
 	return nil
 }
 
@@ -435,73 +486,6 @@ func (d *DeployConfig) SetDeployments(deployments *L1Deployments) {
 
 func (d *DeployConfig) GovernanceEnabled() bool {
 	return d.EnableGovernance
-}
-
-// GetDeployedAddresses will get the deployed addresses of deployed L1 contracts
-// required for the L2 genesis creation. Legacy systems use the `Proxy__` prefix
-// while modern systems use the `Proxy` suffix. First check for the legacy
-// deployments so that this works with upgrading a system.
-func (d *DeployConfig) GetDeployedAddresses(hh *hardhat.Hardhat) error {
-	var err error
-
-	if d.L1StandardBridgeProxy == (common.Address{}) {
-		var l1StandardBridgeProxyDeployment *hardhat.Deployment
-		l1StandardBridgeProxyDeployment, err = hh.GetDeployment("Proxy__OVM_L1StandardBridge")
-		if errors.Is(err, hardhat.ErrCannotFindDeployment) {
-			l1StandardBridgeProxyDeployment, err = hh.GetDeployment("L1StandardBridgeProxy")
-			if err != nil {
-				return err
-			}
-		}
-		d.L1StandardBridgeProxy = l1StandardBridgeProxyDeployment.Address
-	}
-
-	if d.L1CrossDomainMessengerProxy == (common.Address{}) {
-		var l1CrossDomainMessengerProxyDeployment *hardhat.Deployment
-		l1CrossDomainMessengerProxyDeployment, err = hh.GetDeployment("Proxy__OVM_L1CrossDomainMessenger")
-		if errors.Is(err, hardhat.ErrCannotFindDeployment) {
-			l1CrossDomainMessengerProxyDeployment, err = hh.GetDeployment("L1CrossDomainMessengerProxy")
-			if err != nil {
-				return err
-			}
-		}
-		d.L1CrossDomainMessengerProxy = l1CrossDomainMessengerProxyDeployment.Address
-	}
-
-	if d.L1ERC721BridgeProxy == (common.Address{}) {
-		// There is no legacy deployment of this contract
-		l1ERC721BridgeProxyDeployment, err := hh.GetDeployment("L1ERC721BridgeProxy")
-		if err != nil {
-			return err
-		}
-		d.L1ERC721BridgeProxy = l1ERC721BridgeProxyDeployment.Address
-	}
-
-	if d.SystemConfigProxy == (common.Address{}) {
-		systemConfigProxyDeployment, err := hh.GetDeployment("SystemConfigProxy")
-		if err != nil {
-			return err
-		}
-		d.SystemConfigProxy = systemConfigProxyDeployment.Address
-	}
-
-	if d.OptimismPortalProxy == (common.Address{}) {
-		optimismPortalProxyDeployment, err := hh.GetDeployment("OptimismPortalProxy")
-		if err != nil {
-			return err
-		}
-		d.OptimismPortalProxy = optimismPortalProxyDeployment.Address
-	}
-
-	if d.L1UsdcBridgeProxy == (common.Address{}) {
-		l1UsdcBridgeProxyDeployment, err := hh.GetDeployment("L1UsdcBridgeProxy")
-		if err != nil {
-			return err
-		}
-		d.L1UsdcBridgeProxy = l1UsdcBridgeProxyDeployment.Address
-	}
-
-	return nil
 }
 
 func (d *DeployConfig) RegolithTime(genesisTime uint64) *uint64 {
@@ -521,17 +505,6 @@ func (d *DeployConfig) CanyonTime(genesisTime uint64) *uint64 {
 	}
 	v := uint64(0)
 	if offset := *d.L2GenesisCanyonTimeOffset; offset > 0 {
-		v = genesisTime + uint64(offset)
-	}
-	return &v
-}
-
-func (d *DeployConfig) SpanBatchTime(genesisTime uint64) *uint64 {
-	if d.L2GenesisSpanBatchTimeOffset == nil {
-		return nil
-	}
-	v := uint64(0)
-	if offset := *d.L2GenesisSpanBatchTimeOffset; offset > 0 {
 		v = genesisTime + uint64(offset)
 	}
 	return &v
@@ -748,7 +721,7 @@ func NewL1Deployments(path string) (*L1Deployments, error) {
 
 	var deployments L1Deployments
 	if err := json.Unmarshal(file, &deployments); err != nil {
-		return nil, fmt.Errorf("cannot unmarshal L1 deployements: %w", err)
+		return nil, fmt.Errorf("cannot unmarshal L1 deployments: %w", err)
 	}
 
 	return &deployments, nil
@@ -761,11 +734,53 @@ func NewStateDump(path string) (*gstate.Dump, error) {
 		return nil, fmt.Errorf("dump at %s not found: %w", path, err)
 	}
 
-	var dump gstate.Dump
-	if err := json.Unmarshal(file, &dump); err != nil {
+	var fdump ForgeDump
+	if err := json.Unmarshal(file, &fdump); err != nil {
 		return nil, fmt.Errorf("cannot unmarshal dump: %w", err)
 	}
+	dump := (gstate.Dump)(fdump)
 	return &dump, nil
+}
+
+// ForgeDump is a simple alias for state.Dump that can read "nonce" as a hex string.
+// It appears as if updates to foundry have changed the serialization of the state dump.
+type ForgeDump gstate.Dump
+
+func (d *ForgeDump) UnmarshalJSON(b []byte) error {
+	type forgeDumpAccount struct {
+		Balance     string                 `json:"balance"`
+		Nonce       hexutil.Uint64         `json:"nonce"`
+		Root        hexutil.Bytes          `json:"root"`
+		CodeHash    hexutil.Bytes          `json:"codeHash"`
+		Code        hexutil.Bytes          `json:"code,omitempty"`
+		Storage     map[common.Hash]string `json:"storage,omitempty"`
+		Address     *common.Address        `json:"address,omitempty"`
+		AddressHash hexutil.Bytes          `json:"key,omitempty"`
+	}
+	type forgeDump struct {
+		Root     string                              `json:"root"`
+		Accounts map[common.Address]forgeDumpAccount `json:"accounts"`
+	}
+	var dump forgeDump
+	if err := json.Unmarshal(b, &dump); err != nil {
+		return err
+	}
+
+	d.Root = dump.Root
+	d.Accounts = make(map[string]gstate.DumpAccount)
+	for addr, acc := range dump.Accounts {
+		d.Accounts[addr.String()] = gstate.DumpAccount{
+			Balance:     acc.Balance,
+			Nonce:       (uint64)(acc.Nonce),
+			Root:        acc.Root,
+			CodeHash:    acc.CodeHash,
+			Code:        acc.Code,
+			Storage:     acc.Storage,
+			Address:     acc.Address,
+			AddressHash: acc.AddressHash,
+		}
+	}
+	return nil
 }
 
 // NewL2ImmutableConfig will create an ImmutableConfig given an instance of a
@@ -791,9 +806,18 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 	}
 
 	cfg := immutables.PredeploysImmutableConfig{
+		LegacyERC20NativeToken: struct {
+			RemoteToken common.Address
+			Bridge      common.Address
+			Decimals    uint8
+		}{
+			RemoteToken: config.NativeTokenAddress,
+			Bridge:      predeploys.L2StandardBridgeAddr,
+			Decimals:    18,
+		},
 		L2ToL1MessagePasser:    struct{}{},
 		DeployerWhitelist:      struct{}{},
-		WETH9:                  struct{}{},
+		WNativeToken:           struct{}{},
 		L2CrossDomainMessenger: struct{}{},
 		L2StandardBridge:       struct{}{},
 		SequencerFeeVault: struct {
@@ -845,6 +869,19 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 			Name: "EAS",
 		},
 		Create2Deployer: struct{}{},
+		ETH: struct {
+			RemoteToken common.Address
+			Bridge      common.Address
+			Decimals    uint8
+		}{
+			RemoteToken: common.Address{},
+			Bridge:      predeploys.L2StandardBridgeAddr,
+			Decimals:    18,
+		},
+		L2UsdcBridge:     struct{}{},
+		SignatureChecker: struct{}{},
+		MasterMinter:     struct{}{},
+		FiatTokenV2_2:    struct{}{},
 	}
 
 	if err := cfg.Check(); err != nil {
@@ -853,8 +890,7 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 	return &cfg, nil
 }
 
-// NewL2StorageConfig will create a StorageConfig given an instance of a
-// Hardhat and a DeployConfig.
+// NewL2StorageConfig will create a StorageConfig given an instance of a DeployConfig and genesis block.
 func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.StorageConfig, error) {
 	storage := make(state.StorageConfig)
 
@@ -869,15 +905,28 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"msgNonce": 0,
 	}
 	storage["L2CrossDomainMessenger"] = state.StorageValues{
-		"_initialized":     initializedValue,
+		"_initialized":     1,
 		"_initializing":    false,
 		"xDomainMsgSender": "0x000000000000000000000000000000000000dEaD",
 		"msgNonce":         0,
+		"otherMessenger":   config.L1CrossDomainMessengerProxy,
 	}
 	storage["L2StandardBridge"] = state.StorageValues{
-		"_initialized":  initializedValue,
+		"_initialized":  1,
 		"_initializing": false,
+		"otherBridge":   config.L1StandardBridgeProxy,
 		"messenger":     predeploys.L2CrossDomainMessengerAddr,
+	}
+	storage["L2ERC721Bridge"] = state.StorageValues{
+		"_initialized":  1,
+		"_initializing": false,
+		"otherBridge":   config.L1ERC721BridgeProxy,
+		"messenger":     predeploys.L2CrossDomainMessengerAddr,
+	}
+	storage["OptimismMintableERC20Factory"] = state.StorageValues{
+		"_initialized":  1,
+		"_initializing": false,
+		"bridge":        predeploys.L2StandardBridgeAddr,
 	}
 	storage["L1Block"] = state.StorageValues{
 		"number":         block.Number(),
@@ -907,16 +956,6 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	}
 	storage["ProxyAdmin"] = state.StorageValues{
 		"_owner": config.ProxyAdminOwner,
-	}
-	storage["L2ERC721Bridge"] = state.StorageValues{
-		"messenger":     predeploys.L2CrossDomainMessengerAddr,
-		"_initialized":  initializedValue,
-		"_initializing": false,
-	}
-	storage["OptimismMintableERC20Factory"] = state.StorageValues{
-		"bridge":        predeploys.L2StandardBridgeAddr,
-		"_initialized":  initializedValue,
-		"_initializing": false,
 	}
 	storage["ETH"] = state.StorageValues{
 		"_name":   "Ether",

@@ -13,7 +13,7 @@ import (
 )
 
 func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
-	op_e2e.InitParallel(t)
+	op_e2e.InitParallel(t, op_e2e.UsesCannon)
 	ctx := context.Background()
 	sys, _ := startFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
@@ -32,7 +32,7 @@ func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
 }
 
 func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
-	op_e2e.InitParallel(t)
+	op_e2e.InitParallel(t, op_e2e.UsesCannon)
 	ctx := context.Background()
 	sys, _ := startFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
@@ -50,7 +50,7 @@ func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
 }
 
 func TestChallengeLargePreimages_ChallengeLast(t *testing.T) {
-	op_e2e.InitParallel(t)
+	op_e2e.InitParallel(t, op_e2e.UsesCannon)
 	ctx := context.Background()
 	sys, _ := startFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)

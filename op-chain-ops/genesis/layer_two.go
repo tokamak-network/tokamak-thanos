@@ -19,7 +19,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
-// BuildL2DeveloperGenesis will build the L2 genesis block.
+// BuildL2Genesis will build the L2 genesis block.
 func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Genesis, error) {
 	genspec, err := NewL2Genesis(config, l1StartBlock)
 	if err != nil {
@@ -32,7 +32,10 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		FundDevAccounts(db)
 	}
 
-	SetPrecompileBalances(db)
+	if config.SetPrecompileBalances {
+		log.Info("Setting precompile balances in L2 genesis")
+		SetPrecompileBalances(db)
+	}
 
 	storage, err := NewL2StorageConfig(config, l1StartBlock)
 	if err != nil {
@@ -44,8 +47,8 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		return nil, err
 	}
 
-	// // Set up the LegacyERC20NativeToken
-	// db.CreateAccount(predeploys.LegacyERC20NativeTokenAddr)
+	// Set up the LegacyERC20NativeToken
+	db.CreateAccount(predeploys.LegacyERC20NativeTokenAddr)
 
 	// Set up the proxies
 	err = setProxies(db, predeploys.ProxyAdminAddr, BigL2PredeployNamespace, 2048)
@@ -53,7 +56,7 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		return nil, err
 	}
 
-	// Set up the implementations
+	// Set up the implementations that contain immutables
 	deployResults, err := immutables.Deploy(immutableConfig)
 	if err != nil {
 		return nil, err
@@ -88,10 +91,12 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			}
 			deployResults[name] = deployedBin
 			fallthrough
-		case "LegacyERC20NativeToken", "WNativeToken", "GovernanceToken", "MultiCall3", "ETH", "SignatureChecker", "MasterMinter", "Create2Deployer", "Safe_v130",
+		case "MultiCall3", "Create2Deployer", "Safe_v130",
 			"SafeL2_v130", "MultiSendCallOnly_v130", "SafeSingletonFactory",
 			"DeterministicDeploymentProxy", "MultiSend_v130", "SenderCreator", "EntryPoint":
 			db.CreateAccount(codeAddr)
+		case "FiatTokenV2_2":
+			db.SetState(predeploy.Address, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
 		default:
 			if !predeploy.ProxyDisabled {
 				codeAddr, err = AddressToCodeNamespace(predeploy.Address)

@@ -38,17 +38,18 @@ const (
 	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
 	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
-	Create2Deployer                    = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
-	MultiCall3                         = "0xcA11bde05977b3631167028862bE2a173976CA11"
-	Safe_v130                          = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
-	SafeL2_v130                        = "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA"
-	MultiSendCallOnly_v130             = "0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B"
-	SafeSingletonFactory               = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
-	DeterministicDeploymentProxy       = "0x4e59b44847b379578588920cA78FbF26c0B4956C"
-	MultiSend_v130                     = "0x998739BFdAAdde7C933B942a68053933098f9EDa"
-	Permit2                            = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
-	SenderCreator                      = "0x7fc98430eaedbb6070b35b39d798725049088348"
-	EntryPoint                         = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+
+	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
+	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
+	Safe_v130                    = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
+	SafeL2_v130                  = "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA"
+	MultiSendCallOnly_v130       = "0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B"
+	SafeSingletonFactory         = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
+	DeterministicDeploymentProxy = "0x4e59b44847b379578588920cA78FbF26c0B4956C"
+	MultiSend_v130               = "0x998739BFdAAdde7C933B942a68053933098f9EDa"
+	Permit2                      = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+	SenderCreator                = "0x7fc98430eaedbb6070b35b39d798725049088348"
+	EntryPoint                   = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 )
 
 var (
@@ -84,38 +85,33 @@ var (
 	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
 	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
-	Create2DeployerAddr                    = common.HexToAddress(Create2Deployer)
-	MultiCall3Addr                         = common.HexToAddress(MultiCall3)
-	Safe_v130Addr                          = common.HexToAddress(Safe_v130)
-	SafeL2_v130Addr                        = common.HexToAddress(SafeL2_v130)
-	MultiSendCallOnly_v130Addr             = common.HexToAddress(MultiSendCallOnly_v130)
-	SafeSingletonFactoryAddr               = common.HexToAddress(SafeSingletonFactory)
-	DeterministicDeploymentProxyAddr       = common.HexToAddress(DeterministicDeploymentProxy)
-	MultiSend_v130Addr                     = common.HexToAddress(MultiSend_v130)
-	Permit2Addr                            = common.HexToAddress(Permit2)
-	SenderCreatorAddr                      = common.HexToAddress(SenderCreator)
-	EntryPointAddr                         = common.HexToAddress(EntryPoint)
+
+	Create2DeployerAddr              = common.HexToAddress(Create2Deployer)
+	MultiCall3Addr                   = common.HexToAddress(MultiCall3)
+	Safe_v130Addr                    = common.HexToAddress(Safe_v130)
+	SafeL2_v130Addr                  = common.HexToAddress(SafeL2_v130)
+	MultiSendCallOnly_v130Addr       = common.HexToAddress(MultiSendCallOnly_v130)
+	SafeSingletonFactoryAddr         = common.HexToAddress(SafeSingletonFactory)
+	DeterministicDeploymentProxyAddr = common.HexToAddress(DeterministicDeploymentProxy)
+	MultiSend_v130Addr               = common.HexToAddress(MultiSend_v130)
+	Permit2Addr                      = common.HexToAddress(Permit2)
+	SenderCreatorAddr                = common.HexToAddress(SenderCreator)
+	EntryPointAddr                   = common.HexToAddress(EntryPoint)
 
 	Predeploys          = make(map[string]*Predeploy)
 	PredeploysByAddress = make(map[common.Address]*Predeploy)
 )
 
 func init() {
-	Predeploys["LegacyERC20NativeToken"] = &Predeploy{
-		Address:       LegacyERC20NativeTokenAddr,
-		ProxyDisabled: true,
-	}
-	Predeploys["L2ToL1MessagePasser"] = &Predeploy{Address: L2CrossDomainMessengerAddr}
+	Predeploys["LegacyERC20NativeToken"] = &Predeploy{Address: LegacyERC20NativeTokenAddr, ProxyDisabled: true}
+	Predeploys["L2ToL1MessagePasser"] = &Predeploy{Address: L2ToL1MessagePasserAddr}
 	Predeploys["DeployerWhitelist"] = &Predeploy{Address: DeployerWhitelistAddr}
-	Predeploys["WNativeToken"] = &Predeploy{
-		Address:       WNativeTokenAddr,
-		ProxyDisabled: true,
-	}
+	Predeploys["WNativeToken"] = &Predeploy{Address: WNativeTokenAddr, ProxyDisabled: true}
 	Predeploys["L2CrossDomainMessenger"] = &Predeploy{Address: L2CrossDomainMessengerAddr}
 	Predeploys["L2StandardBridge"] = &Predeploy{Address: L2StandardBridgeAddr}
 	Predeploys["SequencerFeeVault"] = &Predeploy{Address: SequencerFeeVaultAddr}
 	Predeploys["OptimismMintableERC20Factory"] = &Predeploy{Address: OptimismMintableERC20FactoryAddr}
-	Predeploys["L1BlockNumber"] = &Predeploy{Address: L1BlockAddr}
+	Predeploys["L1BlockNumber"] = &Predeploy{Address: L1BlockNumberAddr}
 	Predeploys["GasPriceOracle"] = &Predeploy{Address: GasPriceOracleAddr}
 	Predeploys["L1Block"] = &Predeploy{Address: L1BlockAddr}
 	Predeploys["GovernanceToken"] = &Predeploy{
@@ -133,10 +129,7 @@ func init() {
 	Predeploys["L1FeeVault"] = &Predeploy{Address: L1FeeVaultAddr}
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
-	Predeploys["ETH"] = &Predeploy{
-		Address:       ETHAddr,
-		ProxyDisabled: true,
-	}
+	Predeploys["ETH"] = &Predeploy{Address: ETHAddr, ProxyDisabled: true}
 	Predeploys["QuoterV2"] = &Predeploy{Address: QuoterV2Addr}
 	Predeploys["SwapRouter02"] = &Predeploy{Address: SwapRouter02Addr}
 	Predeploys["UniswapV3Factory"] = &Predeploy{Address: UniswapV3FactoryAddr}
@@ -146,15 +139,10 @@ func init() {
 	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr}
 	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr}
 	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr}
-	Predeploys["SignatureChecker"] = &Predeploy{
-		Address:       SignatureCheckerAddr,
-		ProxyDisabled: true,
-	}
-	Predeploys["MasterMinter"] = &Predeploy{
-		Address:       MasterMinterAddr,
-		ProxyDisabled: true,
-	}
-	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr}
+	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true}
+	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true}
+	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr, ProxyDisabled: true}
+
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
 		ProxyDisabled: true,

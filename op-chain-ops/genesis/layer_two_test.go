@@ -47,6 +47,12 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	proxyBytecode, err := bindings.GetDeployedBytecode("Proxy")
 	require.NoError(t, err)
 
+	l2UsdcBridgeProxyBytecode, err := bindings.GetDeployedBytecode("L2UsdcBridgeProxy")
+	require.NoError(t, err)
+
+	fiatTokenProxyBytecode, err := bindings.GetDeployedBytecode("FiatTokenProxy")
+	require.NoError(t, err)
+
 	for name, predeploy := range predeploys.Predeploys {
 		addr := predeploy.Address
 
@@ -57,10 +63,23 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 		adminSlot, ok := account.Storage[genesis.AdminSlot]
 		isProxy := !predeploy.ProxyDisabled ||
 			(!config.EnableGovernance && addr == predeploys.GovernanceTokenAddr)
+
 		if isProxy {
-			require.Equal(t, true, ok, name)
-			require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlot)
-			require.Equal(t, proxyBytecode, account.Code)
+			switch addr {
+			case predeploys.L2UsdcBridgeAddr:
+				require.Equal(t, true, ok, name)
+				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlot)
+				require.Equal(t, l2UsdcBridgeProxyBytecode, account.Code)
+			case predeploys.FiatTokenV2_2Addr:
+				adminSlotForZepplin, ok := account.Storage[genesis.AdminSlotForZepplin]
+				require.Equal(t, true, ok, name)
+				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlotForZepplin)
+				require.Equal(t, fiatTokenProxyBytecode, account.Code)
+			default:
+				require.Equal(t, true, ok, name)
+				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlot)
+				require.Equal(t, proxyBytecode, account.Code)
+			}
 		} else {
 			require.Equal(t, false, ok, name)
 			require.NotEqual(t, proxyBytecode, account.Code, name)
@@ -68,9 +87,11 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	}
 
 	// All of the precompile addresses should be funded with a single wei
-	for i := 0; i < genesis.PrecompileCount; i++ {
-		addr := common.BytesToAddress([]byte{byte(i)})
-		require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
+	if config.SetPrecompileBalances {
+		for i := 0; i < genesis.PrecompileCount; i++ {
+			addr := common.BytesToAddress([]byte{byte(i)})
+			require.Equal(t, common.Big1, gen.Alloc[addr].Balance)
+		}
 	}
 
 	create2Deployer := gen.Alloc[predeploys.Create2DeployerAddr]
@@ -90,9 +111,7 @@ func TestBuildL2MainnetGenesis(t *testing.T) {
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	numAccount := 2323
-	numAccount = numAccount - genesis.PrecompileCount
-	require.Equal(t, numAccount, len(gen.Alloc))
+	require.Equal(t, 2087, len(gen.Alloc))
 }
 
 func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
@@ -101,25 +120,5 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	numAccount := 2323
-	numAccount = numAccount - genesis.PrecompileCount
-	require.Equal(t, numAccount, len(gen.Alloc))
-}
-
-func TestBuildL2MainnetGenesisSetPrecompiled(t *testing.T) {
-	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1-set-precompiled.json")
-	require.Nil(t, err)
-	config.EnableGovernance = true
-	config.FundDevAccounts = false
-	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2323, len(gen.Alloc))
-}
-
-func TestBuildL2MainnetNoGovernanceGenesisSetPrecompiled(t *testing.T) {
-	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1-set-precompiled.json")
-	require.Nil(t, err)
-	config.EnableGovernance = false
-	config.FundDevAccounts = false
-	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2323, len(gen.Alloc))
+	require.Equal(t, 2087, len(gen.Alloc))
 }

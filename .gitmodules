@@ -55,9 +55,6 @@
 [submodule "packages/tokamak/contracts-bedrock/lib/lib-keccak"]
 	path = packages/tokamak/contracts-bedrock/lib/lib-keccak
 	url = https://github.com/ethereum-optimism/lib-keccak
-[submodule "op-bindings/packages/tokamak/contracts-bedrock/lib/solady"]
-	path = op-bindings/packages/tokamak/contracts-bedrock/lib/solady
+[submodule "packages/tokamak/contracts-bedrock/lib/solady"]
+	path = packages/tokamak/contracts-bedrock/lib/solady
 	url = https://github.com/Vectorized/solady
-[submodule "op-bindings/packages/tokamak/contracts-bedock/lib/solmate"]
-	path = op-bindings/packages/tokamak/contracts-bedock/lib/solmate
-	url = https://github.com/transmissions11/solmate

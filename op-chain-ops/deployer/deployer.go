@@ -34,6 +34,11 @@ type Constructor struct {
 	Args []interface{}
 }
 
+type SuperchainPredeploy struct {
+	Name     string
+	CodeHash common.Hash
+}
+
 type Deployment struct {
 	Name     string
 	Bytecode hexutil.Bytes
@@ -169,31 +174,6 @@ func Deploy(backend *backends.SimulatedBackend, constructors []Constructor, cb D
 	return results, nil
 }
 
-func u64ptr(n uint64) *uint64 {
-	return &n
-}
-
-// create2Address computes the Ethereum address for a contract created using the CREATE2 opcode.
-//
-// The CREATE2 opcode allows for more deterministic address generation in Ethereum, as it computes the
-// address based on the creator's address, a salt value, and the contract's initialization code.
-//
-// Parameters:
-// - creatorAddress: A byte slice representing the address of the account creating the contract.
-// - salt: A byte slice representing the salt used in the address generation process. This can be any 32-byte value.
-// - initCode: A byte slice representing the contract's initialization bytecode.
-//
-// Returns:
-// - common.Address: The Ethereum address calculated using the CREATE2 opcode logic.
-func create2Address(creatorAddress, salt, initCode []byte) common.Address {
-	payload := append([]byte{0xff}, creatorAddress...)
-	payload = append(payload, salt...)
-	initCodeHash := crypto.Keccak256(initCode)
-	payload = append(payload, initCodeHash...)
-
-	return common.BytesToAddress(crypto.Keccak256(payload)[12:])
-}
-
 // DeployWithDeterministicDeployer deploys a smart contract on a simulated Ethereum blockchain using a deterministic deployment proxy (Arachnid's).
 //
 // Parameters:
@@ -260,4 +240,29 @@ func DeployWithDeterministicDeployer(backend *backends.SimulatedBackend, contrac
 	}
 
 	return code, nil
+}
+
+func u64ptr(n uint64) *uint64 {
+	return &n
+}
+
+// create2Address computes the Ethereum address for a contract created using the CREATE2 opcode.
+//
+// The CREATE2 opcode allows for more deterministic address generation in Ethereum, as it computes the
+// address based on the creator's address, a salt value, and the contract's initialization code.
+//
+// Parameters:
+// - creatorAddress: A byte slice representing the address of the account creating the contract.
+// - salt: A byte slice representing the salt used in the address generation process. This can be any 32-byte value.
+// - initCode: A byte slice representing the contract's initialization bytecode.
+//
+// Returns:
+// - common.Address: The Ethereum address calculated using the CREATE2 opcode logic.
+func create2Address(creatorAddress, salt, initCode []byte) common.Address {
+	payload := append([]byte{0xff}, creatorAddress...)
+	payload = append(payload, salt...)
+	initCodeHash := crypto.Keccak256(initCode)
+	payload = append(payload, initCodeHash...)
+
+	return common.BytesToAddress(crypto.Keccak256(payload)[12:])
 }

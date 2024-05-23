@@ -5,14 +5,13 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
+	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer"
 )
 
 // PredeploysImmutableConfig represents the set of L2 predeploys. It includes all
@@ -20,9 +19,14 @@ import (
 // about the configuration of the predeploys. It is important that the inner struct
 // fields are in the same order as the constructor arguments in the solidity code.
 type PredeploysImmutableConfig struct {
+	LegacyERC20NativeToken struct {
+		RemoteToken common.Address
+		Bridge      common.Address
+		Decimals    uint8
+	}
 	L2ToL1MessagePasser    struct{}
 	DeployerWhitelist      struct{}
-	WETH9                  struct{}
+	WNativeToken           struct{}
 	L2CrossDomainMessenger struct{}
 	L2StandardBridge       struct{}
 	SequencerFeeVault      struct {
@@ -56,6 +60,24 @@ type PredeploysImmutableConfig struct {
 	EAS            struct {
 		Name string
 	}
+	ETH struct {
+		RemoteToken common.Address
+		Bridge      common.Address
+		Decimals    uint8
+	}
+	L2UsdcBridge                       struct{}
+	SignatureChecker                   struct{}
+	MasterMinter                       struct{}
+	FiatTokenV2_2                      struct{}
+	QuoterV2                           struct{}
+	SwapRouter02                       struct{}
+	UniswapV3Factory                   struct{}
+	NFTDescriptor                      struct{}
+	NonfungiblePositionManager         struct{}
+	NonfungibleTokenPositionDescriptor struct{}
+	TickLens                           struct{}
+	UniswapInterfaceMulticall          struct{}
+
 	Create2Deployer              struct{}
 	MultiCall3                   struct{}
 	Safe_v130                    struct{}
@@ -217,11 +239,7 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 	case "OptimismMintableERC20Factory":
 		_, tx, _, err = bindings.DeployOptimismMintableERC20Factory(opts, backend)
 	case "L2ERC721Bridge":
-		otherBridge, ok := deployment.Args[0].(common.Address)
-		if !ok {
-			return nil, fmt.Errorf("invalid type for otherBridge")
-		}
-		_, tx, _, err = bindings.DeployL2ERC721Bridge(opts, backend, otherBridge)
+		_, tx, _, err = bindings.DeployL2ERC721Bridge(opts, backend)
 	case "OptimismMintableERC721Factory":
 		bridge, ok := deployment.Args[0].(common.Address)
 		if !ok {
@@ -236,6 +254,20 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 		_, tx, _, err = bindings.DeployLegacyERC20NativeToken(opts, backend)
 	case "EAS":
 		_, tx, _, err = bindings.DeployEAS(opts, backend)
+	case "ETH":
+		_, tx, _, err = bindings.DeployETH(opts, backend)
+	case "L2UsdcBridge":
+		_, tx, _, err = bindings.DeployL2UsdcBridge(opts, backend)
+	case "SignatureChecker":
+		_, tx, _, err = bindings.DeploySignatureChecker(opts, backend)
+	case "MasterMinter":
+		_minterManager, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _minterManager")
+		}
+		_, tx, _, err = bindings.DeployMasterMinter(opts, backend, _minterManager)
+	case "FiatTokenV2_2":
+		_, tx, _, err = bindings.DeployFiatTokenV22(opts, backend)
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
