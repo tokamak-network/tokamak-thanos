@@ -503,7 +503,7 @@ contract ERC721Bridge_Initializer is Bridge_Initializer {
         L1NFTBridge = L1ERC721Bridge(address(l1BridgeProxy));
 
         // Deploy the implementation for the L2ERC721Bridge and etch it into the predeploy address.
-        L2ERC721Bridge l2BridgeImpl = new L2ERC721Bridge(address(L1NFTBridge));
+        L2ERC721Bridge l2BridgeImpl = new L2ERC721Bridge();
         Proxy l2BridgeProxy = new Proxy(multisig);
         vm.etch(Predeploys.L2_ERC721_BRIDGE, address(l2BridgeProxy).code);
 
@@ -513,7 +513,7 @@ contract ERC721Bridge_Initializer is Bridge_Initializer {
 
         vm.prank(multisig);
         Proxy(payable(Predeploys.L2_ERC721_BRIDGE)).upgradeToAndCall(
-            address(l2BridgeImpl), abi.encodeCall(L2ERC721Bridge.initialize, ())
+            address(l2BridgeImpl), abi.encodeCall(L2ERC721Bridge.initialize, payable(address(l1BridgeProxy)))
         );
 
         // Set up a reference to the L2ERC721Bridge.

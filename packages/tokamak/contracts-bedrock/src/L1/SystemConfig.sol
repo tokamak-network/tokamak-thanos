@@ -75,6 +75,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice Storage slot for block at which the op-node can start searching for logs from.
     bytes32 public constant START_BLOCK_SLOT = bytes32(uint256(keccak256("systemconfig.startBlock")) - 1);
+
     /// @notice Storage slot that the native token address is stored at.
     bytes32 public constant NATIVE_TOKEN_ADDRESS_SLOT =
         bytes32(uint256(keccak256("systemconfig.nativetokenaddress")) - 1);
