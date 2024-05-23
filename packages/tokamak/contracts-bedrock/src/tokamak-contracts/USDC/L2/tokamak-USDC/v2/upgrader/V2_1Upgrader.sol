@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { SafeMath } from "@openzeppelin/contracts_v3.1.0/math/SafeMath.sol";
@@ -49,7 +48,10 @@ contract V2_1Upgrader is AbstractV2Upgrader {
         FiatTokenV2_1 implementation,
         address newProxyAdmin,
         address lostAndFound
-    ) public AbstractV2Upgrader(proxy, address(implementation), newProxyAdmin) {
+    )
+        public
+        AbstractV2Upgrader(proxy, address(implementation), newProxyAdmin)
+    {
         _lostAndFound = lostAndFound;
         _helper = new V2UpgraderHelper(address(proxy));
     }
@@ -103,40 +105,28 @@ contract V2_1Upgrader is AbstractV2Upgrader {
         // Sanity test
         // Check metadata
         require(
-            keccak256(bytes(name)) == keccak256(bytes(v2_1.name())) &&
-                keccak256(bytes(symbol)) == keccak256(bytes(v2_1.symbol())) &&
-                decimals == v2_1.decimals() &&
-                keccak256(bytes(currency)) ==
-                keccak256(bytes(v2_1.currency())) &&
-                masterMinter == v2_1.masterMinter() &&
-                owner == v2_1.owner() &&
-                pauser == v2_1.pauser() &&
-                blacklister == v2_1.blacklister(),
+            keccak256(bytes(name)) == keccak256(bytes(v2_1.name()))
+                && keccak256(bytes(symbol)) == keccak256(bytes(v2_1.symbol())) && decimals == v2_1.decimals()
+                && keccak256(bytes(currency)) == keccak256(bytes(v2_1.currency())) && masterMinter == v2_1.masterMinter()
+                && owner == v2_1.owner() && pauser == v2_1.pauser() && blacklister == v2_1.blacklister(),
             "V2_1Upgrader: metadata test failed"
         );
 
         // Test balanceOf
-        require(
-            v2_1.balanceOf(address(this)) == contractBal,
-            "V2_1Upgrader: balanceOf test failed"
-        );
+        require(v2_1.balanceOf(address(this)) == contractBal, "V2_1Upgrader: balanceOf test failed");
 
         // Test transfer
         require(
-            v2_1.transfer(msg.sender, 1e5) &&
-                v2_1.balanceOf(msg.sender) == callerBal.add(1e5) &&
-                v2_1.balanceOf(address(this)) == contractBal.sub(1e5),
+            v2_1.transfer(msg.sender, 1e5) && v2_1.balanceOf(msg.sender) == callerBal.add(1e5)
+                && v2_1.balanceOf(address(this)) == contractBal.sub(1e5),
             "V2_1Upgrader: transfer test failed"
         );
 
         // Test approve/transferFrom
         require(
-            v2_1.approve(address(v2_1Helper), 1e5) &&
-                v2_1.allowance(address(this), address(v2_1Helper)) == 1e5 &&
-                v2_1Helper.transferFrom(address(this), msg.sender, 1e5) &&
-                v2_1.allowance(address(this), msg.sender) == 0 &&
-                v2_1.balanceOf(msg.sender) == callerBal.add(2e5) &&
-                v2_1.balanceOf(address(this)) == contractBal.sub(2e5),
+            v2_1.approve(address(v2_1Helper), 1e5) && v2_1.allowance(address(this), address(v2_1Helper)) == 1e5
+                && v2_1Helper.transferFrom(address(this), msg.sender, 1e5) && v2_1.allowance(address(this), msg.sender) == 0
+                && v2_1.balanceOf(msg.sender) == callerBal.add(2e5) && v2_1.balanceOf(address(this)) == contractBal.sub(2e5),
             "V2_1Upgrader: approve/transferFrom test failed"
         );
 

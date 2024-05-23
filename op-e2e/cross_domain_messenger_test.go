@@ -36,7 +36,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	var depositedAmount = big.NewInt(2000000000000000000)
@@ -105,7 +105,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	l2CDM, err := bindings.NewL2CrossDomainMessenger(predeploys.L2CrossDomainMessengerAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	l2Opts.Value = depositedAmount
 
@@ -118,7 +118,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, withdrawalReceipt.Status, types.ReceiptStatusSuccessful)
 
-	proveReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	proveReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -143,7 +143,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	var amount = big.NewInt(2000)
@@ -179,7 +179,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	l2CDM, err := bindings.NewL2CrossDomainMessenger(predeploys.L2CrossDomainMessengerAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	l2Opts.Value = amount
 
@@ -201,7 +201,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	balanceBeforeFinalization, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	proveReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	proveReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -225,7 +225,7 @@ func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	var amount = big.NewInt(2000)

@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { FiatTokenV1_1 } from "../v1.1/FiatTokenV1_1.sol";
@@ -38,10 +37,7 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
         // solhint-disable-next-line reason-string
         require(initialized && _initializedVersion == 0);
         name = newName;
-        _DEPRECATED_CACHED_DOMAIN_SEPARATOR = EIP712.makeDomainSeparator(
-            newName,
-            "2"
-        );
+        _DEPRECATED_CACHED_DOMAIN_SEPARATOR = EIP712.makeDomainSeparator(newName, "2");
         _initializedVersion = 1;
     }
 
@@ -51,7 +47,10 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
      * @param increment Amount of increase in allowance
      * @return True if successful
      */
-    function increaseAllowance(address spender, uint256 increment)
+    function increaseAllowance(
+        address spender,
+        uint256 increment
+    )
         external
         virtual
         whenNotPaused
@@ -69,7 +68,10 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
      * @param decrement Amount of decrease in allowance
      * @return True if successful
      */
-    function decreaseAllowance(address spender, uint256 decrement)
+    function decreaseAllowance(
+        address spender,
+        uint256 decrement
+    )
         external
         virtual
         whenNotPaused
@@ -103,18 +105,13 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused notBlacklisted(from) notBlacklisted(to) {
-        _transferWithAuthorization(
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            v,
-            r,
-            s
-        );
+    )
+        external
+        whenNotPaused
+        notBlacklisted(from)
+        notBlacklisted(to)
+    {
+        _transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
@@ -141,18 +138,13 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused notBlacklisted(from) notBlacklisted(to) {
-        _receiveWithAuthorization(
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            v,
-            r,
-            s
-        );
+    )
+        external
+        whenNotPaused
+        notBlacklisted(from)
+        notBlacklisted(to)
+    {
+        _receiveWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
@@ -170,7 +162,10 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused {
+    )
+        external
+        whenNotPaused
+    {
         _cancelAuthorization(authorizer, nonce, v, r, s);
     }
 
@@ -179,7 +174,8 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
      * @param owner       Token owner's address (Authorizer)
      * @param spender     Spender's address
      * @param value       Amount of allowance
-     * @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no expiration
+     * @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no
+     * expiration
      * @param v           v of the signature
      * @param r           r of the signature
      * @param s           s of the signature
@@ -208,11 +204,7 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
      * @param spender   Spender's address
      * @param increment Amount of increase
      */
-    function _increaseAllowance(
-        address owner,
-        address spender,
-        uint256 increment
-    ) internal override {
+    function _increaseAllowance(address owner, address spender, uint256 increment) internal override {
         _approve(owner, spender, allowed[owner][spender].add(increment));
     }
 
@@ -222,18 +214,7 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
      * @param spender   Spender's address
      * @param decrement Amount of decrease
      */
-    function _decreaseAllowance(
-        address owner,
-        address spender,
-        uint256 decrement
-    ) internal override {
-        _approve(
-            owner,
-            spender,
-            allowed[owner][spender].sub(
-                decrement,
-                "ERC20: decreased allowance below zero"
-            )
-        );
+    function _decreaseAllowance(address owner, address spender, uint256 decrement) internal override {
+        _approve(owner, spender, allowed[owner][spender].sub(decrement, "ERC20: decreased allowance below zero"));
     }
 }

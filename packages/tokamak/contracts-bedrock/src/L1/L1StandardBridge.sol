@@ -82,11 +82,11 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     );
 
     /// @notice Semantic version.
-    /// @custom:semver 1.4.1
-    string public constant version = "1.4.1";
+    /// @custom:semver 2.1.0
+    string public constant version = "2.1.0";
 
     /// @notice Constructs the L1StandardBridge contract.
-    constructor() StandardBridge(StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))) {
+    constructor() StandardBridge() {
         initialize({ _messenger: CrossDomainMessenger(address(0)), _nativeTokenAddress: address(0) });
     }
 
@@ -98,7 +98,10 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
-        __StandardBridge_init({ _messenger: _messenger });
+        __StandardBridge_init({
+            _messenger: _messenger,
+            _otherBridge: StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))
+        });
         nativeTokenAddress = _nativeTokenAddress;
     }
 
@@ -255,7 +258,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
 
         messenger.sendMessage(
-            address(OTHER_BRIDGE),
+            address(otherBridge),
             abi.encodeWithSelector(
                 this.finalizeBridgeERC20.selector,
                 // Because this call will be executed on the remote chain, we reverse the order of
@@ -363,7 +366,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     /// @notice Retrieves the access of the corresponding L2 bridge contract.
     /// @return Address of the corresponding L2 bridge contract.
     function l2TokenBridge() external view returns (address) {
-        return address(OTHER_BRIDGE);
+        return address(otherBridge);
     }
 
     /// @notice Internal function for initiating an ETH deposit.
@@ -449,7 +452,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         );
 
         L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
-            address(OTHER_BRIDGE),
+            address(otherBridge),
             _amount,
             abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
             _minGasLimit

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/receipts"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
@@ -31,13 +32,13 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.Nil(t, err, "Error starting up system")
 	defer sys.Close()
 
-	log := testlog.Logger(t, log.LvlInfo)
+	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	// Deploy wNativeToken
@@ -57,7 +58,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(params.Ether), wNativeBalance)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	optimismMintableTokenFactory, err := bindings.NewOptimismMintableERC20Factory(predeploys.OptimismMintableERC20FactoryAddr, l2Client)
 	require.NoError(t, err)
@@ -97,13 +98,8 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	portal, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
 	require.NoError(t, err)
 
-	depIt, err := portal.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
-	require.NoError(t, err)
-	var depositEvent *bindings.OptimismPortalTransactionDeposited
-	for depIt.Next() {
-		depositEvent = depIt.Event
-	}
-	require.NotNil(t, depositEvent)
+	depositEvent, err := receipts.FindLog(depositReceipt.Logs, portal.ParseTransactionDeposited)
+	require.NoError(t, err, "Should emit deposit event")
 
 	depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
 	require.NoError(t, err)
@@ -131,7 +127,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	l1BalanceBeforeFinalizingWithdraw, err := wNativeToken.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -158,7 +154,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	l1StandardBridge, err := bindings.NewL1StandardBridge(cfg.L1Deployments.L1StandardBridgeProxy, l1Client)
@@ -216,7 +212,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 	l2StandardBridge, err := bindings.NewL2StandardBridge(predeploys.L2StandardBridgeAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
 	withdrawalTx, err := l2StandardBridge.BridgeERC20(l2Opts, predeploys.ETHAddr, common.Address{}, big.NewInt(params.Ether), 200000, []byte{})
@@ -227,7 +223,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 	l1ETHBalanceAfterDeposit, err = l1Client.BalanceAt(context.Background(), opts.From, nil)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -266,7 +262,7 @@ func TestNativeTokenBridgeDeposits(t *testing.T) {
 
 	var depositedAmount int64 = 9
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -335,7 +331,7 @@ func TestNativeTokenBridgeDeposits(t *testing.T) {
 	l2StandardBridge, err := bindings.NewL2StandardBridge(predeploys.L2StandardBridgeAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
 	l2Opts.Value = big.NewInt(depositedAmount)
@@ -344,7 +340,7 @@ func TestNativeTokenBridgeDeposits(t *testing.T) {
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -370,7 +366,7 @@ func TestWithdrawNativeTokenTo(t *testing.T) {
 
 	var depositedAmount int64 = 9
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -439,10 +435,10 @@ func TestWithdrawNativeTokenTo(t *testing.T) {
 	l2StandardBridge, err := bindings.NewL2StandardBridge(predeploys.L2StandardBridgeAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
-	bobAddress := sys.cfg.Secrets.Addresses().Bob
+	bobAddress := sys.Cfg.Secrets.Addresses().Bob
 	l2BalanceBeforeFinalizingWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, bobAddress)
 	require.NoError(t, err)
 
@@ -452,7 +448,7 @@ func TestWithdrawNativeTokenTo(t *testing.T) {
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt := ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 

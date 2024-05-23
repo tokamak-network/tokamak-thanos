@@ -7,6 +7,10 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { Executables } from "./Executables.sol";
 import { Chains } from "./Chains.sol";
 
+// Global constant for the `useFaultProofs` slot in the DeployConfig contract, which can be overridden in the testing
+// environment.
+bytes32 constant USE_FAULT_PROOFS_SLOT = bytes32(uint256(63));
+
 /// @title DeployConfig
 /// @notice Represents the configuration required to deploy the system. It is expected
 ///         to read the file from JSON. A future improvement would be to have fallback
@@ -46,8 +50,14 @@ contract DeployConfig is Script {
     uint256 public eip1559Denominator;
     uint256 public eip1559Elasticity;
     uint256 public faultGameAbsolutePrestate;
+    uint256 public faultGameGenesisBlock;
+    bytes32 public faultGameGenesisOutputRoot;
     uint256 public faultGameMaxDepth;
+    uint256 public faultGameSplitDepth;
     uint256 public faultGameMaxDuration;
+    uint256 public preimageOracleMinProposalSize;
+    uint256 public preimageOracleChallengePeriod;
+    uint256 public preimageOracleCancunActivationTimestamp;
     uint256 public systemConfigStartBlock;
     uint256 public requiredProtocolVersion;
     uint256 public recommendedProtocolVersion;
@@ -101,7 +111,10 @@ contract DeployConfig is Script {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             faultGameAbsolutePrestate = stdJson.readUint(_json, "$.faultGameAbsolutePrestate");
             faultGameMaxDepth = stdJson.readUint(_json, "$.faultGameMaxDepth");
+            faultGameSplitDepth = stdJson.readUint(_json, "$.faultGameSplitDepth");
             faultGameMaxDuration = stdJson.readUint(_json, "$.faultGameMaxDuration");
+            faultGameGenesisBlock = stdJson.readUint(_json, "$.faultGameGenesisBlock");
+            faultGameGenesisOutputRoot = stdJson.readBytes32(_json, "$.faultGameGenesisOutputRoot");
         }
     }
 

@@ -1,6 +1,5 @@
 [
   "TransparentUpgradeableProxy",
-  "Permit2",
   "QuoterV2",
   "SwapRouter02",
   "UniswapV3Factory",

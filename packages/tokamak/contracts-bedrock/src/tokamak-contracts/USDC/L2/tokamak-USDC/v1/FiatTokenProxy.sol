@@ -15,20 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
-import {
-    AdminUpgradeabilityProxy
-} from "../upgradeability/AdminUpgradeabilityProxy.sol";
+import { AdminUpgradeabilityProxy } from "../upgradeability/AdminUpgradeabilityProxy.sol";
 
 /**
  * @title FiatTokenProxy
  * @dev This contract proxies FiatToken calls and enables FiatToken upgrades
  */
 contract FiatTokenProxy is AdminUpgradeabilityProxy {
-    constructor(address implementationContract)
-        public
-        AdminUpgradeabilityProxy(implementationContract)
-    {}
+    constructor(address implementationContract) public AdminUpgradeabilityProxy(implementationContract) { }
 }

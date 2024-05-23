@@ -31,9 +31,9 @@ import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
 import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+import { PermissionedDisputeGame } from "src/dispute/PermissionedDisputeGame.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
-import { BlockOracle } from "src/dispute/BlockOracle.sol";
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
 import { ProtocolVersions, ProtocolVersion } from "src/L1/ProtocolVersions.sol";
 import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
@@ -44,7 +44,7 @@ import { Chains } from "scripts/Chains.sol";
 
 import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
-import { AlphabetVM } from "../test/FaultDisputeGame.t.sol";
+import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import "src/libraries/DisputeTypes.sol";
 
 /// @title Deploy
@@ -94,10 +94,19 @@ contract Deploy is Deployer {
         initializeOptimismPortal();
         initializeProtocolVersions();
 
-        setAlphabetFaultGameImplementation();
-        setCannonFaultGameImplementation();
+        setAlphabetFaultGameImplementation({ _allowUpgrade: false });
+        setCannonFaultGameImplementation({ _allowUpgrade: false });
 
         transferDisputeGameFactoryOwnership();
+    }
+
+    function runWithStateDump() public {
+        run();
+
+        string memory path = vm.envOr(
+            "STATE_DUMP_PATH", string.concat(vm.projectRoot(), "/", name(), "-", vm.toString(block.chainid), ".json")
+        );
+        vm.dumpState(path);
     }
 
     /// @notice The create2 salt used for deployment of the contract implementations.
@@ -190,7 +199,6 @@ contract Deploy is Deployer {
         deployL1StandardBridge();
         deployL1ERC721Bridge();
         deployDisputeGameFactory();
-        deployBlockOracle();
         deployPreimageOracle();
         deployMips();
         deployProtocolVersions();
@@ -362,9 +370,7 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the ProxyAdmin
     function deployProxyAdmin() public broadcast returns (address addr_) {
-        ProxyAdmin admin = new ProxyAdmin({
-            _owner: msg.sender
-        });
+        ProxyAdmin admin = new ProxyAdmin({ _owner: msg.sender });
         require(admin.owner() == msg.sender);
 
         AddressManager addressManager = AddressManager(mustGetAddress("AddressManager"));
@@ -395,9 +401,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the L2OutputOracleProxy
     function deployL2OutputOracleProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -429,9 +433,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the OptimismPortalProxy
     function deployOptimismPortalProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -445,9 +447,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the OptimismMintableERC20FactoryProxy
     function deployOptimismMintableERC20FactoryProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -461,9 +461,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the L1ERC721BridgeProxy
     function deployL1ERC721BridgeProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -477,9 +475,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the SystemConfigProxy
     function deploySystemConfigProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -493,9 +489,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the DisputeGameFactoryProxy
     function deployDisputeGameFactoryProxy() public onlyDevnet broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -509,9 +503,7 @@ contract Deploy is Deployer {
     /// @notice Deploy the ProtocolVersionsProxy
     function deployProtocolVersionsProxy() public broadcast returns (address addr_) {
         address proxyAdmin = mustGetAddress("ProxyAdmin");
-        Proxy proxy = new Proxy({
-            _admin: proxyAdmin
-        });
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == proxyAdmin);
@@ -555,24 +547,7 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the L2OutputOracle
     function deployL2OutputOracle() public broadcast returns (address addr_) {
-        L2OutputOracle oracle = new L2OutputOracle{ salt: implSalt() }({
-            _submissionInterval: cfg.l2OutputOracleSubmissionInterval(),
-            _l2BlockTime: cfg.l2BlockTime(),
-            _finalizationPeriodSeconds: cfg.finalizationPeriodSeconds()
-        });
-
-        require(oracle.SUBMISSION_INTERVAL() == cfg.l2OutputOracleSubmissionInterval());
-        require(oracle.submissionInterval() == cfg.l2OutputOracleSubmissionInterval());
-        require(oracle.L2_BLOCK_TIME() == cfg.l2BlockTime());
-        require(oracle.l2BlockTime() == cfg.l2BlockTime());
-        require(oracle.PROPOSER() == address(0));
-        require(oracle.proposer() == address(0));
-        require(oracle.CHALLENGER() == address(0));
-        require(oracle.challenger() == address(0));
-        require(oracle.FINALIZATION_PERIOD_SECONDS() == cfg.finalizationPeriodSeconds());
-        require(oracle.finalizationPeriodSeconds() == cfg.finalizationPeriodSeconds());
-        require(oracle.startingBlockNumber() == 0);
-        require(oracle.startingTimestamp() == 0);
+        L2OutputOracle oracle = new L2OutputOracle{ salt: implSalt() }();
 
         save("L2OutputOracle", address(oracle));
         console.log("L2OutputOracle deployed at %s", address(oracle));
@@ -600,15 +575,6 @@ contract Deploy is Deployer {
         console.log("DisputeGameFactory deployed at %s", address(factory));
 
         addr_ = address(factory);
-    }
-
-    /// @notice Deploy the BlockOracle
-    function deployBlockOracle() public onlyDevnet broadcast returns (address addr_) {
-        BlockOracle oracle = new BlockOracle{ salt: implSalt() }();
-        save("BlockOracle", address(oracle));
-        console.log("BlockOracle deployed at %s", address(oracle));
-
-        addr_ = address(oracle);
     }
 
     /// @notice Deploy the ProtocolVersions
@@ -639,11 +605,8 @@ contract Deploy is Deployer {
     function deployL1UsdcBridgeProxy() public broadcast returns (address addr_) {
         address l1UsdcBridge = mustGetAddress("L1UsdcBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        L1UsdcBridgeProxy proxy = new L1UsdcBridgeProxy({
-            _logic: l1UsdcBridge,
-            initialOwner: msg.sender,
-            _data: abi.encode()
-        });
+        L1UsdcBridgeProxy proxy =
+            new L1UsdcBridgeProxy({ _logic: l1UsdcBridge, initialOwner: msg.sender, _data: abi.encode() });
 
         address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
         require(admin == address(msg.sender));
@@ -672,7 +635,11 @@ contract Deploy is Deployer {
 
     /// @notice Deploy the PreimageOracle
     function deployPreimageOracle() public onlyDevnet broadcast returns (address addr_) {
-        PreimageOracle preimageOracle = new PreimageOracle{ salt: implSalt() }();
+        PreimageOracle preimageOracle = new PreimageOracle{ salt: implSalt() }({
+            _minProposalSize: cfg.preimageOracleMinProposalSize(),
+            _challengePeriod: cfg.preimageOracleChallengePeriod(),
+            _cancunActivation: cfg.preimageOracleCancunActivationTimestamp()
+        });
         save("PreimageOracle", address(preimageOracle));
         console.log("PreimageOracle deployed at %s", address(preimageOracle));
 
@@ -741,7 +708,7 @@ contract Deploy is Deployer {
         L1ERC721Bridge bridge = new L1ERC721Bridge{ salt: implSalt() }();
 
         require(address(bridge.MESSENGER()) == address(0));
-        require(bridge.OTHER_BRIDGE() == Predeploys.L2_ERC721_BRIDGE);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE);
 
         save("L1ERC721Bridge", address(bridge));
         console.log("L1ERC721Bridge deployed at %s", address(bridge));
@@ -838,7 +805,6 @@ contract Deploy is Deployer {
                     uint64(cfg.l2GenesisBlockGasLimit()),
                     cfg.p2pSequencerAddress(),
                     Constants.DEFAULT_RESOURCE_CONFIG(),
-                    startBlock,
                     cfg.batchInboxAddress(),
                     SystemConfig.Addresses({
                         l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
@@ -937,7 +903,7 @@ contract Deploy is Deployer {
         console.log("L1ERC721Bridge version: %s", version);
 
         require(address(bridge.MESSENGER()) == l1CrossDomainMessengerProxy);
-        require(bridge.OTHER_BRIDGE() == Predeploys.L2_ERC721_BRIDGE);
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE);
     }
 
     /// @notice Ininitialize the OptimismMintableERC20Factory
@@ -1018,10 +984,13 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L2OutputOracle.initialize,
                 (
+                    cfg.l2OutputOracleSubmissionInterval(),
+                    cfg.l2BlockTime(),
                     cfg.l2OutputOracleStartingBlockNumber(),
                     cfg.l2OutputOracleStartingTimestamp(),
                     cfg.l2OutputOracleProposer(),
-                    cfg.l2OutputOracleChallenger()
+                    cfg.l2OutputOracleChallenger(),
+                    cfg.finalizationPeriodSeconds()
                 )
                 )
         });
@@ -1134,11 +1103,9 @@ contract Deploy is Deployer {
         }
     }
 
-    /// @notice Sets the implementation for the `FAULT` game type in the `DisputeGameFactory`
-    function setCannonFaultGameImplementation() public onlyDevnet broadcast {
-        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
-
-        Claim mipsAbsolutePrestate;
+    /// @notice Loads the mips absolute prestate from the prestate-proof for devnets otherwise
+    ///         from the config.
+    function loadMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             // Fetch the absolute prestate dump
             string memory filePath = string.concat(vm.projectRoot(), "/../../../op-program/bin/prestate-proof.json");
@@ -1150,37 +1117,50 @@ contract Deploy is Deployer {
                 revert("Cannon prestate dump not found, generate it with `make cannon-prestate` in the monorepo root.");
             }
             commands[2] = string.concat("cat ", filePath, " | jq -r .pre");
-            mipsAbsolutePrestate = Claim.wrap(abi.decode(vm.ffi(commands), (bytes32)));
+            mipsAbsolutePrestate_ = Claim.wrap(abi.decode(vm.ffi(commands), (bytes32)));
             console.log(
                 "[Cannon Dispute Game] Using devnet MIPS Absolute prestate: %s",
-                vm.toString(Claim.unwrap(mipsAbsolutePrestate))
+                vm.toString(Claim.unwrap(mipsAbsolutePrestate_))
             );
         } else {
             console.log(
-                "[Cannon Dispute Game] Using absolute prestate from config: %s", cfg.faultGameAbsolutePrestate()
+                "[Cannon Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()
             );
-            mipsAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+            mipsAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
         }
-
-        // Set the Cannon FaultDisputeGame implementation in the factory.
-        _setFaultGameImplementation(
-            factory, GameTypes.FAULT, mipsAbsolutePrestate, IBigStepper(mustGetAddress("Mips")), cfg.faultGameMaxDepth()
-        );
     }
 
-    /// @notice Sets the implementation for the alphabet game type in the `DisputeGameFactory`
-    function setAlphabetFaultGameImplementation() public onlyDevnet broadcast {
+    /// @notice Sets the implementation for the `CANNON` game type in the `DisputeGameFactory`
+    function setCannonFaultGameImplementation(bool _allowUpgrade) public broadcast {
+        console.log("Setting Cannon FaultDisputeGame implementation");
         DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
 
-        // Set the Alphabet FaultDisputeGame implementation in the factory.
-        Claim alphabetAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
-        _setFaultGameImplementation(
-            factory,
-            GameType.wrap(255),
-            alphabetAbsolutePrestate,
-            IBigStepper(new AlphabetVM(alphabetAbsolutePrestate)),
-            4 // The max game depth of the alphabet game is always 4.
-        );
+        // Set the Cannon FaultDisputeGame implementation in the factory.
+        _setFaultGameImplementation({
+            _factory: factory,
+            _gameType: GameTypes.CANNON,
+            _absolutePrestate: loadMipsAbsolutePrestate(),
+            _faultVm: IBigStepper(mustGetAddress("Mips")),
+            _maxGameDepth: cfg.faultGameMaxDepth(),
+            _allowUpgrade: _allowUpgrade
+        });
+    }
+
+    /// @notice Sets the implementation for the `ALPHABET` game type in the `DisputeGameFactory`
+    function setAlphabetFaultGameImplementation(bool _allowUpgrade) public onlyDevnet broadcast {
+        console.log("Setting Alphabet FaultDisputeGame implementation");
+        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
+
+        Claim outputAbsolutePrestate = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+        _setFaultGameImplementation({
+            _factory: factory,
+            _gameType: GameTypes.ALPHABET,
+            _absolutePrestate: outputAbsolutePrestate,
+            _faultVm: IBigStepper(new AlphabetVM(outputAbsolutePrestate, PreimageOracle(mustGetAddress("PreimageOracle")))),
+            // The max depth for the alphabet trace is always 3. Add 1 because split depth is fully inclusive.
+            _maxGameDepth: cfg.faultGameSplitDepth() + 3 + 1,
+            _allowUpgrade: _allowUpgrade
+        });
     }
 
     /// @notice Sets the implementation for the given fault game type in the `DisputeGameFactory`.
@@ -1189,36 +1169,68 @@ contract Deploy is Deployer {
         GameType _gameType,
         Claim _absolutePrestate,
         IBigStepper _faultVm,
-        uint256 _maxGameDepth
+        uint256 _maxGameDepth,
+        bool _allowUpgrade
     )
         internal
     {
-        if (address(_factory.gameImpls(_gameType)) == address(0)) {
+        if (address(_factory.gameImpls(_gameType)) != address(0) && !_allowUpgrade) {
+            console.log(
+                "[WARN] DisputeGameFactoryProxy: `FaultDisputeGame` implementation already set for game type: %s",
+                vm.toString(GameType.unwrap(_gameType))
+            );
+            return;
+        }
+
+        uint32 rawGameType = GameType.unwrap(_gameType);
+        if (rawGameType != GameTypes.PERMISSIONED_CANNON.raw()) {
             _factory.setImplementation(
                 _gameType,
                 new FaultDisputeGame({
                     _gameType: _gameType,
                     _absolutePrestate: _absolutePrestate,
+                    _genesisBlockNumber: cfg.faultGameGenesisBlock(),
+                    _genesisOutputRoot: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
                     _maxGameDepth: _maxGameDepth,
+                    _splitDepth: cfg.faultGameSplitDepth(),
                     _gameDuration: Duration.wrap(uint64(cfg.faultGameMaxDuration())),
-                    _vm: _faultVm,
-                    _l2oo: L2OutputOracle(mustGetAddress("L2OutputOracleProxy")),
-                    _blockOracle: BlockOracle(mustGetAddress("BlockOracle"))
+                    _vm: _faultVm
                 })
             );
-
-            uint8 rawGameType = GameType.unwrap(_gameType);
-            console.log(
-                "DisputeGameFactoryProxy: set `FaultDisputeGame` implementation (Backend: %s | GameType: %s)",
-                rawGameType == 0 ? "Cannon" : "Alphabet",
-                vm.toString(rawGameType)
-            );
         } else {
-            console.log(
-                "[WARN] DisputeGameFactoryProxy: `FaultDisputeGame` implementation already set for game type: %s",
-                vm.toString(GameType.unwrap(_gameType))
+            _factory.setImplementation(
+                _gameType,
+                new PermissionedDisputeGame({
+                    _gameType: _gameType,
+                    _absolutePrestate: _absolutePrestate,
+                    _genesisBlockNumber: cfg.faultGameGenesisBlock(),
+                    _genesisOutputRoot: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+                    _maxGameDepth: _maxGameDepth,
+                    _splitDepth: cfg.faultGameSplitDepth(),
+                    _gameDuration: Duration.wrap(uint64(cfg.faultGameMaxDuration())),
+                    _vm: _faultVm,
+                    _proposer: cfg.l2OutputOracleProposer(),
+                    _challenger: cfg.l2OutputOracleChallenger()
+                })
             );
         }
+
+        string memory gameTypeString;
+        if (rawGameType == GameTypes.CANNON.raw()) {
+            gameTypeString = "Cannon";
+        } else if (rawGameType == GameTypes.PERMISSIONED_CANNON.raw()) {
+            gameTypeString = "PermissionedCannon";
+        } else if (rawGameType == GameTypes.ALPHABET.raw()) {
+            gameTypeString = "Alphabet";
+        } else {
+            gameTypeString = "Unknown";
+        }
+
+        console.log(
+            "DisputeGameFactoryProxy: set `FaultDisputeGame` implementation (Backend: %s | GameType: %s)",
+            gameTypeString,
+            vm.toString(rawGameType)
+        );
     }
 
     /// @notice Deploy the StorageSetter contract, used for upgrades.

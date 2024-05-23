@@ -37,7 +37,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 
 	var depositedAmount int64 = 9
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -94,7 +94,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 	l2ToL1MessagePasser, err := bindings.NewL2ToL1MessagePasser(predeploys.L2ToL1MessagePasserAddr, l2Client)
 	require.NoError(t, err)
 
-	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 	l2Opts.Value = big.NewInt(depositedAmount)
 
@@ -108,7 +108,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 
 	l1BalanceBeforeFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	ProveAndFinalizeWithdrawal(t, cfg, l1Client, sys.EthInstances["sequencer"], cfg.Secrets.Alice, withdrawalReceipt)
+	ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 
 	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, opts.From, big.NewInt(depositedAmount))
 	require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestDepositAndCallL2Successfully(t *testing.T) {
 
 	var depositedAmount int64 = 9
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -213,7 +213,7 @@ func TestDeployContractFailedNonPayableConstructor(t *testing.T) {
 
 	var depositedAmount int64 = 9
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -275,7 +275,7 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 
 	var depositedAmount int64 = 2000000000000000000
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
@@ -364,7 +364,7 @@ func TestDeployContractSuccessfully(t *testing.T) {
 
 	var depositedAmount int64 = 2000000000000000000
 
-	opts, err := bind.NewKeyedTransactorWithChainID(sys.cfg.Secrets.Alice, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
 	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)

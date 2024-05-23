@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 /**
@@ -23,7 +22,8 @@ pragma solidity 0.6.12;
  * forwarding of return values and bubbling of failures.
  * It defines a fallback function that delegates all calls to the address
  * returned by the abstract _implementation() internal function.
- * @dev Forked from https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/Proxy.sol
+ * @dev Forked from
+ * https://github.com/zeppelinos/zos-lib/blob/8a16ef3ad17ec7430e3a9d2b5e3f39b8204f8c8d/contracts/upgradeability/Proxy.sol
  * Modifications:
  * 1. Reformat and conform to Solidity 0.6 syntax (5/13/20)
  */
@@ -39,7 +39,7 @@ abstract contract Proxy {
     /**
      * @return The Address of the implementation.
      */
-    function _implementation() internal virtual view returns (address);
+    function _implementation() internal view virtual returns (address);
 
     /**
      * @dev Delegates execution to an implementation contract.
@@ -56,26 +56,15 @@ abstract contract Proxy {
 
             // Call the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(
-                gas(),
-                implementation,
-                0,
-                calldatasize(),
-                0,
-                0
-            )
+            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
 
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 
             switch result
-                // delegatecall returns 0 on error.
-                case 0 {
-                    revert(0, returndatasize())
-                }
-                default {
-                    return(0, returndatasize())
-                }
+            // delegatecall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
         }
     }
 
@@ -84,7 +73,7 @@ abstract contract Proxy {
      * Can be redefined in derived contracts to add functionality.
      * Redefinitions must call super._willFallback().
      */
-    function _willFallback() internal virtual {}
+    function _willFallback() internal virtual { }
 
     /**
      * @dev fallback implementation.

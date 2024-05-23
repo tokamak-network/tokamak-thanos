@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { EIP712Domain } from "./EIP712Domain.sol"; // solhint-disable-line no-unused-import
@@ -38,10 +37,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param newSymbol             New token symbol
      * data structure to the new blacklist data structure.
      */
-    function initializeV2_2(
-        address[] calldata accountsToBlacklist,
-        string calldata newSymbol
-    ) external {
+    function initializeV2_2(address[] calldata accountsToBlacklist, string calldata newSymbol) external {
         // solhint-disable-next-line reason-string
         require(_initializedVersion == 2);
 
@@ -68,7 +64,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @dev Internal function to get the current chain id.
      * @return The current chain id.
      */
-    function _chainId() internal virtual view returns (uint256) {
+    function _chainId() internal view virtual returns (uint256) {
         uint256 chainId;
         assembly {
             chainId := chainid()
@@ -79,7 +75,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
     /**
      * @inheritdoc EIP712Domain
      */
-    function _domainSeparator() internal override view returns (bytes32) {
+    function _domainSeparator() internal view override returns (bytes32) {
         return EIP712.makeDomainSeparator(name, "2", _chainId());
     }
 
@@ -89,7 +85,8 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param owner       Token owner's address (Authorizer)
      * @param spender     Spender's address
      * @param value       Amount of allowance
-     * @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no expiration
+     * @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no
+     * expiration
      * @param signature   Signature bytes signed by an EOA wallet or a contract wallet
      */
     function permit(
@@ -98,7 +95,10 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
         uint256 value,
         uint256 deadline,
         bytes memory signature
-    ) external whenNotPaused {
+    )
+        external
+        whenNotPaused
+    {
         _permit(owner, spender, value, deadline, signature);
     }
 
@@ -121,16 +121,13 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
         uint256 validBefore,
         bytes32 nonce,
         bytes memory signature
-    ) external whenNotPaused notBlacklisted(from) notBlacklisted(to) {
-        _transferWithAuthorization(
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            signature
-        );
+    )
+        external
+        whenNotPaused
+        notBlacklisted(from)
+        notBlacklisted(to)
+    {
+        _transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, signature);
     }
 
     /**
@@ -154,16 +151,13 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
         uint256 validBefore,
         bytes32 nonce,
         bytes memory signature
-    ) external whenNotPaused notBlacklisted(from) notBlacklisted(to) {
-        _receiveWithAuthorization(
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            signature
-        );
+    )
+        external
+        whenNotPaused
+        notBlacklisted(from)
+        notBlacklisted(to)
+    {
+        _receiveWithAuthorization(from, to, value, validAfter, validBefore, nonce, signature);
     }
 
     /**
@@ -174,11 +168,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param nonce         Nonce of the authorization
      * @param signature     Signature bytes signed by an EOA wallet or a contract wallet
      */
-    function cancelAuthorization(
-        address authorizer,
-        bytes32 nonce,
-        bytes memory signature
-    ) external whenNotPaused {
+    function cancelAuthorization(address authorizer, bytes32 nonce, bytes memory signature) external whenNotPaused {
         _cancelAuthorization(authorizer, nonce, signature);
     }
 
@@ -193,13 +183,9 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param _account         The address of the account.
      * @param _shouldBlacklist True if the account should be blacklisted, false if the account should be unblacklisted.
      */
-    function _setBlacklistState(address _account, bool _shouldBlacklist)
-        internal
-        override
-    {
-        balanceAndBlacklistStates[_account] = _shouldBlacklist
-            ? balanceAndBlacklistStates[_account] | (1 << 255)
-            : _balanceOf(_account);
+    function _setBlacklistState(address _account, bool _shouldBlacklist) internal override {
+        balanceAndBlacklistStates[_account] =
+            _shouldBlacklist ? balanceAndBlacklistStates[_account] | (1 << 255) : _balanceOf(_account);
     }
 
     /**
@@ -212,14 +198,8 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param _balance The new fiat token balance of the account (max: (2^255 - 1)).
      */
     function _setBalance(address _account, uint256 _balance) internal override {
-        require(
-            _balance <= ((1 << 255) - 1),
-            "FiatTokenV2_2: Balance exceeds (2^255 - 1)"
-        );
-        require(
-            !_isBlacklisted(_account),
-            "FiatTokenV2_2: Account is blacklisted"
-        );
+        require(_balance <= ((1 << 255) - 1), "FiatTokenV2_2: Balance exceeds (2^255 - 1)");
+        require(!_isBlacklisted(_account), "FiatTokenV2_2: Account is blacklisted");
 
         balanceAndBlacklistStates[_account] = _balance;
     }
@@ -227,12 +207,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
     /**
      * @inheritdoc Blacklistable
      */
-    function _isBlacklisted(address _account)
-        internal
-        override
-        view
-        returns (bool)
-    {
+    function _isBlacklisted(address _account) internal view override returns (bool) {
         return balanceAndBlacklistStates[_account] >> 255 == 1;
     }
 
@@ -244,24 +219,14 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
      * @param _account  The address of the account.
      * @return          The fiat token balance of the account.
      */
-    function _balanceOf(address _account)
-        internal
-        override
-        view
-        returns (uint256)
-    {
+    function _balanceOf(address _account) internal view override returns (uint256) {
         return balanceAndBlacklistStates[_account] & ((1 << 255) - 1);
     }
 
     /**
      * @inheritdoc FiatTokenV1
      */
-    function approve(address spender, uint256 value)
-        external
-        override
-        whenNotPaused
-        returns (bool)
-    {
+    function approve(address spender, uint256 value) external override whenNotPaused returns (bool) {
         _approve(msg.sender, spender, value);
         return true;
     }
@@ -277,19 +242,18 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external override whenNotPaused {
+    )
+        external
+        override
+        whenNotPaused
+    {
         _permit(owner, spender, value, deadline, v, r, s);
     }
 
     /**
      * @inheritdoc FiatTokenV2
      */
-    function increaseAllowance(address spender, uint256 increment)
-        external
-        override
-        whenNotPaused
-        returns (bool)
-    {
+    function increaseAllowance(address spender, uint256 increment) external override whenNotPaused returns (bool) {
         _increaseAllowance(msg.sender, spender, increment);
         return true;
     }
@@ -297,12 +261,7 @@ contract FiatTokenV2_2 is FiatTokenV2_1 {
     /**
      * @inheritdoc FiatTokenV2
      */
-    function decreaseAllowance(address spender, uint256 decrement)
-        external
-        override
-        whenNotPaused
-        returns (bool)
-    {
+    function decreaseAllowance(address spender, uint256 decrement) external override whenNotPaused returns (bool) {
         _decreaseAllowance(msg.sender, spender, decrement);
         return true;
     }

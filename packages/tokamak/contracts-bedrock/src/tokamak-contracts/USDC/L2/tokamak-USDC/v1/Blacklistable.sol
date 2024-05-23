@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity 0.6.12;
 
 import { Ownable } from "./Ownable.sol";
@@ -36,10 +35,7 @@ abstract contract Blacklistable is Ownable {
      * @dev Throws if called by any account other than the blacklister.
      */
     modifier onlyBlacklister() {
-        require(
-            msg.sender == blacklister,
-            "Blacklistable: caller is not the blacklister"
-        );
+        require(msg.sender == blacklister, "Blacklistable: caller is not the blacklister");
         _;
     }
 
@@ -48,10 +44,7 @@ abstract contract Blacklistable is Ownable {
      * @param _account The address to check.
      */
     modifier notBlacklisted(address _account) {
-        require(
-            !_isBlacklisted(_account),
-            "Blacklistable: account is blacklisted"
-        );
+        require(!_isBlacklisted(_account), "Blacklistable: account is blacklisted");
         _;
     }
 
@@ -87,10 +80,7 @@ abstract contract Blacklistable is Ownable {
      * @param _newBlacklister The address of the new blacklister.
      */
     function updateBlacklister(address _newBlacklister) external onlyOwner {
-        require(
-            _newBlacklister != address(0),
-            "Blacklistable: new blacklister is the zero address"
-        );
+        require(_newBlacklister != address(0), "Blacklistable: new blacklister is the zero address");
         blacklister = _newBlacklister;
         emit BlacklisterChanged(blacklister);
     }
@@ -100,11 +90,7 @@ abstract contract Blacklistable is Ownable {
      * @param _account The address to check.
      * @return true if the account is blacklisted, false otherwise.
      */
-    function _isBlacklisted(address _account)
-        internal
-        virtual
-        view
-        returns (bool);
+    function _isBlacklisted(address _account) internal view virtual returns (bool);
 
     /**
      * @dev Helper method that blacklists an account.

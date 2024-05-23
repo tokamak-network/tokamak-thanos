@@ -24,7 +24,7 @@ exec anvil \
 LONG_LIVED_PID=$!
 
 # Wait for the long-lived service to be ready
-while ! nc -z localhost "$RPC_PORT"; do
+while ! nc -z 0.0.0.0 ${RPC_PORT}; do
   sleep 1
 done
 echo "Long-lived service is up and running."

@@ -27,7 +27,7 @@ jobs:
       # Copy necessary tools from Docker container
       - name: Copy foundry from Docker container
         run: |
-          container_id=$(docker create onthertech/thanos-ci-builder:latest)
+          container_id=$(docker create onthertech/thanos-ci-builder:ecotone)
           mkdir -p $HOME/bin
           docker cp $container_id:/usr/local/bin/cast $HOME/bin/
           docker cp $container_id:/usr/local/bin/anvil $HOME/bin/
@@ -43,7 +43,7 @@ jobs:
       # Install pnpm and dependencies
       - name: Install pnpm and dependencies
         run: |
-          npm install --global pnpm@8.15.1
+          npm install --global pnpm
 
       - name: Restore PNPM Package Cache
         uses: actions/cache@v3

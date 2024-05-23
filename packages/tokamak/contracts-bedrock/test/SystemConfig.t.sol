@@ -54,7 +54,6 @@ contract SystemConfig_Init is CommonTest {
                     gasLimit, // _gasLimit,
                     unsafeBlockSigner, // _unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
-                    0, // _startBlock
                     batchInbox, // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: l1CrossDomainMessenger,
@@ -109,11 +108,10 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
 
         // Wipe out the initialized slot so the proxy can be initialized again
         vm.store(address(sysConf), bytes32(0), bytes32(0));
-
         assertEq(sysConf.startBlock(), block.number);
-        // the startBlock slot is 106, wipe it out
-        vm.store(address(sysConf), bytes32(uint256(106)), bytes32(0));
-        assertEq(sysConf.startBlock(), 0);
+
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(startBlock));
+        assertEq(sysConf.startBlock(), startBlock);
 
         vm.prank(multisig);
         Proxy(payable(address(sysConf))).upgradeToAndCall(
@@ -128,7 +126,6 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                     gasLimit, // _gasLimit,
                     unsafeBlockSigner, // _unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
-                    startBlock, // _startBlock
                     batchInbox, // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: l1CrossDomainMessenger,
@@ -150,7 +147,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         // wipe out initialized slot so we can initialize again
         vm.store(address(sysConf), bytes32(0), bytes32(0));
         // the startBlock slot is 106, set it to something non zero
-        vm.store(address(sysConf), bytes32(uint256(106)), bytes32(uint256(0xff)));
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(uint256(0xff)));
 
         // Initialize with a non zero start block, should see a revert
         vm.prank(multisig);
@@ -168,7 +165,6 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                     gasLimit, // _gasLimit,
                     unsafeBlockSigner, // _unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
-                    1, // _startBlock
                     batchInbox, // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: l1CrossDomainMessenger,
@@ -193,7 +189,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
     function test_initialize_events_succeeds() external {
         // Wipe out the initialized slot so the proxy can be initialized again
         vm.store(address(sysConf), bytes32(0), bytes32(0));
-        vm.store(address(sysConf), bytes32(uint256(106)), bytes32(0));
+        vm.store(address(sysConf), sysConf.START_BLOCK_SLOT(), bytes32(0));
         assertEq(sysConf.startBlock(), 0);
 
         // The order depends here
@@ -203,8 +199,6 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         emit ConfigUpdate(0, SystemConfig.UpdateType.GAS_CONFIG, abi.encode(overhead, scalar));
         vm.expectEmit(true, true, true, true, address(sysConf));
         emit ConfigUpdate(0, SystemConfig.UpdateType.GAS_LIMIT, abi.encode(gasLimit));
-        vm.expectEmit(true, true, true, true, address(sysConf));
-        emit ConfigUpdate(0, SystemConfig.UpdateType.UNSAFE_BLOCK_SIGNER, abi.encode(unsafeBlockSigner));
 
         vm.prank(multisig);
         Proxy(payable(address(sysConf))).upgradeToAndCall(
@@ -219,7 +213,6 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                     gasLimit, // _gasLimit,
                     unsafeBlockSigner, // _unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
-                    0, // _startBlock
                     batchInbox, // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: l1CrossDomainMessenger,
@@ -259,7 +252,6 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Init {
                     minimumGasLimit - 1, // _gasLimit,
                     address(1), // _unsafeBlockSigner,
                     Constants.DEFAULT_RESOURCE_CONFIG(), // _config,
-                    0, // _startBlock
                     address(0), // _batchInbox
                     SystemConfig.Addresses({ // _addresses
                         l1CrossDomainMessenger: address(0),
