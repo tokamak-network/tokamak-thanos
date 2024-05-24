@@ -1,4 +1,4 @@
-module github.com/ethereum-optimism/optimism/op-exporter
+module github.com/tokamak-network/tokamak-thanos/op-exporter
 
 go 1.20
 
