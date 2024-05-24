@@ -11,15 +11,15 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
-	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/kvstore"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
 )
 
 const (

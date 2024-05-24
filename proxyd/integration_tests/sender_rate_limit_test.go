@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/proxyd"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
 )
 
 const txHex1 = "0x02f8b28201a406849502f931849502f931830147f9948f3ddd0fbf3e78ca1d6c" +

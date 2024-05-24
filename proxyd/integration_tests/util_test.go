@@ -17,7 +17,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/proxyd"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
 )
 
 type ProxydHTTPClient struct {

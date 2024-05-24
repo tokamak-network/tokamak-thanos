@@ -12,8 +12,8 @@ import (
 	"runtime/pprof"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 )
 
 type Service struct {

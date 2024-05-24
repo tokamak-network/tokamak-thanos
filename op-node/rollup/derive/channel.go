@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // A Channel is a set of batches that are split into at least one, but possibly multiple frames.

@@ -6,7 +6,7 @@ package bindings
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 const DelayedVetoableStorageLayoutJSON = "{\"storage\":[{\"astId\":1000,\"contract\":\"src/L1/DelayedVetoable.sol:DelayedVetoable\",\"label\":\"_delay\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_uint256\"},{\"astId\":1001,\"contract\":\"src/L1/DelayedVetoable.sol:DelayedVetoable\",\"label\":\"_queuedAt\",\"offset\":0,\"slot\":\"1\",\"type\":\"t_mapping(t_bytes32,t_uint256)\"}],\"types\":{\"t_bytes32\":{\"encoding\":\"inplace\",\"label\":\"bytes32\",\"numberOfBytes\":\"32\"},\"t_mapping(t_bytes32,t_uint256)\":{\"encoding\":\"mapping\",\"label\":\"mapping(bytes32 =\u003e uint256)\",\"numberOfBytes\":\"32\",\"key\":\"t_bytes32\",\"value\":\"t_uint256\"},\"t_uint256\":{\"encoding\":\"inplace\",\"label\":\"uint256\",\"numberOfBytes\":\"32\"}}}"

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	e2e "github.com/ethereum-optimism/optimism/op-e2e"
-	"github.com/ethereum-optimism/optimism/op-e2e/config"
 	"github.com/stretchr/testify/require"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
 )
 
 func TestShim(t *testing.T) {

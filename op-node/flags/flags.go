@@ -6,13 +6,13 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
-	plasma "github.com/ethereum-optimism/optimism/op-plasma"
-	openum "github.com/ethereum-optimism/optimism/op-service/enum"
-	opflags "github.com/ethereum-optimism/optimism/op-service/flags"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
+	openum "github.com/tokamak-network/tokamak-thanos/op-service/enum"
+	opflags "github.com/tokamak-network/tokamak-thanos/op-service/flags"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 )
 
 // Flags

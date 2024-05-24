@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/suite"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
 )
 
 // PeerParamsTestSuite tests peer parameterization.

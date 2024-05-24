@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-program/chainconfig"
-	"github.com/ethereum-optimism/optimism/op-program/verify"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-program/chainconfig"
+	"github.com/tokamak-network/tokamak-thanos/op-program/verify"
 )
 
 func main() {

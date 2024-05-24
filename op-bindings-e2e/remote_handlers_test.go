@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindgen"
-	"github.com/ethereum-optimism/optimism/op-bindings/etherscan"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindgen"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/etherscan"
 )
 
 var generator bindgen.BindGenGeneratorRemote = bindgen.BindGenGeneratorRemote{}

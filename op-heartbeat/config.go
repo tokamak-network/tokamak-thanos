@@ -3,10 +3,10 @@ package op_heartbeat
 import (
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/op-heartbeat/flags"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-heartbeat/flags"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
 	"github.com/urfave/cli/v2"
 )
 

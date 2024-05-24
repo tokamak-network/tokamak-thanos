@@ -7,13 +7,13 @@ import (
 	"math/big"
 	"time"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	opcrypto "github.com/tokamak-network/tokamak-thanos/op-service/crypto"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 	"github.com/urfave/cli/v2"
 )
 

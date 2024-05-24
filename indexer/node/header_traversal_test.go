@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
 
 	"github.com/ethereum/go-ethereum/core/types"
 )

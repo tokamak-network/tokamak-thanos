@@ -17,12 +17,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/indexer/api/routes"
-	"github.com/ethereum-optimism/optimism/indexer/api/service"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/routes"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/service"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
 const ethereumAddressRegex = `^0x[a-fA-F0-9]{40}$`
