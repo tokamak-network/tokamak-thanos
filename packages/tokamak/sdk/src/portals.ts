@@ -592,4 +592,46 @@ export class Portals {
       )
     },
   }
+
+  /**
+   * Object that holds the functions that estimates the gas required for a given transaction.
+   * Follows the pattern used by ethers.js.
+   */
+  estimateGas = {
+    depositTransaction: async (
+      request: DepositTransactionRequest
+    ): Promise<BigNumber> => {
+      const tx = await this.populateTransaction.depositTransaction(request)
+      return this.l1Provider.estimateGas(tx)
+    },
+
+    initiateWithdrawal: async (
+      request: WithdrawalTransactionRequest
+    ): Promise<BigNumber> => {
+      const tx = await this.populateTransaction.initiateWithdrawal(request)
+      return this.l2Provider.estimateGas(tx)
+    },
+
+    proveWithdrawalTransaction: async (
+      message: WithdrawalMessageInfo,
+      opts?: {
+        overrides?: PayableOverrides
+      }
+    ): Promise<BigNumber> => {
+      const tx = await this.populateTransaction.proveWithdrawalTransaction(
+        message,
+        opts
+      )
+      return this.l1Provider.estimateGas(tx)
+    },
+
+    finalizeWithdrawalTransaction: async (
+      message: WithdrawalMessageInfo
+    ): Promise<BigNumber> => {
+      const tx = await this.populateTransaction.finalizeWithdrawalTransaction(
+        message
+      )
+      return this.l1Provider.estimateGas(tx)
+    },
+  }
 }
