@@ -5,11 +5,11 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 )
 
 type receiptsBatchCall = batching.IterativeBatchCall[common.Hash, *types.Receipt]

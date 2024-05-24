@@ -9,14 +9,14 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/merkle"
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/merkle"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 const (

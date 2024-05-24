@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/indexer/node"
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer/node"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestL1ETLConstruction(t *testing.T) {

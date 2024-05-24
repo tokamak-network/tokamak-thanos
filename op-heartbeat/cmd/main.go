@@ -3,11 +3,11 @@ package main
 import (
 	"os"
 
-	heartbeat "github.com/ethereum-optimism/optimism/op-heartbeat"
-	"github.com/ethereum-optimism/optimism/op-heartbeat/flags"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
+	heartbeat "github.com/tokamak-network/tokamak-thanos/op-heartbeat"
+	"github.com/tokamak-network/tokamak-thanos/op-heartbeat/flags"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 	"github.com/urfave/cli/v2"
 )
 

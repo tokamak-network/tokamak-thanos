@@ -12,9 +12,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/ethereum-optimism/optimism/proxyd"
-	ms "github.com/ethereum-optimism/optimism/proxyd/tools/mockserver/handler"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
+	ms "github.com/tokamak-network/tokamak-thanos/proxyd/tools/mockserver/handler"
 )
 
 type nodeContext struct {

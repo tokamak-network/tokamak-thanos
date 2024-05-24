@@ -11,19 +11,19 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/extract"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/version"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/extract"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/version"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
-	"github.com/ethereum-optimism/optimism/op-service/dial"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 )
 
 type Service struct {

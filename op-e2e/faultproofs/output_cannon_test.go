@@ -6,16 +6,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/cannon"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame/preimage"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/cannon"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame/preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 func TestOutputCannonGame(t *testing.T) {

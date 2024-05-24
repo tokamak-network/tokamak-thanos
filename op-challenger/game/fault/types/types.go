@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"time"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
 	"github.com/ethereum/go-ethereum/common"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 var (

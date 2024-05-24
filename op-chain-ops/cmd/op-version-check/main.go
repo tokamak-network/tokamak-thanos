@@ -12,9 +12,9 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/maps"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/upgrades"
-	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/upgrades"
+	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 
 	"github.com/ethereum-optimism/superchain-registry/superchain"
 )

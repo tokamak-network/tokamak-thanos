@@ -3,7 +3,7 @@ package p2p
 import (
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 type ApplicationScoreParams struct {

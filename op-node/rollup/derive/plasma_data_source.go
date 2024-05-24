@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // PlasmaDataSource is a data source that fetches inputs from a plasma DA provider given

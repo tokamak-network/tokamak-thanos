@@ -12,16 +12,16 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	opnode "github.com/ethereum-optimism/optimism/op-node"
-	"github.com/ethereum-optimism/optimism/op-node/metrics"
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
-	p2pcli "github.com/ethereum-optimism/optimism/op-node/p2p/cli"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
+	opnode "github.com/tokamak-network/tokamak-thanos/op-node"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	p2pcli "github.com/tokamak-network/tokamak-thanos/op-node/p2p/cli"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
 )
 
 type gossipNoop struct{}

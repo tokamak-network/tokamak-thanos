@@ -7,15 +7,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var (

@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-ufm/pkg/metrics"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-ufm/pkg/metrics"
 
-	signer "github.com/ethereum-optimism/optimism/op-service/signer"
-	optls "github.com/ethereum-optimism/optimism/op-service/tls"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	signer "github.com/tokamak-network/tokamak-thanos/op-service/signer"
+	optls "github.com/tokamak-network/tokamak-thanos/op-service/tls"
 )
 
 type InstrumentedSignerClient struct {

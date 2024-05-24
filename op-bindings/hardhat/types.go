@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 // Deployment represents a hardhat-deploy artifact file

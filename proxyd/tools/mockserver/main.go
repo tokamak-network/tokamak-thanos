@@ -6,7 +6,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/proxyd/tools/mockserver/handler"
+	"github.com/tokamak-network/tokamak-thanos/proxyd/tools/mockserver/handler"
 )
 
 func main() {

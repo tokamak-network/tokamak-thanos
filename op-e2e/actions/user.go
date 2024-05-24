@@ -18,14 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-bindings/bindingspreview"
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/crossdomain"
-	"github.com/ethereum-optimism/optimism/op-e2e/config"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-node/withdrawals"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindingspreview"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/withdrawals"
 )
 
 type L1Bindings struct {

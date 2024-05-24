@@ -14,9 +14,9 @@ import (
 
 	"github.com/pkg/profile"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
 )
 
 var (

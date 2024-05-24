@@ -9,22 +9,22 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	plasma "github.com/ethereum-optimism/optimism/op-plasma"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	"github.com/ethereum-optimism/optimism/op-node/node"
-	p2pcli "github.com/ethereum-optimism/optimism/op-node/p2p/cli"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
-	opflags "github.com/ethereum-optimism/optimism/op-service/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/node"
+	p2pcli "github.com/tokamak-network/tokamak-thanos/op-node/p2p/cli"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/driver"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	opflags "github.com/tokamak-network/tokamak-thanos/op-service/flags"
 )
 
 // NewConfig creates a Config from the provided flags or environment variables.

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 var remapTypeRe = regexp.MustCompile(`^(t_[\w_]+\([\w]+\))([\d]+)(_[\w]+)?$`)

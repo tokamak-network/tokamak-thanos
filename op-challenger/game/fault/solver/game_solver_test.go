@@ -6,11 +6,11 @@ import (
 	"math/big"
 	"testing"
 
-	faulttest "github.com/ethereum-optimism/optimism/op-challenger/game/fault/test"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	faulttest "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/test"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 func TestCalculateNextActions(t *testing.T) {

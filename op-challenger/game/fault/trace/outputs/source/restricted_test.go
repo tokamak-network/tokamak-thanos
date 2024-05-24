@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 func TestRestrictedOutputLoader(t *testing.T) {

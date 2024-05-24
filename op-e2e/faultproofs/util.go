@@ -4,13 +4,13 @@ import (
 	"crypto/ecdsa"
 	"testing"
 
-	batcherFlags "github.com/ethereum-optimism/optimism/op-batcher/flags"
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
+	batcherFlags "github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 )
 
 type faultDisputeConfigOpts func(cfg *op_e2e.SystemConfig)

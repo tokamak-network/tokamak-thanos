@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-ufm/pkg/config"
+	"github.com/tokamak-network/tokamak-thanos/op-ufm/pkg/config"
 )
 
 type Provider struct {

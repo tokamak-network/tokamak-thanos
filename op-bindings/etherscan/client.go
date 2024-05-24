@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/retry"
+	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 )
 
 type client struct {

@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/mpt"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type Oracle interface {

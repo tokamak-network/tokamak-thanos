@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/preimages"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/preimages"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 
 	"github.com/ethereum/go-ethereum/log"
 )

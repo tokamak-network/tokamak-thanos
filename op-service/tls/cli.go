@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 )
 
 const (

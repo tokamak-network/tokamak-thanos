@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 )
 
 func TestStatusBatch_Add(t *testing.T) {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestMainShouldReturnErrorWhenConfigInvalid(t *testing.T) {

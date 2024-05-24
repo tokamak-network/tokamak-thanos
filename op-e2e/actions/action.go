@@ -3,9 +3,9 @@ package actions
 import (
 	"context"
 
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
 )
 
 // Testing is an interface to Go-like testing,

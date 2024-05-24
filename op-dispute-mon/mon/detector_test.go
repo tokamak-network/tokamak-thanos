@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
-	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
+	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestDetector_Detect(t *testing.T) {

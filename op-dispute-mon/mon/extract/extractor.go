@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 type CreateGameCaller func(game gameTypes.GameMetadata) (GameCaller, error)

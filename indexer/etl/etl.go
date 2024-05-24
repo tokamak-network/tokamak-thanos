@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/indexer/node"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/indexer/node"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 )
 
 type Config struct {

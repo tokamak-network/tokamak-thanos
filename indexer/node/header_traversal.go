@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
 )
 
 var (

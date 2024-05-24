@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindgen"
-	"github.com/ethereum-optimism/optimism/op-bindings/etherscan"
-	op_service "github.com/ethereum-optimism/optimism/op-service"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindgen"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/etherscan"
+	op_service "github.com/tokamak-network/tokamak-thanos/op-service"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 	"github.com/urfave/cli/v2"
 )
 

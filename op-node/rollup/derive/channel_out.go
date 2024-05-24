@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 var ErrMaxFrameSizeTooSmall = errors.New("maxSize is too small to fit the fixed frame overhead")
@@ -22,7 +22,7 @@ var ErrChannelOutAlreadyClosed = errors.New("channel-out already closed")
 // This is the fixed overhead frame size, calculated as specified
 // in the [Frame Format] specs: 16 + 2 + 4 + 1 = 23 bytes.
 //
-// [Frame Format]: https://github.com/ethereum-optimism/optimism/blob/develop/specs/derivation.md#frame-format
+// [Frame Format]: https://github.com/tokamak-network/tokamak-thanos/blob/develop/specs/derivation.md#frame-format
 const FrameV0OverHeadSize = 23
 
 var CompressorFullErr = errors.New("compressor is full")

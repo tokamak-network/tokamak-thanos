@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	plasma "github.com/ethereum-optimism/optimism/op-plasma"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -17,18 +17,18 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-node/heartbeat"
-	"github.com/ethereum-optimism/optimism/op-node/metrics"
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/conductor"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
-	"github.com/ethereum-optimism/optimism/op-node/version"
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-	"github.com/ethereum-optimism/optimism/op-service/retry"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-node/heartbeat"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/conductor"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/driver"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	"github.com/tokamak-network/tokamak-thanos/op-node/version"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 )
 
 var ErrAlreadyClosed = errors.New("node is already closed")

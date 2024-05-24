@@ -7,14 +7,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/indexer/processors/bridge/ovm1"
-	"github.com/ethereum-optimism/optimism/indexer/processors/contracts"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors/bridge/ovm1"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors/contracts"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/crossdomain"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
 )
 
 // Legacy Bridge Initiation

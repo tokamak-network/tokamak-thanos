@@ -8,14 +8,14 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/compressor"
-	"github.com/ethereum-optimism/optimism/op-batcher/flags"
-	plasma "github.com/ethereum-optimism/optimism/op-plasma"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 type CLIConfig struct {

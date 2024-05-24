@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/preimages"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/responder"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	gethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/preimages"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/responder"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type actor func(ctx context.Context) error

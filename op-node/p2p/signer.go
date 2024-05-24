@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 var SigningDomainBlocksV1 = [32]byte{}

@@ -14,9 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	optls "github.com/ethereum-optimism/optimism/op-service/tls"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	optls "github.com/tokamak-network/tokamak-thanos/op-service/tls"
 )
 
 var wildcardHosts = []string{"*"}

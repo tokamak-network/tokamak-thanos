@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-conductor/conductor"
-	"github.com/ethereum-optimism/optimism/op-conductor/flags"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
+	"github.com/tokamak-network/tokamak-thanos/op-conductor/conductor"
+	"github.com/tokamak-network/tokamak-thanos/op-conductor/flags"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (

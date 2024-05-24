@@ -3,12 +3,12 @@ package derive
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
-	"github.com/ethereum-optimism/optimism/op-service/testutils/fuzzerutils"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils/fuzzerutils"
 )
 
 // FuzzParseL1InfoDepositTxDataValid is a fuzz test built from TestParseL1InfoDepositTxData, which constructs random
