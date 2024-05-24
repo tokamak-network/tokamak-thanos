@@ -12,11 +12,9 @@ import (
 	"syscall"
 
 	"github.com/BurntSushi/toml"
-	"golang.org/x/exp/slog"
-
 	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/tokamak-network/tokamak-thanos/proxyd"
+	"golang.org/x/exp/slog"
 )
 
 var (
