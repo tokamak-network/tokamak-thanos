@@ -1,4 +1,4 @@
-module github.com/ethereum-optimism/optimism/op-ufm
+module github.com/tokamak-network/tokamak-thanos/op-ufm
 
 go 1.21
 
