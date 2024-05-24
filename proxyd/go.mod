@@ -1,4 +1,4 @@
-module github.com/ethereum-optimism/optimism/proxyd
+module github.com/tokamak-network/tokamak-thanos/proxyd
 
 go 1.21
 
