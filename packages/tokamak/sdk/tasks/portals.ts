@@ -146,14 +146,20 @@ const depositViaOP = async (amount: NumberLike) => {
   await approveTx.wait()
   console.log('approveTx:', approveTx.hash)
 
-  const depositTx = await portals.depositTransaction({
+  const depositParams = {
     to: l2Wallet.address,
     mint: BigNumber.from(amount),
     value: BigNumber.from(amount),
     gasLimit: BigNumber.from('200000'),
     isCreation: false,
     data: '0x',
-  })
+  }
+  const estimateGasDeposit = await portals.estimateGas.depositTransaction(
+    depositParams
+  )
+  console.log(`Estimate gas for depositing: ${estimateGasDeposit}`)
+
+  const depositTx = await portals.depositTransaction(depositParams)
   const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositReceipt.transactionHash)
 
@@ -225,14 +231,20 @@ const depositViaOPV1 = async (mint: NumberLike, value: NumberLike) => {
 
   const toAddress = l2NativeToken
 
-  const depositTx = await portals.depositTransaction({
+  const depositParams = {
     to: toAddress,
     mint: BigNumber.from(mint),
     value: BigNumber.from(value),
     gasLimit: BigNumber.from('200000'),
     isCreation: false,
     data: '0x',
-  })
+  }
+  const estimateGasDeposit = await portals.estimateGas.depositTransaction(
+    depositParams
+  )
+  console.log(`Estimate gas for depositing: ${estimateGasDeposit}`)
+
+  const depositTx = await portals.depositTransaction(depositParams)
   const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositReceipt.transactionHash)
 
@@ -298,12 +310,20 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     l2NativeTokenBalance.toString()
   )
 
-  const withdrawalTx = await portals.initiateWithdrawal({
+  const initiateWithdrawalParams = {
     target: l1Wallet.address,
     value: BigNumber.from(amount),
     gasLimit: BigNumber.from('200000'),
     data: '0x12345678',
-  })
+  }
+
+  const initiateWithdrawalGas = await portals.estimateGas.initiateWithdrawal(
+    initiateWithdrawalParams
+  )
+  console.log(`Estimate gas for initiating withdraw: ${initiateWithdrawalGas}`)
+  const withdrawalTx = await portals.initiateWithdrawal(
+    initiateWithdrawalParams
+  )
   const withdrawalReceipt = await withdrawalTx.wait()
   const withdrawalMessageInfo = await portals.calculateWithdrawalMessage(
     withdrawalReceipt
@@ -327,6 +347,15 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   console.log('[Withdrawal Status] check in challenging:', status)
 
   await portals.waitForFinalization(withdrawalMessageInfo)
+
+  const estimateFinalizedTransaction =
+    await portals.estimateGas.finalizeWithdrawalTransaction(
+      withdrawalMessageInfo
+    )
+  console.log(
+    `Estimate gas for finalizing transaction: ${estimateFinalizedTransaction}`
+  )
+
   const finalizedTransaction = await portals.finalizeWithdrawalTransaction(
     withdrawalMessageInfo
   )
