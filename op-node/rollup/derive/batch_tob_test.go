@@ -3,9 +3,9 @@ package derive
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/testutils/fuzzerutils"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils/fuzzerutils"
 )
 
 // FuzzBatchRoundTrip executes a fuzz test similar to TestBatchRoundTrip, which tests that arbitrary BatchData will be

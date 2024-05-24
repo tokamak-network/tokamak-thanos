@@ -16,14 +16,14 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ethereum-optimism/optimism/indexer/config"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	"github.com/ethereum-optimism/optimism/indexer/etl"
-	"github.com/ethereum-optimism/optimism/indexer/node"
-	"github.com/ethereum-optimism/optimism/indexer/processors"
-	"github.com/ethereum-optimism/optimism/indexer/processors/bridge"
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/indexer/config"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	"github.com/tokamak-network/tokamak-thanos/indexer/etl"
+	"github.com/tokamak-network/tokamak-thanos/indexer/node"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors"
+	"github.com/tokamak-network/tokamak-thanos/indexer/processors/bridge"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
 // Indexer contains the necessary resources for

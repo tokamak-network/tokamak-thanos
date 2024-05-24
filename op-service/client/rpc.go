@@ -8,14 +8,14 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 	"golang.org/x/time/rate"
 
-	"github.com/ethereum-optimism/optimism/op-node/metrics"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
 )
 
 var httpRegex = regexp.MustCompile("^http(s)?://")

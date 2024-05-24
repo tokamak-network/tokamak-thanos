@@ -15,14 +15,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	clientmocks "github.com/ethereum-optimism/optimism/op-conductor/client/mocks"
-	consensusmocks "github.com/ethereum-optimism/optimism/op-conductor/consensus/mocks"
-	"github.com/ethereum-optimism/optimism/op-conductor/health"
-	healthmocks "github.com/ethereum-optimism/optimism/op-conductor/health/mocks"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	clientmocks "github.com/tokamak-network/tokamak-thanos/op-conductor/client/mocks"
+	consensusmocks "github.com/tokamak-network/tokamak-thanos/op-conductor/consensus/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-conductor/health"
+	healthmocks "github.com/tokamak-network/tokamak-thanos/op-conductor/health/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func mockConfig(t *testing.T) Config {

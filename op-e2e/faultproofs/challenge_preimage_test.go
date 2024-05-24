@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame/preimage"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame/preimage"
 )
 
 func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/clock"
 	"github.com/ethereum/go-ethereum/log"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 )
 
 type extendedStore struct {

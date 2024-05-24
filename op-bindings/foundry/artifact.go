@@ -3,8 +3,8 @@ package foundry
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 // Artifact represents a foundry compilation artifact.

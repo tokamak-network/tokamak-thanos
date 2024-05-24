@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	op_service "github.com/ethereum-optimism/optimism/op-service"
+	op_service "github.com/tokamak-network/tokamak-thanos/op-service"
 )
 
 var DevnetPresetId = 901

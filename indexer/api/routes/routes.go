@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/ethereum-optimism/optimism/indexer/api/service"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/go-chi/chi/v5"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/service"
 )
 
 type Routes struct {

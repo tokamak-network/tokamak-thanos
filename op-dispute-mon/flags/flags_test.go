@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"

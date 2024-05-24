@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/async"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/conductor"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/async"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/conductor"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // isDepositTx checks an opaqueTx to determine if it is a Deposit Transaction

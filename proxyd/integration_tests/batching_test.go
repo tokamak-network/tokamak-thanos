@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/proxyd"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
 )
 
 func TestBatching(t *testing.T) {

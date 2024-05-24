@@ -7,10 +7,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/indexer/api/service"
-	"github.com/ethereum-optimism/optimism/indexer/database"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/indexer/api/service"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
 )
 
 func assertFieldsAreSet(t *testing.T, item any) {

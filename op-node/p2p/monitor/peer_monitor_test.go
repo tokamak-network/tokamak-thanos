@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p/monitor/mocks"
-	clock2 "github.com/ethereum-optimism/optimism/op-service/clock"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/monitor/mocks"
+	clock2 "github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 const testBanDuration = 2 * time.Hour

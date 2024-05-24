@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/claims"
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/claims"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"golang.org/x/exp/maps"
 )
 

@@ -8,14 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	monitor "github.com/ethereum-optimism/optimism/op-dispute-mon"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/flags"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/version"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
+	monitor "github.com/tokamak-network/tokamak-thanos/op-dispute-mon"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/version"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (

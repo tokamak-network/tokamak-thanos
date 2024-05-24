@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 )
 
 // weiToEther divides the wei value by 10^18 to get a number in ether as a float64

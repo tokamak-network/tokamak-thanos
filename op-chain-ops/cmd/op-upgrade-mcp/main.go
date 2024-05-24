@@ -10,11 +10,11 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/clients"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/safe"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/upgrades"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/clients"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/safe"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/upgrades"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 
 	"github.com/ethereum-optimism/superchain-registry/superchain"
 )

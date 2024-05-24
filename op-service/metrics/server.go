@@ -4,9 +4,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 )
 
 func StartServer(r *prometheus.Registry, hostname string, port int) (*httputil.HTTPServer, error) {

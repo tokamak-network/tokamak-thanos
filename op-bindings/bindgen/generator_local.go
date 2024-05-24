@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/ast"
-	"github.com/ethereum-optimism/optimism/op-bindings/foundry"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/ast"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/foundry"
 )
 
 type BindGenGeneratorLocal struct {
@@ -229,7 +229,7 @@ package {{.Package}}
 import (
 	"encoding/json"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 const {{.Name}}StorageLayoutJSON = "{{.StorageLayout}}"

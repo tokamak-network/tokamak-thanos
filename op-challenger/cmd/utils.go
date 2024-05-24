@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/flags"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	"github.com/ethereum-optimism/optimism/op-service/dial"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr/metrics"
 	"github.com/urfave/cli/v2"
 )
 

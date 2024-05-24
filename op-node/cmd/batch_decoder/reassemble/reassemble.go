@@ -10,10 +10,10 @@ import (
 	"path"
 	"sort"
 
-	"github.com/ethereum-optimism/optimism/op-node/cmd/batch_decoder/fetch"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/batch_decoder/fetch"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type ChannelWithMetadata struct {

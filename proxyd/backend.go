@@ -17,12 +17,12 @@ import (
 	"sync"
 	"time"
 
-	sw "github.com/ethereum-optimism/optimism/proxyd/pkg/avg-sliding-window"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
+	sw "github.com/tokamak-network/tokamak-thanos/proxyd/pkg/avg-sliding-window"
 	"github.com/xaionaro-go/weightedshuffle"
 	"golang.org/x/sync/semaphore"
 )

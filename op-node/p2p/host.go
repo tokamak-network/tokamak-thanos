@@ -29,9 +29,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p/gating"
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/gating"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 )
 
 const (
