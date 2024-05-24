@@ -1,6 +1,6 @@
 package derive
 
-import "github.com/ethereum-optimism/optimism/op-service/testutils"
+import "github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 
 var _ Engine = (*testutils.MockEngine)(nil)
 

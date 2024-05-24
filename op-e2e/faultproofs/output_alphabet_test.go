@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/disputegame"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 func TestOutputAlphabetGame_ChallengerWins(t *testing.T) {

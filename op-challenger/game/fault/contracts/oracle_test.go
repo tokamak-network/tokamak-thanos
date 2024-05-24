@@ -8,16 +8,16 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/merkle"
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
-	batchingTest "github.com/ethereum-optimism/optimism/op-service/sources/batching/test"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/merkle"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func TestPreimageOracleContract_AddGlobalDataTx(t *testing.T) {

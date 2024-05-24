@@ -3,8 +3,8 @@
 package mocks
 
 import (
-	consensus "github.com/ethereum-optimism/optimism/op-conductor/consensus"
-	eth "github.com/ethereum-optimism/optimism/op-service/eth"
+	consensus "github.com/tokamak-network/tokamak-thanos/op-conductor/consensus"
+	eth "github.com/tokamak-network/tokamak-thanos/op-service/eth"
 
 	mock "github.com/stretchr/testify/mock"
 )

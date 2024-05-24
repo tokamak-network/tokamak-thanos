@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum/go-ethereum/eth/catalyst"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 var errNodeHalt = errors.New("opted to halt, unprepared for protocol change")

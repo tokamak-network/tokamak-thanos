@@ -6,8 +6,8 @@ import (
 
 	"github.com/ethereum-optimism/superchain-registry/superchain"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 // layouts represents the set of storage layouts. It is populated in an init function.

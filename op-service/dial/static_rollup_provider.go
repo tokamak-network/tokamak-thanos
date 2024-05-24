@@ -3,8 +3,8 @@ package dial
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 )
 
 // RollupProvider is an interface for providing a RollupClient

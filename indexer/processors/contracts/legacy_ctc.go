@@ -3,9 +3,9 @@ package contracts
 import (
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/indexer/bigint"
-	"github.com/ethereum-optimism/optimism/indexer/database"
-	legacy_bindings "github.com/ethereum-optimism/optimism/op-bindings/legacy-bindings"
+	"github.com/tokamak-network/tokamak-thanos/indexer/bigint"
+	"github.com/tokamak-network/tokamak-thanos/indexer/database"
+	legacy_bindings "github.com/tokamak-network/tokamak-thanos/op-bindings/legacy-bindings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

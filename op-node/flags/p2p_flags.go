@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
 )
 
 func p2pEnv(envprefix, v string) []string {

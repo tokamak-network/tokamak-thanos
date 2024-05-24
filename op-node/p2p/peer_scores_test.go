@@ -25,12 +25,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	p2p "github.com/ethereum-optimism/optimism/op-node/p2p"
-	p2pMocks "github.com/ethereum-optimism/optimism/op-node/p2p/mocks"
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
-	testlog "github.com/ethereum-optimism/optimism/op-service/testlog"
+	p2p "github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	p2pMocks "github.com/tokamak-network/tokamak-thanos/op-node/p2p/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	testlog "github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 // PeerScoresTestSuite tests peer parameterization.

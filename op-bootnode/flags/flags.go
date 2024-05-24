@@ -3,11 +3,11 @@ package flags
 import (
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	opflags "github.com/ethereum-optimism/optimism/op-service/flags"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
-	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	opflags "github.com/tokamak-network/tokamak-thanos/op-service/flags"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
 )
 
 const envVarPrefix = "OP_BOOTNODE"

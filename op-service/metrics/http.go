@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/httputil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"

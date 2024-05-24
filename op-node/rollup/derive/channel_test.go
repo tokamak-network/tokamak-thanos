@@ -3,8 +3,8 @@ package derive
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type frameValidityTC struct {

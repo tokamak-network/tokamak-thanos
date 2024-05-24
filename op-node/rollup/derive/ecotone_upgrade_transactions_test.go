@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 )
 
 func TestSourcesMatchSpec(t *testing.T) {

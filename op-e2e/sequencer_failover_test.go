@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-conductor/consensus"
+	"github.com/tokamak-network/tokamak-thanos/op-conductor/consensus"
 )
 
 // [Category: Initial Setup]

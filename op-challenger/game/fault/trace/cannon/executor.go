@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 )
 
 const (

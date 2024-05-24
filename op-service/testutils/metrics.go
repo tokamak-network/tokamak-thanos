@@ -1,7 +1,7 @@
 package testutils
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // TestDerivationMetrics implements the metrics used in the derivation pipeline as no-op operations.

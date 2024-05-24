@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/compressor"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
 )
 
 // TestInputThreshold tests the [ChannelConfig.InputThreshold]
