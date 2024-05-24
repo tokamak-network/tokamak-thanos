@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
 func ToGethAdminAPI(api *CommonAdminAPI) rpc.API {

@@ -6,15 +6,15 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-batcher/batcher"
-	"github.com/ethereum-optimism/optimism/op-batcher/flags"
-	"github.com/ethereum-optimism/optimism/op-batcher/metrics"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
-	"github.com/ethereum-optimism/optimism/op-service/cliapp"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/metrics/doc"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/batcher"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/metrics"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics/doc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (

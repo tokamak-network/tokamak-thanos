@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-program/chainconfig"
-	"github.com/ethereum-optimism/optimism/op-program/host/config"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	"github.com/tokamak-network/tokamak-thanos/op-program/chainconfig"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/config"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"

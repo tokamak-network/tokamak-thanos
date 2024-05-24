@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/proxyd"
 	"github.com/gorilla/websocket"
+	"github.com/tokamak-network/tokamak-thanos/proxyd"
 )
 
 type RecordedRequest struct {

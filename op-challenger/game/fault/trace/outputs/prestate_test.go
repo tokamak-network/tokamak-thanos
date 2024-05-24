@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/outputs/source"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/outputs/source"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 func newOutputPrestateProvider(t *testing.T, prestateBlock uint64) (*OutputPrestateProvider, *stubRollupClient) {

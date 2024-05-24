@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 var InvalidHashesLengthError = errors.New("invalid hashes length")

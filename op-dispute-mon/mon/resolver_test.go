@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 func TestResolver_Resolve(t *testing.T) {

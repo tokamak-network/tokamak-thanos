@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
 )
 
 type PeerInfo struct {

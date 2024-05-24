@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
-	"github.com/ethereum-optimism/optimism/op-service/clock"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 )
 
 type ScoreBook interface {

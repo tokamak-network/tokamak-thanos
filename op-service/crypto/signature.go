@@ -17,7 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	hdwallet "github.com/ethereum-optimism/go-ethereum-hdwallet"
-	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
+	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 )
 
 func PrivateKeySignerFn(key *ecdsa.PrivateKey, chainID *big.Int) bind.SignerFn {

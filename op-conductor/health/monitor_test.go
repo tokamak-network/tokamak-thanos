@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
-	p2pMocks "github.com/ethereum-optimism/optimism/op-node/p2p/mocks"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	p2pMocks "github.com/tokamak-network/tokamak-thanos/op-node/p2p/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 const (

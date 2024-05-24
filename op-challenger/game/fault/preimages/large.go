@@ -9,16 +9,16 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/matrix"
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/matrix"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 var _ PreimageUploader = (*LargePreimageUploader)(nil)

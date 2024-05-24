@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/etherscan"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/etherscan"
 )
 
 type BindGenGeneratorRemote struct {

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-exporter/k8sClient"
-	"github.com/ethereum-optimism/optimism/op-exporter/version"
+	"github.com/tokamak-network/tokamak-thanos/op-exporter/k8sClient"
+	"github.com/tokamak-network/tokamak-thanos/op-exporter/version"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

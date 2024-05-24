@@ -1,9 +1,9 @@
 package bindgen
 
 import (
-	"github.com/ethereum-optimism/optimism/op-bindings/bindgen"
-	"github.com/ethereum-optimism/optimism/op-bindings/etherscan"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindgen"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/etherscan"
 )
 
 var fetchContractDataTests = []struct {

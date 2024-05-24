@@ -10,12 +10,12 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/merkle"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/merkle"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 //go:embed testdata/commitments.json

@@ -1,10 +1,10 @@
 package l2
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/hashicorp/golang-lru/v2/simplelru"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // blockCacheSize should be set large enough to handle the pipeline reset process of walking back from L2 head to find

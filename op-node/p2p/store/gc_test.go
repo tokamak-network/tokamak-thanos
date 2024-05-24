@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/clock"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestScheduleGcPeriodically(t *testing.T) {
