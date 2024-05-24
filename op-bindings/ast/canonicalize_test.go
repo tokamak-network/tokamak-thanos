@@ -6,8 +6,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-bindings/solc"
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
 func TestCanonicalize(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"errors"
 	"os"
 
-	opservice "github.com/ethereum-optimism/optimism/op-service"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum/log"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	wheel "github.com/ethereum-optimism/optimism/op-wheel"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
+	wheel "github.com/tokamak-network/tokamak-thanos/op-wheel"
 )
 
 var (

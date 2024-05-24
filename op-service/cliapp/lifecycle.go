@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/op-service/opio"
+	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 type Lifecycle interface {

@@ -10,7 +10,7 @@ func (h Routes) DocsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	docs := docgen.MarkdownRoutesDoc(h.router, docgen.MarkdownOpts{
-		ProjectPath: "github.com/ethereum-optimism/optimism/indexer",
+		ProjectPath: "github.com/tokamak-network/tokamak-thanos/indexer",
 		// Intro text included at the top of the generated markdown file.
 		Intro: "Generated documentation for Optimism indexer",
 	})

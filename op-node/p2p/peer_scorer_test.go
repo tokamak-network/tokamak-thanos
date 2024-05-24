@@ -10,11 +10,11 @@ import (
 
 	log "github.com/ethereum/go-ethereum/log"
 
-	p2p "github.com/ethereum-optimism/optimism/op-node/p2p"
-	p2pMocks "github.com/ethereum-optimism/optimism/op-node/p2p/mocks"
-	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	p2p "github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	p2pMocks "github.com/tokamak-network/tokamak-thanos/op-node/p2p/mocks"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 // PeerScorerTestSuite tests peer parameterization.
