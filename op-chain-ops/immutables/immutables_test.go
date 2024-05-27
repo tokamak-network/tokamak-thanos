@@ -91,15 +91,88 @@ func TestBuildOptimism(t *testing.T) {
 		}{
 			MinterManager: predeploys.FiatTokenV2_2Addr,
 		},
-		FiatTokenV2_2:                      struct{}{},
-		QuoterV2:                           struct{}{},
-		SwapRouter02:                       struct{}{},
-		UniswapV3Factory:                   struct{}{},
-		NFTDescriptor:                      struct{}{},
-		NonfungiblePositionManager:         struct{}{},
-		NonfungibleTokenPositionDescriptor: struct{}{},
-		TickLens:                           struct{}{},
-		UniswapInterfaceMulticall:          struct{}{},
+		FiatTokenV2_2: struct{}{},
+		QuoterV2: struct {
+			Factory common.Address
+			WETH9   common.Address
+		}{
+			Factory: predeploys.UniswapV3FactoryAddr,
+			WETH9:   predeploys.WNativeTokenAddr,
+		},
+		SwapRouter02: struct {
+			FactoryV2       common.Address
+			FactoryV3       common.Address
+			PositionManager common.Address
+			WETH9           common.Address
+		}{
+			FactoryV2:       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			FactoryV3:       predeploys.UniswapV3FactoryAddr,
+			PositionManager: predeploys.NonfungiblePositionManagerAddr,
+			WETH9:           predeploys.WNativeTokenAddr,
+		},
+		UniswapV3Factory: struct{}{},
+		NFTDescriptor:    struct{}{},
+		NonfungiblePositionManager: struct {
+			Factory          common.Address
+			WETH9            common.Address
+			TokenDescriptor_ common.Address
+		}{
+			Factory:          predeploys.UniswapV3FactoryAddr,
+			WETH9:            predeploys.WNativeTokenAddr,
+			TokenDescriptor_: predeploys.NonfungibleTokenPositionDescriptorAddr,
+		},
+		NonfungibleTokenPositionDescriptor: struct {
+			WETH9                    common.Address
+			NativeCurrencyLabelBytes [32]byte
+		}{
+			WETH9:                    predeploys.WNativeTokenAddr,
+			NativeCurrencyLabelBytes: [32]byte{84, 87, 79, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		TickLens:                  struct{}{},
+		UniswapInterfaceMulticall: struct{}{},
+		UniversalRouter: struct {
+			Permit2                     common.Address
+			WETH9                       common.Address
+			SeaportV1_5                 common.Address
+			SeaportV1_4                 common.Address
+			OpenseaConduit              common.Address
+			NftxZap                     common.Address
+			X2y2                        common.Address
+			Foundation                  common.Address
+			Sudoswap                    common.Address
+			ElementMarket               common.Address
+			Nft20Zap                    common.Address
+			Cryptopunks                 common.Address
+			LooksRareV2                 common.Address
+			RouterRewardsDistributor    common.Address
+			LooksRareRewardsDistributor common.Address
+			LooksRareToken              common.Address
+			V2Factory                   common.Address
+			V3Factory                   common.Address
+			PairInitCodeHash            [32]byte
+			PoolInitCodeHash            [32]byte
+		}{
+			Permit2:                     predeploys.Permit2Addr,
+			WETH9:                       predeploys.WNativeTokenAddr,
+			SeaportV1_5:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			SeaportV1_4:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			OpenseaConduit:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			NftxZap:                     common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			X2y2:                        common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			Foundation:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			Sudoswap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			ElementMarket:               common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			Nft20Zap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			Cryptopunks:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			LooksRareV2:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			RouterRewardsDistributor:    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			LooksRareRewardsDistributor: common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			LooksRareToken:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+			V2Factory:                   common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			V3Factory:                   predeploys.UniswapV3FactoryAddr,
+			PairInitCodeHash:            common.HexToHash("0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"),
+			PoolInitCodeHash:            common.HexToHash("0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54"),
+		},
 
 		Create2Deployer:              struct{}{},
 		MultiCall3:                   struct{}{},
