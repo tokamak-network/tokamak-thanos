@@ -880,8 +880,12 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 		},
 		L2UsdcBridge:     struct{}{},
 		SignatureChecker: struct{}{},
-		MasterMinter:     struct{}{},
-		FiatTokenV2_2:    struct{}{},
+		MasterMinter: struct {
+			MinterManager common.Address
+		}{
+			MinterManager: predeploys.FiatTokenV2_2Addr,
+		},
+		FiatTokenV2_2: struct{}{},
 	}
 
 	if err := cfg.Check(); err != nil {
