@@ -65,9 +65,11 @@ type PredeploysImmutableConfig struct {
 		Bridge      common.Address
 		Decimals    uint8
 	}
-	L2UsdcBridge                       struct{}
-	SignatureChecker                   struct{}
-	MasterMinter                       struct{}
+	L2UsdcBridge     struct{}
+	SignatureChecker struct{}
+	MasterMinter     struct {
+		MinterManager common.Address
+	}
 	FiatTokenV2_2                      struct{}
 	QuoterV2                           struct{}
 	SwapRouter02                       struct{}
