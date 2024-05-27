@@ -112,7 +112,13 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			bytecode = c
 			deployResults[name] = bytecode
 		case "FiatTokenV2_2":
+			codeAddr, err = AddressToCodeNamespace(predeploy.Address)
+			if err != nil {
+				return nil, fmt.Errorf("error converting to code namespace: %w", err)
+			}
+			db.CreateAccount(codeAddr)
 			db.SetState(predeploy.Address, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
+			log.Info("Set proxy for FiatTokenV2_2", "name", name, "address", predeploy.Address, "implementation", codeAddr)
 		default:
 			if !predeploy.ProxyDisabled {
 				codeAddr, err = AddressToCodeNamespace(predeploy.Address)
