@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-//Define the metrics we wish to expose
+// Define the metrics we wish to expose
 var (
 	gasBaseFeeMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -45,7 +45,7 @@ var (
 )
 
 func init() {
-	//Register metrics with prometheus
+	// Register metrics with prometheus
 	prometheus.MustRegister(gasPrice)
 	prometheus.MustRegister(blockNumber)
 	prometheus.MustRegister(healthySequencer)
