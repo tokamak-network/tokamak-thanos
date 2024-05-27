@@ -84,9 +84,13 @@ func TestBuildOptimism(t *testing.T) {
 			Bridge:      predeploys.L2StandardBridgeAddr,
 			Decimals:    18,
 		},
-		L2UsdcBridge:                       struct{}{},
-		SignatureChecker:                   struct{}{},
-		MasterMinter:                       struct{}{},
+		L2UsdcBridge:     struct{}{},
+		SignatureChecker: struct{}{},
+		MasterMinter: struct {
+			MinterManager common.Address
+		}{
+			MinterManager: predeploys.FiatTokenV2_2Addr,
+		},
 		FiatTokenV2_2:                      struct{}{},
 		QuoterV2:                           struct{}{},
 		SwapRouter02:                       struct{}{},
