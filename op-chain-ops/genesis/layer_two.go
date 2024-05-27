@@ -1,10 +1,12 @@
 package genesis
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -95,6 +97,20 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			"SafeL2_v130", "MultiSendCallOnly_v130", "SafeSingletonFactory",
 			"DeterministicDeploymentProxy", "MultiSend_v130", "SenderCreator", "EntryPoint":
 			db.CreateAccount(codeAddr)
+		case "SignatureChecker":
+			bytecode, err := bindings.GetDeployedBytecode(name)
+			if err != nil {
+				return nil, err
+			}
+			a := bytecode[:1]
+			b := bytecode[21:]
+			c := hexutil.Bytes{}
+			d, _ := hex.DecodeString("4200000000000000000000000000000000000776")
+			c = append(c, a...)
+			c = append(c, d...)
+			c = append(c, b...)
+			bytecode = c
+			deployResults[name] = bytecode
 		case "FiatTokenV2_2":
 			db.SetState(predeploy.Address, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
 		default:
