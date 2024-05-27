@@ -141,7 +141,7 @@ func init() {
 	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr}
 	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true}
 	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true}
-	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr, ProxyDisabled: true}
+	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr}
 
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
