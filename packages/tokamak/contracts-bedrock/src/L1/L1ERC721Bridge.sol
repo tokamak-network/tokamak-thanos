@@ -9,6 +9,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 
 /// @title L1ERC721Bridge
 /// @notice The L1 ERC721 bridge is a contract which works together with the L2 ERC721 bridge to
@@ -19,18 +20,23 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
     ///         by ID was deposited for a given L2 token.
     mapping(address => mapping(address => mapping(uint256 => bool))) public deposits;
 
+    /// @notice Address of the SuperchainConfig contract.
+    SuperchainConfig public superchainConfig;
+
     /// @notice Semantic version.
     /// @custom:semver 2.1.0
     string public constant version = "2.1.0";
 
     /// @notice Constructs the L1ERC721Bridge contract.
     constructor() ERC721Bridge() {
-        initialize({ _messenger: CrossDomainMessenger(address(0)) });
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _superchainConfig: SuperchainConfig(address(0)) });
     }
 
     /// @notice Initializes the contract.
     /// @param _messenger   Contract of the CrossDomainMessenger on this network.
-    function initialize(CrossDomainMessenger _messenger) public initializer {
+    /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
+    function initialize(CrossDomainMessenger _messenger, SuperchainConfig _superchainConfig) public initializer {
+        superchainConfig = _superchainConfig;
         __ERC721Bridge_init({
             _messenger: _messenger,
             _otherBridge: StandardBridge(payable(Predeploys.L2_ERC721_BRIDGE))
@@ -39,7 +45,7 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
 
     /// @inheritdoc ERC721Bridge
     function paused() public view override returns (bool) {
-        return false;
+        return superchainConfig.paused();
     }
 
     /// @notice Completes an ERC721 bridge from the other domain and sends the ERC721 token to the
