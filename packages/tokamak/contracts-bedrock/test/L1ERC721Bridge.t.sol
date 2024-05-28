@@ -8,9 +8,12 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 // Target contract dependencies
 import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 
 // Target contract
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
+import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 
 /// @dev Test ERC721 contract.
 contract TestERC721 is ERC721 {
@@ -65,6 +68,16 @@ contract L1ERC721Bridge_Test is ERC721Bridge_Initializer {
         assertEq(address(L1NFTBridge.OTHER_BRIDGE()), Predeploys.L2_ERC721_BRIDGE);
         assertEq(address(L1NFTBridge.messenger()), address(L1Messenger));
         assertEq(address(L1NFTBridge.otherBridge()), Predeploys.L2_ERC721_BRIDGE);
+        assertEq(address(L1NFTBridge.superchainConfig()), address(sc));
+    }
+
+    /// @dev Tests that the proxy is initialized with the correct values.
+    function test_initialize_succeeds() public {
+        assertEq(address(L1NFTBridge.MESSENGER()), address(L1Messenger));
+        assertEq(address(L1NFTBridge.messenger()), address(L1Messenger));
+        assertEq(address(L1NFTBridge.OTHER_BRIDGE()), Predeploys.L2_ERC721_BRIDGE);
+        assertEq(address(L1NFTBridge.otherBridge()), Predeploys.L2_ERC721_BRIDGE);
+        assertEq(address(L1NFTBridge.superchainConfig()), address(sc));
     }
 
     /// @dev Tests that the ERC721 can be bridged successfully.
@@ -289,5 +302,64 @@ contract L1ERC721Bridge_Test is ERC721Bridge_Initializer {
         vm.prank(address(L1Messenger));
         vm.expectRevert("L1ERC721Bridge: Token ID is not escrowed in the L1 Bridge");
         L1NFTBridge.finalizeBridgeERC721(address(localToken), address(remoteToken), alice, alice, tokenId, hex"5678");
+    }
+}
+
+contract L1ERC721Bridge_Pause_Test is ERC721Bridge_Initializer {
+    /// @dev Verifies that the `paused` accessor returns the same value as the `paused` function of the
+    ///      `superchainConfig`.
+    function test_paused_succeeds() external {
+        assertEq(L1NFTBridge.paused(), sc.paused());
+    }
+
+    /// @dev Ensures that the `paused` function of the bridge contract actually calls the `paused` function of the
+    ///      `superchainConfig`.
+    function test_pause_callsSuperchainConfig_succeeds() external {
+        vm.expectCall(address(sc), abi.encodeWithSelector(SuperchainConfig.paused.selector));
+        L1NFTBridge.paused();
+    }
+
+    /// @dev Checks that the `paused` state of the bridge matches the `paused` state of the `superchainConfig` after
+    ///      it's been changed.
+    function test_pause_matchesSuperchainConfig_succeeds() external {
+        assertFalse(L1NFTBridge.paused());
+        assertEq(L1NFTBridge.paused(), sc.paused());
+
+        vm.prank(sc.guardian());
+        sc.pause("identifier");
+
+        assertTrue(L1NFTBridge.paused());
+        assertEq(L1NFTBridge.paused(), sc.paused());
+    }
+}
+
+contract L1ERC721Bridge_Pause_TestFail is ERC721Bridge_Initializer {
+    /// @dev Sets up the test by pausing the bridge, giving ether to the bridge and mocking
+    ///      the calls to the xDomainMessageSender so that it returns the correct value.
+    function setUp() public override {
+        super.setUp();
+        vm.prank(sc.guardian());
+        sc.pause("identifier");
+        assertTrue(L1NFTBridge.paused());
+
+        vm.mockCall(
+            address(L1NFTBridge.messenger()),
+            abi.encodeWithSelector(CrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encode(address(L1NFTBridge.otherBridge()))
+        );
+    }
+
+    // @dev Ensures that the `bridgeERC721` function reverts when the bridge is paused.
+    function test_pause_finalizeBridgeERC721_reverts() external {
+        vm.prank(address(L1NFTBridge.messenger()));
+        vm.expectRevert("L1ERC721Bridge: paused");
+        L1NFTBridge.finalizeBridgeERC721({
+            _localToken: address(0),
+            _remoteToken: address(0),
+            _from: address(0),
+            _to: address(0),
+            _tokenId: 0,
+            _extraData: hex""
+        });
     }
 }
