@@ -11,6 +11,7 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
@@ -85,24 +86,38 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     /// @custom:semver 2.1.0
     string public constant version = "2.1.0";
 
+    /// @notice Address of the SuperchainConfig contract.
+    SuperchainConfig public superchainConfig;
+
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge() {
-        initialize({ _messenger: CrossDomainMessenger(address(0)), _nativeTokenAddress: address(0) });
+        initialize({ _messenger: CrossDomainMessenger(address(0)), _superchainConfig: SuperchainConfig(address(0)), _nativeTokenAddress: address(0) });
     }
 
     /// @notice Initializer
+    /// @param _messenger        Contract for the CrossDomainMessenger on this network.
+    /// @param _nativeTokenAddress        Address of the native token
+    /// @param _superchainConfig Contract for the SuperchainConfig on this network.
+
     function initialize(
         CrossDomainMessenger _messenger,
-        address _nativeTokenAddress
+        address _nativeTokenAddress,
+        SuperchainConfig _superchainConfig
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
+        superchainConfig = _superchainConfig;
+        nativeTokenAddress = _nativeTokenAddress;
         __StandardBridge_init({
             _messenger: _messenger,
             _otherBridge: StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))
         });
-        nativeTokenAddress = _nativeTokenAddress;
+    }
+
+    /// @inheritdoc StandardBridge
+    function paused() public view override returns (bool) {
+        return superchainConfig.paused();
     }
 
     /// @notice Deposit ETH on L1 and receive ETH on L2.
