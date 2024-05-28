@@ -92,14 +92,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
-    /// @notice Emitted when the pause is triggered.
-    /// @param account Address of the account triggering the pause.
-    event Paused(address account);
-
-    /// @notice Emitted when the pause is lifted.
-    /// @param account Address of the account triggering the unpause.
-    event Unpaused(address account);
-
     /// @notice Reverts when paused.
     modifier whenNotPaused() {
         require(paused() == false, "OptimismPortal: paused");
