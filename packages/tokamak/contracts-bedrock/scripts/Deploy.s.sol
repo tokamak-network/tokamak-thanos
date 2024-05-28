@@ -24,6 +24,7 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { L1ChugSplashProxy } from "src/legacy/L1ChugSplashProxy.sol";
 import { ResolvedDelegateProxy } from "src/legacy/ResolvedDelegateProxy.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -858,6 +859,7 @@ contract Deploy is Deployer {
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
         address l1StandardBridge = mustGetAddress("L1StandardBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
         if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
@@ -872,7 +874,12 @@ contract Deploy is Deployer {
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
             _innerCallData: abi.encodeCall(
-                L1StandardBridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), cfg.nativeTokenAddress())
+                L1StandardBridge.initialize,
+                (
+                    L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
+                    cfg.nativeTokenAddress(),
+                    SuperchainConfig(superchainConfigProxy)
+                )
                 )
         });
 
@@ -891,11 +898,15 @@ contract Deploy is Deployer {
         address l1ERC721BridgeProxy = mustGetAddress("L1ERC721BridgeProxy");
         address l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l1ERC721BridgeProxy),
             _implementation: l1ERC721Bridge,
-            _innerCallData: abi.encodeCall(L1ERC721Bridge.initialize, (L1CrossDomainMessenger(l1CrossDomainMessengerProxy)))
+            _innerCallData: abi.encodeCall(
+                L1ERC721Bridge.initialize,
+                (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), SuperchainConfig(superchainConfigProxy))
+                )
         });
 
         L1ERC721Bridge bridge = L1ERC721Bridge(l1ERC721BridgeProxy);
@@ -932,6 +943,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
         if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
@@ -959,7 +971,12 @@ contract Deploy is Deployer {
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
             _innerCallData: abi.encodeCall(
-                L1CrossDomainMessenger.initialize, (OptimismPortal(payable(optimismPortalProxy)), cfg.nativeTokenAddress())
+                L1CrossDomainMessenger.initialize,
+                (
+                    SuperchainConfig(superchainConfigProxy),
+                    OptimismPortal(payable(optimismPortalProxy)),
+                    cfg.nativeTokenAddress()
+                )
                 )
         });
 
@@ -1019,6 +1036,7 @@ contract Deploy is Deployer {
         address optimismPortal = mustGetAddress("OptimismPortal");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         address guardian = cfg.portalGuardian();
         if (guardian.code.length == 0) {
@@ -1033,9 +1051,8 @@ contract Deploy is Deployer {
                 (
                     cfg.nativeTokenAddress(),
                     L2OutputOracle(l2OutputOracleProxy),
-                    guardian,
                     SystemConfig(systemConfigProxy),
-                    false
+                    SuperchainConfig(superchainConfigProxy)
                 )
                 )
         });

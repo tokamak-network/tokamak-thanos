@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { ERC721Bridge_Initializer } from "test/CommonTest.t.sol";
 import { console } from "forge-std/console.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
@@ -16,16 +17,16 @@ import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 contract Initializer_Test is ERC721Bridge_Initializer {
     function test_cannotReinitializeL1_succeeds() public {
         vm.expectRevert("Initializable: contract is already initialized");
-        L1Messenger.initialize(OptimismPortal(payable(address(0))), address(0));
+        L1Messenger.initialize(SuperchainConfig(address(0)), OptimismPortal(payable(address(0))), address(0));
 
         vm.expectRevert("Initializable: contract is already initialized");
-        L1Bridge.initialize(CrossDomainMessenger(address(0)), address(0));
+        L1Bridge.initialize(CrossDomainMessenger(address(0)), address(0), SuperchainConfig(address(0)));
 
         vm.expectRevert("Initializable: contract is already initialized");
         oracle.initialize(0, 0, 0, 0, address(0), address(0), 0);
 
         vm.expectRevert("Initializable: contract is already initialized");
-        op.initialize(address(0), L2OutputOracle(address(0)), address(0), SystemConfig(address(0)), false);
+        op.initialize(address(0), L2OutputOracle(address(0)), SystemConfig(address(0)), SuperchainConfig(address(0)));
 
         vm.expectRevert("Initializable: contract is already initialized");
         systemConfig.initialize({
@@ -56,6 +57,6 @@ contract Initializer_Test is ERC721Bridge_Initializer {
         });
 
         vm.expectRevert("Initializable: contract is already initialized");
-        L1NFTBridge.initialize(CrossDomainMessenger(address(0)));
+        L1NFTBridge.initialize(CrossDomainMessenger(address(0)), SuperchainConfig(address(0)));
     }
 }

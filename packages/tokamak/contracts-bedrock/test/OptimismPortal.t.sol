@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing utilities
 import { stdError } from "forge-std/Test.sol";
-import { Portal_Initializer, CommonTest, NextImpl } from "test/CommonTest.t.sol";
+import { Portal_Initializer, SuperchainConfig_Initializer, CommonTest, NextImpl } from "test/CommonTest.t.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
@@ -16,14 +16,12 @@ import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 
 // Target contract
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
 contract OptimismPortal_Test is Portal_Initializer {
-    event Paused(address);
-    event Unpaused(address);
-
     /// @dev Tests that the constructor sets the correct values.
     function test_constructor_succeeds() external {
         assertEq(address(op.L2_ORACLE()), address(oracle));
@@ -41,11 +39,11 @@ contract OptimismPortal_Test is Portal_Initializer {
 
         assertEq(op.paused(), false);
 
-        vm.expectEmit(true, true, true, true, address(op));
-        emit Paused(guardian);
+        vm.expectEmit(address(sc));
+        emit Paused("identifier");
 
         vm.prank(guardian);
-        op.pause();
+        sc.pause("identifier");
 
         assertEq(op.paused(), true);
     }
@@ -55,9 +53,9 @@ contract OptimismPortal_Test is Portal_Initializer {
         assertEq(op.paused(), false);
 
         assertTrue(op.GUARDIAN() != alice);
-        vm.expectRevert("OptimismPortal: only guardian can pause");
+        vm.expectRevert("SuperchainConfig: only guardian can pause");
         vm.prank(alice);
-        op.pause();
+        sc.pause("identifier");
 
         assertEq(op.paused(), false);
     }
@@ -68,13 +66,13 @@ contract OptimismPortal_Test is Portal_Initializer {
         address guardian = op.GUARDIAN();
 
         vm.prank(guardian);
-        op.pause();
+        sc.pause("identifier");
         assertEq(op.paused(), true);
 
-        vm.expectEmit(true, true, true, true, address(op));
-        emit Unpaused(guardian);
+        vm.expectEmit(address(sc));
+        emit Unpaused();
         vm.prank(guardian);
-        op.unpause();
+        sc.unpause();
 
         assertEq(op.paused(), false);
     }
@@ -84,13 +82,13 @@ contract OptimismPortal_Test is Portal_Initializer {
         address guardian = op.GUARDIAN();
 
         vm.prank(guardian);
-        op.pause();
+        sc.pause("identifier");
         assertEq(op.paused(), true);
 
         assertTrue(op.GUARDIAN() != alice);
-        vm.expectRevert("OptimismPortal: only guardian can unpause");
+        vm.expectRevert("SuperchainConfig: only guardian can unpause");
         vm.prank(alice);
-        op.unpause();
+        sc.unpause();
 
         assertEq(op.paused(), true);
     }
@@ -402,7 +400,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `proveWithdrawalTransaction` reverts when paused.
     function test_proveWithdrawalTransaction_paused_reverts() external {
         vm.prank(op.GUARDIAN());
-        op.pause();
+        sc.pause("identifier");
 
         vm.expectRevert("OptimismPortal: paused");
         op.proveWithdrawalTransaction({
@@ -563,7 +561,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is Portal_Initializer {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
     function test_finalizeWithdrawalTransaction_paused_reverts() external {
         vm.prank(op.GUARDIAN());
-        op.pause();
+        sc.pause("identifier");
 
         vm.expectRevert("OptimismPortal: paused");
         op.finalizeWithdrawalTransaction(_defaultTx);
@@ -944,8 +942,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
             _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
-            _guardian: address(0),
-            _paused: false
+            _superchainConfig: SuperchainConfig(address(0))
         });
     }
 
@@ -956,8 +953,7 @@ contract OptimismPortalUpgradeable_Test is Portal_Initializer {
             _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
-            _guardian: address(0),
-            _paused: false
+            _superchainConfig: SuperchainConfig(address(0))
         });
     }
 
