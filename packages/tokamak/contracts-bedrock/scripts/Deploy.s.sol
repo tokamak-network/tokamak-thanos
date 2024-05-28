@@ -91,6 +91,7 @@ contract Deploy is Deployer {
         initializeL1ERC721Bridge();
         initializeOptimismMintableERC20Factory();
         initializeL1CrossDomainMessenger();
+        initializeSuperchainConfig();
         initializeL2OutputOracle();
         initializeOptimismPortal();
         initializeProtocolVersions();
@@ -176,7 +177,7 @@ contract Deploy is Deployer {
     function deployProxies() public {
         deployAddressManager();
         deployProxyAdmin();
-
+        // deploySuperchainConfigProxy();
         deployOptimismPortalProxy();
         deployL2OutputOracleProxy();
         deploySystemConfigProxy();
@@ -193,6 +194,7 @@ contract Deploy is Deployer {
     /// @notice Deploy all of the implementations
     function deployImplementations() public {
         deployOptimismPortal();
+        deploySuperchainConfig();
         deployL1CrossDomainMessenger();
         deployL2OutputOracle();
         deployOptimismMintableERC20Factory();
@@ -280,6 +282,29 @@ contract Deploy is Deployer {
         bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
+    function upgradeSuperchainConfig(address safeOwner) public {
+        insert("SystemOwnerSafe", safeOwner);
+        deploySuperchainConfig();
+        upgradeSuperchainConfigLogic();
+        sync();
+    }
+
+    function upgradeSuperchainConfigLogic() public broadcast {
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address superchainConfig = mustGetAddress("SuperchainConfig");
+        address guardian = cfg.superchainConfigGuardian();
+        if (guardian.code.length == 0) {
+            console.log("SuperchainConfig guardian has no code: %s", guardian);
+        }
+        _upgradeViaSafe({ _proxy: payable(superchainConfigProxy), _implementation: superchainConfig });
+
+        SuperchainConfig sc = SuperchainConfig(payable(superchainConfigProxy));
+        string memory version = sc.version();
+        console.log("SuperchainConfig version: %s", version);
+
+        require(sc.guardian() == cfg.superchainConfigGuardian());
+        require(sc.paused() == false);
+    }
 
     function upgradeOptimismPortal(address safeOwner) public {
         insert("SystemOwnerSafe", safeOwner);
@@ -294,11 +319,6 @@ contract Deploy is Deployer {
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
-        address guardian = cfg.portalGuardian();
-        if (guardian.code.length == 0) {
-            console.log("Portal guardian has no code: %s", guardian);
-        }
-
         _upgradeViaSafe({ _proxy: payable(optimismPortalProxy), _implementation: optimismPortal });
 
         OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
@@ -306,7 +326,7 @@ contract Deploy is Deployer {
         console.log("OptimismPortal version: %s", version);
 
         require(address(portal.L2_ORACLE()) == l2OutputOracleProxy);
-        require(portal.GUARDIAN() == cfg.portalGuardian());
+        require(portal.GUARDIAN() == cfg.superchainConfigGuardian());
         require(address(portal.SYSTEM_CONFIG()) == systemConfigProxy);
         require(portal.paused() == false);
     }
@@ -410,6 +430,18 @@ contract Deploy is Deployer {
         save("L2OutputOracleProxy", address(proxy));
         console.log("L2OutputOracleProxy deployed at %s", address(proxy));
         addr_ = address(proxy);
+    }
+
+    /// @notice Deploy the SuperchainConfig contract
+    function deploySuperchainConfig() public broadcast {
+        SuperchainConfig superchainConfig = new SuperchainConfig{ salt: implSalt() }();
+
+        require(superchainConfig.guardian() == address(0));
+        bytes32 initialized = vm.load(address(superchainConfig), bytes32(0));
+        require(initialized != 0);
+
+        save("SuperchainConfig", address(superchainConfig));
+        console.log("SuperchainConfig deployed at %s", address(superchainConfig));
     }
 
     /// @notice Deploy the L1CrossDomainMessengerProxy
@@ -989,6 +1021,28 @@ contract Deploy is Deployer {
         bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
+    /// @notice Initialize the SuperchainConfig
+    function initializeSuperchainConfig() public broadcast {
+        address payable superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address payable superchainConfig = mustGetAddress("SuperchainConfig");
+
+        address guardian = cfg.superchainConfigGuardian();
+        if (guardian.code.length == 0) {
+            console.log("SuperchainConfig guardian has no code: %s", guardian);
+        }
+
+        _upgradeAndCallViaSafe({
+            _proxy: superchainConfigProxy,
+            _implementation: superchainConfig,
+            _innerCallData: abi.encodeCall(SuperchainConfig.initialize, (cfg.superchainConfigGuardian(), false))
+        });
+        SuperchainConfig sc = SuperchainConfig(superchainConfigProxy);
+        string memory version = sc.version();
+        console.log("SuperchainConfig version: %s", version);
+
+        require(sc.guardian() == guardian);
+        require(sc.paused() == false);
+    }
 
     /// @notice Initialize the L2OutputOracle
     function initializeL2OutputOracle() public broadcast {
@@ -1038,9 +1092,9 @@ contract Deploy is Deployer {
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        address guardian = cfg.portalGuardian();
+        address guardian = cfg.superchainConfigGuardian();
         if (guardian.code.length == 0) {
-            console.log("Portal guardian has no code: %s", guardian);
+            console.log("Superchain guardian has no code: %s", guardian);
         }
 
         _upgradeAndCallViaSafe({
@@ -1062,7 +1116,7 @@ contract Deploy is Deployer {
         console.log("OptimismPortal version: %s", version);
 
         require(address(portal.L2_ORACLE()) == l2OutputOracleProxy);
-        require(portal.GUARDIAN() == cfg.portalGuardian());
+        require(portal.GUARDIAN() == cfg.superchainConfigGuardian());
         require(address(portal.SYSTEM_CONFIG()) == systemConfigProxy);
         require(portal.paused() == false);
     }
