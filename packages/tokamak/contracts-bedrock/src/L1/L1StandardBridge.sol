@@ -91,7 +91,11 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge() {
-        initialize({ _messenger: CrossDomainMessenger(address(0)), _superchainConfig: SuperchainConfig(address(0)), _nativeTokenAddress: address(0) });
+        initialize({
+            _messenger: CrossDomainMessenger(address(0)),
+            _superchainConfig: SuperchainConfig(address(0)),
+            _nativeTokenAddress: address(0)
+        });
     }
 
     /// @notice Initializer

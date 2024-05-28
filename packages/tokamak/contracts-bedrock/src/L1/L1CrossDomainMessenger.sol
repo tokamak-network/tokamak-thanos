@@ -38,7 +38,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger() {
-        initialize({ _superchainConfig: SuperchainConfig(address(0)), _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
+        initialize({
+            _superchainConfig: SuperchainConfig(address(0)),
+            _portal: OptimismPortal(payable(0)),
+            _nativeTokenAddress: address(0)
+        });
     }
 
     /// @notice Initializes the contract.
