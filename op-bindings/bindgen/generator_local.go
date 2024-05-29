@@ -11,14 +11,18 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/ast"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/foundry"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/hardhat"
 )
 
 type BindGenGeneratorLocal struct {
 	BindGenGeneratorBase
-	SourceMapsList     string
-	ForgeArtifactsPath string
+	SourceMapsList           string
+	ForgeArtifactsPath       string
+	HardhatArtifactsPath     string
+	HardhatContractsListPath string
 }
 
 type localContractMetadata struct {
@@ -31,18 +35,38 @@ type localContractMetadata struct {
 }
 
 func (generator *BindGenGeneratorLocal) GenerateBindings() error {
-	contracts, err := readContractList(generator.Logger, generator.ContractsListPath)
-	if err != nil {
-		return fmt.Errorf("error reading contract list %s: %w", generator.ContractsListPath, err)
-	}
-	if len(contracts.Local) == 0 {
-		return fmt.Errorf("no contracts parsed from given contract list: %s", generator.ContractsListPath)
+	if generator.ContractsListPath != "" {
+		forgeContracts, err := readContractList(generator.Logger, generator.ContractsListPath)
+		if err != nil {
+			return fmt.Errorf("error reading forge contract list %s: %w", generator.ContractsListPath, err)
+		}
+		if len(forgeContracts.Local) == 0 {
+			return fmt.Errorf("no forge contracts parsed from given contract list: %s", generator.ContractsListPath)
+		}
+		err = generator.processForgeContracts(forgeContracts.Local)
+		if err != nil {
+			return err
+		}
 	}
 
-	return generator.processContracts(contracts.Local)
+	if generator.HardhatContractsListPath != "" {
+		hardhatContracts, err := readHardhatContractList(generator.Logger, generator.HardhatContractsListPath)
+		if err != nil {
+			return fmt.Errorf("error reading hardhat contract list %s: %w", generator.HardhatContractsListPath, err)
+		}
+		if len(hardhatContracts) == 0 {
+			return fmt.Errorf("no hardhat contracts parsed from given contract list: %s", generator.HardhatContractsListPath)
+		}
+		err = generator.processHardhatContracts(hardhatContracts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (generator *BindGenGeneratorLocal) processContracts(contracts []string) error {
+func (generator *BindGenGeneratorLocal) processForgeContracts(forgeContracts []string) error {
 	tempArtifactsDir, err := mkTempArtifactsDir(generator.Logger)
 	if err != nil {
 		return err
@@ -69,8 +93,8 @@ func (generator *BindGenGeneratorLocal) processContracts(contracts []string) err
 
 	contractMetadataFileTemplate := template.Must(template.New("localContractMetadata").Parse(localContractMetadataTemplate))
 
-	for _, contractName := range contracts {
-		generator.Logger.Info("Generating bindings and metadata for local contract", "contract", contractName)
+	for _, contractName := range forgeContracts {
+		generator.Logger.Info("Generating bindings and metadata for forge contract", "contract", contractName)
 
 		forgeArtifact, err := generator.readForgeArtifact(contractName, contractArtifactPaths)
 		if err != nil {
@@ -117,12 +141,83 @@ func (generator *BindGenGeneratorLocal) processContracts(contracts []string) err
 	return nil
 }
 
+func (generator *BindGenGeneratorLocal) processHardhatContracts(hardhatContracts []string) error {
+	sourceMapsList := strings.Split(generator.SourceMapsList, ",")
+	sourceMapsSet := make(map[string]struct{})
+	for _, k := range sourceMapsList {
+		sourceMapsSet[k] = struct{}{}
+	}
+
+	contractMetadataFileTemplate := template.Must(template.New("localContractMetadata").Parse(localContractMetadataTemplate))
+
+	for _, contractName := range hardhatContracts {
+		generator.Logger.Info("Generating bindings and metadata for hardhat contract", "contract", contractName)
+
+		err := generator.processHardhatArtifact(contractName, contractMetadataFileTemplate, sourceMapsSet)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName string, contractMetadataFileTemplate *template.Template, sourceMapsSet map[string]struct{}) error {
+	if generator.HardhatArtifactsPath == "" {
+		generator.Logger.Warn("Skipping Hardhat artifact processing as no path is provided")
+		return nil
+	}
+
+	hh, err := hardhat.New("mainnet", []string{generator.HardhatArtifactsPath}, []string{})
+	if err != nil {
+		return fmt.Errorf("hardhat initialization failed: %w", err)
+	}
+
+	art, err := hh.GetArtifact(contractName)
+	if err != nil {
+		return fmt.Errorf("error reading artifact %s: %w", contractName, err)
+	}
+
+	storage, err := hh.GetStorageLayout(contractName)
+	if err != nil {
+		return fmt.Errorf("error reading storage layout %s: %w", contractName, err)
+	}
+
+	ser, err := json.Marshal(storage)
+	if err != nil {
+		return fmt.Errorf("error marshaling storage: %w", err)
+	}
+	serStr := strings.Replace(string(ser), "\"", "\\\"", -1)
+
+	deployedSourceMap := ""
+	immutableRefs := ""
+	deployedBin := ""
+
+	// Convert art.DeployedBytecode to DeployedBytecodeObject if it is not a string
+	switch v := art.DeployedBytecode.(type) {
+	case hardhat.DeployedBytecodeObject:
+		deployedSourceMap = v.SourceMap
+		immutableRefs = v.ImmutableReferences
+		deployedBin = v.Object.String()
+	case string:
+		deployedBin = v
+	}
+
+	hasImmutables := immutableRefs != ""
+
+	contractMetaData := localContractMetadata{
+		Name:                   contractName,
+		StorageLayout:          serStr,
+		DeployedBin:            deployedBin,
+		Package:                generator.BindingsPackageName,
+		DeployedSourceMap:      deployedSourceMap,
+		HasImmutableReferences: hasImmutables,
+	}
+
+	return generator.writeContractMetadata(contractMetaData, contractName, contractMetadataFileTemplate)
+}
+
 func (generator *BindGenGeneratorLocal) getContractArtifactPaths() (map[string]string, error) {
-	// If some contracts have the same name then the path to their
-	// artifact depends on their full import path. Scan over all artifacts
-	// and hold a mapping from the contract name to the contract path.
-	// Walk walks the directory deterministically, so the earliest instance
-	// of the contract with the same name will be used
 	artifactPaths := make(map[string]string)
 	if err := filepath.Walk(generator.ForgeArtifactsPath,
 		func(path string, info os.FileInfo, err error) error {
@@ -149,6 +244,10 @@ func (generator *BindGenGeneratorLocal) getContractArtifactPaths() (map[string]s
 		return artifactPaths, err
 	}
 
+	for contract, path := range artifactPaths {
+		generator.Logger.Debug("Found artifact", "contract", contract, "path", path)
+	}
+
 	return artifactPaths, nil
 }
 
@@ -156,13 +255,14 @@ func (generator *BindGenGeneratorLocal) readForgeArtifact(contractName string, c
 	var forgeArtifact foundry.Artifact
 
 	contractArtifactPath := path.Join(generator.ForgeArtifactsPath, contractName+".sol", contractName+".json")
+	generator.Logger.Debug("Attempting to read forge artifact", "path", contractArtifactPath)
 	forgeArtifactRaw, err := os.ReadFile(contractArtifactPath)
 	if errors.Is(err, os.ErrNotExist) {
 		generator.Logger.Debug("Cannot find forge-artifact at standard path, trying provided path", "contract", contractName, "standardPath", contractArtifactPath, "providedPath", contractArtifactPaths[contractName])
 		contractArtifactPath = contractArtifactPaths[contractName]
 		forgeArtifactRaw, err = os.ReadFile(contractArtifactPath)
 		if errors.Is(err, os.ErrNotExist) {
-			return forgeArtifact, fmt.Errorf("cannot find forge-artifact of %q", contractName)
+			return forgeArtifact, fmt.Errorf("cannot find forge-artifact of %q at %q or %q", contractName, contractArtifactPath, contractArtifactPaths[contractName])
 		}
 	}
 
@@ -211,16 +311,22 @@ func (generator *BindGenGeneratorLocal) writeContractMetadata(contractMetaData l
 	return nil
 }
 
-// associated with a local Ethereum contract. This template is used to produce
-// Go code containing necessary constants and initialization logic for the contract's
-// storage layout, deployed bytecode, and optionally its deployed source map.
-//
-// The template expects the following fields to be provided:
-// - Package: The name of the Go package for the generated bindings.
-// - Name: The name of the contract.
-// - StorageLayout: Canonicalized storage layout of the contract as a JSON string.
-// - DeployedBin: The deployed bytecode of the contract.
-// - DeployedSourceMap (optional): The source map of the deployed contract.
+func readHardhatContractList(logger log.Logger, path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("error opening contract list file %s: %w", path, err)
+	}
+	defer file.Close()
+
+	var contracts []string
+	if err := json.NewDecoder(file).Decode(&contracts); err != nil {
+		return nil, fmt.Errorf("error decoding contract list file %s: %w", path, err)
+	}
+
+	logger.Debug("Loaded contract list", "path", path, "count", len(contracts))
+	return contracts, nil
+}
+
 var localContractMetadataTemplate = `// Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
