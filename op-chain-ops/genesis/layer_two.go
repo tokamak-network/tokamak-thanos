@@ -129,8 +129,8 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			if err != nil {
 				return nil, err
 			}
-			originalCode := "5dd3b493c018519303654a439129ea01197ba012"
-			newCode := "4200000000000000000000000000000000000502"
+			originalCode := "5050565b306001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000"
+			newCode := "5050565b306001600160a01b037f0000000000000000000000004200000000000000000000000000000000000502"
 			originalBytes, _ := hex.DecodeString(originalCode)
 			newBytes, _ := hex.DecodeString(newCode)
 			startIndex := bytes.Index(dep, originalBytes)
