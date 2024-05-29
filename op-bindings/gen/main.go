@@ -242,7 +242,7 @@ func processHardhatArtifacts(f flags) {
 		log.Printf("generating code for : %s", contractName)
 		art, err := hh.GetArtifact(contractName)
 		if err != nil {
-			log.Fatalf("error reading artifact %s: %v\n", contractName, err)
+			log.Fatalf("error reading artifact 2%s: %v\n", contractName, err)
 		}
 
 		storage, err := hh.GetStorageLayout(contractName)
