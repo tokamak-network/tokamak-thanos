@@ -51,7 +51,8 @@
     "FiatTokenV2_2",
     "FiatTokenProxy",
     "L1UsdcBridge",
-    "L1UsdcBridgeProxy"
+    "L1UsdcBridgeProxy",
+    "SuperchainConfig"
   ],
   "remote": [
     {
