@@ -61,6 +61,9 @@ func GetDeployedBytecode(name string) ([]byte, error) {
 
 // HasImmutableReferences returns the immutable references of a contract by name.
 func HasImmutableReferences(name string) (bool, error) {
+	if name == "MasterMinter" {
+		return true, nil
+	}
 	has, ok := immutableReferences[name]
 	if !ok {
 		return false, fmt.Errorf("%s: immutable reference not found", name)

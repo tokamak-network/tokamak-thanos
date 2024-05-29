@@ -65,9 +65,11 @@ type PredeploysImmutableConfig struct {
 		Bridge      common.Address
 		Decimals    uint8
 	}
-	L2UsdcBridge                       struct{}
-	SignatureChecker                   struct{}
-	MasterMinter                       struct{}
+	L2UsdcBridge     struct{}
+	SignatureChecker struct{}
+	MasterMinter     struct {
+		MinterManager common.Address
+	}
 	FiatTokenV2_2                      struct{}
 	QuoterV2                           struct{}
 	SwapRouter02                       struct{}
@@ -214,16 +216,24 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 	}
 
 	switch deployment.Name {
-	case "L2CrossDomainMessenger":
-		_, tx, _, err = bindings.DeployL2CrossDomainMessenger(opts, backend)
-	case "L2StandardBridge":
-		_, tx, _, err = bindings.DeployL2StandardBridge(opts, backend)
+	case "LegacyERC20NativeToken":
+		_, tx, _, err = bindings.DeployLegacyERC20NativeToken(opts, backend)
 	case "SequencerFeeVault":
 		recipient, minimumWithdrawalAmount, withdrawalNetwork, err = prepareFeeVaultArguments(deployment)
 		if err != nil {
 			return nil, err
 		}
 		_, tx, _, err = bindings.DeploySequencerFeeVault(opts, backend, recipient, minimumWithdrawalAmount, withdrawalNetwork)
+	case "OptimismMintableERC721Factory":
+		bridge, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for bridge")
+		}
+		remoteChainId, ok := deployment.Args[1].(*big.Int)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for remoteChainId")
+		}
+		_, tx, _, err = bindings.DeployOptimismMintableERC721Factory(opts, backend, bridge, remoteChainId)
 	case "BaseFeeVault":
 		recipient, minimumWithdrawalAmount, withdrawalNetwork, err = prepareFeeVaultArguments(deployment)
 		if err != nil {
@@ -236,38 +246,16 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 			return nil, err
 		}
 		_, tx, _, err = bindings.DeployL1FeeVault(opts, backend, recipient, minimumWithdrawalAmount, withdrawalNetwork)
-	case "OptimismMintableERC20Factory":
-		_, tx, _, err = bindings.DeployOptimismMintableERC20Factory(opts, backend)
-	case "L2ERC721Bridge":
-		_, tx, _, err = bindings.DeployL2ERC721Bridge(opts, backend)
-	case "OptimismMintableERC721Factory":
-		bridge, ok := deployment.Args[0].(common.Address)
-		if !ok {
-			return nil, fmt.Errorf("invalid type for bridge")
-		}
-		remoteChainId, ok := deployment.Args[1].(*big.Int)
-		if !ok {
-			return nil, fmt.Errorf("invalid type for remoteChainId")
-		}
-		_, tx, _, err = bindings.DeployOptimismMintableERC721Factory(opts, backend, bridge, remoteChainId)
-	case "LegacyERC20NativeToken":
-		_, tx, _, err = bindings.DeployLegacyERC20NativeToken(opts, backend)
 	case "EAS":
 		_, tx, _, err = bindings.DeployEAS(opts, backend)
 	case "ETH":
 		_, tx, _, err = bindings.DeployETH(opts, backend)
-	case "L2UsdcBridge":
-		_, tx, _, err = bindings.DeployL2UsdcBridge(opts, backend)
-	case "SignatureChecker":
-		_, tx, _, err = bindings.DeploySignatureChecker(opts, backend)
 	case "MasterMinter":
 		_minterManager, ok := deployment.Args[0].(common.Address)
 		if !ok {
 			return nil, fmt.Errorf("invalid type for _minterManager")
 		}
 		_, tx, _, err = bindings.DeployMasterMinter(opts, backend, _minterManager)
-	case "FiatTokenV2_2":
-		_, tx, _, err = bindings.DeployFiatTokenV22(opts, backend)
 	default:
 		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
