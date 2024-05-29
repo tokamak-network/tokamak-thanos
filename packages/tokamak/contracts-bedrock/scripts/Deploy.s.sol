@@ -582,9 +582,8 @@ contract Deploy is Deployer {
         OptimismPortal portal = new OptimismPortal{ salt: implSalt() }();
 
         require(address(portal.L2_ORACLE()) == address(0));
-        require(portal.GUARDIAN() == address(0));
+        require(portal.GUARDIAN() == cfg.superchainConfigGuardian());
         require(address(portal.SYSTEM_CONFIG()) == address(0));
-        require(portal.paused() == true);
 
         save("OptimismPortal", address(portal));
         console.log("OptimismPortal deployed at %s", address(portal));
@@ -1132,7 +1131,7 @@ contract Deploy is Deployer {
         require(address(portal.L2_ORACLE()) == l2OutputOracleProxy);
         require(portal.GUARDIAN() == cfg.superchainConfigGuardian());
         require(address(portal.SYSTEM_CONFIG()) == systemConfigProxy);
-        require(portal.paused() == false);
+        require(portal.paused() == SuperchainConfig(superchainConfigProxy).paused());
     }
 
     function initializeProtocolVersions() public broadcast {
