@@ -14,6 +14,7 @@ import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
 import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
 import { OptimismMintableERC721Factory } from "src/universal/OptimismMintableERC721Factory.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
@@ -49,6 +50,7 @@ contract CommonTest is Test {
     address alice = address(128);
     address bob = address(256);
     address multisig = address(512);
+    address guardian = makeAddr("guardian");
 
     address immutable ZERO_ADDRESS = address(0);
     address immutable NON_ZERO_ADDRESS = address(1);
@@ -111,7 +113,6 @@ contract L2OutputOracle_Initializer is CommonTest {
     uint256 internal startingBlockNumber = 200;
     uint256 internal startingTimestamp = 1000;
     uint256 internal finalizationPeriodSeconds = 7 days;
-    address guardian;
 
     // Test data
     uint256 initL1Time;
@@ -149,7 +150,6 @@ contract L2OutputOracle_Initializer is CommonTest {
 
     function setUp() public virtual override {
         super.setUp();
-        guardian = makeAddr("guardian");
 
         // By default the first block has timestamp and number zero, which will cause underflows in the
         // tests, so we'll move forward to these block values.
@@ -208,7 +208,27 @@ contract NativeToken_Initializer is L2OutputOracle_Initializer {
     }
 }
 
-contract Portal_Initializer is NativeToken_Initializer {
+contract SuperchainConfig_Initializer is NativeToken_Initializer {
+    // Test target
+    SuperchainConfig internal scImpl;
+    SuperchainConfig internal sc;
+
+    event Paused(string identifier);
+    event Unpaused();
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        scImpl = new SuperchainConfig();
+        Proxy proxy = new Proxy(multisig);
+        vm.prank(multisig);
+        proxy.upgradeToAndCall(address(scImpl), abi.encodeCall(SuperchainConfig.initialize, (guardian, false)));
+        sc = SuperchainConfig((address(proxy)));
+        vm.label(address(sc), "SuperchainConfig");
+    }
+}
+
+contract Portal_Initializer is SuperchainConfig_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
@@ -250,7 +270,6 @@ contract Portal_Initializer is NativeToken_Initializer {
                 )
             )
         );
-
         systemConfig = SystemConfig(address(systemConfigProxy));
 
         opImpl = new OptimismPortal();
@@ -258,8 +277,7 @@ contract Portal_Initializer is NativeToken_Initializer {
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
         proxy.upgradeToAndCall(
-            address(opImpl),
-            abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, guardian, systemConfig, false))
+            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, systemConfig, sc))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
@@ -315,7 +333,7 @@ contract Messenger_Initializer is Portal_Initializer {
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
         ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(op, address(token));
+        L1Messenger.initialize(sc, op, address(token));
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger()).code);
 
@@ -408,7 +426,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         vm.stopPrank();
 
         L1Bridge = L1StandardBridge(payable(address(proxy)));
-        L1Bridge.initialize(L1Messenger, address(token));
+        L1Bridge.initialize(L1Messenger, address(token), sc);
 
         vm.label(address(proxy), "L1StandardBridge_Proxy");
         vm.label(address(L1Bridge_Impl), "L1StandardBridge_Impl");
@@ -497,7 +515,8 @@ contract ERC721Bridge_Initializer is Bridge_Initializer {
 
         vm.prank(multisig);
         l1BridgeProxy.upgradeToAndCall(
-            address(l1BridgeImpl), abi.encodeCall(L1ERC721Bridge.initialize, (CrossDomainMessenger(L1Messenger)))
+            address(l1BridgeImpl),
+            abi.encodeCall(L1ERC721Bridge.initialize, (CrossDomainMessenger(L1Messenger), SuperchainConfig(sc)))
         );
 
         L1NFTBridge = L1ERC721Bridge(address(l1BridgeProxy));
