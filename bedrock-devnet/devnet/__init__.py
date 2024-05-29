@@ -9,9 +9,6 @@ import time
 import shutil
 import http.client
 import gzip
-import glob
-import ssl
-import urllib
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
@@ -157,46 +154,6 @@ def main():
     log.info('Devnet starting')
     devnet_deploy(paths, args)
 
-def deploy_contracts(paths):
-    wait_up(8545)
-    wait_for_rpc_server('127.0.0.1:8545')
-    res = eth_accounts('127.0.0.1:8545')
-
-    response = json.loads(res)
-    account = response['result'][0 if paths.admin_key is None else 1]
-    log.info(f'Deploying with {account}')
-
-    # send some ether to the create2 deployer account
-    cmd = [
-      'cast', 'send',
-      '--rpc-url', 'http://127.0.0.1:8545',
-      '--value', '1ether', '0x3fAB184622Dc19b6109349B94811493BF2a45362'
-    ]
-    cmd.extend(['--from', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--password', '1234'])
-    run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
-
-    # deploy the create2 deployer
-    run_command([
-      'cast', 'publish', '--rpc-url', 'http://127.0.0.1:8545',
-      '0xf8a58085174876e800830186a08080b853604580600e600039806000f350fe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf31ba02222222222222222222222222222222222222222222222222222222222222222a02222222222222222222222222222222222222222222222222222222222222222'
-    ], env={}, cwd=paths.contracts_bedrock_dir)
-
-    fqn = 'scripts/Deploy.s.sol:Deploy'
-    cmd = [
-        'forge', 'script', fqn,
-        '--rpc-url', 'http://127.0.0.1:8545', '--broadcast'
-    ]
-    cmd.extend(['--sender', account, '--unlocked']) if paths.admin_key is None else cmd.extend(['--private-key', paths.admin_key])
-    run_command(cmd, env={}, cwd=paths.contracts_bedrock_dir)
-
-    shutil.copy(paths.l1_deployments_path, paths.addresses_json_path)
-
-    log.info('Syncing contracts.')
-    run_command([
-        'forge', 'script', fqn, '--sig', 'sync()',
-        '--memory-limit', '268435456',
-        '--rpc-url', 'http://127.0.0.1:8545'
-    ], env={}, cwd=paths.contracts_bedrock_dir)
 
 def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
     deploy_config = read_json(paths.devnet_config_template_path) if temp else read_json(paths.devnet_config_path)
@@ -342,27 +299,33 @@ def devnet_deploy(paths, args):
     log.info(f'Using L2OutputOracle {l2_output_oracle}')
     log.info(f'Using DisputeGameFactory {dispute_game_factory}')
     log.info(f'Using batch inbox {batch_inbox_address}')
-
-    log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
-    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher'], cwd=paths.ops_bedrock_dir, env={
+    # Set up the base docker environment.
+    docker_env={
         'PWD': paths.ops_bedrock_dir,
-        'L2OO_ADDRESS': l2_output_oracle,
         'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address,
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
         'L1_BEACON': paths.l1_beacon if paths.l1_beacon else '',
         'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
-        })
+    }
 
-    log.info('Bringing up `artifact-server`')
-    run_command(['docker', 'compose', 'up', '-d', 'artifact-server'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir,
-        'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
-        'BLOCK_NUMBER': paths.block_number,
-    })
+    # Selectively set the L2OO_ADDRESS or DGF_ADDRESS if using FPAC.
+    # Must be done selectively because op-proposer throws if both are set.
+    if DEVNET_FPAC:
+        docker_env['DGF_ADDRESS'] = dispute_game_factory
+        docker_env['DG_TYPE'] = '0'
+        docker_env['PROPOSAL_INTERVAL'] = '10s'
+    else:
+        docker_env['L2OO_ADDRESS'] = l2_output_oracle
 
-    shutil.rmtree(pjoin(paths.bedrock_devnet_path, 'data'), ignore_errors=True)
+    log.info('Bringing up `op-node`, `op-proposer`, `op-batcher` and `artifact-server`.')
+    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
+
+    # Optionally bring up op-challenger.
+    if DEVNET_FPAC:
+        log.info('Bringing up `op-challenger`.')
+        run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     log.info('Devnet ready.')
 
@@ -398,18 +361,6 @@ def eth_new_head(url):
     finally:
         conn.close()
 
-    return data
-
-
-def debug_dumpBlock(url):
-    log.info(f'Fetch debug_dumpBlock {url}')
-    conn = http.client.HTTPConnection(url)
-    headers = {'Content-type': 'application/json'}
-    body = '{"id":3, "jsonrpc":"2.0", "method": "debug_dumpBlock", "params":["latest"]}'
-    conn.request('POST', '/', body, headers)
-    response = conn.getresponse()
-    data = response.read().decode()
-    conn.close()
     return data
 
 
@@ -547,9 +498,6 @@ def validate_fork_public_network(args):
 
       log.info(f'Fork from RPC URL: {l1_rpc_url}, block number: {block_number}, l2 native token: {l2_native_token}')
 
-
-def pad_hex(input):
-    return '0x' + input.replace('0x', '').zfill(64)
 
 def write_file(path, data):
     f = open(path, 'w+')
