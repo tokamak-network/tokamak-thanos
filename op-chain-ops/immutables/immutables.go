@@ -2,6 +2,7 @@ package immutables
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 	"reflect"
 
@@ -96,9 +97,9 @@ type PredeploysImmutableConfig struct {
 	UniswapInterfaceMulticall struct{}
 	UniversalRouter           struct {
 		Permit2                     common.Address
-		WETH9                       common.Address
-		SeaportV1_5                 common.Address
-		SeaportV1_4                 common.Address
+		Weth9                       common.Address
+		SeaportV15                  common.Address
+		SeaportV14                  common.Address
 		OpenseaConduit              common.Address
 		NftxZap                     common.Address
 		X2y2                        common.Address
@@ -129,7 +130,6 @@ type PredeploysImmutableConfig struct {
 	EntryPoint                   struct{}
 }
 
-// RouterParameters is an auto generated low-level Go binding around an user-defined struct.
 type RouterParameters struct {
 	Permit2                     common.Address
 	Weth9                       common.Address
@@ -227,9 +227,36 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 		}
 
 		internalVal := reflect.ValueOf(field.Interface())
-		for j := 0; j < internalVal.NumField(); j++ {
-			internalField := internalVal.Field(j)
-			deployment.Args = append(deployment.Args, internalField.Interface())
+		if deployment.Name == "UniversalRouter" {
+			// UniversalRouter에 대한 올바른 RouterParameters 인스턴스 생성
+			routerParams := RouterParameters{
+				Permit2:                     common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3"),
+				Weth9:                       common.HexToAddress("0x4200000000000000000000000000000000000006"),
+				SeaportV15:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				SeaportV14:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				OpenseaConduit:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				NftxZap:                     common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				X2y2:                        common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Foundation:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Sudoswap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				ElementMarket:               common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Nft20Zap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Cryptopunks:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareV2:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				RouterRewardsDistributor:    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareRewardsDistributor: common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareToken:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				V2Factory:                   common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				V3Factory:                   common.HexToAddress("0x4200000000000000000000000000000000000502"),
+				PairInitCodeHash:            [32]byte{0x96, 0xe8, 0xac, 0x42, 0x77, 0x19, 0x8f, 0xf8, 0xb6, 0xf7, 0x85, 0x47, 0x8a, 0xa9, 0xa3, 0x9f, 0x40, 0x3c, 0xb7, 0x68, 0xdd, 0x02, 0xcb, 0xee, 0x32, 0x6c, 0x3e, 0x7d, 0xa3, 0x48, 0x84, 0x5f},
+				PoolInitCodeHash:            [32]byte{0xe3, 0x4f, 0x19, 0x9b, 0x19, 0xb2, 0xb4, 0xf4, 0x7f, 0x68, 0x44, 0x26, 0x19, 0xd5, 0x55, 0x52, 0x7d, 0x24, 0x4f, 0x78, 0xa3, 0x29, 0x7e, 0xa8, 0x93, 0x25, 0xf8, 0x43, 0xf8, 0x7b, 0x8b, 0x54},
+			}
+			deployment.Args = append(deployment.Args, routerParams)
+		} else {
+			for j := 0; j < internalVal.NumField(); j++ {
+				internalField := internalVal.Field(j)
+				deployment.Args = append(deployment.Args, internalField.Interface())
+			}
 		}
 
 		deployments = append(deployments, deployment)
@@ -246,18 +273,30 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 // can be properly set. The bytecode returned in the results is suitable to be
 // inserted into the state via state surgery.
 func deployContractsWithImmutables(constructors []deployer.Constructor) (DeploymentResults, error) {
+	// L2 백엔드 인스턴스를 생성합니다.
+	log.Printf("Starting to create L2 backend instance.")
 	backend, err := deployer.NewL2Backend()
 	if err != nil {
+		log.Printf("백엔드 생성 실패: %v", err)
 		return nil, err
 	}
+
+	// 컨트랙트를 배포합니다.
+	log.Printf("Starting to deploy contracts.")
 	deployments, err := deployer.Deploy(backend, constructors, l2ImmutableDeployer)
 	if err != nil {
+		log.Printf("컨트랙트 배포 실패: %v", err)
 		return nil, err
 	}
+
+	// 결과 맵을 생성합니다.
 	results := make(DeploymentResults)
 	for _, dep := range deployments {
 		results[dep.Name] = dep.Bytecode
+		log.Printf("배포된 컨트랙트: %s, 바이트코드: %s", dep.Name, dep.Bytecode)
 	}
+
+	log.Printf("Deployments completed. Results: %v", results)
 	return results, nil
 }
 
@@ -366,15 +405,27 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 		_, tx, _, err = bindings.DeployTickLens(opts, backend)
 	case "UniswapInterfaceMulticall":
 		_, tx, _, err = bindings.DeployUniswapInterfaceMulticall(opts, backend)
+		// 각 컨트랙트 배포 전 파라미터의 타입을 로깅
 	case "UniversalRouter":
 		localParams, ok := deployment.Args[0].(RouterParameters)
 		if !ok {
-			return nil, fmt.Errorf("invalid type for RouterParameters")
+			log.Printf("UniversalRouter의 RouterParameters 타입 불일치: 받은 타입: %T, 값: %#v", deployment.Args[0], deployment.Args[0])
+			return nil, fmt.Errorf("invalid type for RouterParameters: received type %T", deployment.Args[0])
 		}
 		convertedParams := ConvertRouterParameters(localParams)
 		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)
+		if err != nil {
+			log.Printf("UniversalRouter 배포 실패: %v", err)
+		}
+
+	// 기타 컨트랙트들도 필요에 따라 로깅 추가 가능
 	default:
-		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
+		log.Printf("알 수 없는 컨트랙트: %s", deployment.Name)
+		return nil, fmt.Errorf("unknown contract: %s", deployment.Name)
+	}
+
+	if err != nil {
+		log.Printf("%s 배포 중 오류 발생: %v", deployment.Name, err)
 	}
 
 	return tx, err

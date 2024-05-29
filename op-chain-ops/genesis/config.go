@@ -957,9 +957,9 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 		UniswapInterfaceMulticall: struct{}{},
 		UniversalRouter: struct {
 			Permit2                     common.Address
-			WETH9                       common.Address
-			SeaportV1_5                 common.Address
-			SeaportV1_4                 common.Address
+			Weth9                       common.Address
+			SeaportV15                  common.Address
+			SeaportV14                  common.Address
 			OpenseaConduit              common.Address
 			NftxZap                     common.Address
 			X2y2                        common.Address
@@ -978,9 +978,9 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 			PoolInitCodeHash            [32]byte
 		}{
 			Permit2:                     predeploys.Permit2Addr,
-			WETH9:                       predeploys.WNativeTokenAddr,
-			SeaportV1_5:                 config.UnsupportedAddress,
-			SeaportV1_4:                 config.UnsupportedAddress,
+			Weth9:                       predeploys.WNativeTokenAddr,
+			SeaportV15:                  config.UnsupportedAddress,
+			SeaportV14:                  config.UnsupportedAddress,
 			OpenseaConduit:              config.UnsupportedAddress,
 			NftxZap:                     config.UnsupportedAddress,
 			X2y2:                        config.UnsupportedAddress,

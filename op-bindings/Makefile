@@ -2,6 +2,7 @@ pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
 contracts-list := ./artifacts.json
+contracts-hardhat-list := ./artifacts-hardhat.json
 log-level := info
 ETHERSCAN_APIKEY_ETH ?=
 ETHERSCAN_APIKEY_OP ?=
@@ -13,6 +14,7 @@ all: version mkdir bindings
 version:
 	forge --version
 	abigen --version
+
 compile:
 	cd $(contracts-dir) && \
 		forge clean && \
@@ -20,7 +22,7 @@ compile:
 
 bindings: bindgen-local
 
-bindgen-local: compile bindgen-generate-local
+bindgen-local: compile bindgen-generate-local-forge bindgen-generate-local-hardhat
 
 bindgen-generate-local:
 	go run ./cmd/ \
@@ -30,7 +32,9 @@ bindgen-generate-local:
 		--contracts-list $(contracts-list) \
 		--log.level $(log-level) \
 		local \
-		--forge-artifacts $(contracts-dir)/forge-artifacts
+		--forge-artifacts $(contracts-dir)/forge-artifacts \
+		--hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
+		--hardhat-contracts-list $(contracts-hardhat-list)
 
 bindgen-remote:
 	go run ./cmd/ \
