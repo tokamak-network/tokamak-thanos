@@ -248,6 +248,7 @@ abstract contract StandardBridge is Initializable {
         virtual
         onlyOtherBridge
     {
+        require(paused() == false, "StandardBridge: paused");
         require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
@@ -282,6 +283,7 @@ abstract contract StandardBridge is Initializable {
         virtual
         onlyOtherBridge
     {
+        require(paused() == false, "StandardBridge: paused");
         if (_isOptimismMintableERC20(_localToken)) {
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
