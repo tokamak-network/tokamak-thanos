@@ -7,6 +7,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { ISemver } from "src/universal/ISemver.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
@@ -21,6 +22,9 @@ import { OnApprove } from "./OnApprove.sol";
 contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
+    /// @notice Contract of the SuperchainConfig.
+    SuperchainConfig public superchainConfig;
+
     /// @notice Contract of the OptimismPortal.
     /// @custom:network-specific
     OptimismPortal public portal;
@@ -34,18 +38,25 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger() {
-        initialize({ _portal: OptimismPortal(payable(0)), _nativeTokenAddress: address(0) });
+        initialize({
+            _superchainConfig: SuperchainConfig(address(0)),
+            _portal: OptimismPortal(payable(0)),
+            _nativeTokenAddress: address(0)
+        });
     }
 
     /// @notice Initializes the contract.
+    /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
     /// @param _portal Contract of the OptimismPortal contract on this network.
     function initialize(
+        SuperchainConfig _superchainConfig,
         OptimismPortal _portal,
         address _nativeTokenAddress
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
+        superchainConfig = _superchainConfig;
         portal = _portal;
         nativeTokenAddress = _nativeTokenAddress;
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
@@ -123,6 +134,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(portal);
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function paused() public view override returns (bool) {
+        return superchainConfig.paused();
     }
 
     /// @notice Sends a deposit native token message to some target address on the other chain. Note that if the call

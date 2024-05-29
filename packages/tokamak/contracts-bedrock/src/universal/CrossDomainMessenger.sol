@@ -216,6 +216,10 @@ abstract contract CrossDomainMessenger is
         payable
         virtual
     {
+        // On L1 this function will check the Portal for its paused status.
+        // On L2 this function should be a no-op, because paused will always return false.
+        require(paused() == false, "CrossDomainMessenger: paused");
+
         (, uint16 version) = Encoding.decodeVersionedNonce(_nonce);
         require(version < 2, "CrossDomainMessenger: only version 0 or 1 messages are supported at this time");
 
@@ -391,4 +395,12 @@ abstract contract CrossDomainMessenger is
     /// @param _target Address of the contract to check.
     /// @return Whether or not the address is an unsafe system address.
     function _isUnsafeTarget(address _target) internal view virtual returns (bool);
+
+    /// @notice This function should return true if the contract is paused.
+    ///         On L1 this function will check the SuperchainConfig for its paused status.
+    ///         On L2 this function should be a no-op.
+    /// @return Whether or not the contract is paused.
+    function paused() public view virtual returns (bool) {
+        return false;
+    }
 }

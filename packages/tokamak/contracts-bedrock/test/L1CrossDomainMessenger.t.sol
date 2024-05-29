@@ -2,7 +2,10 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import { Messenger_Initializer, Reverter, ConfigurableCaller } from "test/CommonTest.t.sol";
+import { ERC721Bridge_Initializer } from "test/CommonTest.t.sol";
+import {
+    Messenger_Initializer, Reverter, ConfigurableCaller, SuperchainConfig_Initializer
+} from "test/CommonTest.t.sol";
 import { L2OutputOracle_Initializer } from "test/L2OutputOracle.t.sol";
 import "forge-std/console.sol";
 // Libraries
@@ -16,8 +19,7 @@ import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 
 // Target contract
-import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
-
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
@@ -26,6 +28,17 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
 
     /// @dev The storage slot of the l2Sender
     uint256 constant senderSlotIndex = 50;
+
+    /// @dev Tests that the implementation is initialized correctly.
+
+    /// @dev Tests that the proxy is initialized correctly.
+    function test_initialize_succeeds() external {
+        assertEq(address(L1Messenger.superchainConfig()), address(sc));
+        assertEq(address(L1Messenger.PORTAL()), address(op));
+        assertEq(address(L1Messenger.portal()), address(op));
+        assertEq(address(L1Messenger.OTHER_MESSENGER()), Predeploys.L2_CROSS_DOMAIN_MESSENGER);
+        assertEq(address(L1Messenger.otherMessenger()), Predeploys.L2_CROSS_DOMAIN_MESSENGER);
+    }
 
     /// @dev Tests that the version can be decoded from the message nonce.
     function test_messageVersion_succeeds() external {
@@ -657,5 +670,102 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
             0,
             hex"1111"
         );
+    }
+
+    /// @dev Tests that the superchain config is called by the messengers paused function
+    function test_pause_callsSuperchainConfig_succeeds() external {
+        vm.expectCall(address(sc), abi.encodeWithSelector(SuperchainConfig.paused.selector));
+        L1Messenger.paused();
+    }
+
+    /// @dev Tests that changing the superchain config paused status changes the return value of the messenger
+    function test_pause_matchesSuperchainConfig_succeeds() external {
+        assertFalse(L1Messenger.paused());
+        assertEq(L1Messenger.paused(), sc.paused());
+
+        vm.prank(sc.guardian());
+        sc.pause("identifier");
+
+        assertTrue(L1Messenger.paused());
+        assertEq(L1Messenger.paused(), sc.paused());
+    }
+}
+
+/// @dev A regression test against a reentrancy vulnerability in the CrossDomainMessenger contract, which
+///      was possible by intercepting and sandwhiching a signed Safe Transaction to upgrade it.
+contract L1CrossDomainMessenger_ReinitReentryTest is Messenger_Initializer {
+    bool attacked;
+
+    // Common values used across functions
+    uint256 constant messageValue = 50;
+    bytes constant selector = abi.encodeWithSelector(this.reinitAndReenter.selector);
+    address sender;
+    bytes32 hash;
+    address target;
+
+    function setUp() public override {
+        super.setUp();
+        target = address(this);
+        sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
+        hash = Hashing.hashCrossDomainMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), sender, target, messageValue, 0, selector
+        );
+        vm.deal(address(L1Messenger), messageValue * 2);
+    }
+
+    /// @dev This method will be called by the relayed message, and will attempt to reenter the relayMessage function
+    ///      exactly once.
+    function reinitAndReenter() public payable {
+        // only attempt the attack once
+        if (!attacked) {
+            attacked = true;
+            // set initialized to false
+            vm.store(address(L1Messenger), 0, bytes32(uint256(0)));
+
+            // call the initializer function
+            L1Messenger.initialize(SuperchainConfig(sc), OptimismPortal(op), address(token));
+
+            // attempt to re-replay the withdrawal
+            vm.expectEmit(address(L1Messenger));
+            emit FailedRelayedMessage(hash);
+            L1Messenger.relayMessage(
+                Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
+                sender,
+                target,
+                messageValue,
+                0,
+                selector
+            );
+        }
+    }
+
+    /// @dev Tests that the relayMessage function cannot be reentered by calling the `initialize()` function within the
+    ///      relayed message.
+    function test_relayMessage_replayStraddlingReinit_reverts() external {
+        uint256 balanceBeforeThis = address(this).balance;
+        uint256 balanceBeforeMessenger = address(L1Messenger).balance;
+
+        // A requisite for the attack is that the message has already been attempted and written to the failedMessages
+        // mapping, so that it can be replayed.
+        vm.store(address(L1Messenger), keccak256(abi.encode(hash, 206)), bytes32(uint256(1)));
+        assertTrue(L1Messenger.failedMessages(hash));
+
+        vm.expectEmit(address(L1Messenger));
+        emit FailedRelayedMessage(hash);
+        L1Messenger.relayMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
+            sender,
+            target,
+            messageValue,
+            0,
+            selector
+        );
+
+        // The message hash is not in the successfulMessages mapping.
+        assertFalse(L1Messenger.successfulMessages(hash));
+        // The balance of this contract is unchanged.
+        assertEq(address(this).balance, balanceBeforeThis);
+        // The balance of the messenger contract is unchanged.
+        assertEq(address(L1Messenger).balance, balanceBeforeMessenger);
     }
 }
