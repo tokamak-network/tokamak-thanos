@@ -227,8 +227,8 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 		}
 
 		internalVal := reflect.ValueOf(field.Interface())
+		//Create the RouterParameters instance for UniversalRouter
 		if deployment.Name == "UniversalRouter" {
-			// UniversalRouter에 대한 올바른 RouterParameters 인스턴스 생성
 			routerParams := RouterParameters{
 				Permit2:                     common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3"),
 				Weth9:                       common.HexToAddress("0x4200000000000000000000000000000000000006"),
@@ -259,6 +259,7 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 			}
 		}
 
+		log.Printf("Preparing deployment for %s", deployment.Name)
 		deployments = append(deployments, deployment)
 	}
 

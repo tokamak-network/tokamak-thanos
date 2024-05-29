@@ -64,6 +64,10 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 	if err != nil {
 		return nil, err
 	}
+
+	// Deploy result 로그 출력
+	fmt.Printf("Deploy results: %v", deployResults)
+
 	for name, predeploy := range predeploys.Predeploys {
 		if predeploy.Enabled != nil && !predeploy.Enabled(config) {
 			log.Warn("Skipping disabled predeploy.", "name", name, "address", predeploy.Address)
@@ -121,9 +125,9 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			db.SetState(predeploy.Address, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
 			log.Info("Set proxy for FiatTokenV2_2", "name", name, "address", predeploy.Address, "implementation", codeAddr)
 		case "UniswapV3Factory":
-			dep, ok := deployResults[name]
-			if !ok {
-				return nil, fmt.Errorf("missing deploy result for %s", name)
+			dep, err := bindings.GetDeployedBytecode(name)
+			if err != nil {
+				return nil, err
 			}
 			originalCode := "5dd3b493c018519303654a439129ea01197ba012"
 			newCode := "4200000000000000000000000000000000000502"
@@ -137,8 +141,9 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 				c = append(c, a...)
 				c = append(c, newBytes...)
 				c = append(c, b...)
-				deployResults[name] = c
+				dep = c
 			}
+			deployResults[name] = dep
 			fallthrough
 		default:
 			if !predeploy.ProxyDisabled {
