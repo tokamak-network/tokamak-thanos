@@ -177,7 +177,7 @@ contract Deploy is Deployer {
     function deployProxies() public {
         deployAddressManager();
         deployProxyAdmin();
-        // deploySuperchainConfigProxy();
+        deploySuperchainConfigProxy();
         deployOptimismPortalProxy();
         deployL2OutputOracleProxy();
         deploySystemConfigProxy();
@@ -432,18 +432,6 @@ contract Deploy is Deployer {
         addr_ = address(proxy);
     }
 
-    /// @notice Deploy the SuperchainConfig contract
-    function deploySuperchainConfig() public broadcast {
-        SuperchainConfig superchainConfig = new SuperchainConfig{ salt: implSalt() }();
-
-        require(superchainConfig.guardian() == address(0));
-        bytes32 initialized = vm.load(address(superchainConfig), bytes32(0));
-        require(initialized != 0);
-
-        save("SuperchainConfig", address(superchainConfig));
-        console.log("SuperchainConfig deployed at %s", address(superchainConfig));
-    }
-
     /// @notice Deploy the L1CrossDomainMessengerProxy
     function deployL1CrossDomainMessengerProxy() public broadcast returns (address addr_) {
         AddressManager addressManager = AddressManager(mustGetAddress("AddressManager"));
@@ -459,6 +447,20 @@ contract Deploy is Deployer {
         }
 
         require(addressManager.getAddress(contractName) == address(proxy));
+
+        addr_ = address(proxy);
+    }
+
+    /// @notice Deploy the SuperchainConfigProxy
+    function deploySuperchainConfigProxy() public broadcast returns (address addr_) {
+        address proxyAdmin = mustGetAddress("ProxyAdmin");
+        Proxy proxy = new Proxy({ _admin: proxyAdmin });
+
+        address admin = address(uint160(uint256(vm.load(address(proxy), OWNER_KEY))));
+        require(admin == proxyAdmin);
+
+        save("SuperchainConfigProxy", address(proxy));
+        console.log("SuperchainConfigProxy deployed at %s", address(proxy));
 
         addr_ = address(proxy);
     }
@@ -561,6 +563,18 @@ contract Deploy is Deployer {
         console.log("L1CrossDomainMessenger deployed at %s", address(messenger));
 
         addr_ = address(messenger);
+    }
+
+    /// @notice Deploy the SuperchainConfig contract
+    function deploySuperchainConfig() public broadcast {
+        SuperchainConfig superchainConfig = new SuperchainConfig{ salt: implSalt() }();
+
+        require(superchainConfig.guardian() == address(0));
+        bytes32 initialized = vm.load(address(superchainConfig), bytes32(0));
+        require(initialized != 0);
+
+        save("SuperchainConfig", address(superchainConfig));
+        console.log("SuperchainConfig deployed at %s", address(superchainConfig));
     }
 
     /// @notice Deploy the OptimismPortal
