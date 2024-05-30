@@ -342,6 +342,9 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Check that this withdrawal has not already been finalized, this is replay protection.
         require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
 
+        // Not allow to call native token contract because users can transfer all token out of the contract
+        require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
+
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
