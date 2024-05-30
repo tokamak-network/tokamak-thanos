@@ -3,7 +3,7 @@ monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
 contracts-list := ./artifacts.json
 contracts-hardhat-list := ./artifacts-hardhat.json
-log-level := info
+log-level := debug
 ETHERSCAN_APIKEY_ETH ?=
 ETHERSCAN_APIKEY_OP ?=
 RPC_URL_ETH ?=
@@ -22,7 +22,7 @@ compile:
 
 bindings: bindgen-local
 
-bindgen-local: compile bindgen-generate-local-forge bindgen-generate-local-hardhat
+bindgen-local: compile bindgen-generate-local
 
 bindgen-generate-local:
 	go run ./cmd/ \
