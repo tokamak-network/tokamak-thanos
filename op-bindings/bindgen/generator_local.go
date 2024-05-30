@@ -190,20 +190,37 @@ func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName stri
 	serStr := strings.Replace(string(ser), "\"", "\\\"", -1)
 
 	deployedSourceMap := ""
-	immutableRefs := ""
 	deployedBin := ""
 
 	// Convert art.DeployedBytecode to DeployedBytecodeObject if it is not a string
 	switch v := art.DeployedBytecode.(type) {
 	case hardhat.DeployedBytecodeObject:
 		deployedSourceMap = v.SourceMap
-		immutableRefs = v.ImmutableReferences
 		deployedBin = v.Object.String()
 	case string:
 		deployedBin = v
 	}
 
-	hasImmutables := immutableRefs != ""
+	// GetBuildInfo 함수를 사용하여 immutableReferences를 가져옴
+	buildInfo, err := hh.GetBuildInfo(contractName)
+	if err != nil {
+		return fmt.Errorf("error getting build info for %s: %w", contractName, err)
+	}
+
+	hasImmutables := false
+	for key, value := range buildInfo.Output.Contracts {
+		if strings.Contains(key, fmt.Sprintf("/%s.sol", contractName)) && !strings.Contains(key, "/interfaces/") {
+			for _, v := range value {
+				if v.Evm.DeployedBytecode.ImmutableReferences != nil && len(v.Evm.DeployedBytecode.ImmutableReferences) > 0 {
+					fmt.Printf("key: %s, keyimmutable: %+v\n", key, v.Evm.DeployedBytecode.ImmutableReferences)
+					hasImmutables = true
+					break
+				}
+			}
+		}
+	}
+
+	generator.Logger.Debug("ImmutableReferences found", "hasImmutables", hasImmutables)
 
 	contractMetaData := localContractMetadata{
 		Name:                   contractName,

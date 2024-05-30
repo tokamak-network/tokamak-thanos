@@ -98,14 +98,22 @@ type CompilerOutputEvm struct {
 	MethodIdentifiers map[string]string            `json:"methodIdentifiers"`
 }
 
-// Object must be a string because its not guaranteed to be
+// Object must be a string because its not g`uaranteed to be
 // a hex string
 type CompilerOutputBytecode struct {
-	Object         string         `json:"object"`
-	Opcodes        string         `json:"opcodes"`
-	SourceMap      string         `json:"sourceMap"`
-	LinkReferences LinkReferences `json:"linkReferences"`
+	Object              string              `json:"object"`
+	Opcodes             string              `json:"opcodes"`
+	SourceMap           string              `json:"sourceMap"`
+	LinkReferences      LinkReferences      `json:"linkReferences"`
+	ImmutableReferences ImmutableReferences `json:"immutableReferences"`
 }
+
+type ImmutableReference struct {
+	Length int `json:"length"`
+	Start  int `json:"start"`
+}
+
+type ImmutableReferences map[string][]ImmutableReference
 
 type LinkReferences map[string]LinkReference
 type LinkReference map[string][]LinkReferenceOffset
