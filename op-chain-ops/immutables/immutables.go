@@ -285,8 +285,6 @@ func deployContractsWithImmutables(constructors []deployer.Constructor) (Deploym
 	for _, dep := range deployments {
 		results[dep.Name] = dep.Bytecode
 	}
-
-	log.Printf("Deployments completed. Results: %v", results)
 	return results, nil
 }
 
