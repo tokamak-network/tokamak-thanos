@@ -64,10 +64,6 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 	if err != nil {
 		return nil, err
 	}
-
-	// Deploy result 로그 출력
-	fmt.Printf("Deploy results: %v", deployResults)
-
 	for name, predeploy := range predeploys.Predeploys {
 		if predeploy.Enabled != nil && !predeploy.Enabled(config) {
 			log.Warn("Skipping disabled predeploy.", "name", name, "address", predeploy.Address)

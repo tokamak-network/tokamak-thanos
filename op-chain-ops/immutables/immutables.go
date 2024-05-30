@@ -259,7 +259,6 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 			}
 		}
 
-		log.Printf("Preparing deployment for %s", deployment.Name)
 		deployments = append(deployments, deployment)
 	}
 
@@ -274,27 +273,17 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 // can be properly set. The bytecode returned in the results is suitable to be
 // inserted into the state via state surgery.
 func deployContractsWithImmutables(constructors []deployer.Constructor) (DeploymentResults, error) {
-	// L2 백엔드 인스턴스를 생성합니다.
-	log.Printf("Starting to create L2 backend instance.")
 	backend, err := deployer.NewL2Backend()
 	if err != nil {
-		log.Printf("백엔드 생성 실패: %v", err)
 		return nil, err
 	}
-
-	// 컨트랙트를 배포합니다.
-	log.Printf("Starting to deploy contracts.")
 	deployments, err := deployer.Deploy(backend, constructors, l2ImmutableDeployer)
 	if err != nil {
-		log.Printf("컨트랙트 배포 실패: %v", err)
 		return nil, err
 	}
-
-	// 결과 맵을 생성합니다.
 	results := make(DeploymentResults)
 	for _, dep := range deployments {
 		results[dep.Name] = dep.Bytecode
-		log.Printf("배포된 컨트랙트: %s, 바이트코드: %s", dep.Name, dep.Bytecode)
 	}
 
 	log.Printf("Deployments completed. Results: %v", results)
@@ -406,7 +395,6 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 		_, tx, _, err = bindings.DeployTickLens(opts, backend)
 	case "UniswapInterfaceMulticall":
 		_, tx, _, err = bindings.DeployUniswapInterfaceMulticall(opts, backend)
-		// 각 컨트랙트 배포 전 파라미터의 타입을 로깅
 	case "UniversalRouter":
 		localParams, ok := deployment.Args[0].(RouterParameters)
 		if !ok {
@@ -416,17 +404,14 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 		convertedParams := ConvertRouterParameters(localParams)
 		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)
 		if err != nil {
-			log.Printf("UniversalRouter 배포 실패: %v", err)
+			return nil, err
 		}
-
-	// 기타 컨트랙트들도 필요에 따라 로깅 추가 가능
 	default:
-		log.Printf("알 수 없는 컨트랙트: %s", deployment.Name)
 		return nil, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}
 
 	if err != nil {
-		log.Printf("%s 배포 중 오류 발생: %v", deployment.Name, err)
+		return nil, err
 	}
 
 	return tx, err
