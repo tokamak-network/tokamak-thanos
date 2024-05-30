@@ -10,31 +10,43 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
-// DeployedBytecodeObject represents the deployed bytecode and its associated metadata
-type DeployedBytecodeObject struct {
-	Object              hexutil.Bytes `json:"object"`
-	SourceMap           string        `json:"sourceMap"`
-	ImmutableReferences string        `json:"immutableReferences"`
-}
-
 // Deployment represents a hardhat-deploy artifact file
 type Deployment struct {
 	Name             string
-	Abi              abi.ABI                `json:"abi"`
-	Address          common.Address         `json:"address"`
-	Args             []interface{}          `json:"-"`
-	Bytecode         hexutil.Bytes          `json:"bytecode"`
-	DeployedBytecode DeployedBytecodeObject `json:"deployedBytecode"`
-	Devdoc           json.RawMessage        `json:"devdoc"`
-	Metadata         string                 `json:"metadata"`
-	Receipt          json.RawMessage        `json:"receipt"`
-	SolcInputHash    string                 `json:"solcInputHash"`
-	StorageLayout    solc.StorageLayout     `json:"storageLayout"`
-	TransactionHash  common.Hash            `json:"transactionHash"`
-	Userdoc          json.RawMessage        `json:"userdoc"`
+	Abi              abi.ABI            `json:"abi"`
+	Address          common.Address     `json:"address"`
+	Args             []interface{}      `json:"-"`
+	Bytecode         hexutil.Bytes      `json:"bytecode"`
+	DeployedBytecode hexutil.Bytes      `json:"deployedBytecode"`
+	Devdoc           json.RawMessage    `json:"devdoc"`
+	Metadata         string             `json:"metadata"`
+	Receipt          json.RawMessage    `json:"receipt"`
+	SolcInputHash    string             `json:"solcInputHash"`
+	StorageLayout    solc.StorageLayout `json:"storageLayout"`
+	TransactionHash  common.Hash        `json:"transactionHash"`
+	Userdoc          json.RawMessage    `json:"userdoc"`
 }
 
-// UnmarshalJSON is a custom unmarshaler for Deployment, handling the Args field.
+// UnmarshalJSON is a custom unmarshaler for Deployment, handling the Args field. This changed recently
+// when `foundry` migrated to `alloy` types, and now the Args field within the contract artifact has
+// a different serialization format.
+//
+// This custom unmarshaller should be removed when this is fixed upstream.
+//
+// Old Example:
+// ```
+// "args": [
+//
+//	"0xCE9FeE676767A25feb9722986148Fcd87085a14e",
+//	"OVM_L1CrossDomainMessenger"
+//
+// ],
+// ```
+//
+// New Example:
+// ```
+// "args": "[\"0x45ce2021212883d655348778aC99707d63D49aBc\",\"\\OVM_L1CrossDomainMessenger\\\"]"
+// ```
 func (d *Deployment) UnmarshalJSON(data []byte) error {
 	// Create a type alias to prevent recursion
 	type DeploymentAlias Deployment
@@ -70,7 +82,8 @@ func (d *Deployment) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Receipt represents the receipt held in a hardhat-deploy artifact file
+// Receipt represents the receipt held in a hardhat-deploy
+// artifact file
 type Receipt struct {
 	To                *common.Address `json:"to"`
 	From              common.Address  `json:"from"`
@@ -100,45 +113,19 @@ type Log struct {
 }
 
 // Artifact represents a hardhat compilation artifact
+// The Bytecode and DeployedBytecode are not guaranteed
+// to be hexutil.Bytes when there are link references.
+// In the future, custom json marshalling can be used
+// to place the link reference values in the correct location.
 type Artifact struct {
 	Format                 string         `json:"_format"`
 	ContractName           string         `json:"contractName"`
 	SourceName             string         `json:"sourceName"`
 	Abi                    abi.ABI        `json:"abi"`
 	Bytecode               hexutil.Bytes  `json:"bytecode"`
-	DeployedBytecode       interface{}    `json:"deployedBytecode"` // Changed to interface{} to handle both string and object
+	DeployedBytecode       hexutil.Bytes  `json:"deployedBytecode"`
 	LinkReferences         LinkReferences `json:"linkReferences"`
 	DeployedLinkReferences LinkReferences `json:"deployedLinkReferences"`
-}
-
-// UnmarshalJSON is a custom unmarshaler for Artifact, handling the DeployedBytecode field.
-func (a *Artifact) UnmarshalJSON(data []byte) error {
-	type Alias Artifact
-	aux := &struct {
-		DeployedBytecode json.RawMessage `json:"deployedBytecode"`
-		*Alias
-	}{
-		Alias: (*Alias)(a),
-	}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	// Try to unmarshal as DeployedBytecodeObject
-	var dbo DeployedBytecodeObject
-	if err := json.Unmarshal(aux.DeployedBytecode, &dbo); err == nil {
-		a.DeployedBytecode = dbo
-		return nil
-	}
-
-	// If it fails, treat it as a string
-	var dboString string
-	if err := json.Unmarshal(aux.DeployedBytecode, &dboString); err != nil {
-		return err
-	}
-	a.DeployedBytecode = dboString
-	return nil
 }
 
 // LinkReferences represents the linked contracts
@@ -153,13 +140,15 @@ type LinkReferenceOffset struct {
 	Start  uint `json:"start"`
 }
 
-// DebugFile represents the debug file that contains the path to the build info file
+// DebugFile represents the debug file that contains the path
+// to the build info file
 type DebugFile struct {
 	Format    string `json:"_format"`
 	BuildInfo string `json:"buildInfo"`
 }
 
-// BuildInfo represents a hardhat build info artifact that is created after compilation
+// BuildInfo represents a hardhat build info artifact that is created
+// after compilation
 type BuildInfo struct {
 	Format          string              `json:"_format"`
 	Id              string              `json:"id"`
