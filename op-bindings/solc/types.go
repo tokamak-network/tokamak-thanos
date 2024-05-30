@@ -98,7 +98,7 @@ type CompilerOutputEvm struct {
 	MethodIdentifiers map[string]string            `json:"methodIdentifiers"`
 }
 
-// Object must be a string because its not g`uaranteed to be
+// Object must be a string because its not guaranteed to be
 // a hex string
 type CompilerOutputBytecode struct {
 	Object              string              `json:"object"`

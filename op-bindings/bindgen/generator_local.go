@@ -201,7 +201,7 @@ func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName stri
 		deployedBin = v
 	}
 
-	// GetBuildInfo 함수를 사용하여 immutableReferences를 가져옴
+	// Use the GetBuildInfo function to get the immutableReferences
 	buildInfo, err := hh.GetBuildInfo(contractName)
 	if err != nil {
 		return fmt.Errorf("error getting build info for %s: %w", contractName, err)
