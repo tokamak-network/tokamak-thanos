@@ -260,7 +260,7 @@ func processHardhatArtifacts(f flags) {
 		d := data{
 			Name:          contractName,
 			StorageLayout: serStr,
-			DeployedBin:   art.DeployedBytecode.String(),
+			DeployedBin:   art.DeployedBytecode.(string),
 			Package:       f.Package,
 		}
 
