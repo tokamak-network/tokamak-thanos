@@ -189,7 +189,17 @@ func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName stri
 	}
 	serStr := strings.Replace(string(ser), "\"", "\\\"", -1)
 
-	deployedBin := string(art.DeployedBytecode)
+	deployedSourceMap := ""
+	deployedBin := ""
+
+	// Convert art.DeployedBytecode to DeployedBytecodeObject if it is not a string
+	switch v := art.DeployedBytecode.(type) {
+	case hardhat.DeployedBytecodeObject:
+		deployedSourceMap = v.SourceMap
+		deployedBin = v.Object.String()
+	case string:
+		deployedBin = v
+	}
 
 	// Use the GetBuildInfo function to get the immutableReferences
 	buildInfo, err := hh.GetBuildInfo(contractName)
@@ -217,6 +227,7 @@ func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName stri
 		StorageLayout:          serStr,
 		DeployedBin:            deployedBin,
 		Package:                generator.BindingsPackageName,
+		DeployedSourceMap:      deployedSourceMap,
 		HasImmutableReferences: hasImmutables,
 	}
 
