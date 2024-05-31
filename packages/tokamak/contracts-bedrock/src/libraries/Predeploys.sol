@@ -16,7 +16,7 @@ library Predeploys {
     /// @notice Address of the L2ERC721Bridge predeploy.
     address internal constant L2_ERC721_BRIDGE = 0x4200000000000000000000000000000000000014;
 
-    //// @notice Address of the SequencerFeeWallet predeploy.
+    /// @notice Address of the SequencerFeeWallet predeploy.
     address internal constant SEQUENCER_FEE_WALLET = 0x4200000000000000000000000000000000000011;
 
     /// @notice Address of the OptimismMintableERC20Factory predeploy.
@@ -78,8 +78,41 @@ library Predeploys {
     /// @notice Address of the ETH predeploy.
     address internal constant ETH = 0x4200000000000000000000000000000000000486;
 
+    /// @notice Address of the QuoterV2 predeploy.
+    address internal constant QUOTER_V2 = 0x4200000000000000000000000000000000000500;
+
+    /// @notice Address of the SwapRouter02 predeploy.
+    address internal constant SWAP_ROUTER_02 = 0x4200000000000000000000000000000000000501;
+
+    /// @notice Address of the UniswapV3Factory predeploy.
+    address internal constant UNISWAP_V3_FACTORY = 0x4200000000000000000000000000000000000502;
+
+    /// @notice Address of the NFTDescriptor predeploy.
+    address internal constant NFT_DESCRIPTOR = 0x4200000000000000000000000000000000000503;
+
+    /// @notice Address of the NonfungiblePositionManager predeploy.
+    address internal constant NONFUNGIBLE_POSITION_MANAGER = 0x4200000000000000000000000000000000000504;
+
+    /// @notice Address of the NonfungibleTokenPositionDescriptor predeploy.
+    address internal constant NONFUNGIBLE_TOKEN_POSITION_DESCRIPTOR = 0x4200000000000000000000000000000000000505;
+
+    /// @notice Address of the TickLens predeploy.
+    address internal constant TICK_LENS = 0x4200000000000000000000000000000000000506;
+
+    /// @notice Address of the UniswapInterfaceMulticall predeploy.
+    address internal constant UNISWAP_INTERFACE_MULTICALL = 0x4200000000000000000000000000000000000507;
+
+    /// @notice Address of the UniversalRouter predeploy.
+    address internal constant UNIVERSAL_ROUTER = 0x4200000000000000000000000000000000000508;
+
     /// @notice Address of the L2UsdcBridge predeploy.
     address internal constant L2_USDC_BRIDGE = 0x4200000000000000000000000000000000000775;
+
+    /// @notice Address of the SignatureChecker predeploy.
+    address internal constant SIGNATURE_CHECKER = 0x4200000000000000000000000000000000000776;
+
+    /// @notice Address of the MasterMinter predeploy.
+    address internal constant MASTER_MINTER = 0x4200000000000000000000000000000000000777;
 
     /// @notice Address of the FiatTokenV2_2 predeploy.
     address internal constant FIATTOKENV2_2 = 0x4200000000000000000000000000000000000778;

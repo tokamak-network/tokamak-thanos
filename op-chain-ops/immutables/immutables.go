@@ -2,6 +2,7 @@ package immutables
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 	"reflect"
 
@@ -70,16 +71,52 @@ type PredeploysImmutableConfig struct {
 	MasterMinter     struct {
 		MinterManager common.Address
 	}
-	FiatTokenV2_2                      struct{}
-	QuoterV2                           struct{}
-	SwapRouter02                       struct{}
-	UniswapV3Factory                   struct{}
-	NFTDescriptor                      struct{}
-	NonfungiblePositionManager         struct{}
-	NonfungibleTokenPositionDescriptor struct{}
-	TickLens                           struct{}
-	UniswapInterfaceMulticall          struct{}
-
+	FiatTokenV2_2 struct{}
+	QuoterV2      struct {
+		Factory common.Address
+		WETH9   common.Address
+	}
+	SwapRouter02 struct {
+		FactoryV2       common.Address
+		FactoryV3       common.Address
+		PositionManager common.Address
+		WETH9           common.Address
+	}
+	UniswapV3Factory           struct{}
+	NFTDescriptor              struct{}
+	NonfungiblePositionManager struct {
+		Factory          common.Address
+		WETH9            common.Address
+		TokenDescriptor_ common.Address
+	}
+	NonfungibleTokenPositionDescriptor struct {
+		WETH9                    common.Address
+		NativeCurrencyLabelBytes [32]byte
+	}
+	TickLens                  struct{}
+	UniswapInterfaceMulticall struct{}
+	UniversalRouter           struct {
+		Permit2                     common.Address
+		Weth9                       common.Address
+		SeaportV15                  common.Address
+		SeaportV14                  common.Address
+		OpenseaConduit              common.Address
+		NftxZap                     common.Address
+		X2y2                        common.Address
+		Foundation                  common.Address
+		Sudoswap                    common.Address
+		ElementMarket               common.Address
+		Nft20Zap                    common.Address
+		Cryptopunks                 common.Address
+		LooksRareV2                 common.Address
+		RouterRewardsDistributor    common.Address
+		LooksRareRewardsDistributor common.Address
+		LooksRareToken              common.Address
+		V2Factory                   common.Address
+		V3Factory                   common.Address
+		PairInitCodeHash            [32]byte
+		PoolInitCodeHash            [32]byte
+	}
 	Create2Deployer              struct{}
 	MultiCall3                   struct{}
 	Safe_v130                    struct{}
@@ -91,6 +128,29 @@ type PredeploysImmutableConfig struct {
 	Permit2                      struct{}
 	SenderCreator                struct{}
 	EntryPoint                   struct{}
+}
+
+type RouterParameters struct {
+	Permit2                     common.Address
+	Weth9                       common.Address
+	SeaportV15                  common.Address
+	SeaportV14                  common.Address
+	OpenseaConduit              common.Address
+	NftxZap                     common.Address
+	X2y2                        common.Address
+	Foundation                  common.Address
+	Sudoswap                    common.Address
+	ElementMarket               common.Address
+	Nft20Zap                    common.Address
+	Cryptopunks                 common.Address
+	LooksRareV2                 common.Address
+	RouterRewardsDistributor    common.Address
+	LooksRareRewardsDistributor common.Address
+	LooksRareToken              common.Address
+	V2Factory                   common.Address
+	V3Factory                   common.Address
+	PairInitCodeHash            [32]byte
+	PoolInitCodeHash            [32]byte
 }
 
 // Check will ensure that the required fields are set on the config.
@@ -167,9 +227,36 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 		}
 
 		internalVal := reflect.ValueOf(field.Interface())
-		for j := 0; j < internalVal.NumField(); j++ {
-			internalField := internalVal.Field(j)
-			deployment.Args = append(deployment.Args, internalField.Interface())
+		//Create the RouterParameters instance for UniversalRouter
+		if deployment.Name == "UniversalRouter" {
+			routerParams := RouterParameters{
+				Permit2:                     common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3"),
+				Weth9:                       common.HexToAddress("0x4200000000000000000000000000000000000006"),
+				SeaportV15:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				SeaportV14:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				OpenseaConduit:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				NftxZap:                     common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				X2y2:                        common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Foundation:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Sudoswap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				ElementMarket:               common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Nft20Zap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				Cryptopunks:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareV2:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				RouterRewardsDistributor:    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareRewardsDistributor: common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				LooksRareToken:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				V2Factory:                   common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				V3Factory:                   common.HexToAddress("0x4200000000000000000000000000000000000502"),
+				PairInitCodeHash:            [32]byte{0x96, 0xe8, 0xac, 0x42, 0x77, 0x19, 0x8f, 0xf8, 0xb6, 0xf7, 0x85, 0x47, 0x8a, 0xa9, 0xa3, 0x9f, 0x40, 0x3c, 0xb7, 0x68, 0xdd, 0x02, 0xcb, 0xee, 0x32, 0x6c, 0x3e, 0x7d, 0xa3, 0x48, 0x84, 0x5f},
+				PoolInitCodeHash:            [32]byte{0xe3, 0x4f, 0x19, 0x9b, 0x19, 0xb2, 0xb4, 0xf4, 0x7f, 0x68, 0x44, 0x26, 0x19, 0xd5, 0x55, 0x52, 0x7d, 0x24, 0x4f, 0x78, 0xa3, 0x29, 0x7e, 0xa8, 0x93, 0x25, 0xf8, 0x43, 0xf8, 0x7b, 0x8b, 0x54},
+			}
+			deployment.Args = append(deployment.Args, routerParams)
+		} else {
+			for j := 0; j < internalVal.NumField(); j++ {
+				internalField := internalVal.Field(j)
+				deployment.Args = append(deployment.Args, internalField.Interface())
+			}
 		}
 
 		deployments = append(deployments, deployment)
@@ -209,6 +296,12 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 	var recipient common.Address
 	var minimumWithdrawalAmount *big.Int
 	var withdrawalNetwork uint8
+	var _factoryV2 common.Address
+	var factoryV3 common.Address
+	var _positionManager common.Address
+	var _WETH9 common.Address
+	var _factory common.Address
+	var _tokenDescriptor_ common.Address
 	var err error
 
 	if has, err := bindings.HasImmutableReferences(deployment.Name); err != nil || !has {
@@ -256,8 +349,67 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 			return nil, fmt.Errorf("invalid type for _minterManager")
 		}
 		_, tx, _, err = bindings.DeployMasterMinter(opts, backend, _minterManager)
+	case "FiatTokenV2_2":
+		_, tx, _, err = bindings.DeployFiatTokenV22(opts, backend)
+	case "Permit2":
+		_, tx, _, err = bindings.DeployPermit2(opts, backend)
+	case "QuoterV2":
+		_factory, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _factory")
+		}
+		_WETH9, ok := deployment.Args[1].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _WETH9")
+		}
+		_, tx, _, err = bindings.DeployQuoterV2(opts, backend, _factory, _WETH9)
+	case "SwapRouter02":
+		_factoryV2, factoryV3, _positionManager, _WETH9, err = prepareSwapRouter02(deployment)
+		if err != nil {
+			return nil, err
+		}
+		_, tx, _, err = bindings.DeploySwapRouter02(opts, backend, _factoryV2, factoryV3, _positionManager, _WETH9)
+	case "UniswapV3Factory":
+		_, tx, _, err = bindings.DeployUniswapV3Factory(opts, backend)
+	case "NFTDescriptor":
+		_, tx, _, err = bindings.DeployNFTDescriptor(opts, backend)
+	case "NonfungiblePositionManager":
+		_factory, _WETH9, _tokenDescriptor_, err = PrepareNonfungiblePositionManager(deployment)
+		if err != nil {
+			return nil, err
+		}
+		_, tx, _, err = bindings.DeployNonfungiblePositionManager(opts, backend, _factory, _WETH9, _tokenDescriptor_)
+	case "NonfungibleTokenPositionDescriptor":
+		_WETH9, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _WETH9")
+		}
+		_nativeCurrencyLabelBytes, ok := deployment.Args[1].([32]byte)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for _nativeCurrencyLabelBytes")
+		}
+		_, tx, _, err = bindings.DeployNonfungibleTokenPositionDescriptor(opts, backend, _WETH9, _nativeCurrencyLabelBytes)
+	case "TickLens":
+		_, tx, _, err = bindings.DeployTickLens(opts, backend)
+	case "UniswapInterfaceMulticall":
+		_, tx, _, err = bindings.DeployUniswapInterfaceMulticall(opts, backend)
+	case "UniversalRouter":
+		localParams, ok := deployment.Args[0].(RouterParameters)
+		if !ok {
+			log.Printf("UniversalRouter의 RouterParameters 타입 불일치: 받은 타입: %T, 값: %#v", deployment.Args[0], deployment.Args[0])
+			return nil, fmt.Errorf("invalid type for RouterParameters: received type %T", deployment.Args[0])
+		}
+		convertedParams := ConvertRouterParameters(localParams)
+		_, tx, _, err = bindings.DeployUniversalRouter(opts, backend, convertedParams)
+		if err != nil {
+			return nil, err
+		}
 	default:
-		return tx, fmt.Errorf("unknown contract: %s", deployment.Name)
+		return nil, fmt.Errorf("unknown contract: %s", deployment.Name)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	return tx, err
@@ -278,4 +430,67 @@ func prepareFeeVaultArguments(deployment deployer.Constructor) (common.Address, 
 		return common.Address{}, nil, 0, fmt.Errorf("invalid type for withdrawalNetwork")
 	}
 	return recipient, minimumWithdrawalAmountHex, withdrawalNetwork, nil
+}
+
+func prepareSwapRouter02(deployment deployer.Constructor) (common.Address, common.Address, common.Address, common.Address, error) {
+	_factoryV2, ok := deployment.Args[0].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _factoryV2")
+	}
+	factoryV3, ok := deployment.Args[1].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for factoryV3")
+	}
+	_positionManager, ok := deployment.Args[2].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _positionManager")
+	}
+	_WETH9, ok := deployment.Args[3].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _WETH9")
+	}
+	return _factoryV2, factoryV3, _positionManager, _WETH9, nil
+}
+
+func PrepareNonfungiblePositionManager(deployment deployer.Constructor) (common.Address, common.Address, common.Address, error) {
+	_factory, ok := deployment.Args[0].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _factory")
+	}
+	_WETH9, ok := deployment.Args[1].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _WETH9")
+	}
+	_tokenDescriptor_, ok := deployment.Args[2].(common.Address)
+	if !ok {
+		return common.Address{}, common.Address{}, common.Address{}, fmt.Errorf("invalid type for _tokenDescriptor_")
+	}
+
+	return _factory, _WETH9, _tokenDescriptor_, nil
+}
+
+// ConvertRouterParameters converts local RouterParameters to bindings RouterParameters.
+func ConvertRouterParameters(localParams RouterParameters) bindings.RouterParameters {
+	return bindings.RouterParameters{
+		Permit2:                     localParams.Permit2,
+		Weth9:                       localParams.Weth9,
+		SeaportV15:                  localParams.SeaportV15,
+		SeaportV14:                  localParams.SeaportV14,
+		OpenseaConduit:              localParams.OpenseaConduit,
+		NftxZap:                     localParams.NftxZap,
+		X2y2:                        localParams.X2y2,
+		Foundation:                  localParams.Foundation,
+		Sudoswap:                    localParams.Sudoswap,
+		ElementMarket:               localParams.ElementMarket,
+		Nft20Zap:                    localParams.Nft20Zap,
+		Cryptopunks:                 localParams.Cryptopunks,
+		LooksRareV2:                 localParams.LooksRareV2,
+		RouterRewardsDistributor:    localParams.RouterRewardsDistributor,
+		LooksRareRewardsDistributor: localParams.LooksRareRewardsDistributor,
+		LooksRareToken:              localParams.LooksRareToken,
+		V2Factory:                   localParams.V2Factory,
+		V3Factory:                   localParams.V3Factory,
+		PairInitCodeHash:            localParams.PairInitCodeHash,
+		PoolInitCodeHash:            localParams.PoolInitCodeHash,
+	}
 }

@@ -73,4 +73,19 @@
   "newBlacklister": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "masterMinterOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "fiatTokenOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
+  "factoryV2addr": "0x0000000000000000000000000000000000000000",
+  "nativeCurrencyLabelBytes": [84, 87, 79, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "uniswapV3FactoryOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+  "uniswapV3FactoryFee500": 500,
+  "uniswapV3FactoryTickSpacing10": 10,
+  "uniswapV3FactoryFee3000": 3000,
+  "uniswapV3FactoryTickSpacing60": 60,
+  "uniswapV3FactoryFee10000": 10000,
+  "uniswapV3FactoryTickSpacing200": 200,
+  "uniswapV3FactoryFee100": 100,
+  "uniswapV3FactoryTickSpacing1": 1,
+  "pairInitCodeHash": "0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f",
+  "poolInitCodeHash": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
+  "unsupportedAddress": "0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84",
+  "universalRouterRewardsDistributor": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
 }
