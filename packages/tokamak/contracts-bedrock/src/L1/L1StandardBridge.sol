@@ -478,21 +478,21 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         );
     }
 
-    // /// @inheritdoc StandardBridge
-    // /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
-    // ///         This is necessary for backwards compatibility with the legacy bridge.
-    // function _emitETHBridgeInitiated(
-    //     address _from,
-    //     address _to,
-    //     uint256 _amount,
-    //     bytes memory _extraData
-    // )
-    //     internal
-    //     override
-    // {
-    //     emit ETHDepositInitiated(_from, _to, _amount, _extraData);
-    //     super._emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-    // }
+    /// @inheritdoc StandardBridge
+    /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
+    ///         This is necessary for backwards compatibility with the legacy bridge.
+    function _emitETHBridgeInitiated(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        emit ETHDepositInitiated(_from, _to, _amount, _extraData);
+        super._emitETHBridgeInitiated(_from, _to, _amount, _extraData);
+    }
 
     /// @inheritdoc StandardBridge
     /// @notice Emits the legacy ERC20DepositInitiated event followed by the ERC20BridgeInitiated
