@@ -159,6 +159,10 @@ func getElementEncoder(storageType solc.StorageLayoutType, kind string) (Element
 		return EncodeBoolValue, nil
 	case "t_bytes32":
 		return EncodeBytes32Value, nil
+	case "t_int24":
+		return EncodeInt24Value, nil
+	case "t_uint24":
+		return EncodeUint24Value, nil
 	default:
 		if strings.HasPrefix(target, "t_uint") {
 			return EncodeUintValue, nil
@@ -463,4 +467,25 @@ func handleOffset(hash common.Hash, offset uint) common.Hash {
 	number := hash.Big()
 	shifted := new(big.Int).Lsh(number, offset*8)
 	return common.BigToHash(shifted)
+}
+
+// function to encode a t_uint24 value
+func EncodeUint24Value(value any, offset uint) (common.Hash, error) {
+	uintValue, ok := value.(uint32)
+	if !ok || uintValue > 0xFFFFFF {
+		return common.Hash{}, fmt.Errorf("uint24 overflow or invalid type: %v", value)
+	}
+	hash := common.BigToHash(new(big.Int).SetUint64(uint64(uintValue)))
+	return handleOffset(hash, offset), nil
+}
+
+// function to encode a t_int24 value
+func EncodeInt24Value(value any, offset uint) (common.Hash, error) {
+	intValue, ok := value.(int32)
+	if !ok || intValue < -8388608 || intValue > 8388607 {
+		return common.Hash{}, fmt.Errorf("int24 overflow or invalid type: %v", value)
+	}
+	uintValue := uint32(intValue) & 0xFFFFFF
+	hash := common.BigToHash(new(big.Int).SetUint64(uint64(uintValue)))
+	return handleOffset(hash, offset), nil
 }
