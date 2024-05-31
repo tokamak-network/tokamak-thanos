@@ -15,13 +15,15 @@ import (
 
 const (
 	// Base Flags
-	MetadataOutFlagName         = "metadata-out"
-	BindingsPackageNameFlagName = "bindings-package"
-	ContractsListFlagName       = "contracts-list"
+	MetadataOutFlagName          = "metadata-out"
+	BindingsPackageNameFlagName  = "bindings-package"
+	ContractsListFlagName        = "contracts-list"
+	HardhatContractsListFlagName = "hardhat-contracts-list"
 
 	// Local Contracts Flags
-	SourceMapsListFlagName = "source-maps-list"
-	ForgeArtifactsFlagName = "forge-artifacts"
+	SourceMapsListFlagName   = "source-maps-list"
+	ForgeArtifactsFlagName   = "forge-artifacts"
+	HardhatArtifactsFlagName = "hardhat-artifacts"
 
 	// Remote Contracts Flags
 	EtherscanApiKeyEthFlagName = "etherscan.apikey.eth"
@@ -147,9 +149,11 @@ func parseConfigLocal(logger log.Logger, c *cli.Context) (bindgen.BindGenGenerat
 		return bindgen.BindGenGeneratorLocal{}, err
 	}
 	return bindgen.BindGenGeneratorLocal{
-		BindGenGeneratorBase: baseConfig,
-		SourceMapsList:       c.String(SourceMapsListFlagName),
-		ForgeArtifactsPath:   c.String(ForgeArtifactsFlagName),
+		BindGenGeneratorBase:     baseConfig,
+		SourceMapsList:           c.String(SourceMapsListFlagName),
+		ForgeArtifactsPath:       c.String(ForgeArtifactsFlagName),
+		HardhatArtifactsPath:     c.String(HardhatArtifactsFlagName),
+		HardhatContractsListPath: c.String(HardhatContractsListFlagName),
 	}, nil
 }
 
@@ -205,6 +209,16 @@ func localFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:     ForgeArtifactsFlagName,
 			Usage:    "Path to forge-artifacts directory, containing compiled contract artifacts",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     HardhatArtifactsFlagName,
+			Usage:    "Path to hardhat-artifacts directory, containing compiled contract artifacts",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     HardhatContractsListFlagName,
+			Usage:    "Path to file containing list of hardhat contract names to generate bindings for",
 			Required: true,
 		},
 	}

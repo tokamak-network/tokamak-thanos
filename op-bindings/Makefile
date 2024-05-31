@@ -2,6 +2,7 @@ pkg := bindings
 monorepo-base := $(shell dirname $(realpath .))
 contracts-dir := $(monorepo-base)/packages/tokamak/contracts-bedrock
 contracts-list := ./artifacts.json
+contracts-hardhat-list := ./artifacts-hardhat.json
 log-level := info
 ETHERSCAN_APIKEY_ETH ?=
 ETHERSCAN_APIKEY_OP ?=
@@ -13,6 +14,7 @@ all: version mkdir bindings
 version:
 	forge --version
 	abigen --version
+
 compile:
 	cd $(contracts-dir) && \
 		forge clean && \
@@ -30,7 +32,9 @@ bindgen-generate-local:
 		--contracts-list $(contracts-list) \
 		--log.level $(log-level) \
 		local \
-		--forge-artifacts $(contracts-dir)/forge-artifacts
+		--forge-artifacts $(contracts-dir)/forge-artifacts \
+		--hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
+		--hardhat-contracts-list $(contracts-hardhat-list)
 
 bindgen-remote:
 	go run ./cmd/ \
@@ -64,6 +68,7 @@ hardhat-bindings:
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
 	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/universal-router/UniversalRouter.sol/UniversalRouter.json $(pkg)
 
 mkdir:
 	mkdir -p $(pkg)

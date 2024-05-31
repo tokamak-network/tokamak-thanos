@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -119,6 +120,27 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 			db.CreateAccount(codeAddr)
 			db.SetState(predeploy.Address, ImplementationSlotForZepplin, eth.AddressAsLeftPaddedHash(codeAddr))
 			log.Info("Set proxy for FiatTokenV2_2", "name", name, "address", predeploy.Address, "implementation", codeAddr)
+		case "UniswapV3Factory":
+			dep, err := bindings.GetDeployedBytecode(name)
+			if err != nil {
+				return nil, err
+			}
+			originalCode := "5050565b306001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000"
+			newCode := "5050565b306001600160a01b037f0000000000000000000000004200000000000000000000000000000000000502"
+			originalBytes, _ := hex.DecodeString(originalCode)
+			newBytes, _ := hex.DecodeString(newCode)
+			startIndex := bytes.Index(dep, originalBytes)
+			if startIndex != -1 {
+				a := dep[:startIndex]
+				b := dep[startIndex+len(originalBytes):]
+				c := hexutil.Bytes{}
+				c = append(c, a...)
+				c = append(c, newBytes...)
+				c = append(c, b...)
+				dep = c
+			}
+			deployResults[name] = dep
+			fallthrough
 		default:
 			if !predeploy.ProxyDisabled {
 				codeAddr, err = AddressToCodeNamespace(predeploy.Address)
