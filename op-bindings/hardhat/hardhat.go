@@ -272,10 +272,10 @@ func (h *Hardhat) GetBuildInfo(name string) (*BuildInfo, error) {
 
 	// TODO(tynes): handle multiple contracts with same name when required
 	if len(buildInfos) > 1 {
-		return nil, fmt.Errorf("Multiple contracts with name %s", name)
+		return nil, fmt.Errorf("multiple contracts with name %s", name)
 	}
 	if len(buildInfos) == 0 {
-		return nil, fmt.Errorf("Cannot find BuildInfo for %s", name)
+		return nil, fmt.Errorf("cannot find BuildInfo for %s", name)
 	}
 
 	return buildInfos[0], nil
