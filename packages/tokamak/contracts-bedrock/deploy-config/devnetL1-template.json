@@ -72,7 +72,7 @@
   "newPauser": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "newBlacklister": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "masterMinterOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
-  "fiatTokenOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
+  "fiatTokenOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "factoryV2addr": "0x0000000000000000000000000000000000000000",
   "nativeCurrencyLabelBytes": [84, 87, 79, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   "uniswapV3FactoryOwner": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
