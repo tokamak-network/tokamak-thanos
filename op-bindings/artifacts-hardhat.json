@@ -1,5 +1,4 @@
 [
-  "TransparentUpgradeableProxy",
   "QuoterV2",
   "SwapRouter02",
   "UniswapV3Factory",
@@ -7,5 +6,6 @@
   "NonfungiblePositionManager",
   "NonfungibleTokenPositionDescriptor",
   "TickLens",
-  "UniswapInterfaceMulticall"
+  "UniswapInterfaceMulticall",
+  "UniversalRouter"
 ]
