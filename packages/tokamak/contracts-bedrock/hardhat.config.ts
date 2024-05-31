@@ -1,5 +1,4 @@
 import "@nomiclabs/hardhat-waffle";
-// import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-etherscan";
 import 'hardhat-deploy';
 
@@ -29,7 +28,7 @@ export default {
       chainId: 901,
     },
     'thanos-sepolia-test': {
-      url: "https://explorer.thanos-sepolia-test.tokamak.network",
+      url: "https://rpc.thanos-sepolia-test.tokamak.network",
       chainId: 111551118080,
     },
   },
@@ -48,7 +47,7 @@ export default {
         network: "thanos-sepolia-test",
         chainId: 111551118080,
         urls: {
-          apiURL: "https://rpc.titan-sepolia.tokamak.network",
+          apiURL: "https://explorer.thanos-sepolia-test.tokamak.network/api",
           browserURL: "https://explorer.thanos-sepolia-test.tokamak.network",
         },
       },
@@ -58,3 +57,4 @@ export default {
     enabled: false,
   },
 };
+
