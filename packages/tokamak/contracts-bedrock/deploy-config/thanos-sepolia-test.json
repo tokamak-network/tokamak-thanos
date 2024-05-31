@@ -45,5 +45,11 @@
   "setPrecompileBalances": false,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000003000000010000000000000000",
   "recommendedProtocolVersion": "0x0000000000000000000000000000000000000003000000010000000000000000",
-  "l1UsdcAddr": "0x2f3a40a3db8a7e3d09b0adfefbce4f6f81927557"
+  "l1UsdcAddr": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  "usdcTokenName": "Bridged USDC (Tokamak Network)",
+  "newPauser": "0x9E628CaAd7A6dD3ce48E78812241B41BdbeF6244",
+  "newBlacklister": "0x9E628CaAd7A6dD3ce48E78812241B41BdbeF6244",
+  "masterMinterOwner": "0x9E628CaAd7A6dD3ce48E78812241B41BdbeF6244",
+  "fiatTokenOwner": "0x9E628CaAd7A6dD3ce48E78812241B41BdbeF6244"
+
 }
