@@ -127,7 +127,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         reinitializer(Constants.INITIALIZER)
     {
         nativeTokenAddress = _nativeTokenAddress;
-        l2Sender = Constants.DEFAULT_L2_SENDER;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
