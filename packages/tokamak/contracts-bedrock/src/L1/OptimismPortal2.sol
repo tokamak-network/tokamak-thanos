@@ -5,7 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
+import { DisputeGameFactory, IDisputeGame } from "src/dispute/DisputeGameFactory.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
@@ -15,24 +15,32 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
+import { Constants } from "src/libraries/Constants.sol";
+
+import "src/libraries/DisputeTypes.sol";
 
 /// @custom:proxied
-/// @title OptimismPortal
+/// @title OptimismPortal2
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, ISemver {
+contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
-    /// @custom:field outputRoot    Root of the L2 output this was proven against.
-    /// @custom:field timestamp     Timestamp at whcih the withdrawal was proven.
-    /// @custom:field l2OutputIndex Index of the output this was proven against.
+    /// @custom:field disputeGameProxy The address of the dispute game proxy that the withdrawal was proven against.
+    /// @custom:field timestamp        Timestamp at whcih the withdrawal was proven.
     struct ProvenWithdrawal {
-        bytes32 outputRoot;
-        uint128 timestamp;
-        uint128 l2OutputIndex;
+        IDisputeGame disputeGameProxy;
+        uint64 timestamp;
     }
+
+    /// @notice The delay between when a withdrawal transaction is proven and when it may be finalized.
+    uint256 internal immutable PROOF_MATURITY_DELAY_SECONDS;
+
+    /// @notice The delay between when a dispute game is resolved and when a withdrawal proven against it may be
+    ///         finalized.
+    uint256 internal immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS;
 
     /// @notice Version of the deposit event.
     uint256 internal constant DEPOSIT_VERSION = 0;
@@ -48,8 +56,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice A list of withdrawal hashes which have been successfully finalized.
     mapping(bytes32 => bool) public finalizedWithdrawals;
 
-    /// @notice A mapping of withdrawal hashes to `ProvenWithdrawal` data.
-    mapping(bytes32 => ProvenWithdrawal) public provenWithdrawals;
+    /// @custom:legacy
+    /// @custom:spacer provenWithdrawals
+    /// @notice Spacer taking up the legacy `provenWithdrawals` mapping slot.
+    bytes32 private spacer_52_0_32;
 
     /// @custom:legacy
     /// @custom:spacer paused
@@ -59,18 +69,33 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Contract of the Superchain Config.
     SuperchainConfig public superchainConfig;
 
-    /// @notice Address of the L2OutputOracle contract.
-    /// @custom:network-specific
-    L2OutputOracle public l2Oracle;
+    /// @custom:legacy
+    /// @custom:spacer l2Oracle
+    /// @notice Spacer taking up the legacy `l2Oracle` address slot.
+    address private spacer_54_0_20;
 
-    /// @notice Address of the SystemConfig contract.
+    /// @notice Contract of the SystemConfig.
     /// @custom:network-specific
     SystemConfig public systemConfig;
 
     /// @notice Address of native (ERC-20 token)
     address public nativeTokenAddress;
 
-    uint256 public depositedAmount;
+    /// @notice Address of the DisputeGameFactory.
+    /// @custom:network-specific
+    DisputeGameFactory public disputeGameFactory;
+
+    /// @notice A mapping of withdrawal hashes to `ProvenWithdrawal` data.
+    mapping(bytes32 => ProvenWithdrawal) public provenWithdrawals;
+
+    /// @notice A mapping of dispute game addresses to whether or not they are blacklisted.
+    mapping(IDisputeGame => bool) public disputeGameBlacklist;
+
+    /// @notice The game type that the OptimismPortal consults for output proposals.
+    GameType public respectedGameType;
+
+    /// @notice The timestamp at which the respected game type was last updated.
+    uint64 public respectedGameTypeUpdatedAt;
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -94,40 +119,47 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
 
     /// @notice Reverts when paused.
     modifier whenNotPaused() {
-        require(paused() == false, "OptimismPortal: paused");
+        require(!paused(), "OptimismPortal: paused");
         _;
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 2.5.0
-    string public constant version = "2.5.0";
+    /// @custom:semver 3.2.0
+    string public constant version = "3.2.0";
 
     /// @notice Constructs the OptimismPortal contract.
-    constructor() {
+    constructor(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds,
+        GameType _initialRespectedGameType
+    ) {
+        PROOF_MATURITY_DELAY_SECONDS = _proofMaturityDelaySeconds;
+        DISPUTE_GAME_FINALITY_DELAY_SECONDS = _disputeGameFinalityDelaySeconds;
+        respectedGameType = _initialRespectedGameType;
+
         initialize({
             _nativeTokenAddress: address(0),
-            _l2Oracle: L2OutputOracle(address(0)),
+            _disputeGameFactory: DisputeGameFactory(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _superchainConfig: SuperchainConfig(address(0))
         });
     }
 
     /// @notice Initializer.
-    /// @param _nativeTokenAddress Address of the native token
-    /// @param _l2Oracle Address of the L2OutputOracle contract.
-    /// @param _systemConfig Address of the SystemConfig contract.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     function initialize(
         address _nativeTokenAddress,
-        L2OutputOracle _l2Oracle,
+        DisputeGameFactory _disputeGameFactory,
         SystemConfig _systemConfig,
         SuperchainConfig _superchainConfig
     )
         public
-        reinitializer(Constants.INITIALIZER)
+        initializer
     {
         nativeTokenAddress = _nativeTokenAddress;
-        l2Oracle = _l2Oracle;
+        disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
         if (l2Sender == address(0)) {
@@ -136,13 +168,9 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         __ResourceMetering_init();
     }
 
-    /// @notice Getter for the L2OutputOracle
-    /// @custom:legacy
-    function L2_ORACLE() external view returns (L2OutputOracle) {
-        return l2Oracle;
-    }
-
-    /// @notice Getter for the SystemConfig
+    /// @notice Getter function for the contract of the SystemConfig on this chain.
+    ///         Public getter is legacy and will be removed in the future. Use `systemConfig()` instead.
+    /// @return Contract of the SystemConfig on this chain.
     /// @custom:legacy
     function SYSTEM_CONFIG() external view returns (SystemConfig) {
         return systemConfig;
@@ -165,9 +193,18 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Getter for the current paused status.
-    /// @return paused_ Whether or not the contract is paused.
-    function paused() public view returns (bool paused_) {
-        paused_ = superchainConfig.paused();
+    function paused() public view returns (bool) {
+        return superchainConfig.paused();
+    }
+
+    /// @notice Getter for the proof maturity delay.
+    function proofMaturityDelaySeconds() public view returns (uint256) {
+        return PROOF_MATURITY_DELAY_SECONDS;
+    }
+
+    /// @notice Getter for the dispute game finality delay.
+    function disputeGameFinalityDelaySeconds() public view returns (uint256) {
+        return DISPUTE_GAME_FINALITY_DELAY_SECONDS;
     }
 
     /// @notice Computes the minimum gas limit for a deposit.
@@ -185,10 +222,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         funds be deposited to their address on L2. This is intended as a convenience
     ///         function for EOAs. Contracts should call the depositTransaction() function directly
     ///         otherwise any deposited funds will be lost due to address aliasing.
-    // solhint-disable-next-line ordering
     receive() external payable {
         revert("Only allow native token");
-        // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
     }
 
     /// @notice Accepts ETH value without triggering a deposit to L2.
@@ -207,13 +242,13 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Proves a withdrawal transaction.
-    /// @param _tx              Withdrawal transaction to finalize.
-    /// @param _l2OutputIndex   L2 output index to prove against.
-    /// @param _outputRootProof Inclusion proof of the L2ToL1MessagePasser contract's storage root.
-    /// @param _withdrawalProof Inclusion proof of the withdrawal in L2ToL1MessagePasser contract.
+    /// @param _tx               Withdrawal transaction to finalize.
+    /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
+    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser contract's storage root.
+    /// @param _withdrawalProof  Inclusion proof of the withdrawal in L2ToL1MessagePasser contract.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
-        uint256 _l2OutputIndex,
+        uint256 _disputeGameIndex,
         Types.OutputRootProof calldata _outputRootProof,
         bytes[] calldata _withdrawalProof
     )
@@ -225,13 +260,17 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // `finalizeWithdrawalTransaction`.
         require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
 
-        // Get the output root and load onto the stack to prevent multiple mloads. This will
-        // revert if there is no output root for the given block number.
-        bytes32 outputRoot = l2Oracle.getL2Output(_l2OutputIndex).outputRoot;
+        // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
+        (GameType gameType,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
+        Claim outputRoot = gameProxy.rootClaim();
+
+        // The game type of the dispute game must be the respected game type.
+        require(gameType.raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
 
         // Verify that the output root can be generated with the elements in the proof.
         require(
-            outputRoot == Hashing.hashOutputRootProof(_outputRootProof), "OptimismPortal: invalid output root proof"
+            outputRoot.raw() == Hashing.hashOutputRootProof(_outputRootProof),
+            "OptimismPortal: invalid output root proof"
         );
 
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
@@ -241,13 +280,14 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // We generally want to prevent users from proving the same withdrawal multiple times
         // because each successive proof will update the timestamp. A malicious user can take
         // advantage of this to prevent other users from finalizing their withdrawal. However,
-        // since withdrawals are proven before an output root is finalized, we need to allow users
-        // to re-prove their withdrawal only in the case that the output root for their specified
-        // output index has been updated.
+        // in the case that an honest user proves their withdrawal against a dispute game that
+        // resolves against the root claim, or the dispute game is blacklisted, we allow
+        // re-proving the withdrawal against a new proposal.
+        IDisputeGame game = provenWithdrawal.disputeGameProxy;
         require(
-            provenWithdrawal.timestamp == 0
-                || l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex).outputRoot != provenWithdrawal.outputRoot,
-            "OptimismPortal: withdrawal hash has already been proven"
+            provenWithdrawal.timestamp == 0 || gameProxy.status() == GameStatus.CHALLENGER_WINS
+                || disputeGameBlacklist[gameProxy] || game.gameType().raw() != respectedGameType.raw(),
+            "OptimismPortal: withdrawal hash has already been proven, and dispute game is not invalid"
         );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
@@ -271,14 +311,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
             "OptimismPortal: invalid withdrawal inclusion proof"
         );
 
-        // Designate the withdrawalHash as proven by storing the `outputRoot`, `timestamp`, and
-        // `l2BlockNumber` in the `provenWithdrawals` mapping. A `withdrawalHash` can only be
-        // proven once unless it is submitted again with a different outputRoot.
-        provenWithdrawals[withdrawalHash] = ProvenWithdrawal({
-            outputRoot: outputRoot,
-            timestamp: uint128(block.timestamp),
-            l2OutputIndex: uint128(_l2OutputIndex)
-        });
+        // Designate the withdrawalHash as proven by storing the `disputeGameProxy` & `timestamp` in the
+        // `provenWithdrawals` mapping. A `withdrawalHash` can only be proven once unless the dispute game it proved
+        // against resolves against the favor of the root claim.
+        provenWithdrawals[withdrawalHash] =
+            ProvenWithdrawal({ disputeGameProxy: gameProxy, timestamp: uint64(block.timestamp) });
 
         // Emit a `WithdrawalProven` event.
         emit WithdrawalProven(withdrawalHash, _tx.sender, _tx.target);
@@ -294,52 +331,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
             l2Sender == Constants.DEFAULT_L2_SENDER, "OptimismPortal: can only trigger one withdrawal per transaction"
         );
 
-        // Grab the proven withdrawal from the `provenWithdrawals` map.
+        // Compute the withdrawal hash.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
-        ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[withdrawalHash];
 
-        // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
-        // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
-        // a timestamp of zero.
-        require(provenWithdrawal.timestamp != 0, "OptimismPortal: withdrawal has not been proven yet");
-
-        // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
-        // starting timestamp inside the L2OutputOracle. Not strictly necessary but extra layer of
-        // safety against weird bugs in the proving step.
-        require(
-            provenWithdrawal.timestamp >= l2Oracle.startingTimestamp(),
-            "OptimismPortal: withdrawal timestamp less than L2 Oracle starting timestamp"
-        );
-
-        // A proven withdrawal must wait at least the finalization period before it can be
-        // finalized. This waiting period can elapse in parallel with the waiting period for the
-        // output the withdrawal was proven against. In effect, this means that the minimum
-        // withdrawal time is proposal submission time + finalization period.
-        require(
-            _isFinalizationPeriodElapsed(provenWithdrawal.timestamp),
-            "OptimismPortal: proven withdrawal finalization period has not elapsed"
-        );
-
-        // Grab the OutputProposal from the L2OutputOracle, will revert if the output that
-        // corresponds to the given index has not been proposed yet.
-        Types.OutputProposal memory proposal = l2Oracle.getL2Output(provenWithdrawal.l2OutputIndex);
-
-        // Check that the output root that was used to prove the withdrawal is the same as the
-        // current output root for the given output index. An output root may change if it is
-        // deleted by the challenger address and then re-proposed.
-        require(
-            proposal.outputRoot == provenWithdrawal.outputRoot,
-            "OptimismPortal: output root proven is not the same as current output root"
-        );
-
-        // Check that the output proposal has also been finalized.
-        require(
-            _isFinalizationPeriodElapsed(proposal.timestamp),
-            "OptimismPortal: output proposal finalization period has not elapsed"
-        );
-
-        // Check that this withdrawal has not already been finalized, this is replay protection.
-        require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
+        // Check that the withdrawal can be finalized.
+        checkWithdrawal(withdrawalHash);
 
         // Not allow to call native token contract because users can transfer all token out of the contract
         require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
@@ -356,7 +352,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
                 ),
                 "Optimism approve failed"
             );
-            depositedAmount -= _tx.value;
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -378,7 +373,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
-        if (success == false && tx.origin == Constants.ESTIMATION_ADDRESS) {
+        if (!success && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert("OptimismPortal: withdrawal failed");
         }
     }
@@ -435,7 +430,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Lock token in this contract
         if (_mint > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
-            depositedAmount += _mint;
         }
 
         if (_isCreation) {
@@ -468,20 +462,82 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
     }
 
-    /// @notice Determine if a given output is finalized.
-    ///         Reverts if the call to L2_ORACLE.getL2Output reverts.
-    ///         Returns a boolean otherwise.
-    /// @param _l2OutputIndex Index of the L2 output to check.
-    /// @return Whether or not the output is finalized.
-    function isOutputFinalized(uint256 _l2OutputIndex) external view returns (bool) {
-        return _isFinalizationPeriodElapsed(l2Oracle.getL2Output(_l2OutputIndex).timestamp);
+    /// @notice Blacklists a dispute game. Should only be used in the event that a dispute game resolves incorrectly.
+    /// @param _disputeGame Dispute game to blacklist.
+    function blacklistDisputeGame(IDisputeGame _disputeGame) external {
+        require(msg.sender == guardian(), "OptimismPortal: only the guardian can blacklist dispute games");
+        disputeGameBlacklist[_disputeGame] = true;
     }
 
-    /// @notice Determines whether the finalization period has elapsed with respect to
-    ///         the provided block timestamp.
-    /// @param _timestamp Timestamp to check.
-    /// @return Whether or not the finalization period has elapsed.
-    function _isFinalizationPeriodElapsed(uint256 _timestamp) internal view returns (bool) {
-        return block.timestamp > _timestamp + l2Oracle.FINALIZATION_PERIOD_SECONDS();
+    /// @notice Sets the respected game type. Changing this value can alter the security properties of the system,
+    ///         depending on the new game's behavior.
+    /// @param _gameType The game type to consult for output proposals.
+    function setRespectedGameType(GameType _gameType) external {
+        require(msg.sender == guardian(), "OptimismPortal: only the guardian can set the respected game type");
+        respectedGameType = _gameType;
+        respectedGameTypeUpdatedAt = uint64(block.timestamp);
+    }
+
+    /// @notice Checks if a withdrawal can be finalized. This function will revert if the withdrawal cannot be
+    ///         finalized, and otherwise has no side-effects.
+    /// @param _withdrawalHash Hash of the withdrawal to check.
+    function checkWithdrawal(bytes32 _withdrawalHash) public view {
+        ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash];
+        IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
+
+        // The dispute game must not be blacklisted.
+        require(!disputeGameBlacklist[disputeGameProxy], "OptimismPortal: dispute game has been blacklisted");
+
+        // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
+        // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
+        // a timestamp of zero.
+        require(provenWithdrawal.timestamp != 0, "OptimismPortal: withdrawal has not been proven yet");
+
+        uint64 createdAt = disputeGameProxy.createdAt().raw();
+
+        // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
+        // starting timestamp inside the Dispute Game. Not strictly necessary but extra layer of
+        // safety against weird bugs in the proving step.
+        require(
+            provenWithdrawal.timestamp > createdAt,
+            "OptimismPortal: withdrawal timestamp less than dispute game creation timestamp"
+        );
+
+        // A proven withdrawal must wait at least `PROOF_MATURITY_DELAY_SECONDS` before finalizing.
+        require(
+            block.timestamp - provenWithdrawal.timestamp > PROOF_MATURITY_DELAY_SECONDS,
+            "OptimismPortal: proven withdrawal has not matured yet"
+        );
+
+        // A proven withdrawal must wait until the dispute game it was proven against has been
+        // resolved in favor of the root claim (the output proposal). This is to prevent users
+        // from finalizing withdrawals proven against non-finalized output roots.
+        require(
+            disputeGameProxy.status() == GameStatus.DEFENDER_WINS,
+            "OptimismPortal: output proposal has not been finalized yet"
+        );
+
+        // The game type of the dispute game must be the respected game type. This was also checked in
+        // `proveWithdrawalTransaction`, but we check it again in case the respected game type has changed since
+        // the withdrawal was proven.
+        require(disputeGameProxy.gameType().raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
+
+        // The game must have been created after `respectedGameTypeUpdatedAt`. This is to prevent users from creating
+        // invalid disputes against a deployed game type while the off-chain challenge agents are not watching.
+        require(
+            createdAt >= respectedGameTypeUpdatedAt,
+            "OptimismPortal: dispute game created before respected game type was updated"
+        );
+
+        // Before a withdrawal can be finalized, the dispute game it was proven against must have been
+        // resolved for at least `DISPUTE_GAME_FINALITY_DELAY_SECONDS`. This is to allow for manual
+        // intervention in the event that a dispute game is resolved incorrectly.
+        require(
+            block.timestamp - disputeGameProxy.resolvedAt().raw() > DISPUTE_GAME_FINALITY_DELAY_SECONDS,
+            "OptimismPortal: output proposal in air-gap"
+        );
+
+        // Check that this withdrawal has not already been finalized, this is replay protection.
+        require(!finalizedWithdrawals[_withdrawalHash], "OptimismPortal: withdrawal has already been finalized");
     }
 }

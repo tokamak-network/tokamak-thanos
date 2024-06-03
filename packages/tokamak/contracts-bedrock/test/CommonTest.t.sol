@@ -16,6 +16,12 @@ import { OptimismMintableERC721Factory } from "src/universal/OptimismMintableERC
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
+import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
+import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
+import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+import { PermissionedDisputeGame } from "src/dispute/PermissionedDisputeGame.sol";
+import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
+import { MIPS } from "src/cannon/MIPS.sol";
 import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
 import { SequencerFeeVault } from "src/L2/SequencerFeeVault.sol";
@@ -37,6 +43,10 @@ import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
+import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
+import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
+import "src/libraries/DisputeTypes.sol";
 
 contract NativeToken is ERC20 {
     constructor() ERC20("Test", "Test") { }
@@ -281,6 +291,102 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
+    }
+}
+
+contract DisputeGameFactory_Initializer is SuperchainConfig_Initializer {
+    PreimageOracle internal preimageOracle;
+    MIPS internal mips;
+    DisputeGameFactory internal disputeGameFactoryImpl;
+    DisputeGameFactory internal disputeGameFactory;
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        preimageOracle = new PreimageOracle({ _minProposalSize: 10000, _challengePeriod: 120, _cancunActivation: 0 });
+        mips = new MIPS(preimageOracle);
+
+        disputeGameFactoryImpl = new DisputeGameFactory();
+        Proxy proxy = new Proxy(multisig);
+        vm.prank(multisig);
+        proxy.upgradeToAndCall(
+            address(disputeGameFactoryImpl), abi.encodeCall(DisputeGameFactory.initialize, (address(this)))
+        );
+        disputeGameFactory = DisputeGameFactory(address(proxy));
+        vm.label(address(disputeGameFactory), "DisputeGameFactory");
+
+        disputeGameFactory.setImplementation(
+            GameTypes.CANNON,
+            new FaultDisputeGame({
+                _gameType: GameTypes.CANNON,
+                _absolutePrestate: Claim.wrap(bytes32(0x03c7ae758795765c6664a5d39bf63841c71ff191e9189522bad8ebff5d4eca98)),
+                _genesisBlockNumber: 0,
+                _genesisOutputRoot: Hash.wrap(bytes32(0x0000000000000000000000000000000000000000000000000000000000000000)),
+                _maxGameDepth: 50,
+                _splitDepth: 14,
+                _gameDuration: Duration.wrap(uint64(2400)),
+                _vm: IBigStepper(address(mips))
+            })
+        );
+    }
+}
+
+contract Portal2_Initializer is DisputeGameFactory_Initializer {
+    // Test target
+    OptimismPortal2 internal opImpl;
+    OptimismPortal2 internal optimismPortal2;
+
+    SystemConfig systemConfig;
+
+    event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
+    event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        Proxy systemConfigProxy = new Proxy(multisig);
+
+        SystemConfig systemConfigImpl = new SystemConfig();
+
+        systemConfig = SystemConfig(address(systemConfigProxy));
+
+        opImpl = new OptimismPortal2(12, 12, GameTypes.CANNON);
+
+        Proxy opProxy = new Proxy(multisig);
+        vm.prank(multisig);
+        opProxy.upgradeToAndCall(
+            address(opImpl),
+            abi.encodeCall(OptimismPortal2.initialize, (address(token), disputeGameFactory, systemConfig, sc))
+        );
+        optimismPortal2 = OptimismPortal2(payable(address(opProxy)));
+        vm.label(address(optimismPortal2), "OptimismPortal2");
+
+        vm.prank(multisig);
+        systemConfigProxy.upgradeToAndCall(
+            address(systemConfigImpl),
+            abi.encodeCall(
+                SystemConfig.initialize,
+                (
+                    address(1), //_owner,
+                    0, //_overhead,
+                    10000, //_scalar,
+                    bytes32(0), //_batcherHash,
+                    30_000_000, //_gasLimit,
+                    address(0), //_unsafeBlockSigner,
+                    Constants.DEFAULT_RESOURCE_CONFIG(), //_config,
+                    address(0xff), // _batchInbox
+                    SystemConfig.Addresses({ // _addresses
+                        l1CrossDomainMessenger: address(0),
+                        l1ERC721Bridge: address(0),
+                        l1StandardBridge: address(0),
+                        l2OutputOracle: address(oracle),
+                        optimismPortal: address(optimismPortal2),
+                        optimismMintableERC20Factory: address(0),
+                        nativeTokenAddress: address(0)
+                    })
+                )
+            )
+        );
     }
 }
 
