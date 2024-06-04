@@ -8,7 +8,7 @@ volumes:
   l1_data:
   l2_data:
   op_log:
-
+  beacon_data:
 
 services:
   op_stack_go_builder:  # Not an actual service, but builds the prerequisite go images
@@ -30,6 +30,7 @@ services:
       - "8546:8546"
       - "7060:6060"
       - "9999:9999"
+      - "5001:5001"
     volumes:
       - "l1_data:/db"
       - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
@@ -38,6 +39,57 @@ services:
       GETH_MINER_RECOMMIT: 100ms
       BLOCK_NUMBER: ${BLOCK_NUMBER}
       L1_RPC: ${L1_RPC}
+
+  consensus-node:
+    depends_on:
+      - l1
+    build:
+      context: .
+      dockerfile: Dockerfile.lighthouse
+    image: sigp/lighthouse:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "lighthouse
+      --debug-level=info \
+      bn \
+      --allow-insecure-genesis-sync \
+      --datadir=/beacon_data \
+      --enable-private-discovery \
+      --staking \
+      --enr-address=127.0.0.1 \
+      --enr-udp-port=9001 \
+      --enr-tcp-port=9001 \
+      --enr-quic-port=9101 \
+      --port=9001 \
+      --quic-port=9101 \
+      --http-port=8001 \
+      --disable-packet-filter \
+      --target-peers=1 \
+      --execution-endpoint=http://l1:5001 \
+      --execution-jwt=/config/test-jwt-secret.txt \
+      --http-allow-sync-stalled"
+    ports:
+      - "9001:9001"
+      - "9101:9101"
+      - "8001:8001"
+    volumes:
+      - beacon_data:/beacon_data
+      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+
+  validator-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.lighthouse
+    image: sigp/lighthouse:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "lighthouse
+      --debug-level info \
+      vc \
+      --datadir /beacon_data \
+      --init-slashing-protection \
+      --beacon-nodes http://consensus-node:8001
+      --suggested-fee-recipient 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    volumes:
+      - beacon_data:/beacon_data
 
   l2:
     build:
@@ -71,7 +123,7 @@ services:
       args:
         OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
     image: onthertech/thanos-op-node:${IMAGE_TAG:-latest}
-    command: >
+    command: > # TODO: add --l1-beacon
       /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
       --l1=http://l1:8545
@@ -97,7 +149,6 @@ services:
       --metrics.port=7300
       --pprof.enabled
       --rpc.enable-admin
-      --l1.beacon=${L1_BEACON}
       --l1.trustrpc"
     ports:
       - "7545:8545"
