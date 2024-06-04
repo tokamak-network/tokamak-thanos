@@ -15,6 +15,9 @@ import l2ToL1MessagePasser from '@tokamak-network/thanos-contracts/forge-artifac
 import gasPriceOracle from '@tokamak-network/thanos-contracts/forge-artifacts/GasPriceOracle.sol/GasPriceOracle.json'
 import { getContractInterface } from '@eth-optimism/contracts'
 import { predeploys } from '@tokamak-network/core-utils'
+import disputeGameFactory from '@tokamak-network/thanos-contracts/forge-artifacts/DisputeGameFactory.sol/DisputeGameFactory.json'
+import optimismPortal2 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismPortal2.sol/OptimismPortal2.json'
+import faultDisputeGame from '@tokamak-network/thanos-contracts/forge-artifacts/FaultDisputeGame.sol/FaultDisputeGame.json'
 
 import { toAddress } from './coercion'
 import { DeepPartial } from './type-utils'
@@ -28,6 +31,7 @@ import {
   CONTRACT_ADDRESSES,
   DEFAULT_L2_CONTRACT_ADDRESSES,
   BRIDGE_ADAPTER_DATA,
+  IGNORABLE_CONTRACTS,
 } from './chain-constants'
 import {
   OEContracts,
@@ -41,7 +45,7 @@ import {
 
 /**
  * We've changed some contract names in this SDK to be a bit nicer. Here we remap these nicer names
- * back to the original contract names so we can lookpredeploy them up.
+ * back to the original contract names so we can look them up.
  */
 const NAME_REMAPPING = {
   AddressManager: 'Lib_AddressManager' as const,
@@ -50,7 +54,9 @@ const NAME_REMAPPING = {
   BedrockMessagePasser: 'L2ToL1MessagePasser' as const,
 }
 
-const getContractInterfaceBedrock = (name: string): ethers.utils.Interface => {
+export const getContractInterfaceBedrock = (
+  name: string
+): ethers.utils.Interface => {
   let artifact: any = ''
   switch (name) {
     case 'Lib_AddressManager':
@@ -99,6 +105,15 @@ const getContractInterfaceBedrock = (name: string): ethers.utils.Interface => {
     case 'GasPriceOracle':
       artifact = gasPriceOracle
       break
+    case 'DisputeGameFactory':
+      artifact = disputeGameFactory
+      break
+    case 'OptimismPortal2':
+      artifact = optimismPortal2
+      break
+    case 'FaultDisputeGame':
+      artifact = faultDisputeGame
+      break
   }
   return new ethers.utils.Interface(artifact.abi)
 }
@@ -124,11 +139,19 @@ export const getOEContract = (
     signerOrProvider?: ethers.Signer | ethers.providers.Provider
   } = {}
 ): Contract => {
+  // Generally we want to throw an error if a contract address is not provided but there are some
+  // exceptions, particularly for contracts that are part of an upgrade that has not yet been
+  // deployed. It's OK to not provide an address for these contracts with the caveat that this may
+  // cause a runtime error if the contract does actually need to be used.
   const addresses = CONTRACT_ADDRESSES[l2ChainId]
   if (addresses === undefined && opts.address === undefined) {
-    throw new Error(
-      `cannot get contract ${contractName} for unknown L2 chain ID ${l2ChainId}, you must provide an address`
-    )
+    if (IGNORABLE_CONTRACTS.includes(contractName)) {
+      return undefined
+    } else {
+      throw new Error(
+        `cannot get contract ${contractName} for unknown L2 chain ID ${l2ChainId}, you must provide an address`
+      )
+    }
   }
 
   // Bedrock interfaces are backwards compatible. We can prefer Bedrock interfaces over legacy
@@ -182,6 +205,8 @@ export const getAllOEContracts = (
       BondManager: undefined,
       OptimismPortal: undefined,
       L2OutputOracle: undefined,
+      DisputeGameFactory: undefined,
+      OptimismPortal2: undefined,
     },
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   }
@@ -247,7 +272,6 @@ export const getPortalsContracts = (
     },
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   }
-
   // Attach all L1 contracts.
   const l1Contracts = {} as OEL1Contracts
   for (const [contractName, contractAddress] of Object.entries(addresses.l1)) {

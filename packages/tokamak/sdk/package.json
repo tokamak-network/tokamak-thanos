@@ -67,7 +67,8 @@
     "@tokamak-network/core-utils": "workspace:*",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.3.10",
-    "rlp": "^2.2.7"
+    "rlp": "^2.2.7",
+    "semver": "^7.6.0"
   },
   "peerDependencies": {
     "ethers": "^5"
