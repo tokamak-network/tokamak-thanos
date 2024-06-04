@@ -1,0 +1,513 @@
+{
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "depositERC20",
+      "inputs": [
+        {
+          "name": "_l1Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_l2Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_minGasLimit",
+          "type": "uint32",
+          "internalType": "uint32"
+        },
+        {
+          "name": "_extraData",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "depositERC20To",
+      "inputs": [
+        {
+          "name": "_l1Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_l2Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_minGasLimit",
+          "type": "uint32",
+          "internalType": "uint32"
+        },
+        {
+          "name": "_extraData",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "deposits",
+      "inputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "finalizeERC20Withdrawal",
+      "inputs": [
+        {
+          "name": "_l1Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_l2Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_from",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_extraData",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "l1Usdc",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "l2TokenBridge",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "l2Usdc",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "messenger",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "otherBridge",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ERC20DepositInitiated",
+      "inputs": [
+        {
+          "name": "l1Token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "l2Token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "from",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "extraData",
+          "type": "bytes",
+          "indexed": false,
+          "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ERC20WithdrawalFinalized",
+      "inputs": [
+        {
+          "name": "l1Token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "l2Token",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "from",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "extraData",
+          "type": "bytes",
+          "indexed": false,
+          "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "AddressEmptyCode",
+      "inputs": [
+        {
+          "name": "target",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AddressInsufficientBalance",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "FailedInnerCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SafeERC20FailedOperation",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address",
+          "internalType": "address"
+        }
+      ]
+    }
+  ],
+  "address": "0xe268d7F3f42D49E4bBa38e320F8fB4d56d97f214",
+  "args": [],
+  "bytecode": "0x608060405234801561001057600080fd5b5061113d806100206000396000f3fe608060405234801561001057600080fd5b50600436106100a35760003560e01c80638f601f6611610076578063a1b4bc041161005b578063a1b4bc0414610191578063a9f9e675146101b1578063c89701a2146101c457600080fd5b80638f601f661461013a57806391c49bf81461017357600080fd5b80633cb747bf146100a857806356c3b587146100f257806358a997f614610112578063838b252014610127575b600080fd5b6000546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6002546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b610125610120366004610d28565b6101e4565b005b610125610135366004610dab565b610290565b610165610148366004610e41565b600460209081526000928352604080842090915290825290205481565b6040519081526020016100e9565b60015473ffffffffffffffffffffffffffffffffffffffff166100c8565b6003546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b6101256101bf366004610e7a565b6102a9565b6001546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b333b15610278576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603760248201527f5374616e646172644272696467653a2066756e6374696f6e2063616e206f6e6c60448201527f792062652063616c6c65642066726f6d20616e20454f4100000000000000000060648201526084015b60405180910390fd5b610288868633338888888861064b565b505050505050565b6102a0878733888888888861064b565b50505050505050565b60005473ffffffffffffffffffffffffffffffffffffffff163314801561037e5750600154600054604080517f6e296e45000000000000000000000000000000000000000000000000000000008152905173ffffffffffffffffffffffffffffffffffffffff9384169390921691636e296e45916004808201926020929091908290030181865afa158015610342573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103669190610ef3565b73ffffffffffffffffffffffffffffffffffffffff16145b610430576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604160248201527f5374616e646172644272696467653a2066756e6374696f6e2063616e206f6e6c60448201527f792062652063616c6c65642066726f6d20746865206f7468657220627269646760648201527f6500000000000000000000000000000000000000000000000000000000000000608482015260a40161026f565b600254879073ffffffffffffffffffffffffffffffffffffffff8083169116146104b6576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c312075736463000000000000000000000000000000000000000000604482015260640161026f565b600354879073ffffffffffffffffffffffffffffffffffffffff80831691161461053c576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c322075736463000000000000000000000000000000000000000000604482015260640161026f565b73ffffffffffffffffffffffffffffffffffffffff808a166000908152600460209081526040808320938c168352929052205461057a908690610f3f565b73ffffffffffffffffffffffffffffffffffffffff808b166000818152600460209081526040808320948e16835293905291909120919091556105be908787610990565b8673ffffffffffffffffffffffffffffffffffffffff168873ffffffffffffffffffffffffffffffffffffffff168a73ffffffffffffffffffffffffffffffffffffffff167f3ceee06c1e37648fcbb6ed52e17b3e1f275a1f8c7b22a84b2b84732431e046b3898989896040516106389493929190610f9f565b60405180910390a4505050505050505050565b600254889073ffffffffffffffffffffffffffffffffffffffff8083169116146106d1576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c312075736463000000000000000000000000000000000000000000604482015260640161026f565b600354889073ffffffffffffffffffffffffffffffffffffffff808316911614610757576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c322075736463000000000000000000000000000000000000000000604482015260640161026f565b61077973ffffffffffffffffffffffffffffffffffffffff8b16893089610a16565b73ffffffffffffffffffffffffffffffffffffffff808b166000908152600460209081526040808320938d16835292905220546107b7908790610fd5565b73ffffffffffffffffffffffffffffffffffffffff808c1660009081526004602090815260408083208e851684529091528082209390935554600154925190821692633dbb202b9216907f662a633a000000000000000000000000000000000000000000000000000000009061083d908f908f908f908f908f908e908e90602401610fed565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe08184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fffffffff000000000000000000000000000000000000000000000000000000009485161790525160e085901b90921682526108d092918a90600401611076565b600060405180830381600087803b1580156108ea57600080fd5b505af11580156108fe573d6000803e3d6000fd5b505050508773ffffffffffffffffffffffffffffffffffffffff168973ffffffffffffffffffffffffffffffffffffffff168b73ffffffffffffffffffffffffffffffffffffffff167f718594027abd4eaed59f95162563e0cc6d0e8d5b86b1c7be8b1b0ac3343d03968a8a898960405161097c9493929190610f9f565b60405180910390a450505050505050505050565b60405173ffffffffffffffffffffffffffffffffffffffff838116602483015260448201839052610a1191859182169063a9059cbb906064015b604051602081830303815290604052915060e01b6020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff8381831617835250505050610a62565b505050565b60405173ffffffffffffffffffffffffffffffffffffffff8481166024830152838116604483015260648201839052610a5c9186918216906323b872dd906084016109ca565b50505050565b6000610a8473ffffffffffffffffffffffffffffffffffffffff841683610af8565b90508051600014158015610aa9575080806020019051810190610aa791906110f2565b155b15610a11576040517f5274afe700000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8416600482015260240161026f565b6060610b0683836000610b0d565b9392505050565b606081471015610b4b576040517fcd78605900000000000000000000000000000000000000000000000000000000815230600482015260240161026f565b6000808573ffffffffffffffffffffffffffffffffffffffff168486604051610b749190611114565b60006040518083038185875af1925050503d8060008114610bb1576040519150601f19603f3d011682016040523d82523d6000602084013e610bb6565b606091505b5091509150610bc6868383610bd0565b9695505050505050565b606082610be557610be082610c5f565b610b06565b8151158015610c09575073ffffffffffffffffffffffffffffffffffffffff84163b155b15610c58576040517f9996b31500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8516600482015260240161026f565b5080610b06565b805115610c6f5780518082602001fd5b6040517f1425ea4200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b50565b73ffffffffffffffffffffffffffffffffffffffff81168114610ca157600080fd5b803563ffffffff81168114610cda57600080fd5b919050565b60008083601f840112610cf157600080fd5b50813567ffffffffffffffff811115610d0957600080fd5b602083019150836020828501011115610d2157600080fd5b9250929050565b60008060008060008060a08789031215610d4157600080fd5b8635610d4c81610ca4565b95506020870135610d5c81610ca4565b945060408701359350610d7160608801610cc6565b9250608087013567ffffffffffffffff811115610d8d57600080fd5b610d9989828a01610cdf565b979a9699509497509295939492505050565b600080600080600080600060c0888a031215610dc657600080fd5b8735610dd181610ca4565b96506020880135610de181610ca4565b95506040880135610df181610ca4565b945060608801359350610e0660808901610cc6565b925060a088013567ffffffffffffffff811115610e2257600080fd5b610e2e8a828b01610cdf565b989b979a50959850939692959293505050565b60008060408385031215610e5457600080fd5b8235610e5f81610ca4565b91506020830135610e6f81610ca4565b809150509250929050565b600080600080600080600060c0888a031215610e9557600080fd5b8735610ea081610ca4565b96506020880135610eb081610ca4565b95506040880135610ec081610ca4565b94506060880135610ed081610ca4565b93506080880135925060a088013567ffffffffffffffff811115610e2257600080fd5b600060208284031215610f0557600080fd5b8151610b0681610ca4565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600082821015610f5157610f51610f10565b500390565b8183528181602085013750600060208284010152600060207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f840116840101905092915050565b73ffffffffffffffffffffffffffffffffffffffff85168152836020820152606060408201526000610bc6606083018486610f56565b60008219821115610fe857610fe8610f10565b500190565b600073ffffffffffffffffffffffffffffffffffffffff808a1683528089166020840152808816604084015280871660608401525084608083015260c060a083015261103d60c083018486610f56565b9998505050505050505050565b60005b8381101561106557818101518382015260200161104d565b83811115610a5c5750506000910152565b73ffffffffffffffffffffffffffffffffffffffff8416815260606020820152600083518060608401526110b181608085016020880161104a565b63ffffffff93909316604083015250601f919091017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0160160800192915050565b60006020828403121561110457600080fd5b81518015158114610b0657600080fd5b6000825161112681846020870161104a565b919091019291505056fea164736f6c634300080f000a",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100a35760003560e01c80638f601f6611610076578063a1b4bc041161005b578063a1b4bc0414610191578063a9f9e675146101b1578063c89701a2146101c457600080fd5b80638f601f661461013a57806391c49bf81461017357600080fd5b80633cb747bf146100a857806356c3b587146100f257806358a997f614610112578063838b252014610127575b600080fd5b6000546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6002546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b610125610120366004610d28565b6101e4565b005b610125610135366004610dab565b610290565b610165610148366004610e41565b600460209081526000928352604080842090915290825290205481565b6040519081526020016100e9565b60015473ffffffffffffffffffffffffffffffffffffffff166100c8565b6003546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b6101256101bf366004610e7a565b6102a9565b6001546100c89073ffffffffffffffffffffffffffffffffffffffff1681565b333b15610278576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603760248201527f5374616e646172644272696467653a2066756e6374696f6e2063616e206f6e6c60448201527f792062652063616c6c65642066726f6d20616e20454f4100000000000000000060648201526084015b60405180910390fd5b610288868633338888888861064b565b505050505050565b6102a0878733888888888861064b565b50505050505050565b60005473ffffffffffffffffffffffffffffffffffffffff163314801561037e5750600154600054604080517f6e296e45000000000000000000000000000000000000000000000000000000008152905173ffffffffffffffffffffffffffffffffffffffff9384169390921691636e296e45916004808201926020929091908290030181865afa158015610342573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103669190610ef3565b73ffffffffffffffffffffffffffffffffffffffff16145b610430576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152604160248201527f5374616e646172644272696467653a2066756e6374696f6e2063616e206f6e6c60448201527f792062652063616c6c65642066726f6d20746865206f7468657220627269646760648201527f6500000000000000000000000000000000000000000000000000000000000000608482015260a40161026f565b600254879073ffffffffffffffffffffffffffffffffffffffff8083169116146104b6576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c312075736463000000000000000000000000000000000000000000604482015260640161026f565b600354879073ffffffffffffffffffffffffffffffffffffffff80831691161461053c576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c322075736463000000000000000000000000000000000000000000604482015260640161026f565b73ffffffffffffffffffffffffffffffffffffffff808a166000908152600460209081526040808320938c168352929052205461057a908690610f3f565b73ffffffffffffffffffffffffffffffffffffffff808b166000818152600460209081526040808320948e16835293905291909120919091556105be908787610990565b8673ffffffffffffffffffffffffffffffffffffffff168873ffffffffffffffffffffffffffffffffffffffff168a73ffffffffffffffffffffffffffffffffffffffff167f3ceee06c1e37648fcbb6ed52e17b3e1f275a1f8c7b22a84b2b84732431e046b3898989896040516106389493929190610f9f565b60405180910390a4505050505050505050565b600254889073ffffffffffffffffffffffffffffffffffffffff8083169116146106d1576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c312075736463000000000000000000000000000000000000000000604482015260640161026f565b600354889073ffffffffffffffffffffffffffffffffffffffff808316911614610757576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152600b60248201527f6e6f74204c322075736463000000000000000000000000000000000000000000604482015260640161026f565b61077973ffffffffffffffffffffffffffffffffffffffff8b16893089610a16565b73ffffffffffffffffffffffffffffffffffffffff808b166000908152600460209081526040808320938d16835292905220546107b7908790610fd5565b73ffffffffffffffffffffffffffffffffffffffff808c1660009081526004602090815260408083208e851684529091528082209390935554600154925190821692633dbb202b9216907f662a633a000000000000000000000000000000000000000000000000000000009061083d908f908f908f908f908f908e908e90602401610fed565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe08184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fffffffff000000000000000000000000000000000000000000000000000000009485161790525160e085901b90921682526108d092918a90600401611076565b600060405180830381600087803b1580156108ea57600080fd5b505af11580156108fe573d6000803e3d6000fd5b505050508773ffffffffffffffffffffffffffffffffffffffff168973ffffffffffffffffffffffffffffffffffffffff168b73ffffffffffffffffffffffffffffffffffffffff167f718594027abd4eaed59f95162563e0cc6d0e8d5b86b1c7be8b1b0ac3343d03968a8a898960405161097c9493929190610f9f565b60405180910390a450505050505050505050565b60405173ffffffffffffffffffffffffffffffffffffffff838116602483015260448201839052610a1191859182169063a9059cbb906064015b604051602081830303815290604052915060e01b6020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff8381831617835250505050610a62565b505050565b60405173ffffffffffffffffffffffffffffffffffffffff8481166024830152838116604483015260648201839052610a5c9186918216906323b872dd906084016109ca565b50505050565b6000610a8473ffffffffffffffffffffffffffffffffffffffff841683610af8565b90508051600014158015610aa9575080806020019051810190610aa791906110f2565b155b15610a11576040517f5274afe700000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8416600482015260240161026f565b6060610b0683836000610b0d565b9392505050565b606081471015610b4b576040517fcd78605900000000000000000000000000000000000000000000000000000000815230600482015260240161026f565b6000808573ffffffffffffffffffffffffffffffffffffffff168486604051610b749190611114565b60006040518083038185875af1925050503d8060008114610bb1576040519150601f19603f3d011682016040523d82523d6000602084013e610bb6565b606091505b5091509150610bc6868383610bd0565b9695505050505050565b606082610be557610be082610c5f565b610b06565b8151158015610c09575073ffffffffffffffffffffffffffffffffffffffff84163b155b15610c58576040517f9996b31500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8516600482015260240161026f565b5080610b06565b805115610c6f5780518082602001fd5b6040517f1425ea4200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b50565b73ffffffffffffffffffffffffffffffffffffffff81168114610ca157600080fd5b803563ffffffff81168114610cda57600080fd5b919050565b60008083601f840112610cf157600080fd5b50813567ffffffffffffffff811115610d0957600080fd5b602083019150836020828501011115610d2157600080fd5b9250929050565b60008060008060008060a08789031215610d4157600080fd5b8635610d4c81610ca4565b95506020870135610d5c81610ca4565b945060408701359350610d7160608801610cc6565b9250608087013567ffffffffffffffff811115610d8d57600080fd5b610d9989828a01610cdf565b979a9699509497509295939492505050565b600080600080600080600060c0888a031215610dc657600080fd5b8735610dd181610ca4565b96506020880135610de181610ca4565b95506040880135610df181610ca4565b945060608801359350610e0660808901610cc6565b925060a088013567ffffffffffffffff811115610e2257600080fd5b610e2e8a828b01610cdf565b989b979a50959850939692959293505050565b60008060408385031215610e5457600080fd5b8235610e5f81610ca4565b91506020830135610e6f81610ca4565b809150509250929050565b600080600080600080600060c0888a031215610e9557600080fd5b8735610ea081610ca4565b96506020880135610eb081610ca4565b95506040880135610ec081610ca4565b94506060880135610ed081610ca4565b93506080880135925060a088013567ffffffffffffffff811115610e2257600080fd5b600060208284031215610f0557600080fd5b8151610b0681610ca4565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600082821015610f5157610f51610f10565b500390565b8183528181602085013750600060208284010152600060207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f840116840101905092915050565b73ffffffffffffffffffffffffffffffffffffffff85168152836020820152606060408201526000610bc6606083018486610f56565b60008219821115610fe857610fe8610f10565b500190565b600073ffffffffffffffffffffffffffffffffffffffff808a1683528089166020840152808816604084015280871660608401525084608083015260c060a083015261103d60c083018486610f56565b9998505050505050505050565b60005b8381101561106557818101518382015260200161104d565b83811115610a5c5750506000910152565b73ffffffffffffffffffffffffffffffffffffffff8416815260606020820152600083518060608401526110b181608085016020880161104a565b63ffffffff93909316604083015250601f919091017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0160160800192915050565b60006020828403121561110457600080fd5b81518015158114610b0657600080fd5b6000825161112681846020870161104a565b919091019291505056fea164736f6c634300080f000a",
+  "devdoc": {
+    "version": 1,
+    "kind": "dev",
+    "methods": {
+      "depositERC20(address,address,uint256,uint32,bytes)": {
+        "params": {
+          "_amount": "Amount of the ERC20 to deposit.",
+          "_extraData": "Optional data to forward to L2. Data supplied here will not be used to                     execute any code on L2 and is only emitted as extra data for the                     convenience of off-chain tooling.",
+          "_l1Token": "Address of the L1 token being deposited.",
+          "_l2Token": "Address of the corresponding token on L2.",
+          "_minGasLimit": "Minimum gas limit for the deposit message on L2."
+        }
+      },
+      "depositERC20To(address,address,address,uint256,uint32,bytes)": {
+        "params": {
+          "_amount": "Amount of the ERC20 to deposit.",
+          "_extraData": "Optional data to forward to L2. Data supplied here will not be used to                     execute any code on L2 and is only emitted as extra data for the                     convenience of off-chain tooling.",
+          "_l1Token": "Address of the L1 token being deposited.",
+          "_l2Token": "Address of the corresponding token on L2.",
+          "_minGasLimit": "Minimum gas limit for the deposit message on L2.",
+          "_to": "Address of the recipient on L2."
+        }
+      },
+      "finalizeERC20Withdrawal(address,address,address,address,uint256,bytes)": {
+        "params": {
+          "_amount": "Amount of the ERC20 to withdraw.",
+          "_extraData": "Optional data forwarded from L2.",
+          "_from": "Address of the withdrawer on L2.",
+          "_l1Token": "Address of the token on L1.",
+          "_l2Token": "Address of the corresponding token on L2.",
+          "_to": "Address of the recipient on L1."
+        }
+      },
+      "l2TokenBridge()": {
+        "returns": {
+          "_0": "Address of the corresponding L2 bridge contract."
+        }
+      }
+    },
+    "events": {
+      "ERC20DepositInitiated(address,address,address,address,uint256,bytes)": {
+        "params": {
+          "amount": "Amount of the ERC20 deposited.",
+          "extraData": "Extra data attached to the deposit.",
+          "from": "Address of the depositor.",
+          "l1Token": "Address of the token on L1.",
+          "l2Token": "Address of the corresponding token on L2.",
+          "to": "Address of the recipient on L2."
+        }
+      },
+      "ERC20WithdrawalFinalized(address,address,address,address,uint256,bytes)": {
+        "params": {
+          "amount": "Amount of the ERC20 withdrawn.",
+          "extraData": "Extra data attached to the withdrawal.",
+          "from": "Address of the withdrawer.",
+          "l1Token": "Address of the token on L1.",
+          "l2Token": "Address of the corresponding token on L2.",
+          "to": "Address of the recipient on L1."
+        }
+      }
+    },
+    "errors": {
+      "AddressEmptyCode(address)": [
+        {
+          "details": "There's no code at `target` (it is not a contract)."
+        }
+      ],
+      "AddressInsufficientBalance(address)": [
+        {
+          "details": "The ETH balance of the account is not enough to perform the operation."
+        }
+      ],
+      "FailedInnerCall()": [
+        {
+          "details": "A call to an address target failed. The target may have reverted."
+        }
+      ],
+      "SafeERC20FailedOperation(address)": [
+        {
+          "details": "An operation with an ERC20 token failed."
+        }
+      ]
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"target\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"AddressEmptyCode\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"AddressInsufficientBalance\"},{\"inputs\":[],\"type\":\"error\",\"name\":\"FailedInnerCall\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"SafeERC20FailedOperation\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"l1Token\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"l2Token\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false}],\"type\":\"event\",\"name\":\"ERC20DepositInitiated\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"l1Token\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"l2Token\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\",\"indexed\":true},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\",\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false},{\"internalType\":\"bytes\",\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false}],\"type\":\"event\",\"name\":\"ERC20WithdrawalFinalized\",\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_l1Token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_l2Token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"_minGasLimit\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"_extraData\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"depositERC20\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_l1Token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_l2Token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"_minGasLimit\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"_extraData\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"depositERC20To\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"deposits\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_l1Token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_l2Token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_extraData\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"finalizeERC20Withdrawal\"},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l1Usdc\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l2TokenBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l2Usdc\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messenger\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"otherBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"depositERC20(address,address,uint256,uint32,bytes)\":{\"custom:legacy\":\"@notice Deposits some amount of ERC20 tokens into the sender's account on L2.\",\"params\":{\"_amount\":\"Amount of the ERC20 to deposit.\",\"_extraData\":\"Optional data to forward to L2. Data supplied here will not be used to                     execute any code on L2 and is only emitted as extra data for the                     convenience of off-chain tooling.\",\"_l1Token\":\"Address of the L1 token being deposited.\",\"_l2Token\":\"Address of the corresponding token on L2.\",\"_minGasLimit\":\"Minimum gas limit for the deposit message on L2.\"}},\"depositERC20To(address,address,address,uint256,uint32,bytes)\":{\"custom:legacy\":\"@notice Deposits some amount of ERC20 tokens into a target account on L2.\",\"params\":{\"_amount\":\"Amount of the ERC20 to deposit.\",\"_extraData\":\"Optional data to forward to L2. Data supplied here will not be used to                     execute any code on L2 and is only emitted as extra data for the                     convenience of off-chain tooling.\",\"_l1Token\":\"Address of the L1 token being deposited.\",\"_l2Token\":\"Address of the corresponding token on L2.\",\"_minGasLimit\":\"Minimum gas limit for the deposit message on L2.\",\"_to\":\"Address of the recipient on L2.\"}},\"finalizeERC20Withdrawal(address,address,address,address,uint256,bytes)\":{\"custom:legacy\":\"@notice Finalizes a withdrawal of ERC20 tokens from L2.\",\"params\":{\"_amount\":\"Amount of the ERC20 to withdraw.\",\"_extraData\":\"Optional data forwarded from L2.\",\"_from\":\"Address of the withdrawer on L2.\",\"_l1Token\":\"Address of the token on L1.\",\"_l2Token\":\"Address of the corresponding token on L2.\",\"_to\":\"Address of the recipient on L1.\"}},\"l2TokenBridge()\":{\"custom:legacy\":\"@notice Retrieves the access of the corresponding L2 bridge contract.\",\"returns\":{\"_0\":\"Address of the corresponding L2 bridge contract.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"remappings\":[\"@cwia/=lib/clones-with-immutable-args/src/\",\"@lib-keccak/=lib/lib-keccak/contracts/lib/\",\"@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\"@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\"@openzeppelin/contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts/\",\"@openzeppelin/contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/contracts/\",\"@rari-capital/solmate/=lib/solmate/\",\"@solady-test/=lib/lib-keccak/lib/solady/test/\",\"@solady/=lib/lib-keccak/lib/solady/src/\",\"clones-with-immutable-args/=lib/clones-with-immutable-args/src/\",\"ds-test/=lib/forge-std/lib/ds-test/src/\",\"erc4626-tests/=lib/openzeppelin-contracts_v5.0.1/lib/erc4626-tests/\",\"forge-std/=lib/forge-std/src/\",\"kontrol-cheatcodes/=lib/kontrol-cheatcodes/src/\",\"lib-keccak/=lib/lib-keccak/contracts/\",\"openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\"openzeppelin-contracts/=lib/openzeppelin-contracts/\",\"openzeppelin-contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts/\",\"openzeppelin-contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/\",\"safe-contracts/=lib/safe-contracts/contracts/\",\"solady/=lib/solady/src/\",\"solmate/=lib/solmate/src/\"],\"optimizer\":{\"enabled\":true,\"runs\":999999},\"metadata\":{\"bytecodeHash\":\"none\"},\"compilationTarget\":{\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol\":\"L1UsdcBridge\"},\"evmVersion\":\"london\",\"libraries\":{\"src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:SignatureChecker\":\"0x4200000000000000000000000000000000000776\"}},\"sources\":{\"src/tokamak-contracts/USDC/L1/libraries/Address.sol\":{\"keccak256\":\"0x7a2becd0fc138ccd81f63dc85f73aa43ac9e16107b1060dfb9bfcbc46e089060\",\"urls\":[\"bzz-raw://a9cfc1478aba538118b63dca8c71983d8d522b9ac97b96364ae27dc505b675a3\",\"dweb:/ipfs/QmQJnCRPn61XoPbDtykyGGcXS4YYydmMCxcWDymhBTG6JJ\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/IERC20.sol\":{\"keccak256\":\"0x32fc81940e398095a082754088b43bcd70dda770a819586abc34fe8b387a42b4\",\"urls\":[\"bzz-raw://59e2c83e48dbd6c4576400811d11eccbbe8dd44d652fdbaabab22b6fa1188bba\",\"dweb:/ipfs/QmZkWkDCQGwJH44EN61jov9MY34qg15WYtAvJYvkSJusx4\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/IERC20Permit.sol\":{\"keccak256\":\"0x38fa29834657581cb1cdb1a18762bf9f730e7f68523d63fb181606f6bea7b173\",\"urls\":[\"bzz-raw://4d2fa77781be9fa115f4837d80d431761f4af463c3dbd9d5b103a4e2dcf8eee1\",\"dweb:/ipfs/QmSHYchPnZBddirEAa5wnGUgFVnBfq6v9gVJ4wdrtYxsrc\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/SafeERC20.sol\":{\"keccak256\":\"0x1b796214de865837b31080bf4286131652925a25e206d11c1b870ea267742bae\",\"urls\":[\"bzz-raw://1e527f3891bbc917742346bb4cc230893bbf68eb925d2f0c70b475f3b901b3dd\",\"dweb:/ipfs/QmNeJTgxQKX7zvRCGYA81SJRMjkxcNEdemFcqpZsWJ4q9s\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol\":{\"keccak256\":\"0x52f784ae8b6e356d29863ec7ac6fa41dab6bd2df3ee4ffc13fbda1e3538a118d\",\"urls\":[\"bzz-raw://2ca7739bc67dd31fbecf85c0b4c57f33e594818f71d6cc60e0e89683d6d5a584\",\"dweb:/ipfs/QmcBZQJSztEKpJudpEJ3ioeGP5PYRQtM1XGyLBtjVqLTNV\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeStorage.sol\":{\"keccak256\":\"0xcca6b8186e534ad59a4878f6756334175cd50aca504c4139d21930fce77e5b00\",\"urls\":[\"bzz-raw://c4a647cb71c35e41a53248db3c03a3d05ae169180465ee6947b48efd05afd4f5\",\"dweb:/ipfs/Qmf26yXFLCm8LmX4CKCoZ6wg6pGrnJmC3VYXhLFNHsA49i\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/libraries/Address.sol\":{\"keccak256\":\"0x1d1dd930cd27cde1a42984254a481d8edb615a93bcea1a1d188568018751c92f\",\"urls\":[\"bzz-raw://f54df028fb62a3a9ffdedba1b9209391b985b229c7c37a28acf27d7b34478246\",\"dweb:/ipfs/QmdkP1fEBq8mieprvTCMcFTihDfBNzEXwRRAE9teJ8x4nx\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/universal/StandardBridgeStorage.sol\":{\"keccak256\":\"0xc61c40717e55341880ec5ba5c8f7366c7f7cbe045e55cd5bab643dbb60295bac\",\"urls\":[\"bzz-raw://237615182e4d1bb0447434f22e494222f5ff9ca97f2673d55b99918eb84bd723\",\"dweb:/ipfs/Qmd8GxkGfN3uhxLQygkQws1c7d47YA6K5p6PSFYM3m8bpT\"],\"license\":\"MIT\"}},\"version\":1}",
+  "numDeployments": 1,
+  "receipt": {
+    "transactionHash": "0x43e55884d56046b8eada2d04bf60b6bed870d96ebdff3514bd36389b9d929129",
+    "transactionIndex": "0x8",
+    "blockHash": "0x69f99c577a922c8b0de382fcd20c69cc4565c482c9e3545c4ea6c541cc2a52c1",
+    "blockNumber": "0x5c25eb",
+    "from": "0x7cf8aD47c1B5E18cd827633F9e25538A08dB5448",
+    "to": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+    "cumulativeGasUsed": "0x1e8948",
+    "gasUsed": "0xf4dc8",
+    "contractAddress": "0xe268d7F3f42D49E4bBa38e320F8fB4d56d97f214",
+    "logs": [],
+    "status": "0x1",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "type": "0x2",
+    "effectiveGasPrice": "0x3413e6e1d"
+  },
+  "solcInputHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 100346,
+        "contract": "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge",
+        "label": "messenger",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 100348,
+        "contract": "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge",
+        "label": "otherBridge",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 100350,
+        "contract": "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge",
+        "label": "l1Usdc",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 100352,
+        "contract": "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge",
+        "label": "l2Usdc",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_address"
+      },
+      {
+        "astId": 100046,
+        "contract": "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge",
+        "label": "deposits",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => uint256))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_uint256)"
+      },
+      "t_mapping(t_address,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  },
+  "transactionHash": "0x43e55884d56046b8eada2d04bf60b6bed870d96ebdff3514bd36389b9d929129",
+  "userdoc": {
+    "version": 1,
+    "kind": "user"
+  }
+}
