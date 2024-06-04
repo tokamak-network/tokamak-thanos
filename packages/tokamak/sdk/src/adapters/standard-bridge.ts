@@ -116,17 +116,9 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
 
     return events
-      .filter(
-        (event) =>
-          this.filterOutEthDepositsAndWithdrawls(
-            event.args.l1Token,
-            event.args.l2Token
-          ) &&
-          this.filterOutL2NativeTokenDepositsAndWithdrawls(
-            event.args.l1Token,
-            event.args.l2Token
-          )
-      )
+      .filter((event) => {
+        return this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      })
       .map((event) => {
         return {
           direction: MessageDirection.L2_TO_L1,
@@ -262,16 +254,6 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     )
   }
 
-  public filterOutEthDepositsAndWithdrawls = (
-    l1Token: AddressLike,
-    l2Token: AddressLike
-  ): boolean => {
-    return (
-      !hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) &&
-      !hexStringEquals(toAddress(l2Token), predeploys.ETH)
-    )
-  }
-
   public filterEthDepositsAndWithdrawls = (
     l1Token: AddressLike,
     l2Token: AddressLike
@@ -279,19 +261,6 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     return (
       hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) &&
       hexStringEquals(toAddress(l2Token), predeploys.ETH)
-    )
-  }
-
-  public filterOutL2NativeTokenDepositsAndWithdrawls = (
-    l1Token: AddressLike,
-    l2Token: AddressLike
-  ): boolean => {
-    if (!this.messenger.nativeTokenAddress) {
-      return true
-    }
-    return (
-      !hexStringEquals(toAddress(l1Token), this.messenger.nativeTokenAddress) &&
-      !hexStringEquals(toAddress(l2Token), predeploys.LegacyERC20NativeToken)
     )
   }
 
