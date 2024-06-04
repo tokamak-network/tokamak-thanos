@@ -14,8 +14,6 @@ import { Deployer } from "scripts/Deployer.sol";
 import { DeployConfig } from "scripts/DeployConfig.s.sol";
 
 import { L2NativeToken } from "src/L1/L2NativeToken.sol";
-import { Safe } from "safe-contracts/Safe.sol";
-import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { AddressManager } from "src/legacy/AddressManager.sol";
 import { Proxy } from "src/universal/Proxy.sol";
@@ -282,6 +280,7 @@ contract Deploy is Deployer {
         bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
+
     function upgradeSuperchainConfig(address safeOwner) public {
         insert("SystemOwnerSafe", safeOwner);
         deploySuperchainConfig();
@@ -1034,6 +1033,7 @@ contract Deploy is Deployer {
         require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER);
     }
     /// @notice Initialize the SuperchainConfig
+
     function initializeSuperchainConfig() public broadcast {
         address payable superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
         address payable superchainConfig = mustGetAddress("SuperchainConfig");
@@ -1214,7 +1214,7 @@ contract Deploy is Deployer {
     }
 
     /// @notice Sets the implementation for the `CANNON` game type in the `DisputeGameFactory`
-    function setCannonFaultGameImplementation(bool _allowUpgrade) public broadcast {
+    function setCannonFaultGameImplementation(bool _allowUpgrade) public onlyDevnet broadcast {
         console.log("Setting Cannon FaultDisputeGame implementation");
         DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
 
