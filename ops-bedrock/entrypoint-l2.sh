@@ -44,7 +44,7 @@ exec geth \
 	--authrpc.addr="0.0.0.0" \
 	--authrpc.port="8551" \
 	--authrpc.vhosts="*" \
-	--authrpc.jwtsecret=/config/jwt-secret.txt \
+	--authrpc.jwtsecret=/config/test-jwt-secret.txt \
 	--gcmode=archive \
 	--metrics \
 	--metrics.addr=0.0.0.0 \
