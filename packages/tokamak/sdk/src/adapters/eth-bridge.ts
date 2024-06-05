@@ -38,6 +38,10 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
     )
 
     return events
+      .filter((event) => {
+        // Only find ETH withdrawals.
+        return this.supportsTokenPair(event.args.l1Token, event.args.l2Token)
+      })
       .map((event) => {
         return {
           direction: MessageDirection.L1_TO_L2,
@@ -81,8 +85,8 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
           direction: MessageDirection.L2_TO_L1,
           from: event.args.from,
           to: event.args.to,
-          l1Token: event.args.l1Token,
-          l2Token: event.args.l2Token,
+          l1Token: ethers.constants.AddressZero,
+          l2Token: predeploys.ETH,
           amount: event.args.amount,
           data: event.args.extraData,
           logIndex: event.logIndex,
