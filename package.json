@@ -75,7 +75,7 @@
     "rimraf": "^5.0.5",
     "ts-mocha": "^10.0.0",
     "typescript": "^5.3.3",
-    "nx-cloud": "latest"
+    "wait-on": "^7.2.0"
   },
   "dependencies": {
     "@changesets/cli": "^2.27.1"
