@@ -5,7 +5,7 @@
       "number": 6036818
     },
     "l2": {
-      "hash": "0x88d391dbb55bf35a3befeee0ed19af07f844edbf61850579e95c148c7bf264b5",
+      "hash": "0xd12605c49c0066d6cf8325c85ae7b7ca63d83eca1691d26bf226881dde762b00",
       "number": 0
     },
     "l2_time": 1717490460,
@@ -23,6 +23,9 @@
   "l1_chain_id": 11155111,
   "l2_chain_id": 111551119090,
   "regolith_time": 0,
+  "canyon_time": 0,
+  "delta_time": 0,
+  "ecotone_time": 0,
   "batch_inbox_address": "0xff00000000000000000000000000111551119090",
   "deposit_contract_address": "0x5b03e52867437ec380fc77024d40100821f26cb1",
   "l1_system_config_address": "0xe184032205db98c4df6bd4461d3a277c81c89068",
