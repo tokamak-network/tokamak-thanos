@@ -40,6 +40,31 @@ services:
       BLOCK_NUMBER: ${BLOCK_NUMBER}
       L1_RPC: ${L1_RPC}
 
+  setup:
+    depends_on:
+      - l1
+      - op-node
+    build:
+      context: .
+      dockerfile: Dockerfile.setup
+    volumes:
+      - "beacon_data:/beacon_data"
+      - "${PWD}/ops-bedrock/bin:/usr/local/bin"
+      - "${PWD}/.devnet/genesis-l1.json:/genesis-l1.json"
+      - "${PWD}/.devnet/rollup.json:/rollup.json"
+
+  bootnode:
+    depends_on:
+      - setup
+    build:
+      context: .
+      dockerfile: Dockerfile.bootnode
+    ports:
+      - "4242:4242"
+    volumes:
+      - "beacon_data:/beacon_data"
+      - "${PWD}/ops-bedrock/bin:/usr/local/bin"
+
   consensus-node:
     depends_on:
       - l1

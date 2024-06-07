@@ -1,0 +1,36 @@
+FROM rust:latest
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    gnupg2 \
+    lsb-release \
+    software-properties-common
+
+# Install Lighthouse dependencies
+RUN apt-get install -y build-essential clang cmake libssl-dev pkg-config git jq
+
+# Download pre-built Lighthouse binary
+# RUN wget https://github.com/sigp/lighthouse/releases/download/v5.1.3/lighthouse-v5.1.3-x86_64-unknown-linux-gnu.tar.gz \
+#     && tar -xzf lighthouse-v5.1.3-x86_64-unknown-linux-gnu.tar.gz \
+#     && sudo mv lighthouse /usr/local/bin/lighthouse \
+#     && rm lighthouse-v5.1.3-x86_64-unknown-linux-gnu.tar.gz
+
+# copy files
+COPY entrypoint-setup.sh /entrypoint.sh
+COPY vars.env /vars.env
+COPY bin/lcli /usr/local/bin/lcli
+# test
+# COPY tests/rollup.json /rollup.json
+# COPY tests/genesis-l1.json /genesis.json
+
+# change permission
+RUN chmod +x /entrypoint.sh
+RUN chmod +x /usr/local/bin/lcli
+
+# # Create directories for testnet
+# RUN mkdir -p /beacon_data/local_testnet/testnet
+
+# 스크립트 실행
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]

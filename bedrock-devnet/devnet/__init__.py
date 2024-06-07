@@ -319,9 +319,6 @@ def devnet_deploy(paths, args):
     else:
         docker_env['L2OO_ADDRESS'] = l2_output_oracle
 
-    # Bring up beacon node
-    log.info('Bringing up `consensus-node` and `validator-client`')
-    run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     # Bring up op-node, op-proposer, op-batcher, artifact-server
     log.info('Bringing up `op-node`, `op-proposer`, `op-batcher` and `artifact-server`.')
@@ -331,6 +328,16 @@ def devnet_deploy(paths, args):
     if DEVNET_FPAC:
         log.info('Bringing up `op-challenger`.')
         run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
+
+
+    # Setup the beacon & Bring the bootnode
+    run_command(['docker', 'compose', 'up', '-d', 'setup', 'bootnode'],
+    cwd=paths.ops_bedrock_dir)
+
+    # Bring up beacon node
+    log.info('Bringing up `consensus-node` and `validator-client`')
+    run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir, env=docker_env)
+
 
     log.info('Devnet ready.')
 
