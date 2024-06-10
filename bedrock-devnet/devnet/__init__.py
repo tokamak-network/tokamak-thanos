@@ -7,12 +7,11 @@ import socket
 import datetime
 import time
 import shutil
+import re
 import http.client
-import gzip
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
-
 
 pjoin = os.path.join
 
@@ -256,6 +255,7 @@ def devnet_deploy(paths, args):
             '--outfile.l1', paths.genesis_l1_path,
         ], cwd=paths.op_node_dir)
 
+    # Bring up L1
     log.info('Starting L1.')
     run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
@@ -280,6 +280,30 @@ def devnet_deploy(paths, args):
 
     rollup_config = read_json(paths.rollup_config_path)
     addresses = read_json(paths.addresses_json_path)
+
+    # Setup the beacon path
+    run_command(['docker', 'compose', 'up', '-d', 'setup'],
+    cwd=paths.ops_bedrock_dir)
+
+    # Bring the bootnode
+    run_command(['docker', 'compose', 'up', '-d','bootnode'],
+    cwd=paths.ops_bedrock_dir)
+
+    # Restart l1
+    restart_l1_with_docker_compose(paths)
+
+    # Reset the `genesis-l1.json` config file fork times.
+    with open(paths.genesis_l1_path, 'r') as file:
+        file_content = file.read()
+    file_content = re.sub(r'"shanghaiTime".*$', '"shanghaiTime": 0,', file_content, flags=re.MULTILINE)
+    file_content = re.sub(r'"cancunTime".*$', '"cancunTime": 0,', file_content, flags=re.MULTILINE)
+    with open(paths.genesis_l1_path, 'w') as file:
+        file.write(file_content)
+
+    # Bring up beacon node
+    log.info('Bringing up consensus-node and validator-client')
+    # run_command(['docker', 'compose', 'up', '-d', 'consensus-node1', 'consensus-node2', 'validator-client1', 'validator-client2'], cwd=paths.ops_bedrock_dir)
+    run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir)
 
     # Start the L2.
     log.info('Bringing up L2.')
@@ -321,23 +345,13 @@ def devnet_deploy(paths, args):
 
 
     # Bring up op-node, op-proposer, op-batcher, artifact-server
-    log.info('Bringing up `op-node`, `op-proposer`, `op-batcher` and `artifact-server`.')
+    log.info('Bringing up op-node, op-proposer, op-batcher and artifact-server.')
     run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     # Optionally bring up op-challenger.
     if DEVNET_FPAC:
-        log.info('Bringing up `op-challenger`.')
+        log.info('Bringing up op-challenger.')
         run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
-
-
-    # Setup the beacon & Bring the bootnode
-    run_command(['docker', 'compose', 'up', '-d', 'setup', 'bootnode'],
-    cwd=paths.ops_bedrock_dir)
-
-    # Bring up beacon node
-    log.info('Bringing up `consensus-node` and `validator-client`')
-    run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir, env=docker_env)
-
 
     log.info('Devnet ready.')
 
@@ -518,3 +532,20 @@ def write_file(path, data):
 
 def delete_file(path):
     os.remove(path)
+
+def restart_l1_with_docker_compose(paths):
+    try:
+        # Restart L1
+        log.info('Re-starting L1.')
+        subprocess.run(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
+            'PWD': paths.ops_bedrock_dir,
+            'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+            'BLOCK_NUMBER': paths.block_number,
+        }, check=True)
+
+        wait_up(8545)
+        wait_for_rpc_server('127.0.0.1:8545')
+
+        print("L1 is restarted.")
+    except subprocess.CalledProcessError as e:
+        print(f"Cannot restart L1 with error: {e}")

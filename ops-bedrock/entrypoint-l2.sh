@@ -1,7 +1,6 @@
 #!/bin/sh
 set -exu
 
-EL_BOOTNODE_ENODE="enode://51ea9bb34d31efc3491a842ed13b8cab70e753af108526b57916d716978b380ed713f4336a80cdb85ec2a115d5a8c0ae9f3247bed3c84d3cb025c6bab311062c@127.0.0.1:0?discport=30301"
 VERBOSITY=${GETH_VERBOSITY:-3}
 GETH_DATA_DIR=/db
 GETH_CHAINDATA_DIR="$GETH_DATA_DIR/geth/chaindata"
@@ -38,7 +37,6 @@ exec geth \
 	--ws.origins="*" \
 	--ws.api=debug,eth,txpool,net,engine \
 	--syncmode=full \
-	--bootnodes $EL_BOOTNODE_ENODE \
 	--nodiscover \
 	--maxpeers=0 \
 	--networkid=$CHAIN_ID \
