@@ -254,7 +254,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         }
 
         require(
-            _isUnsafeTarget(_target) == false, "CrossDomainMessenger: cannot send message to blocked system address"
+            _isUnsafeTarget(_target) == false && _target != nativeTokenAddress,
+            "CrossDomainMessenger: cannot send message to blocked system address or nativeTokenAddress"
         );
 
         require(successfulMessages[versionedHash] == false, "CrossDomainMessenger: message has already been relayed");
