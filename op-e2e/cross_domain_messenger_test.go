@@ -207,7 +207,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 
 	balanceAfterFinalization, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	// Relay called will be reverted
+	// Relay called will be reverted: target is native token address
 	require.Equal(t, balanceAfterFinalization, balanceBeforeFinalization)
 }
 
