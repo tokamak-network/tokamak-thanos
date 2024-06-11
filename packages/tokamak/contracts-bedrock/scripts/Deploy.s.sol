@@ -986,6 +986,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
@@ -1017,7 +1018,8 @@ contract Deploy is Deployer {
                 L1CrossDomainMessenger.initialize,
                 (
                     SuperchainConfig(superchainConfigProxy),
-                    OptimismPortal(payable(optimismPortalProxy))
+                    OptimismPortal(payable(optimismPortalProxy)),
+                    SystemConfig(systemConfigProxy)
                 )
             )
         });

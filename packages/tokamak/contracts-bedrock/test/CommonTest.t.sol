@@ -242,7 +242,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
-    SystemConfig systemConfig;
+    SystemConfig public systemConfig;
 
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
@@ -382,7 +382,7 @@ contract Portal2_Initializer is DisputeGameFactory_Initializer {
                         l2OutputOracle: address(oracle),
                         optimismPortal: address(optimismPortal2),
                         optimismMintableERC20Factory: address(0),
-                        nativeTokenAddress: address(0)
+                        nativeTokenAddress: address(token)
                     })
                 )
             )
@@ -439,7 +439,7 @@ contract Messenger_Initializer is Portal_Initializer {
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
         ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(sc, op);
+        L1Messenger.initialize(sc, op, systemConfig);
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger()).code);
 
