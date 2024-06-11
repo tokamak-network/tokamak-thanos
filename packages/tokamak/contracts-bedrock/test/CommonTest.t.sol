@@ -286,9 +286,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
 
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
-        proxy.upgradeToAndCall(
-            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (oracle, systemConfig, sc))
-        );
+        proxy.upgradeToAndCall(address(opImpl), abi.encodeCall(OptimismPortal.initialize, (oracle, systemConfig, sc)));
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
     }

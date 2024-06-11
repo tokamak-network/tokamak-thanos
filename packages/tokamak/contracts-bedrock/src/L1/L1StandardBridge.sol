@@ -179,7 +179,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         return true;
     }
 
-    function nativeTokenAddress() public view returns(address) {
+    function nativeTokenAddress() public view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
