@@ -62,7 +62,6 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
     {
         vm.assume((!_isCreation || _to == address(0)) && _data.length <= 120_000);
         address nativeTokenAddress = portal.nativeTokenAddress();
-        console.log(nativeTokenAddress);
 
         uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
         // Give the depositor some ether

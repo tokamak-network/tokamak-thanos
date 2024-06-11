@@ -903,6 +903,7 @@ contract Deploy is Deployer {
         address l1StandardBridge = mustGetAddress("L1StandardBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
         if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
@@ -920,7 +921,7 @@ contract Deploy is Deployer {
                 L1StandardBridge.initialize,
                 (
                     L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    cfg.nativeTokenAddress(),
+                    SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
                 )
@@ -986,6 +987,7 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
@@ -1018,7 +1020,7 @@ contract Deploy is Deployer {
                 (
                     SuperchainConfig(superchainConfigProxy),
                     OptimismPortal(payable(optimismPortalProxy)),
-                    cfg.nativeTokenAddress()
+                    SystemConfig(systemConfigProxy)
                 )
                 )
         });
@@ -1115,7 +1117,6 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
                 (
-                    cfg.nativeTokenAddress(),
                     L2OutputOracle(l2OutputOracleProxy),
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)

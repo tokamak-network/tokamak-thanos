@@ -67,8 +67,9 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @custom:network-specific
     SystemConfig public systemConfig;
 
-    /// @notice Address of native (ERC-20 token)
-    address public nativeTokenAddress;
+    /// @custom:spacer nativeTokenAddress
+    /// @notice Spacer for backwards compatibility.
+    address public spacer_native_token_address;
 
     uint256 public depositedAmount;
 
@@ -105,7 +106,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @notice Constructs the OptimismPortal contract.
     constructor() {
         initialize({
-            _nativeTokenAddress: address(0),
             _l2Oracle: L2OutputOracle(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _superchainConfig: SuperchainConfig(address(0))
@@ -113,12 +113,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Initializer.
-    /// @param _nativeTokenAddress Address of the native token
     /// @param _l2Oracle Address of the L2OutputOracle contract.
     /// @param _systemConfig Address of the SystemConfig contract.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     function initialize(
-        address _nativeTokenAddress,
         L2OutputOracle _l2Oracle,
         SystemConfig _systemConfig,
         SuperchainConfig _superchainConfig
@@ -126,7 +124,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         public
         reinitializer(Constants.INITIALIZER)
     {
-        nativeTokenAddress = _nativeTokenAddress;
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
@@ -154,6 +151,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @custom:legacy
     function GUARDIAN() external view returns (address) {
         return guardian();
+    }
+
+    function nativeTokenAddress() external view returns (address) {
+        return systemConfig.nativeTokenAddress();
     }
 
     /// @notice Getter function for the address of the guardian.
@@ -341,6 +342,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Check that this withdrawal has not already been finalized, this is replay protection.
         require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
 
+        address nativeTokenAddress = systemConfig.nativeTokenAddress();
+
         // Not allow to call native token contract because users can transfer all token out of the contract
         require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
 
@@ -432,6 +435,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         internal
         metered(_gasLimit)
     {
+        address nativeTokenAddress = systemConfig.nativeTokenAddress();
+
         // Lock token in this contract
         if (_mint > 0) {
             IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
