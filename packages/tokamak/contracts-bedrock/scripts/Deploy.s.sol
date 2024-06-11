@@ -1017,10 +1017,9 @@ contract Deploy is Deployer {
                 L1CrossDomainMessenger.initialize,
                 (
                     SuperchainConfig(superchainConfigProxy),
-                    OptimismPortal(payable(optimismPortalProxy)),
-                    cfg.nativeTokenAddress()
+                    OptimismPortal(payable(optimismPortalProxy))
                 )
-                )
+            )
         });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);

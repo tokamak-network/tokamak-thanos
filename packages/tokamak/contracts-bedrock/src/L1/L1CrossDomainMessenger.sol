@@ -29,8 +29,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:network-specific
     OptimismPortal public portal;
 
-    /// @notice Address of native token (ERC-20 token)
-    address public nativeTokenAddress;
+    // /// @notice Address of native token (ERC-20 token)
+    // address public nativeTokenAddress;
 
     /// @notice Semantic version.
     /// @custom:semver 2.3.0
@@ -40,8 +40,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     constructor() CrossDomainMessenger() {
         initialize({
             _superchainConfig: SuperchainConfig(address(0)),
-            _portal: OptimismPortal(payable(0)),
-            _nativeTokenAddress: address(0)
+            _portal: OptimismPortal(payable(0))
         });
     }
 
@@ -50,15 +49,13 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @param _portal Contract of the OptimismPortal contract on this network.
     function initialize(
         SuperchainConfig _superchainConfig,
-        OptimismPortal _portal,
-        address _nativeTokenAddress
+        OptimismPortal _portal
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
         superchainConfig = _superchainConfig;
         portal = _portal;
-        nativeTokenAddress = _nativeTokenAddress;
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
     }
 
@@ -112,7 +109,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
+        require(msg.sender == address(nativeTokenAddress()), "only accept native token approve callback");
         (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) =
             unpackOnApproveData(_data);
         require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
@@ -128,6 +125,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(portal);
+    }
+
+    function nativeTokenAddress() public view returns(address) {
+        return portal.nativeTokenAddress();
     }
 
     /// @inheritdoc CrossDomainMessenger
@@ -179,8 +180,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     {
         // Collect native token
         if (_amount > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
-            IERC20(nativeTokenAddress).approve(address(portal), _amount);
+            address _nativeTokenAddress = nativeTokenAddress();
+            IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
+            IERC20(_nativeTokenAddress).approve(address(portal), _amount);
         }
 
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
@@ -242,19 +244,20 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         bytes32 versionedHash =
             Hashing.hashCrossDomainMessageV1(_nonce, _sender, _target, _value, _minGasLimit, _message);
 
+        address _nativeTokenAddress = nativeTokenAddress();
         if (_isOtherMessenger()) {
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
             assert(!failedMessages[versionedHash]);
             if (_value > 0) {
-                IERC20(nativeTokenAddress).safeTransferFrom(address(portal), address(this), _value);
+                IERC20(_nativeTokenAddress).safeTransferFrom(address(portal), address(this), _value);
             }
         } else {
             require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
         }
 
         require(
-            _isUnsafeTarget(_target) == false && _target != nativeTokenAddress,
+            _isUnsafeTarget(_target) == false && _target != _nativeTokenAddress,
             "CrossDomainMessenger: cannot send message to blocked system address or nativeTokenAddress"
         );
 
@@ -290,12 +293,12 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         xDomainMsgSender = _sender;
         bool approvalStatus = true;
         if (_value != 0) {
-            approvalStatus = IERC20(nativeTokenAddress).approve(_target, _value);
+            approvalStatus = IERC20(_nativeTokenAddress).approve(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
         if (_value != 0 && !success) {
-            approvalStatus = IERC20(nativeTokenAddress).approve(_target, 0);
+            approvalStatus = IERC20(_nativeTokenAddress).approve(_target, 0);
         }
 
         if (success && approvalStatus) {
