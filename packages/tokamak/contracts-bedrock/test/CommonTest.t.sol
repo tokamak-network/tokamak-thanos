@@ -242,7 +242,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
     // Test target
     OptimismPortal internal opImpl;
     OptimismPortal internal op;
-    SystemConfig systemConfig;
+    SystemConfig public systemConfig;
 
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
@@ -275,7 +275,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
                         l2OutputOracle: address(oracle),
                         optimismPortal: address(op),
                         optimismMintableERC20Factory: address(0),
-                        nativeTokenAddress: address(0)
+                        nativeTokenAddress: address(token)
                     })
                 )
             )
@@ -286,9 +286,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
 
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
-        proxy.upgradeToAndCall(
-            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, systemConfig, sc))
-        );
+        proxy.upgradeToAndCall(address(opImpl), abi.encodeCall(OptimismPortal.initialize, (oracle, systemConfig, sc)));
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
     }
@@ -382,7 +380,7 @@ contract Portal2_Initializer is DisputeGameFactory_Initializer {
                         l2OutputOracle: address(oracle),
                         optimismPortal: address(optimismPortal2),
                         optimismMintableERC20Factory: address(0),
-                        nativeTokenAddress: address(0)
+                        nativeTokenAddress: address(token)
                     })
                 )
             )
@@ -439,7 +437,7 @@ contract Messenger_Initializer is Portal_Initializer {
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
         ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(sc, op, address(token));
+        L1Messenger.initialize(sc, op, systemConfig);
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger()).code);
 
@@ -532,7 +530,7 @@ contract Bridge_Initializer is Messenger_Initializer {
         vm.stopPrank();
 
         L1Bridge = L1StandardBridge(payable(address(proxy)));
-        L1Bridge.initialize(L1Messenger, address(token), sc);
+        L1Bridge.initialize(L1Messenger, SystemConfig(systemConfig), sc);
 
         vm.label(address(proxy), "L1StandardBridge_Proxy");
         vm.label(address(L1Bridge_Impl), "L1StandardBridge_Impl");
