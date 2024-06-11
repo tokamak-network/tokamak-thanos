@@ -275,7 +275,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
                         l2OutputOracle: address(oracle),
                         optimismPortal: address(op),
                         optimismMintableERC20Factory: address(0),
-                        nativeTokenAddress: address(0)
+                        nativeTokenAddress: address(token)
                     })
                 )
             )
@@ -287,7 +287,7 @@ contract Portal_Initializer is SuperchainConfig_Initializer {
         Proxy proxy = new Proxy(multisig);
         vm.prank(multisig);
         proxy.upgradeToAndCall(
-            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (address(token), oracle, systemConfig, sc))
+            address(opImpl), abi.encodeCall(OptimismPortal.initialize, (oracle, systemConfig, sc))
         );
         op = OptimismPortal(payable(address(proxy)));
         vm.label(address(op), "OptimismPortal");
