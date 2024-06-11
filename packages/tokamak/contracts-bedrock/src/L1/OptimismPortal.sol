@@ -153,7 +153,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         return guardian();
     }
 
-    function nativeTokenAddress() external view returns(address) {
+    function nativeTokenAddress() external view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
