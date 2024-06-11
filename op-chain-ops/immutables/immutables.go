@@ -2,7 +2,6 @@ package immutables
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"reflect"
 
@@ -117,6 +116,7 @@ type PredeploysImmutableConfig struct {
 		PairInitCodeHash            [32]byte
 		PoolInitCodeHash            [32]byte
 	}
+	UnsupportedProtocol          struct{}
 	Create2Deployer              struct{}
 	MultiCall3                   struct{}
 	Safe_v130                    struct{}
@@ -232,20 +232,20 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 			routerParams := RouterParameters{
 				Permit2:                     common.HexToAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3"),
 				Weth9:                       common.HexToAddress("0x4200000000000000000000000000000000000006"),
-				SeaportV15:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				SeaportV14:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				OpenseaConduit:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				NftxZap:                     common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				X2y2:                        common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				Foundation:                  common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				Sudoswap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				ElementMarket:               common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				Nft20Zap:                    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				Cryptopunks:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				LooksRareV2:                 common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				RouterRewardsDistributor:    common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				LooksRareRewardsDistributor: common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
-				LooksRareToken:              common.HexToAddress("0x819B9E61F02Bdb8841e90Af300d5064AD1a30D84"),
+				SeaportV15:                  common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				SeaportV14:                  common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				OpenseaConduit:              common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				NftxZap:                     common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				X2y2:                        common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				Foundation:                  common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				Sudoswap:                    common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				ElementMarket:               common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				Nft20Zap:                    common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				Cryptopunks:                 common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				LooksRareV2:                 common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				RouterRewardsDistributor:    common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				LooksRareRewardsDistributor: common.HexToAddress("0x4200000000000000000000000000000000000509"),
+				LooksRareToken:              common.HexToAddress("0x4200000000000000000000000000000000000509"),
 				V2Factory:                   common.HexToAddress("0x0000000000000000000000000000000000000000"),
 				V3Factory:                   common.HexToAddress("0x4200000000000000000000000000000000000502"),
 				PairInitCodeHash:            [32]byte{0x96, 0xe8, 0xac, 0x42, 0x77, 0x19, 0x8f, 0xf8, 0xb6, 0xf7, 0x85, 0x47, 0x8a, 0xa9, 0xa3, 0x9f, 0x40, 0x3c, 0xb7, 0x68, 0xdd, 0x02, 0xcb, 0xee, 0x32, 0x6c, 0x3e, 0x7d, 0xa3, 0x48, 0x84, 0x5f},
@@ -396,7 +396,6 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 	case "UniversalRouter":
 		localParams, ok := deployment.Args[0].(RouterParameters)
 		if !ok {
-			log.Printf("UniversalRouter의 RouterParameters 타입 불일치: 받은 타입: %T, 값: %#v", deployment.Args[0], deployment.Args[0])
 			return nil, fmt.Errorf("invalid type for RouterParameters: received type %T", deployment.Args[0])
 		}
 		convertedParams := ConvertRouterParameters(localParams)
@@ -404,6 +403,8 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 		if err != nil {
 			return nil, err
 		}
+	case "UnsupportedProtocol":
+		_, tx, _, err = bindings.DeployUnsupportedProtocol(opts, backend)
 	default:
 		return nil, fmt.Errorf("unknown contract: %s", deployment.Name)
 	}

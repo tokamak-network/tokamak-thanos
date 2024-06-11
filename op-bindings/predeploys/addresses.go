@@ -35,10 +35,12 @@ const (
 	TickLens                           = "0x4200000000000000000000000000000000000506"
 	UniswapInterfaceMulticall          = "0x4200000000000000000000000000000000000507"
 	UniversalRouter                    = "0x4200000000000000000000000000000000000508"
-	L2UsdcBridge                       = "0x4200000000000000000000000000000000000775"
-	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
-	MasterMinter                       = "0x4200000000000000000000000000000000000777"
-	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
+	UnsupportedProtocol                = "0x4200000000000000000000000000000000000509"
+
+	L2UsdcBridge     = "0x4200000000000000000000000000000000000775"
+	SignatureChecker = "0x4200000000000000000000000000000000000776"
+	MasterMinter     = "0x4200000000000000000000000000000000000777"
+	FiatTokenV2_2    = "0x4200000000000000000000000000000000000778"
 
 	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
@@ -83,6 +85,7 @@ var (
 	TickLensAddr                           = common.HexToAddress(TickLens)
 	UniswapInterfaceMulticallAddr          = common.HexToAddress(UniswapInterfaceMulticall)
 	UniversalRouterAddr                    = common.HexToAddress(UniversalRouter)
+	UnsupportedProtocolAddr                = common.HexToAddress(UnsupportedProtocol)
 	L2UsdcBridgeAddr                       = common.HexToAddress(L2UsdcBridge)
 	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
@@ -141,6 +144,7 @@ func init() {
 	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr, ProxyDisabled: true}
 	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr, ProxyDisabled: true}
 	Predeploys["UniversalRouter"] = &Predeploy{Address: UniversalRouterAddr, ProxyDisabled: true}
+	Predeploys["UnsupportedProtocol"] = &Predeploy{Address: UnsupportedProtocolAddr, ProxyDisabled: true}
 	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr}
 	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true}
 	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true}
