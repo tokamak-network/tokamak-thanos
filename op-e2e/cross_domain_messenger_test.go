@@ -190,7 +190,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	withdrawalTxL2, err := transactions.PadGasEstimate(l2Opts, 1.1, func(l2Opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l2CDM.SendMessage(l2Opts, cfg.L1Deployments.L2NativeToken, calldata, 20000)
+		return l2CDM.SendMessage(l2Opts, cfg.L1Deployments.L2NativeToken, calldata, 0)
 	})
 	require.NoError(t, err)
 
@@ -207,7 +207,8 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 
 	balanceAfterFinalization, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	require.Equal(t, balanceAfterFinalization, balanceBeforeFinalization.Add(balanceBeforeFinalization, amount))
+	// Relay called will be reverted: target is native token address
+	require.Equal(t, balanceAfterFinalization, balanceBeforeFinalization)
 }
 
 func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
