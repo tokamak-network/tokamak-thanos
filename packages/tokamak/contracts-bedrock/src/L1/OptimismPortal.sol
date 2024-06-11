@@ -153,6 +153,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         return guardian();
     }
 
+    function nativeTokenAddress() external view returns(address) {
+        return systemConfig.nativeTokenAddress();
+    }
+
     /// @notice Getter function for the address of the guardian.
     ///         Public getter is legacy and will be removed in the future. Use `SuperchainConfig.guardian()` instead.
     /// @return Address of the guardian.
