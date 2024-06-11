@@ -439,7 +439,7 @@ contract Messenger_Initializer is Portal_Initializer {
         addressManager.setAddress("OVM_L1CrossDomainMessenger", address(L1MessengerImpl));
         ResolvedDelegateProxy proxy = new ResolvedDelegateProxy(addressManager, "OVM_L1CrossDomainMessenger");
         L1Messenger = L1CrossDomainMessenger(address(proxy));
-        L1Messenger.initialize(sc, op, address(token));
+        L1Messenger.initialize(sc, op);
 
         vm.etch(Predeploys.L2_CROSS_DOMAIN_MESSENGER, address(new L2CrossDomainMessenger()).code);
 

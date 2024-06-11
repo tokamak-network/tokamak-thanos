@@ -723,7 +723,7 @@ contract L1CrossDomainMessenger_ReinitReentryTest is Messenger_Initializer {
             vm.store(address(L1Messenger), 0, bytes32(uint256(0)));
 
             // call the initializer function
-            L1Messenger.initialize(SuperchainConfig(sc), OptimismPortal(op), address(token));
+            L1Messenger.initialize(SuperchainConfig(sc), OptimismPortal(op));
 
             // attempt to re-replay the withdrawal
             vm.expectEmit(address(L1Messenger));
