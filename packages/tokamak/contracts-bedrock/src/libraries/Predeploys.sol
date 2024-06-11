@@ -105,6 +105,9 @@ library Predeploys {
     /// @notice Address of the UniversalRouter predeploy.
     address internal constant UNIVERSAL_ROUTER = 0x4200000000000000000000000000000000000508;
 
+    /// @notice Address of the UnsupportedProtocol predeploy.
+    address internal constant UnsupportedProtocol = 0x4200000000000000000000000000000000000509;
+
     /// @notice Address of the L2UsdcBridge predeploy.
     address internal constant L2_USDC_BRIDGE = 0x4200000000000000000000000000000000000775;
 

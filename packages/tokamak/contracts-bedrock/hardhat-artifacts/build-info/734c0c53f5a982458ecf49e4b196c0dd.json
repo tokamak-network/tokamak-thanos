@@ -1,0 +1,223 @@
+{
+  "id": "734c0c53f5a982458ecf49e4b196c0dd",
+  "_format": "hh-sol-build-info-1",
+  "solcVersion": "0.8.17",
+  "solcLongVersion": "0.8.17+commit.8df45f5f",
+  "input": {
+    "language": "Solidity",
+    "sources": {
+      "contracts/deploy/UnsupportedProtocol.sol": {
+        "content": "// SPDX-License-Identifier: GPL-3.0-or-later\npragma solidity ^0.8.17;\n\n/// @title Dummy contract that always reverts\n/// @notice Used as a placeholder to ensure reverts on attempted calls to protocols unsupported on a given chain\ncontract UnsupportedProtocol {\n    error UnsupportedProtocolError();\n\n    fallback() external {\n        revert UnsupportedProtocolError();\n    }\n}\n"
+      }
+    },
+    "settings": {
+      "viaIR": true,
+      "evmVersion": "istanbul",
+      "optimizer": {
+        "enabled": true,
+        "runs": 1000000
+      },
+      "metadata": {
+        "bytecodeHash": "none"
+      },
+      "outputSelection": {
+        "*": {
+          "*": [
+            "storageLayout",
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers"
+          ],
+          "": [
+            "ast"
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "contracts": {
+      "contracts/deploy/UnsupportedProtocol.sol": {
+        "UnsupportedProtocol": {
+          "abi": [
+            {
+              "inputs": [],
+              "name": "UnsupportedProtocolError",
+              "type": "error"
+            },
+            {
+              "stateMutability": "nonpayable",
+              "type": "fallback"
+            }
+          ],
+          "evm": {
+            "bytecode": {
+              "functionDebugData": {},
+              "generatedSources": [],
+              "linkReferences": {},
+              "object": "608080604052346013576043908160198239f35b600080fdfe60808060405234603157807fea3559ef0000000000000000000000000000000000000000000000000000000060049252fd5b600080fdfea164736f6c6343000811000a",
+              "opcodes": "PUSH1 0x80 DUP1 PUSH1 0x40 MSTORE CALLVALUE PUSH1 0x13 JUMPI PUSH1 0x43 SWAP1 DUP2 PUSH1 0x19 DUP3 CODECOPY RETURN JUMPDEST PUSH1 0x0 DUP1 REVERT INVALID PUSH1 0x80 DUP1 PUSH1 0x40 MSTORE CALLVALUE PUSH1 0x31 JUMPI DUP1 PUSH32 0xEA3559EF00000000000000000000000000000000000000000000000000000000 PUSH1 0x4 SWAP3 MSTORE REVERT JUMPDEST PUSH1 0x0 DUP1 REVERT INVALID LOG1 PUSH5 0x736F6C6343 STOP ADDMOD GT STOP EXP ",
+              "sourceMap": "230:146:0:-:0;;;;;;;;;;;;;;;;;"
+            },
+            "deployedBytecode": {
+              "functionDebugData": {},
+              "generatedSources": [],
+              "immutableReferences": {},
+              "linkReferences": {},
+              "object": "60808060405234603157807fea3559ef0000000000000000000000000000000000000000000000000000000060049252fd5b600080fdfea164736f6c6343000811000a",
+              "opcodes": "PUSH1 0x80 DUP1 PUSH1 0x40 MSTORE CALLVALUE PUSH1 0x31 JUMPI DUP1 PUSH32 0xEA3559EF00000000000000000000000000000000000000000000000000000000 PUSH1 0x4 SWAP3 MSTORE REVERT JUMPDEST PUSH1 0x0 DUP1 REVERT INVALID LOG1 PUSH5 0x736F6C6343 STOP ADDMOD GT STOP EXP ",
+              "sourceMap": "230:146:0:-:0;;;;;;;341:26;;;;;;230:146;;;"
+            },
+            "methodIdentifiers": {}
+          },
+          "storageLayout": {
+            "storage": [],
+            "types": null
+          }
+        }
+      }
+    },
+    "sources": {
+      "contracts/deploy/UnsupportedProtocol.sol": {
+        "ast": {
+          "absolutePath": "contracts/deploy/UnsupportedProtocol.sol",
+          "exportedSymbols": {
+            "UnsupportedProtocol": [
+              12
+            ]
+          },
+          "id": 13,
+          "license": "GPL-3.0-or-later",
+          "nodeType": "SourceUnit",
+          "nodes": [
+            {
+              "id": 1,
+              "literals": [
+                "solidity",
+                "^",
+                "0.8",
+                ".17"
+              ],
+              "nodeType": "PragmaDirective",
+              "src": "45:24:0"
+            },
+            {
+              "abstract": false,
+              "baseContracts": [],
+              "canonicalName": "UnsupportedProtocol",
+              "contractDependencies": [],
+              "contractKind": "contract",
+              "documentation": {
+                "id": 2,
+                "nodeType": "StructuredDocumentation",
+                "src": "71:159:0",
+                "text": "@title Dummy contract that always reverts\n @notice Used as a placeholder to ensure reverts on attempted calls to protocols unsupported on a given chain"
+              },
+              "fullyImplemented": true,
+              "id": 12,
+              "linearizedBaseContracts": [
+                12
+              ],
+              "name": "UnsupportedProtocol",
+              "nameLocation": "239:19:0",
+              "nodeType": "ContractDefinition",
+              "nodes": [
+                {
+                  "errorSelector": "ea3559ef",
+                  "id": 4,
+                  "name": "UnsupportedProtocolError",
+                  "nameLocation": "271:24:0",
+                  "nodeType": "ErrorDefinition",
+                  "parameters": {
+                    "id": 3,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "295:2:0"
+                  },
+                  "src": "265:33:0"
+                },
+                {
+                  "body": {
+                    "id": 10,
+                    "nodeType": "Block",
+                    "src": "324:50:0",
+                    "statements": [
+                      {
+                        "errorCall": {
+                          "arguments": [],
+                          "expression": {
+                            "argumentTypes": [],
+                            "id": 7,
+                            "name": "UnsupportedProtocolError",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 4,
+                            "src": "341:24:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_error_pure$__$returns$__$",
+                              "typeString": "function () pure"
+                            }
+                          },
+                          "id": 8,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "nameLocations": [],
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "341:26:0",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_tuple$__$",
+                            "typeString": "tuple()"
+                          }
+                        },
+                        "id": 9,
+                        "nodeType": "RevertStatement",
+                        "src": "334:33:0"
+                      }
+                    ]
+                  },
+                  "id": 11,
+                  "implemented": true,
+                  "kind": "fallback",
+                  "modifiers": [],
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 5,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "312:2:0"
+                  },
+                  "returnParameters": {
+                    "id": 6,
+                    "nodeType": "ParameterList",
+                    "parameters": [],
+                    "src": "324:0:0"
+                  },
+                  "scope": 12,
+                  "src": "304:70:0",
+                  "stateMutability": "nonpayable",
+                  "virtual": false,
+                  "visibility": "external"
+                }
+              ],
+              "scope": 13,
+              "src": "230:146:0",
+              "usedErrors": [
+                4
+              ]
+            }
+          ],
+          "src": "45:332:0"
+        },
+        "id": 0
+      }
+    }
+  }
+}
