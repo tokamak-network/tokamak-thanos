@@ -1115,7 +1115,6 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
                 (
-                    cfg.nativeTokenAddress(),
                     L2OutputOracle(l2OutputOracleProxy),
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
