@@ -15,6 +15,7 @@ import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
+import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
@@ -30,7 +31,9 @@ import { OnApprove } from "./OnApprove.sol";
 contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
-    address public nativeTokenAddress;
+    // address public nativeTokenAddress;
+
+    SystemConfig public systemConfig;
 
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
@@ -94,25 +97,25 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         initialize({
             _messenger: CrossDomainMessenger(address(0)),
             _superchainConfig: SuperchainConfig(address(0)),
-            _nativeTokenAddress: address(0)
+            _systemConfig: SystemConfig(address(0))
         });
     }
 
     /// @notice Initializer
     /// @param _messenger        Contract for the CrossDomainMessenger on this network.
-    /// @param _nativeTokenAddress        Address of the native token
+    /// @param _systemConfig     Contract for SystemConfig on L1
     /// @param _superchainConfig Contract for the SuperchainConfig on this network.
 
     function initialize(
         CrossDomainMessenger _messenger,
-        address _nativeTokenAddress,
+        SystemConfig _systemConfig,
         SuperchainConfig _superchainConfig
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
         superchainConfig = _superchainConfig;
-        nativeTokenAddress = _nativeTokenAddress;
+        systemConfig = _systemConfig;
         __StandardBridge_init({
             _messenger: _messenger,
             _otherBridge: StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))
@@ -167,12 +170,17 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress), "only accept native token approve callback");
+        address _nativeTokenAddress = nativeTokenAddress();
+        require(msg.sender == _nativeTokenAddress, "only accept native token approve callback");
         (address from, address to, uint256 amount, uint32 minGasLimit, bytes memory message) =
             unpackOnApproveData(_data);
         require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
         _initiateBridgeNativeToken(from, to, amount, minGasLimit, message);
         return true;
+    }
+
+    function nativeTokenAddress() public view returns(address) {
+        return systemConfig.nativeTokenAddress();
     }
 
     /// @notice Deposits some amount of token into the sender's native's account on L2.
@@ -440,7 +448,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         internal
         override
     {
-        if (nativeTokenAddress == _localToken) {
+        if (nativeTokenAddress() == _localToken) {
             _initiateBridgeNativeToken(_from, _to, _amount, _minGasLimit, _extraData);
         } else {
             super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
@@ -463,11 +471,12 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     )
         internal
     {
-        IERC20(nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
-        IERC20(nativeTokenAddress).approve(address(messenger), _amount);
+        address _nativeTokenAddress = nativeTokenAddress();
+        IERC20(_nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
+        IERC20(_nativeTokenAddress).approve(address(messenger), _amount);
 
         _emitERC20BridgeInitiated(
-            nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData
+            _nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData
         );
 
         L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
@@ -565,15 +574,16 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         onlyOtherBridge
     {
+        address _nativeTokenAddress = nativeTokenAddress();
         require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
-        IERC20(nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
+        IERC20(_nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.
-        finalizeBridgeERC20(nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        finalizeBridgeERC20(_nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
     }
 
     function finalizeBridgeERC20(
@@ -588,7 +598,8 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         onlyOtherBridge
     {
-        if (_isOptimismMintableERC20(_localToken) && _localToken != nativeTokenAddress) {
+        address _nativeTokenAddress = nativeTokenAddress();
+        if (_isOptimismMintableERC20(_localToken) && _localToken != _nativeTokenAddress) {
             require(
                 _isCorrectTokenPair(_localToken, _remoteToken),
                 "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
@@ -608,7 +619,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
                 // contracts may override this function in order to emit legacy events as well.
                 _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
             }
-            if (nativeTokenAddress != _localToken) {
+            if (_nativeTokenAddress != _localToken) {
                 deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
             }
         }
