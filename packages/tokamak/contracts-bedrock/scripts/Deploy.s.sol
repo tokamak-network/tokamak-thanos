@@ -924,7 +924,7 @@ contract Deploy is Deployer {
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
-            )
+                )
         });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
@@ -1022,7 +1022,7 @@ contract Deploy is Deployer {
                     OptimismPortal(payable(optimismPortalProxy)),
                     SystemConfig(systemConfigProxy)
                 )
-            )
+                )
         });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);

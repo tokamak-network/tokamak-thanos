@@ -135,7 +135,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         return _target == address(this) || _target == address(portal);
     }
 
-    function nativeTokenAddress() public view returns(address) {
+    function nativeTokenAddress() public view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
