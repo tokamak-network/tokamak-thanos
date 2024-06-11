@@ -12,6 +12,7 @@ import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
+import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
@@ -29,6 +30,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:network-specific
     OptimismPortal public portal;
 
+    /// @notice Address of the SystemConfig contract.
+    /// @custom:network-specific
+    SystemConfig public systemConfig;
+
     // /// @notice Address of native token (ERC-20 token)
     // address public nativeTokenAddress;
 
@@ -40,7 +45,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     constructor() CrossDomainMessenger() {
         initialize({
             _superchainConfig: SuperchainConfig(address(0)),
-            _portal: OptimismPortal(payable(0))
+            _portal: OptimismPortal(payable(0)),
+            _systemConfig: SystemConfig(address(0))
         });
     }
 
@@ -49,13 +55,15 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @param _portal Contract of the OptimismPortal contract on this network.
     function initialize(
         SuperchainConfig _superchainConfig,
-        OptimismPortal _portal
+        OptimismPortal _portal,
+        SystemConfig _systemConfig
     )
         public
         reinitializer(Constants.INITIALIZER)
     {
         superchainConfig = _superchainConfig;
         portal = _portal;
+        systemConfig = _systemConfig;
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
     }
 
@@ -128,7 +136,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     }
 
     function nativeTokenAddress() public view returns(address) {
-        return portal.nativeTokenAddress();
+        return systemConfig.nativeTokenAddress();
     }
 
     /// @inheritdoc CrossDomainMessenger

@@ -17,6 +17,7 @@ import { Encoding } from "src/libraries/Encoding.sol";
 // Target contract dependencies
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
+import { SystemConfig } from "src/L1/SystemConfig.sol";
 
 // Target contract
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
@@ -723,7 +724,7 @@ contract L1CrossDomainMessenger_ReinitReentryTest is Messenger_Initializer {
             vm.store(address(L1Messenger), 0, bytes32(uint256(0)));
 
             // call the initializer function
-            L1Messenger.initialize(SuperchainConfig(sc), OptimismPortal(op));
+            L1Messenger.initialize(SuperchainConfig(sc), OptimismPortal(op), SystemConfig(systemConfig));
 
             // attempt to re-replay the withdrawal
             vm.expectEmit(address(L1Messenger));
