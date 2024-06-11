@@ -903,6 +903,7 @@ contract Deploy is Deployer {
         address l1StandardBridge = mustGetAddress("L1StandardBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
         if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
@@ -920,10 +921,10 @@ contract Deploy is Deployer {
                 L1StandardBridge.initialize,
                 (
                     L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    cfg.nativeTokenAddress(),
+                    SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
-                )
+            )
         });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
