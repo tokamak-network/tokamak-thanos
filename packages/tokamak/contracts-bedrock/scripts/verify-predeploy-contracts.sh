@@ -11,6 +11,8 @@ declare -A network_list
 
 network_list+=(
   ["thanos-sepolia-test"]=111551118080
+  ["thanos-sepolia"]=111551119090
+  ["thanos-sepolia-nighty"]=111551118282
   ["devnetL1"]=901
 )
 
@@ -175,9 +177,9 @@ for address in ${!contracts[@]}; do
 done
 
 echo "Getting contracts addresses for ImplementationSlotForZepplin ...."
-  contract="4200000000000000000000000000000000000778" # FiatTokenV2_2
-  QUERY=.alloc.\"$contract\".storage.\"$IMPLEMENTATIONSLOTFORZEPPLIN\"
-  contracts[${contract}]=$(echo $(curl -fsSL $GENESIS_URL | jq $QUERY) | cut -c 28-67)
+contract="4200000000000000000000000000000000000778" # FiatTokenV2_2
+QUERY=.alloc.\"$contract\".storage.\"$IMPLEMENTATIONSLOTFORZEPPLIN\"
+contracts[${contract}]=$(echo $(curl -fsSL $GENESIS_URL | jq $QUERY) | cut -c 28-67)
 
 echo "Successfully getting contracts addresses …."
 
@@ -435,4 +437,3 @@ function verify_FiatTokenV2_2() {
 }
 
 run
-
