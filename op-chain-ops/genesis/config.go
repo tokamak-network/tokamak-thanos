@@ -273,8 +273,6 @@ type DeployConfig struct {
 	// as part of building the L2 genesis state.
 	L1UsdcBridgeProxy common.Address `json:"l1UsdcBridgeProxy"`
 
-	// UnsupportedAddress represents an address that is not supported by the system.
-	UnsupportedAddress common.Address `json:"unsupportedAddress"`
 	//FacroryV2addr - address of the factoryV2 contract 0x0000000000...
 	FactoryV2addr common.Address `json:"factoryV2addr"`
 	// NativeCurrencyLabelBytes represents the bytes of the native currency label.
@@ -979,25 +977,26 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 		}{
 			Permit2:                     predeploys.Permit2Addr,
 			Weth9:                       predeploys.WNativeTokenAddr,
-			SeaportV15:                  config.UnsupportedAddress,
-			SeaportV14:                  config.UnsupportedAddress,
-			OpenseaConduit:              config.UnsupportedAddress,
-			NftxZap:                     config.UnsupportedAddress,
-			X2y2:                        config.UnsupportedAddress,
-			Foundation:                  config.UnsupportedAddress,
-			Sudoswap:                    config.UnsupportedAddress,
-			ElementMarket:               config.UnsupportedAddress,
-			Nft20Zap:                    config.UnsupportedAddress,
-			Cryptopunks:                 config.UnsupportedAddress,
-			LooksRareV2:                 config.UnsupportedAddress,
-			RouterRewardsDistributor:    config.UnsupportedAddress,
-			LooksRareRewardsDistributor: config.UnsupportedAddress,
-			LooksRareToken:              config.UnsupportedAddress,
+			SeaportV15:                  predeploys.UnsupportedProtocolAddr,
+			SeaportV14:                  predeploys.UnsupportedProtocolAddr,
+			OpenseaConduit:              predeploys.UnsupportedProtocolAddr,
+			NftxZap:                     predeploys.UnsupportedProtocolAddr,
+			X2y2:                        predeploys.UnsupportedProtocolAddr,
+			Foundation:                  predeploys.UnsupportedProtocolAddr,
+			Sudoswap:                    predeploys.UnsupportedProtocolAddr,
+			ElementMarket:               predeploys.UnsupportedProtocolAddr,
+			Nft20Zap:                    predeploys.UnsupportedProtocolAddr,
+			Cryptopunks:                 predeploys.UnsupportedProtocolAddr,
+			LooksRareV2:                 predeploys.UnsupportedProtocolAddr,
+			RouterRewardsDistributor:    predeploys.UnsupportedProtocolAddr,
+			LooksRareRewardsDistributor: predeploys.UnsupportedProtocolAddr,
+			LooksRareToken:              predeploys.UnsupportedProtocolAddr,
 			V2Factory:                   config.FactoryV2addr,
 			V3Factory:                   predeploys.UniswapV3FactoryAddr,
 			PairInitCodeHash:            config.UniversalRouterPairInitCodeHash,
 			PoolInitCodeHash:            config.UniversalRouterPoolInitCodeHash,
 		},
+		UnsupportedProtocol: struct{}{},
 	}
 
 	if err := cfg.Check(); err != nil {
