@@ -1,10 +1,9 @@
 name: pnpm-monorepo
 
 on:
-  pull_request:
-    paths:
-      - 'op-chain-ops/**'
-      - 'packages/**'
+  push:
+    branches:
+      - main
 
 jobs:
   pnpm-monorepo:
@@ -19,6 +18,17 @@ jobs:
       # Declares the repository safe and not under dubious ownership.
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Check L1 geth version
+        run: ./ops/scripts/geth-version-checker.sh || (echo "geth version is wrong, update ci-builder"; exit 1)
+
+      - name: Git submodules
+        run: make submodules
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
 
       - name: Restore PNPM Package Cache
         uses: actions/cache@v3
@@ -36,7 +46,7 @@ jobs:
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --offline
+        run: pnpm install:ci:offline
 
       - name: Print forge version
         run: forge --version
@@ -51,3 +61,30 @@ jobs:
           path: |
             packages/**/dist
             packages/contracts-bedrock/forge-artifacts
+
+      - name: Generate FPAC allocs
+        run: DEVNET_FPAC="true" make devnet-allocs
+
+      - name: Copy FPAC allocs to .devnet-fault-proofs
+        run: cp -r .devnet/ .devnet-fault-proofs/
+
+      - name: Generate non-FPAC allocs
+        run: make devnet-allocs
+
+      - name: Persist build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            packages/**/dist
+            packages/tokamak/contracts-bedrock/cache
+            packages/tokamak/contracts-bedrock/artifacts
+            packages/tokamak/contracts-bedrock/forge-artifacts
+            packages/tokamak/contracts-bedrock/tsconfig.tsbuildinfo
+            packages/tokamak/contracts-bedrock/tsconfig.build.tsbuildinfo
+            .devnet/allocs-l1.json
+            .devnet/addresses.json
+            .devnet-fault-proofs/allocs-l1.json
+            .devnet-fault-proofs/addresses.json
+            packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json
+            packages/tokamak/contracts-bedrock/deployments/devnetL1
