@@ -247,9 +247,9 @@
       "inputs": []
     }
   ],
-  "address": "0x3777985d929874a1316f8E93AA928c8f85dd0C8B",
+  "address": "0xd0883d8d4A923D2d449f0593D5dd61b37A74fCCb",
   "args": [
-    "0x76beAb7050aa8137946673411B349Bb440bf78b2",
+    "0x60F2c9784ae3F25012A4963C99F7dedFFEC695C7",
     "0xEd5e79b6d1cEF3C578AE038c86100C87cE6bc843",
     "0x"
   ],
@@ -289,48 +289,48 @@
   "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_logic\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"initialOwner\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"stateMutability\":\"payable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"target\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"AddressEmptyCode\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"ERC1967InvalidAdmin\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"type\":\"error\",\"name\":\"ERC1967InvalidImplementation\"},{\"inputs\":[],\"type\":\"error\",\"name\":\"ERC1967NonPayable\"},{\"inputs\":[],\"type\":\"error\",\"name\":\"FailedInnerCall\"},{\"inputs\":[],\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"deposits\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l1Usdc\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"l2Usdc\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"messenger\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"otherBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"proxyChangeOwner\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messenger\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_otherBridge\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_l1Usdc\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_l2Usdc\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"setAddress\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"upgradeTo\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"upgradeToAndCall\"},{\"inputs\":[],\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"remappings\":[\"@cwia/=lib/clones-with-immutable-args/src/\",\"@lib-keccak/=lib/lib-keccak/contracts/lib/\",\"@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\"@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\"@openzeppelin/contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts/\",\"@openzeppelin/contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/contracts/\",\"@rari-capital/solmate/=lib/solmate/\",\"@solady-test/=lib/lib-keccak/lib/solady/test/\",\"@solady/=lib/lib-keccak/lib/solady/src/\",\"clones-with-immutable-args/=lib/clones-with-immutable-args/src/\",\"ds-test/=lib/forge-std/lib/ds-test/src/\",\"erc4626-tests/=lib/openzeppelin-contracts_v5.0.1/lib/erc4626-tests/\",\"forge-std/=lib/forge-std/src/\",\"kontrol-cheatcodes/=lib/kontrol-cheatcodes/src/\",\"lib-keccak/=lib/lib-keccak/contracts/\",\"openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\"openzeppelin-contracts/=lib/openzeppelin-contracts/\",\"openzeppelin-contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts/\",\"openzeppelin-contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/\",\"safe-contracts/=lib/safe-contracts/contracts/\",\"solady/=lib/solady/src/\",\"solmate/=lib/solmate/src/\"],\"optimizer\":{\"enabled\":true,\"runs\":999999},\"metadata\":{\"bytecodeHash\":\"none\"},\"compilationTarget\":{\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol\":\"L1UsdcBridgeProxy\"},\"evmVersion\":\"london\",\"libraries\":{\"src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:SignatureChecker\":\"0x4200000000000000000000000000000000000776\"}},\"sources\":{\"src/tokamak-contracts/USDC/L1/libraries/Address.sol\":{\"keccak256\":\"0x7a2becd0fc138ccd81f63dc85f73aa43ac9e16107b1060dfb9bfcbc46e089060\",\"urls\":[\"bzz-raw://a9cfc1478aba538118b63dca8c71983d8d522b9ac97b96364ae27dc505b675a3\",\"dweb:/ipfs/QmQJnCRPn61XoPbDtykyGGcXS4YYydmMCxcWDymhBTG6JJ\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/ERC1967Proxy.sol\":{\"keccak256\":\"0xa55c5aec3df1b79882376aa8a6ab8d67f97fae24ee8a26a1114ce1f77535a18b\",\"urls\":[\"bzz-raw://4093b9a18b985a8306caae2dcec1b8a110d78058c4860f07fbb8d65796730ee4\",\"dweb:/ipfs/QmdirgM5e2g6XJ6XewEhdtCacmg22iSWwjsJkAif4G82jJ\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/ERC1967Utils.sol\":{\"keccak256\":\"0xa2fa39ddac02eecd313cddb1353698256a9cbeab1fcd2047d92285bf4519a23a\",\"urls\":[\"bzz-raw://bb3ac2962400411740195781a6f4df2646b0475fc007ae741b3c5946c1b394bc\",\"dweb:/ipfs/QmWr1if5nFDoUN8xpz5V21Lqcy2hXghbqui1aoZUEgqpY3\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/IBeacon.sol\":{\"keccak256\":\"0x716e742ed4bfcb97311d7d9d388bdc490cec880d9a4f52665d86ade99fca3b47\",\"urls\":[\"bzz-raw://24a0fd4d5e3d505f19d8e7023048d7b312eff22d264247c03af42eb15d480656\",\"dweb:/ipfs/QmczJSWDXryDzppqPHZ4mLELen6z3M3vJmN5p3QTB8Y6EM\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/Proxy.sol\":{\"keccak256\":\"0x8ebb7e89fb0a19c7c980aead431b48b0fc3a42e62807cd33ab45ed4703e5d653\",\"urls\":[\"bzz-raw://d2cc0a35cb482a3393304835b4346eb8af66a71ce67810659cf06221c647258f\",\"dweb:/ipfs/QmW24rg4bhq9tKysX5MpYTHbcW6CBABsMeA8B3PJjQcG8c\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/libraries/StorageSlot.sol\":{\"keccak256\":\"0x787e1146303d8c96198e87b7af989cbebd915244bee4020d9f159de952e98b4f\",\"urls\":[\"bzz-raw://49f31c7732b2b886b9b6718745627936007aa23e8d6d309c316f8a60b936131a\",\"dweb:/ipfs/QmXVu5oFjH7eTM4oKrsiHAW5BrEk5d86RvZ2xMWBZvdw4G\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol\":{\"keccak256\":\"0x0b0462976894859f171c295e839ac483980ce8fc27413f4124f9a5585e045bf6\",\"urls\":[\"bzz-raw://777167db6b51354a4ce3dbe08aaecc5a05dad9e068eb2d9b5691c70a760af08b\",\"dweb:/ipfs/QmPwmhpZdG7un5cAd9FTZshdGJ6Z8HAch1dsFqRHEBUHRJ\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeStorage.sol\":{\"keccak256\":\"0xcca6b8186e534ad59a4878f6756334175cd50aca504c4139d21930fce77e5b00\",\"urls\":[\"bzz-raw://c4a647cb71c35e41a53248db3c03a3d05ae169180465ee6947b48efd05afd4f5\",\"dweb:/ipfs/Qmf26yXFLCm8LmX4CKCoZ6wg6pGrnJmC3VYXhLFNHsA49i\"],\"license\":\"MIT\"},\"src/tokamak-contracts/USDC/universal/StandardBridgeStorage.sol\":{\"keccak256\":\"0xc61c40717e55341880ec5ba5c8f7366c7f7cbe045e55cd5bab643dbb60295bac\",\"urls\":[\"bzz-raw://237615182e4d1bb0447434f22e494222f5ff9ca97f2673d55b99918eb84bd723\",\"dweb:/ipfs/Qmd8GxkGfN3uhxLQygkQws1c7d47YA6K5p6PSFYM3m8bpT\"],\"license\":\"MIT\"}},\"version\":1}",
   "numDeployments": 1,
   "receipt": {
-    "transactionHash": "0x3b1883252923eee153a112dd0fb7ab31f6279b7f125c756d1b4bc7ed945da772",
-    "transactionIndex": "0x2e",
-    "blockHash": "0x693e1c4fe31349bf21871180e751e17fbdec8106ddc35c81addc75592868add6",
-    "blockNumber": "0x5d09e6",
+    "transactionHash": "0xc682cee6ac42ed14a8473c98b48e7f54f63909627a21c2b63ee0adc45b59e5b5",
+    "transactionIndex": "0x6",
+    "blockHash": "0x9ec4ae74e655cf0f8d1404e2ecab6e92959c59cc0d8dcbb4e4e3e621c3437abc",
+    "blockNumber": "0x5d0e15",
     "from": "0xEd5e79b6d1cEF3C578AE038c86100C87cE6bc843",
     "to": null,
-    "cumulativeGasUsed": "0x12b0e3e",
+    "cumulativeGasUsed": "0x155e6d",
     "gasUsed": "0xe1f33",
-    "contractAddress": "0x3777985d929874a1316f8E93AA928c8f85dd0C8B",
+    "contractAddress": "0xd0883d8d4A923D2d449f0593D5dd61b37A74fCCb",
     "logs": [
       {
-        "address": "0x3777985d929874a1316f8E93AA928c8f85dd0C8B",
+        "address": "0xd0883d8d4A923D2d449f0593D5dd61b37A74fCCb",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x00000000000000000000000076beab7050aa8137946673411b349bb440bf78b2"
+          "0x00000000000000000000000060f2c9784ae3f25012a4963c99f7dedffec695c7"
         ],
         "data": "0x",
-        "blockHash": "0x693e1c4fe31349bf21871180e751e17fbdec8106ddc35c81addc75592868add6",
-        "blockNumber": "0x5d09e6",
-        "transactionHash": "0x3b1883252923eee153a112dd0fb7ab31f6279b7f125c756d1b4bc7ed945da772",
-        "transactionIndex": "0x2e",
-        "logIndex": "0x52",
+        "blockHash": "0x9ec4ae74e655cf0f8d1404e2ecab6e92959c59cc0d8dcbb4e4e3e621c3437abc",
+        "blockNumber": "0x5d0e15",
+        "transactionHash": "0xc682cee6ac42ed14a8473c98b48e7f54f63909627a21c2b63ee0adc45b59e5b5",
+        "transactionIndex": "0x6",
+        "logIndex": "0x7",
         "removed": false
       },
       {
-        "address": "0x3777985d929874a1316f8E93AA928c8f85dd0C8B",
+        "address": "0xd0883d8d4A923D2d449f0593D5dd61b37A74fCCb",
         "topics": [
           "0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f"
         ],
         "data": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ed5e79b6d1cef3c578ae038c86100c87ce6bc843",
-        "blockHash": "0x693e1c4fe31349bf21871180e751e17fbdec8106ddc35c81addc75592868add6",
-        "blockNumber": "0x5d09e6",
-        "transactionHash": "0x3b1883252923eee153a112dd0fb7ab31f6279b7f125c756d1b4bc7ed945da772",
-        "transactionIndex": "0x2e",
-        "logIndex": "0x53",
+        "blockHash": "0x9ec4ae74e655cf0f8d1404e2ecab6e92959c59cc0d8dcbb4e4e3e621c3437abc",
+        "blockNumber": "0x5d0e15",
+        "transactionHash": "0xc682cee6ac42ed14a8473c98b48e7f54f63909627a21c2b63ee0adc45b59e5b5",
+        "transactionIndex": "0x6",
+        "logIndex": "0x8",
         "removed": false
       }
     ],
     "status": "0x1",
-    "logsBloom": "0x00000000000000000000000000000080400000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000002000000000000000000000000000000000000000000000000000000000000000000004000800000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000010000000020000000000000000000000000000000000400000000000000000001000000000000000000000000000000000000000000000000000000000000000000",
+    "logsBloom": "0x00000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000004000000000000000000000002100000000000000000000000000000000000000000000000000200000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000080020000002000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
     "type": "0x2",
-    "effectiveGasPrice": "0x3841b3200"
+    "effectiveGasPrice": "0x19ac5ea87f"
   },
   "solcInputHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "storageLayout": {
@@ -403,7 +403,7 @@
       }
     }
   },
-  "transactionHash": "0x3b1883252923eee153a112dd0fb7ab31f6279b7f125c756d1b4bc7ed945da772",
+  "transactionHash": "0xc682cee6ac42ed14a8473c98b48e7f54f63909627a21c2b63ee0adc45b59e5b5",
   "userdoc": {
     "version": 1,
     "kind": "user"
