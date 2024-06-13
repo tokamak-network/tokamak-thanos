@@ -12,7 +12,7 @@ declare -A network_list
 network_list+=(
   ["thanos-sepolia-test"]=111551118080
   ["thanos-sepolia"]=111551119090
-  ["thanos-sepolia-nighty"]=111551118282
+  ["thanos-sepolia-nightly"]=111551118282
   ["devnetL1"]=901
 )
 
