@@ -262,8 +262,8 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
     })
-    wait_up(8545)
-    wait_for_rpc_server('127.0.0.1:8545')
+    # wait_up(8545)
+    # wait_for_rpc_server('127.0.0.1:8545')
 
     if os.path.exists(paths.genesis_l2_path):
         log.info('L2 genesis and rollup configs already generated.')
@@ -284,7 +284,6 @@ def devnet_deploy(paths, args):
     # Setup the beacon path
     run_command(['docker', 'compose', 'up', '-d', 'setup'],
     cwd=paths.ops_bedrock_dir)
-
 
     # Restart l1
     restart_l1_with_docker_compose(paths)
@@ -533,14 +532,14 @@ def restart_l1_with_docker_compose(paths):
     try:
         # Restart L1
         log.info('Re-starting L1.')
-        subprocess.run(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
+        run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
             'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
             'BLOCK_NUMBER': paths.block_number,
         }, check=True)
 
-        wait_up(8545)
-        wait_for_rpc_server('127.0.0.1:8545')
+        # wait_up(8545)
+        # wait_for_rpc_server('127.0.0.1:8545')
 
         print("L1 is restarted.")
     except subprocess.CalledProcessError as e:

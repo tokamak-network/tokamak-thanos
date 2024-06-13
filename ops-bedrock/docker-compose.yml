@@ -27,7 +27,6 @@ services:
       dockerfile: Dockerfile.setup
     volumes:
       - "beacon_data:/beacon_data"
-      - "./bin:/usr/local/bin"
       - "./../.devnet/genesis-l1.json:/genesis-l1.json"
       - "./../.devnet/rollup.json:/rollup.json"
       - "./setup_time.sh:/setup_time.sh"

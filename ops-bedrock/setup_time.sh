@@ -27,10 +27,8 @@ echo $GENESIS_TIME
 CAPELLA_TIME=$((GENESIS_TIME + (CAPELLA_FORK_EPOCH * $SLOT_PER_EPOCH * SECONDS_PER_SLOT)))
 echo $CAPELLA_TIME
 echo "$(sed 's/"shanghaiTime".*$/"shanghaiTime": '"$CAPELLA_TIME"',/g' /genesis-l1.json)" > /genesis-l1.json
-# sed -i 's/"shanghaiTime".*$/"shanghaiTime": '"$CAPELLA_TIME"',/g' /genesis-l1.json
 CANCUN_TIME=$((GENESIS_TIME + (DENEB_FORK_EPOCH * $SLOT_PER_EPOCH * SECONDS_PER_SLOT)))
 echo $CANCUN_TIME
-# sed -i 's/"cancunTime".*$/"cancunTime": '"$CANCUN_TIME"',/g' /genesis-l1.json
 echo "$(sed 's/"cancunTime".*$/"cancunTime": '"$CANCUN_TIME"',/g' /genesis-l1.json)" > /genesis-l1.json
 
 cat /genesis-l1.json
