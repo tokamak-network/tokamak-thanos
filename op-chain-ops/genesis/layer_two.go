@@ -140,6 +140,20 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 				dep = c
 			}
 			deployResults[name] = dep
+		case "NFTDescriptor":
+			bytecode, err := bindings.GetDeployedBytecode(name)
+			if err != nil {
+				return nil, err
+			}
+			a := bytecode[:1]
+			b := bytecode[21:]
+			c := hexutil.Bytes{}
+			d, _ := hex.DecodeString("4200000000000000000000000000000000000503")
+			c = append(c, a...)
+			c = append(c, d...)
+			c = append(c, b...)
+			bytecode = c
+			deployResults[name] = bytecode
 			fallthrough
 		default:
 			if !predeploy.ProxyDisabled {
