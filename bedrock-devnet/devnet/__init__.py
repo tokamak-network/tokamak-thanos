@@ -285,9 +285,6 @@ def devnet_deploy(paths, args):
     run_command(['docker', 'compose', 'up', '-d', 'setup'],
     cwd=paths.ops_bedrock_dir)
 
-    # Bring the bootnode
-    run_command(['docker', 'compose', 'up', '-d','bootnode'],
-    cwd=paths.ops_bedrock_dir)
 
     # Restart l1
     restart_l1_with_docker_compose(paths)
@@ -302,7 +299,6 @@ def devnet_deploy(paths, args):
 
     # Bring up beacon node
     log.info('Bringing up consensus-node and validator-client')
-    # run_command(['docker', 'compose', 'up', '-d', 'consensus-node1', 'consensus-node2', 'validator-client1', 'validator-client2'], cwd=paths.ops_bedrock_dir)
     run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir)
 
     # Start the L2.

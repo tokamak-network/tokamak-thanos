@@ -32,18 +32,6 @@ services:
       - "./../.devnet/rollup.json:/rollup.json"
       - "./setup_time.sh:/setup_time.sh"
 
-  bootnode:
-    depends_on:
-      - setup
-    build:
-      context: .
-      dockerfile: Dockerfile.bootnode
-    ports:
-      - "4242:4242"
-    volumes:
-      - "beacon_data:/beacon_data"
-      - "./bin:/usr/local/bin"
-
   l1:
     build:
       context: .
@@ -53,8 +41,6 @@ services:
       - "8546:8546"
       - "7060:6060"
       - "9999:9999"
-      - "7001:7001"
-      - "8551:8551"
     volumes:
       - "l1_data:/db"
       - "./../.devnet/genesis-l1.json:/genesis.json"
@@ -67,45 +53,41 @@ services:
   consensus-node:
     depends_on:
       - l1
-    image: sigp/lighthouse:${IMAGE_TAG:-latest}
+    image: sigp/lighthouse:v5.1.3
     command: >
       /bin/sh -c "lighthouse
       --debug-level=info \
       bn \
-      --allow-insecure-genesis-sync \
       --datadir=/beacon_data/node_1 \
       --testnet-dir=/beacon_data/testnet \
+      --enable-private-discovery \
       --staking \
-      --enr-address=127.0.0.1 \
-      --enr-udp-port=9001 \
-      --enr-tcp-port=9001 \
-      --enr-quic-port=9101 \
       --port=9001 \
       --quic-port=9101 \
       --http-port=8001 \
       --disable-packet-filter \
-      --target-peers=1 \
+      --target-peers=0 \
       --execution-endpoint=http://l1:8551 \
       --execution-jwt=/config/test-jwt-secret.txt \
       --http-allow-sync-stalled"
     ports:
-      - "9001:9001"
       - "8001:8001"
+      - "9001:9001"
     volumes:
       - "beacon_data:/beacon_data"
       - "./test-jwt-secret.txt:/config/test-jwt-secret.txt"
 
   validator-client:
-    image: sigp/lighthouse:${IMAGE_TAG:-latest}
+    image: sigp/lighthouse:v5.1.3
     command: >
       /bin/sh -c "lighthouse
-      --debug-level info \
+      --debug-level=info \
       vc \
-      --datadir /beacon_data/node_1 \
-      --testnet-dir /beacon_data/testnet \
+      --datadir=/beacon_data/node_1 \
+      --testnet-dir=/beacon_data/testnet \
       --init-slashing-protection \
-      --beacon-nodes http://consensus-node:8001
-      --suggested-fee-recipient 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      --beacon-nodes=http://consensus-node:8001
+      --suggested-fee-recipient=0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990"
     volumes:
       - "beacon_data:/beacon_data"
 
@@ -174,10 +156,10 @@ services:
       - "7300:7300"
       - "6060:6060"
     volumes:
-      - "./p2p-sequencer-key.txt:/config/p2p-sequencer-key.txt"
-      - "./p2p-node-key.txt:/config/p2p-node-key.txt"
-      - "./test-jwt-secret.txt:/config/test-jwt-secret.txt"
-      - "./../.devnet/rollup.json:/rollup.json"
+      - "${PWD}/p2p-sequencer-key.txt:/config/p2p-sequencer-key.txt"
+      - "${PWD}/p2p-node-key.txt:/config/p2p-node-key.txt"
+      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+      - "${PWD}/../.devnet/rollup.json:/rollup.json"
       - op_log:/op_log
     environment:
       L1_FORK_PUBLIC_NETWORK: "${L1_FORK_PUBLIC_NETWORK}"
