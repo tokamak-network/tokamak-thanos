@@ -184,8 +184,10 @@ jobs:
           path: /tmp/test-results
 
   go-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-l
     name: Go test ${{matrix.name}}
+    container:
+      image: onthertech/thanos-ci-builder:ecotone
     strategy:
       matrix:
         name: [
