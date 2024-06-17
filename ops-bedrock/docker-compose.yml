@@ -63,6 +63,7 @@ services:
       --staking \
       --port=9001 \
       --quic-port=9101 \
+      --http-address=0.0.0.0 \
       --http-port=8001 \
       --disable-packet-filter \
       --target-peers=0 \
