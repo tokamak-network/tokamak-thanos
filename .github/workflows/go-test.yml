@@ -1,0 +1,114 @@
+name: Go E2E tests
+
+on:
+  push:
+    branches:
+      - feat/OR-1618-seperate-e2e-test
+
+jobs:
+  go-test:
+    runs-on: ubuntu-latest-l
+    name: Go test ${{matrix.name}}
+    container:
+      image: onthertech/thanos-ci-builder:ecotone
+    strategy:
+      matrix:
+        include:
+          - name: 'op-heartbeat-tests'
+            module: 'op-heartbeat'
+          - name: 'op-batcher-tests'
+            module: 'op-batcher'
+          - name: 'op-bindings-tests'
+            module: 'op-bindings'
+          - name: 'op-chain-ops-tests'
+            module: 'op-chain-ops'
+          - name: 'op-node-tests'
+            module: 'op-node'
+          - name: 'op-proposer-tests'
+            module: 'op-proposer'
+          - name: 'op-dispute-mon-tests'
+            module: 'op-challenger'
+          - name: 'op-conductor-tests'
+            module: 'op-conductor'
+          - name: 'op-program-tests'
+            module: 'op-program'
+          - name: 'op-service-tests'
+            module: 'op-service'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Prep results dir
+        run: mkdir -p /tmp/test-results
+
+      - name: Run tests
+        run: |
+          gotestsum --format=standard-verbose --junitfile=/tmp/test-results/${{ matrix.module }}.xml \
+          -- -parallel=8 -coverprofile=coverage.out ./...
+        working-directory: ${{ matrix.module }}
+
+      - name: Store test results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: /tmp/test-results
+
+  cannon-go-lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/setup-qemu-action@v2
+
+      - name: Check if changes affect relevant paths
+        id: changes-check
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            cannon:
+              - 'cannon/**'
+            contracts-bedrock:
+              - 'packages/tokamak/contracts-bedrock/src/cannon/**'
+            op-preimage:
+              - 'op-preimage/**'
+
+      - name: Prep Cannon results dir
+        run: mkdir -p /tmp/test-results
+
+      - name: Build Cannon example binaries
+        run: make elf
+        working-directory: cannon/example
+        if: steps.changes-check.outputs.cannon == 'true' || steps.changes-check.outputs.contracts-bedrock == 'true' || steps.changes-check.outputs.op-preimage == 'true'
+
+      - name: Cannon Go lint
+        run: make lint
+        working-directory: cannon
+        if: steps.changes-check.outputs.cannon == 'true' || steps.changes-check.outputs.contracts-bedrock == 'true' || steps.changes-check.outputs.op-preimage == 'true'
+
+      - name: Cannon Go tests
+        run: |
+          gotestsum --format=standard-verbose --junitfile=/tmp/test-results/cannon.xml \
+          -- -parallel=2 -coverpkg=github.com/tokamak-network/thanos/cannon/... -coverprofile=coverage.out ./...
+        working-directory: cannon
+        if: steps.changes-check.outputs.cannon == 'true' || steps.changes-check.outputs.contracts-bedrock == 'true' || steps.changes-check.outputs.op-preimage == 'true'
+
+      - name: Upload Cannon coverage
+        run: codecov --verbose --clean --flags cannon-go-tests
+        if: steps.changes-check.outputs.cannon == 'true' || steps.changes-check.outputs.contracts-bedrock == 'true' || steps.changes-check.outputs.op-preimage == 'true'
+
+      - name: Store test results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: /tmp/test-results
+
