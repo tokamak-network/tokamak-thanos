@@ -69,7 +69,8 @@ services:
       --target-peers=0 \
       --execution-endpoint=http://l1:8551 \
       --execution-jwt=/config/test-jwt-secret.txt \
-      --http-allow-sync-stalled"
+      --http-allow-sync-stalled \
+      --prune-blobs=false"
     ports:
       - "8001:8001"
       - "9001:9001"
@@ -123,13 +124,14 @@ services:
       args:
         OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
     image: onthertech/thanos-op-node:${IMAGE_TAG:-latest}
-    command: > # TODO: add --l1-beacon
+    command: >
       /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
       --l1=http://l1:8545
       --l1.fork-public-network=${L1_FORK_PUBLIC_NETWORK:-false}
       --l2=http://l2:8551
       --l2.jwt-secret=/config/test-jwt-secret.txt
+      --l1.beacon=http://consensus-node:8001
       --sequencer.enabled
       --sequencer.l1-confs=0
       --verifier.l1-confs=0

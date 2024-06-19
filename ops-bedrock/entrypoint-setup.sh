@@ -44,7 +44,6 @@ lcli \
 echo Specification and genesis.ssz generated at $TESTNET_DIR.
 
 cd /beacon_data/testnet
-ls -al
 echo "Generating $VALIDATOR_COUNT validators concurrently... (this may take a while)"
 
 lcli \
