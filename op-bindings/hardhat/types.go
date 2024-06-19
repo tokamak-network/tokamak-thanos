@@ -20,18 +20,18 @@ type DeployedBytecodeObject struct {
 // Deployment represents a hardhat-deploy artifact file
 type Deployment struct {
 	Name             string
-	Abi              abi.ABI                `json:"abi"`
-	Address          common.Address         `json:"address"`
-	Args             []interface{}          `json:"-"`
-	Bytecode         hexutil.Bytes          `json:"bytecode"`
-	DeployedBytecode DeployedBytecodeObject `json:"deployedBytecode"`
-	Devdoc           json.RawMessage        `json:"devdoc"`
-	Metadata         string                 `json:"metadata"`
-	Receipt          json.RawMessage        `json:"receipt"`
-	SolcInputHash    string                 `json:"solcInputHash"`
-	StorageLayout    solc.StorageLayout     `json:"storageLayout"`
-	TransactionHash  common.Hash            `json:"transactionHash"`
-	Userdoc          json.RawMessage        `json:"userdoc"`
+	Abi              abi.ABI            `json:"abi"`
+	Address          common.Address     `json:"address"`
+	Args             []interface{}      `json:"-"`
+	Bytecode         hexutil.Bytes      `json:"bytecode"`
+	DeployedBytecode interface{}        `json:"deployedBytecode"`
+	Devdoc           json.RawMessage    `json:"devdoc"`
+	Metadata         string             `json:"metadata"`
+	Receipt          json.RawMessage    `json:"receipt"`
+	SolcInputHash    string             `json:"solcInputHash"`
+	StorageLayout    solc.StorageLayout `json:"storageLayout"`
+	TransactionHash  common.Hash        `json:"transactionHash"`
+	Userdoc          json.RawMessage    `json:"userdoc"`
 }
 
 // UnmarshalJSON is a custom unmarshaler for Deployment, handling the Args field. This changed recently
