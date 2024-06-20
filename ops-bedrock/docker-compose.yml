@@ -232,7 +232,8 @@ services:
       OP_BATCHER_PPROF_ENABLED: "true"
       OP_BATCHER_METRICS_ENABLED: "true"
       OP_BATCHER_RPC_ENABLE_ADMIN: "true"
-      OP_BATCHER_BATCH_TYPE: 0
+      OP_BATCHER_BATCH_TYPE: 1 # 1 for Span batch
+      OP_BATCHER_DATA_AVAILABILITY_TYPE: blobs
 
   op-challenger:
     depends_on:
