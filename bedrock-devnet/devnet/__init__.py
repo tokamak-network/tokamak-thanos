@@ -28,7 +28,7 @@ parser.add_argument('--l1-rpc-url', help='Public L1 RPC URL', type=str, default=
 parser.add_argument('--block-number', help='From block number', type=int, default=os.environ.get('BLOCK_NUMBER'))
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
-parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/thanos-op-geth:nightly')
+parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'tokamaknetwork/thanos-op-geth:nightly')
 parser.add_argument('--l1-beacon', help='Using beacon RPC', type=str, default=os.environ.get('L1_BEACON'))
 
 log = logging.getLogger()
