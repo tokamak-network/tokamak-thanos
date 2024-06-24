@@ -7,7 +7,7 @@ on:
 jobs:
   check-changes-and-install-dependencies:
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:latest
     runs-on: ubuntu-latest
 
     outputs:
@@ -70,7 +70,7 @@ jobs:
     if: needs.check-changes-and-install-dependencies.outputs.packages != '[]'
     needs: [check-changes-and-install-dependencies]
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:latest
     name: Check lint ${{matrix.package}}
 
     strategy:
