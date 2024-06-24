@@ -32,7 +32,7 @@ RUN mkdir manifests && \
   # .pnpmfile.cjs
   cp .pnpmfile.cjs ../manifests/
 
-FROM onthertech/thanos-ci-builder:ecotone as foundry
+FROM tokamaknetwork/thanos-ci-builder:latest as foundry
 # bullseye-slim is debian based
 # we use it rather than alpine because it's not much
 # bigger and alpine is often missing packages for node applications
