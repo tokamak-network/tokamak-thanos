@@ -9,7 +9,7 @@ jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:latest
 
     steps:
       - name: Checkout
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.21"
+          go-version: '1.21'
 
       - name: Restore PNPM Package Cache
         uses: actions/cache@v3

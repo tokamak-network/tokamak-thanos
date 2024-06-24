@@ -212,7 +212,6 @@ func (generator *BindGenGeneratorLocal) processHardhatArtifact(contractName stri
 		if strings.Contains(key, fmt.Sprintf("/%s.sol", contractName)) && !strings.Contains(key, "/interfaces/") {
 			for _, v := range value {
 				if v.Evm.DeployedBytecode.ImmutableReferences != nil && len(v.Evm.DeployedBytecode.ImmutableReferences) > 0 {
-					fmt.Printf("key: %s, keyimmutable: %+v\n", key, v.Evm.DeployedBytecode.ImmutableReferences)
 					hasImmutables = true
 					break
 				}

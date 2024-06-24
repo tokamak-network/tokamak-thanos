@@ -10,7 +10,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:latest
     defaults:
       run:
         shell: bash
