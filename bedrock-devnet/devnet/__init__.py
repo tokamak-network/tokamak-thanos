@@ -8,11 +8,9 @@ import datetime
 import time
 import shutil
 import http.client
-import gzip
 from multiprocessing import Process, Queue
 import concurrent.futures
 from collections import namedtuple
-
 
 pjoin = os.path.join
 
@@ -29,7 +27,6 @@ parser.add_argument('--block-number', help='From block number', type=int, defaul
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/thanos-op-geth:nightly')
-parser.add_argument('--l1-beacon', help='Using beacon RPC', type=str, default=os.environ.get('L1_BEACON'))
 
 log = logging.getLogger()
 
@@ -116,7 +113,6 @@ def main():
       l2_native_token=args.l2_native_token,
       bedrock_devnet_path=bedrock_devnet_dir,
       admin_key=args.admin_key,
-      l1_beacon=args.l1_beacon,
     )
 
     if args.test:
@@ -148,7 +144,6 @@ def main():
             'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
             'BLOCK_NUMBER': paths.block_number,
             'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network),
-            'L1_RPC_BEACON': paths.l1_beacon if paths.l1_beacon else ''
         })
 
     log.info('Devnet starting')
@@ -256,6 +251,11 @@ def devnet_deploy(paths, args):
             '--outfile.l1', paths.genesis_l1_path,
         ], cwd=paths.op_node_dir)
 
+        run_command([
+          'sh', 'l1-generate-beacon-genesis.sh',
+        ], cwd=paths.ops_bedrock_dir)
+
+    # Bring up L1
     log.info('Starting L1.')
     run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
         'PWD': paths.ops_bedrock_dir,
@@ -306,7 +306,6 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
-        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else '',
         'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
     }
 
@@ -319,12 +318,14 @@ def devnet_deploy(paths, args):
     else:
         docker_env['L2OO_ADDRESS'] = l2_output_oracle
 
-    log.info('Bringing up `op-node`, `op-proposer`, `op-batcher` and `artifact-server`.')
+
+    # Bring up op-node, op-proposer, op-batcher, artifact-server
+    log.info('Bringing up op-node, op-proposer, op-batcher and artifact-server.')
     run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     # Optionally bring up op-challenger.
     if DEVNET_FPAC:
-        log.info('Bringing up `op-challenger`.')
+        log.info('Bringing up op-challenger.')
         run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     log.info('Devnet ready.')
@@ -506,3 +507,29 @@ def write_file(path, data):
 
 def delete_file(path):
     os.remove(path)
+
+def restart_l1_with_docker_compose(paths):
+    try:
+        # Restart L1
+        log.info('Re-starting L1.')
+        run_command(['docker', 'compose', 'up', '-d', 'l1'], cwd=paths.ops_bedrock_dir, env={
+            'PWD': paths.ops_bedrock_dir,
+            'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
+            'BLOCK_NUMBER': paths.block_number,
+        }, check=True)
+
+        wait_up(8545)
+        wait_for_rpc_server('127.0.0.1:8545')
+
+        print("L1 is restarted.")
+    except subprocess.CalledProcessError as e:
+        print(f"Cannot restart L1 with error: {e}")
+
+def insert_data_at_line(file_path, new_data, line_number):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    lines.insert(line_number - 1, new_data + '\n')
+
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.writelines(lines)

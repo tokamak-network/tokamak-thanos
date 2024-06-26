@@ -6,9 +6,10 @@ version: '3.4'
 
 volumes:
   l1_data:
+  l1_bn_data:
+  l1_vc_data:
   l2_data:
   op_log:
-
 
 services:
   op_stack_go_builder:  # Not an actual service, but builds the prerequisite go images
@@ -32,12 +33,53 @@ services:
       - "9999:9999"
     volumes:
       - "l1_data:/db"
-      - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
-      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+      - "./../.devnet/genesis-l1.json:/genesis.json"
+      - "./test-jwt-secret.txt:/config/jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
       BLOCK_NUMBER: ${BLOCK_NUMBER}
       L1_RPC: ${L1_RPC}
+
+  l1-bn:
+    depends_on:
+      - l1
+    build:
+        context: .
+        dockerfile: l1-lighthouse.Dockerfile
+    ports:
+      - "9000:9000"
+      - "5052:5052"
+    volumes:
+      - "l1_bn_data:/db"
+      - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
+      - "${PWD}/beacon-data/config.yaml:/genesis/config.yaml"
+      - "${PWD}/beacon-data/deposit_contract_block.txt:/genesis/deposit_contract_block.txt"
+      - "${PWD}/../.devnet/genesis-l1.ssz:/genesis/genesis.ssz"
+    environment:
+      LH_EXECUTION_ENDPOINT: "http://l1:8551"
+    entrypoint:
+      - "/bin/sh"
+      - "/entrypoint-bn.sh"
+
+  l1-vc:
+    depends_on:
+      - l1
+      - l1-bn
+    build:
+        context: .
+        dockerfile: l1-lighthouse.Dockerfile
+    volumes:
+      - "l1_vc_data:/db"
+      - "${PWD}/beacon-data/data/keys:/validator_setup/validators"
+      - "${PWD}/beacon-data/data/secrets:/validator_setup/secrets"
+      - "${PWD}/beacon-data/config.yaml:/genesis/config.yaml"
+      - "${PWD}/beacon-data/deposit_contract_block.txt:/genesis/deposit_contract_block.txt"
+      - "${PWD}/../.devnet/genesis-l1.ssz:/genesis/genesis.ssz"
+    environment:
+      LH_BEACON_NODES: "http://l1-bn:5052/"
+    entrypoint:
+      - "/bin/sh"
+      - "/entrypoint-vc.sh"
 
   l2:
     build:
@@ -48,22 +90,21 @@ services:
     ports:
       - "9545:8545"
       - "8060:6060"
-      - "8551:8551"
     volumes:
       - "l2_data:/db"
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
-      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+      - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
     entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
       - "/bin/sh"
       - "/entrypoint.sh"
-      - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
 
   op-node:
     depends_on:
-      - op_stack_go_builder
       - l1
+      - l1-bn
+      - l1-vc
       - l2
     build:
       context: ../
@@ -74,10 +115,13 @@ services:
     command: >
       /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
-      --l1=http://l1:8545
+      --l1=ws://l1:8546
       --l1.fork-public-network=${L1_FORK_PUBLIC_NETWORK:-false}
       --l2=http://l2:8551
-      --l2.jwt-secret=/config/test-jwt-secret.txt
+      --l2.jwt-secret=/config/jwt-secret.txt
+      --l1.beacon=http://l1-bn:5052
+      --l1.epoch-poll-interval=12s
+      --l1.http-poll-interval=6s
       --sequencer.enabled
       --sequencer.l1-confs=0
       --verifier.l1-confs=0
@@ -97,7 +141,6 @@ services:
       --metrics.port=7300
       --pprof.enabled
       --rpc.enable-admin
-      --l1.beacon=${L1_BEACON}
       --l1.trustrpc"
     ports:
       - "7545:8545"
@@ -107,7 +150,7 @@ services:
     volumes:
       - "${PWD}/p2p-sequencer-key.txt:/config/p2p-sequencer-key.txt"
       - "${PWD}/p2p-node-key.txt:/config/p2p-node-key.txt"
-      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+      - "${PWD}/test-jwt-secret.txt:/config/jwt-secret.txt"
       - "${PWD}/../.devnet/rollup.json:/rollup.json"
       - op_log:/op_log
     environment:
@@ -170,7 +213,7 @@ services:
       OP_BATCHER_L1_ETH_RPC: http://l1:8545
       OP_BATCHER_L2_ETH_RPC: http://l2:8545
       OP_BATCHER_ROLLUP_RPC: http://op-node:8545
-      OP_BATCHER_MAX_CHANNEL_DURATION: 1
+      OP_BATCHER_MAX_CHANNEL_DURATION: 2
       OP_BATCHER_SUB_SAFETY_MARGIN: 4 # SWS is 15, ChannelTimeout is 40
       OP_BATCHER_POLL_INTERVAL: 1s
       OP_BATCHER_NUM_CONFIRMATIONS: 1
@@ -179,7 +222,8 @@ services:
       OP_BATCHER_PPROF_ENABLED: "true"
       OP_BATCHER_METRICS_ENABLED: "true"
       OP_BATCHER_RPC_ENABLE_ADMIN: "true"
-      OP_BATCHER_BATCH_TYPE: 0
+      OP_BATCHER_BATCH_TYPE: 0 # 0 is normal and 1 for Span batch
+      OP_BATCHER_DATA_AVAILABILITY_TYPE: blobs
 
   op-challenger:
     depends_on:
@@ -221,6 +265,6 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - "${PWD}/../.devnet/:/usr/share/nginx/html/:ro"
+      - "./../.devnet/:/usr/share/nginx/html/:ro"
     security_opt:
       - "no-new-privileges:true"
