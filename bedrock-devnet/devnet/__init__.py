@@ -27,7 +27,6 @@ parser.add_argument('--block-number', help='From block number', type=int, defaul
 parser.add_argument('--l2-native-token', help='L2 native token', type=str, default=os.environ.get('L2_NATIVE_TOKEN'))
 parser.add_argument('--admin-key', help='The admin private key for upgrade contracts', type=str, default=os.environ.get('DEVNET_ADMIN_PRIVATE_KEY'))
 parser.add_argument('--l2-image', help='Using local l2', type=str, default=os.environ.get('L2_IMAGE') if os.environ.get('L2_IMAGE') is not None else 'onthertech/thanos-op-geth:nightly')
-parser.add_argument('--l1-beacon', help='Using beacon RPC', type=str, default=os.environ.get('L1_BEACON'))
 
 log = logging.getLogger()
 
@@ -114,7 +113,6 @@ def main():
       l2_native_token=args.l2_native_token,
       bedrock_devnet_path=bedrock_devnet_dir,
       admin_key=args.admin_key,
-      l1_beacon=args.l1_beacon,
     )
 
     if args.test:
@@ -146,7 +144,6 @@ def main():
             'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
             'BLOCK_NUMBER': paths.block_number,
             'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network),
-            'L1_RPC_BEACON': paths.l1_beacon if paths.l1_beacon else ''
         })
 
     log.info('Devnet starting')
@@ -254,17 +251,9 @@ def devnet_deploy(paths, args):
             '--outfile.l1', paths.genesis_l1_path,
         ], cwd=paths.op_node_dir)
 
-    # Insert state data in genesis-l1.json
-    file_path = paths.genesis_l1_path
-
-    state_deposit_contract_path = pjoin(paths.ops_bedrock_dir, 'state-deposit-contract.txt')
-
-    # Read state_deposit_contract from file
-    with open(state_deposit_contract_path, 'r') as file:
-        state_deposit_contract = file.read().strip('\n')
-
-    # insert data with specific line
-    insert_data_at_line(file_path, state_deposit_contract, 799)
+        run_command([
+          'sh', 'l1-generate-beacon-genesis.sh',
+        ], cwd=paths.ops_bedrock_dir)
 
     # Bring up L1
     log.info('Starting L1.')
@@ -292,20 +281,6 @@ def devnet_deploy(paths, args):
     rollup_config = read_json(paths.rollup_config_path)
     addresses = read_json(paths.addresses_json_path)
 
-    # Setup the beacon path
-    run_command(['docker', 'compose', 'up', '-d', 'setup'],
-    cwd=paths.ops_bedrock_dir)
-
-    # Restart l1
-    restart_l1_with_docker_compose(paths)
-
-    # sleep 10s
-    time.sleep(10)
-
-    # Bring up beacon node
-    log.info('Bringing up consensus-node and validator-client')
-    run_command(['docker', 'compose', 'up', '-d', 'consensus-node', 'validator-client'], cwd=paths.ops_bedrock_dir)
-
     # Start the L2.
     log.info('Bringing up L2.')
     run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
@@ -331,7 +306,6 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
-        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else '',
         'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
     }
 
