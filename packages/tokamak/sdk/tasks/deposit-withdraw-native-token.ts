@@ -345,23 +345,18 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     updatedL2Balance.toString()
   )
 
-  const l1FeeScalar = withdrawalTx['l1FeeScalar']
-  const l1FeeScalarBN = ethers.utils.parseUnits(l1FeeScalar.toString(), 18)
-  const l1Cost = withdrawalTx['l1Fee']
-    .mul(l1FeeScalarBN)
-    .div(ethers.utils.parseUnits('1', 18))
+  const l1CostActual = withdrawalTx['l1Fee']
+  const l2CostActual = withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice)
 
-  console.log('   l1 gas cost   ', l1Cost.toString())
+  console.log(`L1 cost actual: ${l1CostActual.toString()}`)
+  console.log(`L2 cost actual: ${l2CostActual.toString()}`)
+  console.log(`Total cost: ${l1CostActual.add(l2CostActual).toString()}`)
+  console.log('Withdrawal amount', amount.toString())
   console.log(
-    '   l2 gas cost   ',
-    withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).toString()
-  )
-  console.log('withdrawal amount', amount.toString())
-  console.log(
-    '   spent amount = l1_gas_cost + l2_gas_cost + withdrawal_amount = ',
-    l1Cost
-      .add(withdrawalTx.gasUsed.mul(withdrawalTx.effectiveGasPrice).add(amount))
-      .toString()
+    `Spent amount = L1 cost actual + L2 cost actual + Withdrawal Amount = ${l1CostActual
+      .add(l2CostActual)
+      .add(amount)
+      .toString()}`
   )
   console.log('Balance changed ', l2Balance.sub(updatedL2Balance).toString())
 
