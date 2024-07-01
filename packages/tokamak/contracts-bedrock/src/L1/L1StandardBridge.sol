@@ -574,6 +574,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         onlyOtherBridge
     {
+        require(paused() == false, "L1 StandardBridge: paused");
         address _nativeTokenAddress = nativeTokenAddress();
         require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
         require(_to != address(this), "StandardBridge: cannot send to self");
@@ -598,6 +599,8 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         onlyOtherBridge
     {
+        require(paused() == false, "L1 StandardBridge: paused");
+
         address _nativeTokenAddress = nativeTokenAddress();
         if (_isOptimismMintableERC20(_localToken) && _localToken != _nativeTokenAddress) {
             require(
