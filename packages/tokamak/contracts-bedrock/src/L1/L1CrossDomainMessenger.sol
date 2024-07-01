@@ -235,6 +235,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         payable
         override
     {
+        require(paused() == false, "L1 CrossDomainMessenger: paused");
         require(msg.value == 0, "CrossDomainMessenger: value must be zero");
 
         (, uint16 _nonceVersion) = Encoding.decodeVersionedNonce(_nonce);
