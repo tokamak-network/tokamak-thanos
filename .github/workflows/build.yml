@@ -60,7 +60,7 @@ jobs:
           name: dist-artifacts
           path: |
             packages/**/dist
-            packages/contracts-bedrock/forge-artifacts
+            packages/tokamak/contracts-bedrock/forge-artifacts
 
       - name: Generate FPAC allocs
         run: DEVNET_FPAC="true" make devnet-allocs
