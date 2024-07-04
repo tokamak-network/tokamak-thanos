@@ -7,10 +7,10 @@ on:
 
 jobs:
   go-test:
-    runs-on: ubuntu-latest-l
+    runs-on: ubuntu-latest
     name: Go test ${{matrix.name}}
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:latest
     strategy:
       matrix:
         include:
@@ -80,7 +80,6 @@ jobs:
               - 'packages/tokamak/contracts-bedrock/src/cannon/**'
             op-preimage:
               - 'op-preimage/**'
-
       - name: Prep Cannon results dir
         run: mkdir -p /tmp/test-results
 
@@ -111,4 +110,3 @@ jobs:
         with:
           name: test-results
           path: /tmp/test-results
-
