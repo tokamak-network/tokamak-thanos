@@ -8,7 +8,7 @@ jobs:
   go-lint:
     runs-on: ubuntu-latest
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:ecotone
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.0

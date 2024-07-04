@@ -9,7 +9,7 @@ jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:ecotone
 
     steps:
       - name: Checkout

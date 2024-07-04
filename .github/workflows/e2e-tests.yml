@@ -17,7 +17,7 @@ jobs:
     name: 'e2e test'
     runs-on: ubuntu-latest-l
     container:
-      image: onthertech/thanos-ci-builder:ecotone
+      image: tokamaknetwork/thanos-ci-builder:ecotone
     steps:
       - name: Check CPUs
         run: lscpu && echo

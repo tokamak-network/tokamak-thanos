@@ -19,7 +19,7 @@ services:
       args:
         GIT_COMMIT: "dev"
         GIT_DATE: "0"
-    image: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
     entrypoint: ["echo", "build complete"]
 
   l1:
@@ -110,8 +110,8 @@ services:
       context: ../
       dockerfile: ./op-node/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
-    image: onthertech/thanos-op-node:${IMAGE_TAG:-latest}
+        OP_STACK_GO_BUILDER: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
@@ -167,8 +167,8 @@ services:
       context: ../
       dockerfile: ./op-proposer/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
-    image: onthertech/thanos-op-proposer:${IMAGE_TAG:-latest}
+        OP_STACK_GO_BUILDER: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-proposer:${IMAGE_TAG:-latest}
     ports:
       - "6062:6060"
       - "7302:7300"
@@ -201,8 +201,8 @@ services:
       context: ../
       dockerfile: ./op-batcher/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
-    image: onthertech/thanos-op-batcher:${IMAGE_TAG:-latest}
+        OP_STACK_GO_BUILDER: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-batcher:${IMAGE_TAG:-latest}
     ports:
       - "6061:6060"
       - "7301:7300"
@@ -235,7 +235,7 @@ services:
       context: ../
       dockerfile: ./op-challenger/Dockerfile
       args:
-        OP_STACK_GO_BUILDER: onthertech/thanos-op-stack-go:${IMAGE_TAG:-latest}
+        OP_STACK_GO_BUILDER: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
     image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-challenger:devnet
     environment:
       OP_CHALLENGER_L1_ETH_RPC: http://l1:8545

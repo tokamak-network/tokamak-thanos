@@ -57,7 +57,7 @@ jobs:
           context: .
           file: ./ops/docker/op-stack-go/Dockerfile
           push: true
-          tags: onthertech/thanos-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
+          tags: tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
           build-args: |
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
@@ -100,9 +100,9 @@ jobs:
           context: .
           file: ./${{ matrix.target }}/Dockerfile
           push: true
-          tags: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
           build-args: |
-            OP_STACK_GO_BUILDER=onthertech/thanos-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
+            OP_STACK_GO_BUILDER=tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
 
   etc:
     name: Publish ${{ matrix.target }}
@@ -141,7 +141,7 @@ jobs:
           context: .
           file: ./${{ matrix.target }}/Dockerfile
           push: true
-          tags: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
           build-args: |
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
@@ -243,7 +243,7 @@ jobs:
           if [ "$ARCHITECTURE" = "aarch64" ]; then
             ARCHITECTURE="arm64"
           fi
-          echo "docker-image-name=onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
+          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -295,7 +295,7 @@ jobs:
           if [ "$ARCHITECTURE" = "aarch64" ]; then
             ARCHITECTURE="arm64"
           fi
-          echo "docker-image-name=onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
+          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -348,6 +348,6 @@ jobs:
       - name: Create and push manifest
         uses: Noelware/docker-manifest-action@master
         with:
-          inputs: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
-          images: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-amd64,onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-arm64
+          inputs: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
+          images: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-amd64,tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-arm64
           push: true

@@ -57,7 +57,7 @@ jobs:
           context: .
           file: ./ops/docker/op-stack-go/Dockerfile
           push: true
-          tags: onthertech/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
@@ -100,9 +100,9 @@ jobs:
           context: .
           file: ./${{ matrix.target }}/Dockerfile
           push: true
-          tags: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
-            OP_STACK_GO_BUILDER=onthertech/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+            OP_STACK_GO_BUILDER=tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
 
   etc:
     name: Publish ${{ matrix.target }}
@@ -141,7 +141,7 @@ jobs:
           context: .
           file: ./${{ matrix.target }}/Dockerfile
           push: true
-          tags: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
@@ -243,7 +243,7 @@ jobs:
           if [ "$ARCHITECTURE" = "aarch64" ]; then
             ARCHITECTURE="arm64"
           fi
-          echo "docker-image-name=onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
+          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -295,7 +295,7 @@ jobs:
           if [ "$ARCHITECTURE" = "aarch64" ]; then
             ARCHITECTURE="arm64"
           fi
-          echo "docker-image-name=onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
+          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -348,8 +348,8 @@ jobs:
       - name: Create and push manifest
         uses: Noelware/docker-manifest-action@master
         with:
-          inputs: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
-          images: onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-amd64,onthertech/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-arm64
+          inputs: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+          images: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-amd64,tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}-arm64
           push: true
 
   update-kustomize:
@@ -377,22 +377,22 @@ jobs:
       - name: Update thanos-op-node Kubernetes resources
         run: |
           cd tokamak-infra/thanos/overlays/thanos-sepolia-test
-          kustomize edit set image onthertech/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
+          kustomize edit set image tokamaknetwork/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-op-proposer Kubernetes resources
         run: |
           cd tokamak-infra/thanos/overlays/thanos-sepolia-test
-          kustomize edit set image onthertech/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
+          kustomize edit set image tokamaknetwork/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-op-batcher Kubernetes resources
         run: |
           cd tokamak-infra/thanos/overlays/thanos-sepolia-test
-          kustomize edit set image onthertech/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
+          kustomize edit set image tokamaknetwork/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-proxyd Kubernetes resources
         run: |
           cd tokamak-infra/thanos/overlays/thanos-sepolia-test
-          kustomize edit set image onthertech/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
+          kustomize edit set image tokamaknetwork/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Show updated Kubernetes resources
         run: |
