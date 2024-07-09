@@ -376,27 +376,27 @@ jobs:
 
       - name: Update thanos-op-node Kubernetes resources
         run: |
-          cd tokamak-infra/thanos/overlays/thanos-sepolia-test
+          cd tokamak-infra/thanos/overlays/thanos-sepolia
           kustomize edit set image tokamaknetwork/thanos-op-node:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-op-proposer Kubernetes resources
         run: |
-          cd tokamak-infra/thanos/overlays/thanos-sepolia-test
+          cd tokamak-infra/thanos/overlays/thanos-sepolia
           kustomize edit set image tokamaknetwork/thanos-op-proposer:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-op-batcher Kubernetes resources
         run: |
-          cd tokamak-infra/thanos/overlays/thanos-sepolia-test
+          cd tokamak-infra/thanos/overlays/thanos-sepolia
           kustomize edit set image tokamaknetwork/thanos-op-batcher:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Update thanos-proxyd Kubernetes resources
         run: |
-          cd tokamak-infra/thanos/overlays/thanos-sepolia-test
+          cd tokamak-infra/thanos/overlays/thanos-sepolia
           kustomize edit set image tokamaknetwork/thanos-proxyd:${{ needs.version.outputs.nightly-docker-tag}}
 
       - name: Show updated Kubernetes resources
         run: |
-          cd tokamak-infra/thanos/overlays/thanos-sepolia-test
+          cd tokamak-infra/thanos/overlays/thanos-sepolia
           cat kustomization.yaml
 
       - name: Commit and push changes
