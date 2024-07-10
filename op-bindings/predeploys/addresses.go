@@ -139,7 +139,7 @@ func init() {
 	Predeploys["UniswapV3Factory"] = &Predeploy{Address: UniswapV3FactoryAddr, ProxyDisabled: true}
 	Predeploys["NFTDescriptor"] = &Predeploy{Address: NFTDescriptorAddr, ProxyDisabled: true}
 	Predeploys["NonfungiblePositionManager"] = &Predeploy{Address: NonfungiblePositionManagerAddr, ProxyDisabled: true}
-	Predeploys["NonfungibleTokenPositionDescriptor"] = &Predeploy{Address: NonfungibleTokenPositionDescriptorAddr}
+	Predeploys["NonfungibleTokenPositionDescriptor"] = &Predeploy{Address: NonfungibleTokenPositionDescriptorAddr, ProxyDisabled: true}
 	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr, ProxyDisabled: true}
 	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr, ProxyDisabled: true}
 	Predeploys["UniversalRouter"] = &Predeploy{Address: UniversalRouterAddr, ProxyDisabled: true}
