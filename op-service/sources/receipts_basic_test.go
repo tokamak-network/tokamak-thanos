@@ -96,7 +96,7 @@ func TestBasicRPCReceiptsFetcher_Reuse(t *testing.T) {
 
 func TestBasicRPCReceiptsFetcher_Concurrency(t *testing.T) {
 	require := require.New(t)
-	const numFetchers = 32
+	const numFetchers = 200
 	batchSize, txCount := 4, uint64(18) // 4.5 * 4
 	block, receipts := randomRpcBlockAndReceipts(rand.New(rand.NewSource(123)), txCount)
 	recMap := make(map[common.Hash]*types.Receipt, len(receipts))
