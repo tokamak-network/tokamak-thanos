@@ -3,7 +3,7 @@ name: Go E2E tests
 on:
   push:
     branches:
-      - fix/failed-cis
+      - main
 
 jobs:
   go-test:

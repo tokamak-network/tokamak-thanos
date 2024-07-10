@@ -47,6 +47,9 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	proxyBytecode, err := bindings.GetDeployedBytecode("Proxy")
 	require.NoError(t, err)
 
+	transparentUpgradeableProxyBytecode, err := bindings.GetDeployedBytecode("TransparentUpgradeableProxy")
+	require.NoError(t, err)
+
 	l2UsdcBridgeProxyBytecode, err := bindings.GetDeployedBytecode("L2UsdcBridgeProxy")
 	require.NoError(t, err)
 
@@ -75,6 +78,11 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 				require.Equal(t, true, ok, name)
 				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlotForZepplin)
 				require.Equal(t, fiatTokenProxyBytecode, account.Code)
+			case predeploys.NonfungibleTokenPositionDescriptorAddr:
+				require.Equal(t, true, ok, name)
+				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlot)
+				require.Equal(t, transparentUpgradeableProxyBytecode, account.Code)
+
 			default:
 				require.Equal(t, true, ok, name)
 				require.Equal(t, eth.AddressAsLeftPaddedHash(predeploys.ProxyAdminAddr), adminSlot)
@@ -111,7 +119,7 @@ func TestBuildL2MainnetGenesis(t *testing.T) {
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2080, len(gen.Alloc))
+	require.Equal(t, 2081, len(gen.Alloc))
 }
 
 func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
@@ -120,5 +128,5 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2080, len(gen.Alloc))
+	require.Equal(t, 2081, len(gen.Alloc))
 }
