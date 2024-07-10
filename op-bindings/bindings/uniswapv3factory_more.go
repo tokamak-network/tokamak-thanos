@@ -23,5 +23,5 @@ func init() {
 
 	layouts["UniswapV3Factory"] = UniswapV3FactoryStorageLayout
 	deployedBytecodes["UniswapV3Factory"] = UniswapV3FactoryDeployedBin
-	immutableReferences["UniswapV3Factory"] = true
+	immutableReferences["UniswapV3Factory"] = false
 }
