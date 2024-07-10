@@ -3,7 +3,7 @@ name: Go E2E tests
 on:
   push:
     branches:
-      - main
+      - fix/failed-cis
 
 jobs:
   go-test:
@@ -14,8 +14,26 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: 'op-heartbeat-tests'
+            module: 'op-heartbeat'
+          - name: 'op-batcher-tests'
+            module: 'op-batcher'
+          - name: 'op-bindings-tests'
+            module: 'op-bindings'
           - name: 'op-chain-ops-tests'
             module: 'op-chain-ops'
+          - name: 'op-node-tests'
+            module: 'op-node'
+          - name: 'op-proposer-tests'
+            module: 'op-proposer'
+          - name: 'op-dispute-mon-tests'
+            module: 'op-challenger'
+          - name: 'op-conductor-tests'
+            module: 'op-conductor'
+          - name: 'op-program-tests'
+            module: 'op-program'
+          - name: 'op-service-tests'
+            module: 'op-service'
 
     steps:
       - name: Checkout repository
