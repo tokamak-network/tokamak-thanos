@@ -179,11 +179,6 @@ const depositWTON = async (
     abi: [OptimismMintableERC20.interface.format('json')],
   })
 
-  const l1WTONAddress = (await hre.deployments.get('WTON')).address
-  const l2WTONAddress = (await hre.deployments.get('OptimismMintableERC20'))
-    .address
-  console.log(l1WTONAddress, l2WTONAddress)
-
   console.log(`Approving WTON for deposit`)
   const approvalTx = await messenger.approveERC20(
     WTON.address,
