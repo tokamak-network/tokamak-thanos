@@ -1,6 +1,6 @@
 import './approve-deposit-ton'
 import './deposit-withdraw-eth'
-import './deposit-erc20'
+import './deposit-withdraw-erc20'
 import './finalize-withdrawal'
 import './deposit-withdraw-native-token'
 import './fund-native-token'
