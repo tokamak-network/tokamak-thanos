@@ -76,7 +76,7 @@ jobs:
           target: packages/tokamak/contracts-bedrock
           slither-config: packages/tokamak/contracts-bedrock/slither.config.json
           fail-on: config
-          slither-version: dev-triage-db
+          slither-version: 0.10.3
           slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
           ignore-compile: true
           node-version: 20
