@@ -8,7 +8,7 @@ import { Storage } from "src/libraries/Storage.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 /// @title SystemConfig
-/// @notice The SystemConfig contract is used to manage configuration of an Optimism network.
+/// @notice The SystemConfig contract is used to manage configuration of an Thanos network.
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
 ///         the L2 chain.
 contract SystemConfig is OwnableUpgradeable, ISemver {
