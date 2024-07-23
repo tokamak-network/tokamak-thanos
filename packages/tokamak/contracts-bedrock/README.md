@@ -18,8 +18,9 @@ This package contains the L1 and L2 contracts and components to build the Thanos
 │   ├── <a href="./src/dispute/">dispute</a>: Contracts for dispute game
 │   ├── <a href="./src/libraries/">libraries</a>: Libraries
 │   │    └── <a href="./src/libraries/Predeploys.sol">Predeploys.sol</a>: Pre-deployed contract addresses on L2 Genesis
-│   ├── <a href="./src/usdc-bridge/">usdc-bridge</a>: Contract for USDC bridge
-│   ├── <a href="./src/universal/">universal</a>: Universal contracts
+│   ├── <a href="./src/tokamak-contracts/">tokamak-contracts</a>
+│   │    └── <a href="./src/tokamak-contracts/USDC/">USDC</a>: Contract for USDC bridge
+│   └── <a href="./src/universal/">universal</a>: Universal contracts
 ├── <a href="./test/">test</a>: Contracts for unit test
 ├── <a href="./foundry.toml">foundry.toml</a>: Foundry configuration
 ├── <a href="./hardhat.config.ts">hardhat.config.ts</a>: Hardhat configuration

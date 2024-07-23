@@ -33,14 +33,14 @@ contracts=(
   src/universal/OptimismMintableERC20.sol:OptimismMintableERC20
   src/universal/OptimismMintableERC20Factory.sol:OptimismMintableERC20Factory
   src/dispute/DisputeGameFactory.sol:DisputeGameFactory
-  src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge
-  src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy
-  src/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge
-  src/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy
-  src/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter
-  src/USDC/L2/tokamak-USDC/util/SignatureChecker.sol:SignatureChecker
-  src/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2
-  src/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol:FiatTokenProxy
+  src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:L1UsdcBridge
+  src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:L1UsdcBridgeProxy
+  src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol:L2UsdcBridge
+  src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol:L2UsdcBridgeProxy
+  src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol:MasterMinter
+  src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol:SignatureChecker
+  src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:FiatTokenV2_2
+  src/tokamak-contracts/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol:FiatTokenProxy
 )
 
 dir=$(dirname "$0")

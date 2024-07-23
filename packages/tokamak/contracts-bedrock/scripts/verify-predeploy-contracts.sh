@@ -206,12 +206,12 @@ L1_FEE_VAULT_PATH=${BASE_PATH}/src/L2/L1FeeVault.sol
 SCHEMA_REGISTRY_PATH=${BASE_PATH}/src/EAS/SchemaRegistry.sol
 EAS_PATH=${BASE_PATH}/src/EAS/EAS.sol
 ETH_PATH=${BASE_PATH}/src/L2/ETH.sol
-L2_USDC_BRIDGE_PROXY_PATH=${BASE_PATH}/src/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol
-L2_USDC_BRIDGE_PATH=${BASE_PATH}/src/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol
-SIGNATURECHECKER_PATH=${BASE_PATH}/src/USDC/L2/tokamak-USDC/util/SignatureChecker.sol
-MASTERMINTER_PATH=${BASE_PATH}/src/USDC/L2/tokamak-USDC/minting/MasterMinter.sol
-FIATTOKENPROXY_PATH=${BASE_PATH}/src/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol
-FIATTOKENV2_2_PATH=${BASE_PATH}/src/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol
+L2_USDC_BRIDGE_PROXY_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridgeProxy.sol
+L2_USDC_BRIDGE_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol
+SIGNATURECHECKER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/util/SignatureChecker.sol
+MASTERMINTER_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/minting/MasterMinter.sol
+FIATTOKENPROXY_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v1/FiatTokenProxy.sol
+FIATTOKENV2_2_PATH=${BASE_PATH}/src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol
 
 function run() {
   verify_LegacyERC20NativeToken
