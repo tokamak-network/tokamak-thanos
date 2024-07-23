@@ -3,7 +3,7 @@ name: Go E2E tests
 on:
   push:
     branches:
-      - feat/OR-1618-seperate-e2e-test
+      - main
 
 jobs:
   go-test:
