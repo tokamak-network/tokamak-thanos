@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-contracts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Contracts for Optimism Specs",
   "license": "MIT",
   "files": [
@@ -15,7 +15,7 @@
     "sdk"
   ],
   "homepage": "https://github.com/tokamak-network/tokamak-thanos/tree/main/packages/tokamak/contracts-bedrock#readme",
-  "author": "Optimism PBC",
+  "author": "Optimism PBC & Tokamak Network",
   "repository": {
     "type": "git",
     "url": "https://github.com/tokamak-network/tokamak-thanos.git"
