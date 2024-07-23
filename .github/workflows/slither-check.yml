@@ -67,7 +67,7 @@ jobs:
       - name: Build the contracts
         run: |
           cd packages/tokamak/contracts-bedrock
-          forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol' '*/src/tokamak-contracts/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol'
+          forge build --build-info --skip '*/test/**' '*/scripts/**' '*/src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol' '*/src/USDC/L2/tokamak-UsdcBridge/L2UsdcBridge.sol'
 
       # Analyze smart contracts with Slither
       - name: Run Slither
@@ -76,7 +76,7 @@ jobs:
           target: packages/tokamak/contracts-bedrock
           slither-config: packages/tokamak/contracts-bedrock/slither.config.json
           fail-on: config
-          slither-version: dev-triage-db
+          slither-version: 0.10.3
           slither-args: --triage-database packages/tokamak/contracts-bedrock/slither.db.json
           ignore-compile: true
           node-version: 20

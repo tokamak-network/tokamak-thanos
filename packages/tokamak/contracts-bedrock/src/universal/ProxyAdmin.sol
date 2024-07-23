@@ -25,8 +25,7 @@ interface IStaticL1ChugSplashProxy {
 
 /// @title ProxyAdmin
 /// @notice This is an auxiliary contract meant to be assigned as the admin of an ERC1967 Proxy,
-///         based on the OpenZeppelin implementation. It has backwards compatibility logic to work
-///         with the various types of proxies that have been deployed by Optimism in the past.
+///         based on the OpenZeppelin implementation.
 contract ProxyAdmin is Ownable {
     /// @notice The proxy types that the ProxyAdmin can manage.
     /// @custom:value ERC1967    Represents an ERC1967 compliant transparent proxy interface.

@@ -33,7 +33,7 @@ bindgen-generate-local:
 		--log.level $(log-level) \
 		local \
 		--forge-artifacts $(contracts-dir)/forge-artifacts \
-		--hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
+		--hardhat-artifacts $(contracts-dir)/uniswap-v3-artifacts \
 		--hardhat-contracts-list $(contracts-hardhat-list)
 
 bindgen-remote:
@@ -51,7 +51,7 @@ bindgen-remote:
 
 bindings-legacy:
 	go run ./gen/main.go \
-    -hardhat-artifacts $(contracts-dir)/hardhat-artifacts \
+    -hardhat-artifacts $(contracts-dir)/uniswap-v3-artifacts \
     -out ./bindings \
     -hardhat-contracts ./artifacts-hardhat.json \
     -source-maps MIPS,PreimageOracle \
@@ -59,17 +59,17 @@ bindings-legacy:
     -monorepo-base $(monorepo-base)
 
 hardhat-bindings:
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungiblePositionManager.sol/NonfungiblePositionManager.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/universal-router/UniversalRouter.sol/UniversalRouter.json $(pkg)
-	./gen_bindings.sh $(contracts-dir)/hardhat-artifacts/universal-router/UnsupportedProtocol.sol/UnsupportedProtocol.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/openzeppeline/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/swap-router-contracts/QuoterV2.sol/QuoterV2.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/swap-router-contracts/SwapRouter02.sol/SwapRouter02.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-core/UniswapV3Factory.sol/UniswapV3Factory.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-periphery/NFTDescriptor.sol/NFTDescriptor.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-periphery/NonfungiblePositionManager.sol/NonfungiblePositionManager.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-periphery/TickLens.sol/TickLens.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/v3-periphery/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/universal-router/UniversalRouter.sol/UniversalRouter.json $(pkg)
+	./gen_bindings.sh $(contracts-dir)/uniswap-v3-artifacts/universal-router/UnsupportedProtocol.sol/UnsupportedProtocol.json $(pkg)
 
 mkdir:
 	mkdir -p $(pkg)
