@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-contracts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Contracts for Optimism Specs",
   "license": "MIT",
   "files": [
@@ -15,14 +15,12 @@
     "sdk"
   ],
   "homepage": "https://github.com/tokamak-network/tokamak-thanos/tree/main/packages/tokamak/contracts-bedrock#readme",
-  "author": "Optimism PBC",
+  "author": "Optimism PBC & Tokamak Network",
   "repository": {
     "type": "git",
     "url": "https://github.com/tokamak-network/tokamak-thanos.git"
   },
   "scripts": {
-    "bindings": "pnpm bindings:ts && pnpm bindings:go",
-    "bindings:ts": "nx generate @eth-optimism/contracts-ts",
     "bindings:go:no-build": "cd ../../op-bindings && make bindings-build",
     "bindings:go": "pnpm clean && pnpm build && pnpm bindings:go:no-build",
     "prebuild": "./scripts/verify-foundry-install.sh",
@@ -31,7 +29,6 @@
     "autogen:invariant-docs": "npx tsx scripts/invariant-doc-gen.ts",
     "test": "pnpm build:go-ffi && forge test",
     "coverage": "pnpm build:go-ffi && forge coverage",
-    "coverage:lcov": "pnpm build:go-ffi && forge coverage --report lcov",
     "gas-snapshot:no-build": "forge snapshot --no-match-test 'testDiff|testFuzz|invariant|generateArtifact'",
     "gas-snapshot": "pnpm build:go-ffi && pnpm gas-snapshot:no-build",
     "storage-snapshot": "./scripts/storage-snapshot.sh",
