@@ -1,12 +1,31 @@
-# Optimism Smart Contracts (Bedrock)
+# Thanos Smart Contracts
 
-[![codecov](https://codecov.io/gh/ethereum-optimism/optimism/branch/develop/graph/badge.svg?token=0VTG7PG7YR&flag=contracts-bedrock-tests)](https://codecov.io/gh/ethereum-optimism/optimism)
+This package contains the L1 and L2 contracts and components to build the Thanos. We can use ERC20 token as L2 native token after modifying configuration in <a href="./deploy-config/">deploy-config</a>.
 
-This package contains the smart contracts that compose the on-chain component of Optimism's upcoming Bedrock upgrade.
-We've tried to maintain 100% backwards compatibility with the existing system while also introducing new useful features.
-You can find detailed specifications for the contracts contained within this package [here](../../specs).
-
-A style guide we follow for writing contracts can be found [here](./STYLE_GUIDE.md).
+## Directory Structure
+<pre>
+├── <a href="./deploy-config/">deploy-config</a>: Pre-defined deployment configuration on each network
+├── <a href="./deployments/">deployments</a>: Information about the contracts deployed on each network
+├── <a href="./genesis/">genesis</a>: Deployed contract address list, L2 Genesis file, Rollup configuration on each network
+├── <a href="./uniswap-v3-artifacts/">uniswap-v3-artifacts</a>: Hardhat artifacts for Uniswap V3
+├── <a href="./invariant-docs/">invariant-docs</a>: Documentation for all defined invariant tests
+├── <a href="./lib/">lib</a>: External libraries with Git submodules
+├── <a href="./scripts/">scripts</a>: Deploy Scripts
+├── <a href="./src/">src</a>: Contracts
+│   ├── <a href="./src/L1/">L1</a>: Contracts deployed on the L1
+│   ├── <a href="./src/L2/">L2</a>: Contracts deployed on the L2
+│   ├── <a href="./src/cannon/">cannon</a>: Contracts for cannon
+│   ├── <a href="./src/dispute/">dispute</a>: Contracts for dispute game
+│   ├── <a href="./src/libraries/">libraries</a>: Libraries
+│   │    └── <a href="./src/libraries/Predeploys.sol">Predeploys.sol</a>: Pre-deployed contract addresses on L2 Genesis
+│   ├── <a href="./src/tokamak-contracts/">tokamak-contracts</a>
+│   │    └── <a href="./src/tokamak-contracts/USDC/">USDC</a>: Contract for USDC bridge
+│   └── <a href="./src/universal/">universal</a>: Universal contracts
+├── <a href="./test/">test</a>: Contracts for unit test
+├── <a href="./foundry.toml">foundry.toml</a>: Foundry configuration
+├── <a href="./hardhat.config.ts">hardhat.config.ts</a>: Hardhat configuration
+...
+</pre>
 
 ## Contracts Overview
 
@@ -14,45 +33,33 @@ A style guide we follow for writing contracts can be found [here](./STYLE_GUIDE.
 
 | Name                                                                                     | Proxy Type                                                              | Description                                                                                         |
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [`L1CrossDomainMessenger`](../../specs/messengers.md)                                    | [`ResolvedDelegateProxy`](./contracts/legacy/ResolvedDelegateProxy.sol) | High-level interface for sending messages to and receiving messages from Optimism                   |
-| [`L1StandardBridge`](../../specs/bridges.md)                                             | [`L1ChugSplashProxy`](./contracts/legacy/L1ChugSplashProxy.sol)         | Standardized system for transferring ERC20 tokens to/from Optimism                                   |
-| [`L2OutputOracle`](../../specs/proposals.md#l2-output-oracle-smart-contract)             | [`Proxy`](./contracts/universal/Proxy.sol)                              | Stores commitments to the state of Optimism which can be used by contracts on L1 to access L2 state |
-| [`OptimismPortal`](../../specs/deposits.md#deposit-contract)                             | [`Proxy`](./contracts/universal/Proxy.sol)                              | Low-level message passing interface                                                                 |
-| [`OptimismMintableERC20Factory`](../../specs/predeploys.md#optimismmintableerc20factory) | [`Proxy`](./contracts/universal/Proxy.sol)                              | Deploys standard `OptimismMintableERC20` tokens that are compatible with either `StandardBridge`    |
-| [`ProxyAdmin`](../../specs/TODO)                                                         | -                                                                       | Contract that can upgrade L1 contracts                                                              |
+| [`L1CrossDomainMessenger`](./src/L1/L1CrossDomainMessenger.sol)                                    | [`ResolvedDelegateProxy`](./src/legacy/ResolvedDelegateProxy.sol) | High-level interface for sending messages to and receiving messages from Thanos                   |
+| [`L1StandardBridge`](./src/L1/L1StandardBridge.sol)                                             | [`L1ChugSplashProxy`](./src/legacy/L1ChugSplashProxy.sol)         | Standardized system for transferring ERC20 tokens to/from Thanos                                   |
+| [`L2OutputOracle`](./src/L1/L2OutputOracle.sol)             | [`Proxy`](./src/universal/Proxy.sol)                              | Stores commitments to the state of Thanos which can be used by contracts on L1 to access L2 state |
+| [`OptimismPortal`](./src/L1/OptimismPortal.sol)                             | [`Proxy`](./src/universal/Proxy.sol)                              | Low-level message passing interface                                                                 |
+| [`OptimismMintableERC20Factory`](./src/universal/OptimismMintableERC20Factory.sol) | [`Proxy`](./src/universal/Proxy.sol)                              | Deploys standard `OptimismMintableERC20` tokens that are compatible with either `StandardBridge`    |
+| [`ProxyAdmin`](./src/universal/ProxyAdmin.sol)                                                         | -                                                                       | Contract that can upgrade L1 contracts                                                              |
 
 ### Contracts deployed to L2
 
 | Name                                                                                     | Proxy Type                                 | Description                                                                                      |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [`GasPriceOracle`](../../specs/predeploys.md#ovm_gaspriceoracle)                         | [`Proxy`](./contracts/universal/Proxy.sol) | Stores L2 gas price configuration values                                                         |
-| [`L1Block`](../../specs/predeploys.md#l1block)                                           | [`Proxy`](./contracts/universal/Proxy.sol) | Stores L1 block context information (e.g., latest known L1 block hash)                           |
-| [`L2CrossDomainMessenger`](../../specs/predeploys.md#l2crossdomainmessenger)             | [`Proxy`](./contracts/universal/Proxy.sol) | High-level interface for sending messages to and receiving messages from L1                      |
-| [`L2StandardBridge`](../../specs/predeploys.md#l2standardbridge)                         | [`Proxy`](./contracts/universal/Proxy.sol) | Standardized system for transferring ERC20 tokens to/from L1                                     |
-| [`L2ToL1MessagePasser`](../../specs/predeploys.md#ovm_l2tol1messagepasser)               | [`Proxy`](./contracts/universal/Proxy.sol) | Low-level message passing interface                                                              |
-| [`SequencerFeeVault`](../../specs/predeploys.md#sequencerfeevault)                       | [`Proxy`](./contracts/universal/Proxy.sol) | Vault for L2 transaction fees                                                                    |
-| [`OptimismMintableERC20Factory`](../../specs/predeploys.md#optimismmintableerc20factory) | [`Proxy`](./contracts/universal/Proxy.sol) | Deploys standard `OptimismMintableERC20` tokens that are compatible with either `StandardBridge` |
-| [`L2ProxyAdmin`](../../specs/TODO)                                                       | -                                          | Contract that can upgrade L2 contracts when sent a transaction from L1                           |
-
-### Legacy and deprecated contracts
-
-| Name                                                            | Location | Proxy Type                                 | Description                                                                           |
-| --------------------------------------------------------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [`AddressManager`](./contracts/legacy/AddressManager.sol)       | L1       | -                                          | Legacy upgrade mechanism (unused in Bedrock)                                          |
-| [`DeployerWhitelist`](./contracts/legacy/DeployerWhitelist.sol) | L2       | [`Proxy`](./contracts/universal/Proxy.sol) | Legacy contract for managing allowed deployers (unused since EVM Equivalence upgrade) |
-| [`L1BlockNumber`](./contracts/legacy/L1BlockNumber.sol)         | L2       | [`Proxy`](./contracts/universal/Proxy.sol) | Legacy contract for accessing latest known L1 block number, replaced by `L1Block`     |
+| [`GasPriceOracle`](./src/L2/GasPriceOracle.sol)                         | [`Proxy`](./src/universal/Proxy.sol) | Stores L2 gas price configuration values                                                         |
+| [`L1Block`](./src/L2/L1Block.sol)                                           | [`Proxy`](./src/universal/Proxy.sol) | Stores L1 block context information (e.g., latest known L1 block hash)                           |
+| [`L2CrossDomainMessenger`](./src/L2/L2CrossDomainMessenger.sol)             | [`Proxy`](./src/universal/Proxy.sol) | High-level interface for sending messages to and receiving messages from L1                      |
+| [`L2StandardBridge`](./src/L2/L2StandardBridge.sol)                         | [`Proxy`](./src/universal/Proxy.sol) | Standardized system for transferring ERC20 tokens to/from L1                                     |
+| [`L2ToL1MessagePasser`](./src/L2/L2ToL1MessagePasser.sol)               | [`Proxy`](./src/universal/Proxy.sol) | Low-level message passing interface                                                              |
+| [`SequencerFeeVault`](./src/L2/SequencerFeeVault.sol)                       | [`Proxy`](./src/universal/Proxy.sol) | Vault for L2 transaction fees                                                                    |
+| [`OptimismMintableERC20Factory`](./src/universal/OptimismMintableERC20Factory.sol) | [`Proxy`](./src/universal/Proxy.sol) | Deploys standard `OptimismMintableERC20` tokens that are compatible with either `StandardBridge` |
+| [`ProxyAdmin`](./src/universal/ProxyAdmin.sol)                                                       | -                                          | Contract that can upgrade L2 contracts when sent a transaction from L1                           |
 
 ## Installation
 
 We export contract ABIs, contract source code, and contract deployment information for this package via `npm`:
 
 ```shell
-npm install @eth-optimism/contracts-bedrock
+npm install @tokamak-network/thanos-contracts
 ```
-
-## Contributing
-
-For all information about working on and contributing to Optimism's smart contracts, please see [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Deployment
 
@@ -63,7 +70,7 @@ they will write a temp file to disk that can then be formatted into a `hardhat-d
 
 Create or modify a file `<network-name>.json` inside of the [`deploy-config`](./deploy-config/) folder.
 By default, the network name will be selected automatically based on the chainid. Alternatively, the `DEPLOYMENT_CONTEXT` env var can be used to override the network name.
-The spec for the deploy config is defined by the `deployConfigSpec` located inside of the [`hardhat.config.ts`](./hardhat.config.ts).
+The `IMPL_SALT` env var can be used to set the `create2` salt for deploying the implementation contracts.
 
 ### Execution
 
@@ -76,3 +83,7 @@ The spec for the deploy config is defined by the `deployConfigSpec` located insi
 
 All of the functions for deploying a single contract are `public` meaning that the `--sig` argument to `forge script` can be used to
 target the deployment of a single contract.
+
+## Static Analysis
+
+`contracts-bedrock` uses [slither](https://github.com/crytic/slither) as its primary static analysis tool. Slither will be run against PRs as part of CI, and new findings will be reported as a comment on the PR.
