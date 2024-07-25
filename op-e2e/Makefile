@@ -63,3 +63,8 @@ clean:
 	rm -r ../.devnet
 	rm -r ../op-program/bin
 .PHONY: clean
+
+
+test-deposit-withdrawal:
+	$(go_test) $(go_test_flags) . ./e2e-dep-with/...
+.PHONY: test-deposit-withdrawal

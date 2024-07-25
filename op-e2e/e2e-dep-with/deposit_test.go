@@ -1,4 +1,4 @@
-package op_e2e
+package e2e_dep_with
 
 import (
 	"context"
@@ -13,14 +13,15 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 // This test is impossible for the new version
 // In the new version, we cannot send amount more than minted amount
 func TestMintOnRevertedDeposit(t *testing.T) {
-	InitParallel(t)
-	cfg := DefaultSystemConfig(t)
+	e2e.InitParallel(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -64,7 +65,7 @@ func TestMintOnRevertedDeposit(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
+	e2e.SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *e2e.DepositTxOpts) {
 		l2Opts.ToAddr = toAddr
 		// trigger a revert by transferring more than we have available
 		l2Opts.Mint = mintAmount
@@ -96,8 +97,8 @@ func TestMintOnRevertedDeposit(t *testing.T) {
 }
 
 func TestDepositTxCreateContract(t *testing.T) {
-	InitParallel(t)
-	cfg := DefaultSystemConfig(t)
+	e2e.InitParallel(t)
+	cfg := e2e.DefaultSystemConfig(t)
 	delete(cfg.Nodes, "verifier")
 
 	sys, err := cfg.Start(t)
@@ -147,7 +148,7 @@ func TestDepositTxCreateContract(t *testing.T) {
 
 	deployData := append(deployPrefix, sstoreContract...)
 
-	l2Receipt := SendDepositTx(t, cfg, l1Client, l2Client, opts, func(l2Opts *DepositTxOpts) {
+	l2Receipt := e2e.SendDepositTx(t, cfg, l1Client, l2Client, opts, func(l2Opts *e2e.DepositTxOpts) {
 		l2Opts.Data = deployData
 		l2Opts.ToAddr = common.Address{}
 		l2Opts.IsCreation = true
