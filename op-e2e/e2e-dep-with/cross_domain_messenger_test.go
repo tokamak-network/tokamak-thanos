@@ -1,4 +1,4 @@
-package op_e2e
+package e2e_dep_with
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
@@ -22,9 +23,9 @@ import (
 // Success on L2
 // Cannot get token on L1
 func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -118,7 +119,7 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, withdrawalReceipt.Status, types.ReceiptStatusSuccessful)
 
-	proveReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	proveReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -129,9 +130,9 @@ func TestCannotWithdrawTokenWithEmptyMessage(t *testing.T) {
 
 // TestDepositWithdrawalSendMessageSuccess: test create a message for withdraw
 func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -201,7 +202,7 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 	balanceBeforeFinalization, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	proveReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	proveReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -212,9 +213,9 @@ func TestDepositWithdrawalSendMessageSuccess(t *testing.T) {
 }
 
 func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -240,7 +241,7 @@ func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	calldata := EncodeCallData(opts.From, opts.From, amount, uint32(200000), []byte{})
+	calldata := e2e.EncodeCallData(opts.From, opts.From, amount, uint32(200000), []byte{})
 
 	l1BalanceBeforeDeposit, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)

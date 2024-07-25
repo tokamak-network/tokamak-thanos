@@ -1,4 +1,4 @@
-package op_e2e
+package e2e_dep_with
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
@@ -21,9 +22,9 @@ import (
 
 // TestDepositAndWithdrawPortalsSuccessfully tests deposit via OptimismPortal and withdraw via L2ToL1MessagePasser successfully
 func TestDepositAndWithdrawSuccessfully(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -108,7 +109,7 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 
 	l1BalanceBeforeFinalizeWithdraw, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
-	ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 
 	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, opts.From, big.NewInt(depositedAmount))
 	require.NoError(t, err)
@@ -124,9 +125,9 @@ func TestDepositAndWithdrawSuccessfully(t *testing.T) {
 
 // TestDepositAndCallContractL2ViaPortal tests successfully
 func TestDepositAndCallL2Successfully(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -197,9 +198,9 @@ func TestDepositAndCallL2Successfully(t *testing.T) {
 }
 
 func TestDeployContractFailedNonPayableConstructor(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -259,9 +260,9 @@ func TestDeployContractFailedNonPayableConstructor(t *testing.T) {
 }
 
 func TestDeployContractFailedOutOfGas(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -348,9 +349,9 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 
 // TestDeployContractSuccessfully tests successfully
 func TestDeployContractSuccessfully(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
