@@ -1,4 +1,4 @@
-package op_e2e
+package e2e_dep_with
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
@@ -19,9 +20,9 @@ import (
 )
 
 func TestUsdcDepositsAndWithdrawal(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -173,7 +174,7 @@ func TestUsdcDepositsAndWithdrawal(t *testing.T) {
 	l2BalanceAfterWithdraw, err := FiatTokenContractL2.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 

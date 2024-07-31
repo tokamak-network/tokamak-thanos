@@ -1,0 +1,33 @@
+name: 'Deposit and Withdrawal End To End Test'
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deposit-withdrawal-e2e-tests:
+    name: 'Deposit and Withdrawal E2E tests'
+    runs-on: ubuntu-latest
+    container:
+      image: tokamaknetwork/thanos-ci-builder:latest
+    steps:
+      - name: Check CPUs
+        run: lscpu && echo
+
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
+
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Git submodules
+        run: git submodule update --init --recursive
+
+      - name: Setup
+        run: |
+          make cannon-prestate
+          DEPLOYMENT_CONTEXT=devnetL1 make devnet-allocs
+
+      - name: Run deposit withdrawal e2e tests
+        run: make test-deposit-withdrawal
+        working-directory: op-e2e
