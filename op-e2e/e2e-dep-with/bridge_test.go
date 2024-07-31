@@ -1,4 +1,4 @@
-package op_e2e
+package e2e_dep_with
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/receipts"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
@@ -24,9 +25,9 @@ import (
 // TestERC20BridgeDeposits tests the the L1StandardBridge bridge ERC20
 // functionality.
 func TestERC20BridgeDeposits(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -127,7 +128,7 @@ func TestERC20BridgeDeposits(t *testing.T) {
 	l1BalanceBeforeFinalizingWithdraw, err := wNativeToken.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -140,9 +141,9 @@ func TestERC20BridgeDeposits(t *testing.T) {
 // TestETHBridgeDeposits tests the the L1StandardBridge bridge ETH
 // functionality.
 func TestETHBridgeDeposits(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -223,7 +224,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 	l1ETHBalanceAfterDeposit, err = l1Client.BalanceAt(context.Background(), opts.From, nil)
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -246,9 +247,9 @@ func TestETHBridgeDeposits(t *testing.T) {
 // TestNativeTokenBridgeDeposits tests the the L1StandardBridge bridgeNativeToken
 // functionality.
 func TestNativeTokenBridgeDeposits(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -340,7 +341,7 @@ func TestNativeTokenBridgeDeposits(t *testing.T) {
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
@@ -350,9 +351,9 @@ func TestNativeTokenBridgeDeposits(t *testing.T) {
 }
 
 func TestWithdrawNativeTokenTo(t *testing.T) {
-	InitParallel(t)
+	e2e.InitParallel(t)
 
-	cfg := DefaultSystemConfig(t)
+	cfg := e2e.DefaultSystemConfig(t)
 
 	sys, err := cfg.Start(t)
 	require.Nil(t, err, "Error starting up system")
@@ -448,7 +449,7 @@ func TestWithdrawNativeTokenTo(t *testing.T) {
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
 
-	provedReceipt, finalizedReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
+	provedReceipt, finalizedReceipt, _, _ := e2e.ProveAndFinalizeWithdrawal(t, cfg, sys, "sequencer", cfg.Secrets.Alice, withdrawalReceipt)
 	require.Equal(t, types.ReceiptStatusSuccessful, provedReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizedReceipt.Status)
 
