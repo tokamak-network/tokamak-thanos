@@ -300,17 +300,7 @@ abstract contract StandardBridge is Initializable {
         virtual
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
-        require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
-        require(_to != address(this), "StandardBridge: cannot send to self");
-        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
-
-        // Emit the correct events. By default this will be _amount, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
-
-        bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
-        require(success, "StandardBridge: Native token transfer failed");
+        require(false, "This function need to be overriden");
     }
 
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other

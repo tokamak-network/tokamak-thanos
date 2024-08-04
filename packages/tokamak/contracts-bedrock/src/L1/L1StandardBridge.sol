@@ -36,6 +36,22 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     SystemConfig public systemConfig;
 
     /// @custom:legacy
+    /// @notice Emitted whenever a deposit of Native token from L1 into L2 is initiated.
+    /// @param from      Address of the depositor.
+    /// @param to        Address of the recipient on L2.
+    /// @param amount    Amount of Native token deposited.
+    /// @param extraData Extra data attached to the deposit.
+    event NativeTokenDepositInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
+    /// @custom:legacy
+    /// @notice Emitted whenever a withdrawal of Native token from L2 to L1 is finalized.
+    /// @param from      Address of the withdrawer.
+    /// @param to        Address of the recipient on L1.
+    /// @param amount    Amount of Native token withdrawn.
+    /// @param extraData Extra data attached to the withdrawal.
+    event NativeTokenWithdrawalFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
+    /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
     /// @param from      Address of the depositor.
     /// @param to        Address of the recipient on L2.
@@ -182,7 +198,6 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     function nativeTokenAddress() public view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
-
 
     /// @notice Sends native tokens to a receiver's address on the other chain.
     /// @param _to          Address of the receiver.
@@ -434,6 +449,38 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     /// @inheritdoc StandardBridge
     /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
     ///         This is necessary for backwards compatibility with the legacy bridge.
+    function _emitNativeTokenBridgeInitiated(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        emit NativeTokenDepositInitiated(_from, _to, _amount, _extraData);
+        super._emitNativeTokenBridgeInitiated(_from, _to, _amount, _extraData);
+    }
+
+    /// @inheritdoc StandardBridge
+    /// @notice Emits the legacy ERC20DepositInitiated event followed by the ERC20BridgeInitiated
+    ///         event. This is necessary for backwards compatibility with the legacy bridge.
+    function _emitNativeTokenBridgeFinalized(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        emit NativeTokenWithdrawalFinalized(_from, _to, _amount, _extraData);
+        super._emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
+    }
+
+    /// @inheritdoc StandardBridge
+    /// @notice Emits the legacy ETHDepositInitiated event followed by the ETHBridgeInitiated event.
+    ///         This is necessary for backwards compatibility with the legacy bridge.
     function _emitETHBridgeInitiated(
         address _from,
         address _to,
@@ -497,6 +544,36 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     {
         emit ERC20WithdrawalFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+    }
+
+    /// @notice Finalizes an Native token bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of Native token being bridged.
+    /// @param _extraData Extra data to be sent with the transaction. Note that the recipient will
+    ///                   not be triggered with this data, but it will be emitted and can be used
+    ///                   to identify the transaction.
+    function finalizeBridgeNativeToken(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        override
+        onlyOtherBridge
+    {
+        require(paused() == false, "L1 StandardBridge: paused");
+        address _nativeTokenAddress = nativeTokenAddress();
+        require(_to != address(this), "StandardBridge: cannot send to self");
+        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
+
+        IERC20(_nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
+        IERC20(_nativeTokenAddress).safeTransfer(_to, _amount);
+
+        _emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
