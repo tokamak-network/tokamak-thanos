@@ -277,18 +277,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
 
         messenger.sendMessage(
             address(otherBridge),
-            abi.encodeWithSelector(
-                this.finalizeBridgeERC20.selector,
-                // Because this call will be executed on the remote chain, we reverse the order of
-                // the remote and local token addresses relative to their order in the
-                // finalizeBridgeERC20 function.
-                Predeploys.ETH,
-                address(0),
-                _from,
-                _to,
-                _amount,
-                _extraData
-            ),
+            abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
             _minGasLimit
         );
     }
@@ -595,15 +584,10 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         onlyOtherBridge
     {
         require(paused() == false, "L1 StandardBridge: paused");
-        address _nativeTokenAddress = nativeTokenAddress();
-        require(_to != address(this), "StandardBridge: cannot send to self");
-        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
-
-        IERC20(_nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
-
-        // Emit the correct events. By default this will be _amount, but child
-        // contracts may override this function in order to emit legacy events as well.
-        finalizeBridgeERC20(_nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
+        require(success, "StandardBridge: ETH transfer failed");
+        deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] - _amount;
+        _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
     function finalizeBridgeERC20(
