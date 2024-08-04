@@ -232,14 +232,12 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         IERC20(_nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
         IERC20(_nativeTokenAddress).approve(address(messenger), _amount);
 
-        _emitERC20BridgeInitiated(
-            _nativeTokenAddress, Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData
-        );
+        _emitNativeTokenBridgeInitiated(_from, _to, _amount, _extraData);
 
         L1CrossDomainMessenger(address(messenger)).sendNativeTokenMessage(
             address(otherBridge),
             _amount,
-            abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
+            abi.encodeWithSelector(this.finalizeBridgeNativeToken.selector, _from, _to, _amount, _extraData),
             _minGasLimit
         );
     }
@@ -543,13 +541,11 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         bytes calldata _extraData
     )
         public
-        payable
         override
         onlyOtherBridge
     {
         require(paused() == false, "L1 StandardBridge: paused");
         address _nativeTokenAddress = nativeTokenAddress();
-        require(msg.value == 0, "StandardBridge: must not receive Ether even if this is payable");
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
