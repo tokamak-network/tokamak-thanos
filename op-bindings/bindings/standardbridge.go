@@ -30,7 +30,7 @@ var (
 
 // StandardBridgeMetaData contains all meta data concerning the StandardBridge contract.
 var StandardBridgeMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"MESSENGER\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractCrossDomainMessenger\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"OTHER_BRIDGE\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractStandardBridge\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"bridgeERC20\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"bridgeERC20To\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"bridgeETH\",\"inputs\":[{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"bridgeETHTo\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"deposits\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"finalizeBridgeERC20\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"finalizeBridgeETH\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"messenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractCrossDomainMessenger\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"otherBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractStandardBridge\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"paused\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ERC20BridgeFinalized\",\"inputs\":[{\"name\":\"localToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"remoteToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ERC20BridgeInitiated\",\"inputs\":[{\"name\":\"localToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"remoteToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ETHBridgeFinalized\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ETHBridgeInitiated\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false}]",
+	ABI: "[{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"MESSENGER\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractCrossDomainMessenger\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"OTHER_BRIDGE\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractStandardBridge\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"bridgeERC20\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"bridgeERC20To\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"bridgeETH\",\"inputs\":[{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"bridgeETHTo\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"bridgeNativeToken\",\"inputs\":[{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"bridgeNativeTokenTo\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_minGasLimit\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"deposits\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"finalizeBridgeERC20\",\"inputs\":[{\"name\":\"_localToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_remoteToken\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"finalizeBridgeETH\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"finalizeBridgeNativeToken\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_extraData\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"messenger\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractCrossDomainMessenger\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"otherBridge\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractStandardBridge\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"paused\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ERC20BridgeFinalized\",\"inputs\":[{\"name\":\"localToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"remoteToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ERC20BridgeInitiated\",\"inputs\":[{\"name\":\"localToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"remoteToken\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ETHBridgeFinalized\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ETHBridgeInitiated\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"NativeTokenBridgeFinalized\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"NativeTokenBridgeInitiated\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"extraData\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false}]",
 }
 
 // StandardBridgeABI is the input ABI used to generate the binding from.
@@ -449,6 +449,48 @@ func (_StandardBridge *StandardBridgeTransactorSession) BridgeETHTo(_to common.A
 	return _StandardBridge.Contract.BridgeETHTo(&_StandardBridge.TransactOpts, _to, _minGasLimit, _extraData)
 }
 
+// BridgeNativeToken is a paid mutator transaction binding the contract method 0x95911e5a.
+//
+// Solidity: function bridgeNativeToken(uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactor) BridgeNativeToken(opts *bind.TransactOpts, _amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.contract.Transact(opts, "bridgeNativeToken", _amount, _minGasLimit, _extraData)
+}
+
+// BridgeNativeToken is a paid mutator transaction binding the contract method 0x95911e5a.
+//
+// Solidity: function bridgeNativeToken(uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeSession) BridgeNativeToken(_amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.BridgeNativeToken(&_StandardBridge.TransactOpts, _amount, _minGasLimit, _extraData)
+}
+
+// BridgeNativeToken is a paid mutator transaction binding the contract method 0x95911e5a.
+//
+// Solidity: function bridgeNativeToken(uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactorSession) BridgeNativeToken(_amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.BridgeNativeToken(&_StandardBridge.TransactOpts, _amount, _minGasLimit, _extraData)
+}
+
+// BridgeNativeTokenTo is a paid mutator transaction binding the contract method 0xe56b44a3.
+//
+// Solidity: function bridgeNativeTokenTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactor) BridgeNativeTokenTo(opts *bind.TransactOpts, _to common.Address, _amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.contract.Transact(opts, "bridgeNativeTokenTo", _to, _amount, _minGasLimit, _extraData)
+}
+
+// BridgeNativeTokenTo is a paid mutator transaction binding the contract method 0xe56b44a3.
+//
+// Solidity: function bridgeNativeTokenTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeSession) BridgeNativeTokenTo(_to common.Address, _amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.BridgeNativeTokenTo(&_StandardBridge.TransactOpts, _to, _amount, _minGasLimit, _extraData)
+}
+
+// BridgeNativeTokenTo is a paid mutator transaction binding the contract method 0xe56b44a3.
+//
+// Solidity: function bridgeNativeTokenTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactorSession) BridgeNativeTokenTo(_to common.Address, _amount *big.Int, _minGasLimit uint32, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.BridgeNativeTokenTo(&_StandardBridge.TransactOpts, _to, _amount, _minGasLimit, _extraData)
+}
+
 // FinalizeBridgeERC20 is a paid mutator transaction binding the contract method 0x0166a07a.
 //
 // Solidity: function finalizeBridgeERC20(address _localToken, address _remoteToken, address _from, address _to, uint256 _amount, bytes _extraData) returns()
@@ -472,23 +514,44 @@ func (_StandardBridge *StandardBridgeTransactorSession) FinalizeBridgeERC20(_loc
 
 // FinalizeBridgeETH is a paid mutator transaction binding the contract method 0x1635f5fd.
 //
-// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) returns()
 func (_StandardBridge *StandardBridgeTransactor) FinalizeBridgeETH(opts *bind.TransactOpts, _from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
 	return _StandardBridge.contract.Transact(opts, "finalizeBridgeETH", _from, _to, _amount, _extraData)
 }
 
 // FinalizeBridgeETH is a paid mutator transaction binding the contract method 0x1635f5fd.
 //
-// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) returns()
 func (_StandardBridge *StandardBridgeSession) FinalizeBridgeETH(_from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
 	return _StandardBridge.Contract.FinalizeBridgeETH(&_StandardBridge.TransactOpts, _from, _to, _amount, _extraData)
 }
 
 // FinalizeBridgeETH is a paid mutator transaction binding the contract method 0x1635f5fd.
 //
-// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+// Solidity: function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes _extraData) returns()
 func (_StandardBridge *StandardBridgeTransactorSession) FinalizeBridgeETH(_from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
 	return _StandardBridge.Contract.FinalizeBridgeETH(&_StandardBridge.TransactOpts, _from, _to, _amount, _extraData)
+}
+
+// FinalizeBridgeNativeToken is a paid mutator transaction binding the contract method 0x6580297d.
+//
+// Solidity: function finalizeBridgeNativeToken(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactor) FinalizeBridgeNativeToken(opts *bind.TransactOpts, _from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.contract.Transact(opts, "finalizeBridgeNativeToken", _from, _to, _amount, _extraData)
+}
+
+// FinalizeBridgeNativeToken is a paid mutator transaction binding the contract method 0x6580297d.
+//
+// Solidity: function finalizeBridgeNativeToken(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeSession) FinalizeBridgeNativeToken(_from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.FinalizeBridgeNativeToken(&_StandardBridge.TransactOpts, _from, _to, _amount, _extraData)
+}
+
+// FinalizeBridgeNativeToken is a paid mutator transaction binding the contract method 0x6580297d.
+//
+// Solidity: function finalizeBridgeNativeToken(address _from, address _to, uint256 _amount, bytes _extraData) payable returns()
+func (_StandardBridge *StandardBridgeTransactorSession) FinalizeBridgeNativeToken(_from common.Address, _to common.Address, _amount *big.Int, _extraData []byte) (*types.Transaction, error) {
+	return _StandardBridge.Contract.FinalizeBridgeNativeToken(&_StandardBridge.TransactOpts, _from, _to, _amount, _extraData)
 }
 
 // Receive is a paid mutator transaction binding the contract receive function.
@@ -1280,6 +1343,316 @@ func (_StandardBridge *StandardBridgeFilterer) WatchInitialized(opts *bind.Watch
 func (_StandardBridge *StandardBridgeFilterer) ParseInitialized(log types.Log) (*StandardBridgeInitialized, error) {
 	event := new(StandardBridgeInitialized)
 	if err := _StandardBridge.contract.UnpackLog(event, "Initialized", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// StandardBridgeNativeTokenBridgeFinalizedIterator is returned from FilterNativeTokenBridgeFinalized and is used to iterate over the raw logs and unpacked data for NativeTokenBridgeFinalized events raised by the StandardBridge contract.
+type StandardBridgeNativeTokenBridgeFinalizedIterator struct {
+	Event *StandardBridgeNativeTokenBridgeFinalized // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *StandardBridgeNativeTokenBridgeFinalizedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(StandardBridgeNativeTokenBridgeFinalized)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(StandardBridgeNativeTokenBridgeFinalized)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *StandardBridgeNativeTokenBridgeFinalizedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *StandardBridgeNativeTokenBridgeFinalizedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// StandardBridgeNativeTokenBridgeFinalized represents a NativeTokenBridgeFinalized event raised by the StandardBridge contract.
+type StandardBridgeNativeTokenBridgeFinalized struct {
+	From      common.Address
+	To        common.Address
+	Amount    *big.Int
+	ExtraData []byte
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterNativeTokenBridgeFinalized is a free log retrieval operation binding the contract event 0x5c252c7b4846d4d6b4b05e95ffc94581f3522bdbaf3cc02d3732a50855bf6840.
+//
+// Solidity: event NativeTokenBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) FilterNativeTokenBridgeFinalized(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*StandardBridgeNativeTokenBridgeFinalizedIterator, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _StandardBridge.contract.FilterLogs(opts, "NativeTokenBridgeFinalized", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &StandardBridgeNativeTokenBridgeFinalizedIterator{contract: _StandardBridge.contract, event: "NativeTokenBridgeFinalized", logs: logs, sub: sub}, nil
+}
+
+// WatchNativeTokenBridgeFinalized is a free log subscription operation binding the contract event 0x5c252c7b4846d4d6b4b05e95ffc94581f3522bdbaf3cc02d3732a50855bf6840.
+//
+// Solidity: event NativeTokenBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) WatchNativeTokenBridgeFinalized(opts *bind.WatchOpts, sink chan<- *StandardBridgeNativeTokenBridgeFinalized, from []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _StandardBridge.contract.WatchLogs(opts, "NativeTokenBridgeFinalized", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(StandardBridgeNativeTokenBridgeFinalized)
+				if err := _StandardBridge.contract.UnpackLog(event, "NativeTokenBridgeFinalized", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseNativeTokenBridgeFinalized is a log parse operation binding the contract event 0x5c252c7b4846d4d6b4b05e95ffc94581f3522bdbaf3cc02d3732a50855bf6840.
+//
+// Solidity: event NativeTokenBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) ParseNativeTokenBridgeFinalized(log types.Log) (*StandardBridgeNativeTokenBridgeFinalized, error) {
+	event := new(StandardBridgeNativeTokenBridgeFinalized)
+	if err := _StandardBridge.contract.UnpackLog(event, "NativeTokenBridgeFinalized", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// StandardBridgeNativeTokenBridgeInitiatedIterator is returned from FilterNativeTokenBridgeInitiated and is used to iterate over the raw logs and unpacked data for NativeTokenBridgeInitiated events raised by the StandardBridge contract.
+type StandardBridgeNativeTokenBridgeInitiatedIterator struct {
+	Event *StandardBridgeNativeTokenBridgeInitiated // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *StandardBridgeNativeTokenBridgeInitiatedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(StandardBridgeNativeTokenBridgeInitiated)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(StandardBridgeNativeTokenBridgeInitiated)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *StandardBridgeNativeTokenBridgeInitiatedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *StandardBridgeNativeTokenBridgeInitiatedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// StandardBridgeNativeTokenBridgeInitiated represents a NativeTokenBridgeInitiated event raised by the StandardBridge contract.
+type StandardBridgeNativeTokenBridgeInitiated struct {
+	From      common.Address
+	To        common.Address
+	Amount    *big.Int
+	ExtraData []byte
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterNativeTokenBridgeInitiated is a free log retrieval operation binding the contract event 0xd430d3ff4c2de4cee9204baf261cdbd8dfac1c1df14ca72c94789b0a14477743.
+//
+// Solidity: event NativeTokenBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) FilterNativeTokenBridgeInitiated(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*StandardBridgeNativeTokenBridgeInitiatedIterator, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _StandardBridge.contract.FilterLogs(opts, "NativeTokenBridgeInitiated", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &StandardBridgeNativeTokenBridgeInitiatedIterator{contract: _StandardBridge.contract, event: "NativeTokenBridgeInitiated", logs: logs, sub: sub}, nil
+}
+
+// WatchNativeTokenBridgeInitiated is a free log subscription operation binding the contract event 0xd430d3ff4c2de4cee9204baf261cdbd8dfac1c1df14ca72c94789b0a14477743.
+//
+// Solidity: event NativeTokenBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) WatchNativeTokenBridgeInitiated(opts *bind.WatchOpts, sink chan<- *StandardBridgeNativeTokenBridgeInitiated, from []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _StandardBridge.contract.WatchLogs(opts, "NativeTokenBridgeInitiated", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(StandardBridgeNativeTokenBridgeInitiated)
+				if err := _StandardBridge.contract.UnpackLog(event, "NativeTokenBridgeInitiated", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseNativeTokenBridgeInitiated is a log parse operation binding the contract event 0xd430d3ff4c2de4cee9204baf261cdbd8dfac1c1df14ca72c94789b0a14477743.
+//
+// Solidity: event NativeTokenBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData)
+func (_StandardBridge *StandardBridgeFilterer) ParseNativeTokenBridgeInitiated(log types.Log) (*StandardBridgeNativeTokenBridgeInitiated, error) {
+	event := new(StandardBridgeNativeTokenBridgeInitiated)
+	if err := _StandardBridge.contract.UnpackLog(event, "NativeTokenBridgeInitiated", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
