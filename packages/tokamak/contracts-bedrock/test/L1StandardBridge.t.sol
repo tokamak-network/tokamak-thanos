@@ -422,7 +422,7 @@ contract L1StandardBridge_DepositERC20To_Test is Bridge_Initializer {
     }
 }
 
-contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeToken_Test is Bridge_Initializer {
     using stdStorage for StdStorage;
 
     // deposit to L2's native tokens
@@ -433,10 +433,10 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
 
     /// @dev Tests that depositing L2's native token to the bridge succeeds.
     ///      Bridge deposits are updated.
-    ///      Emits ERC20DepositInitiated event.
+    ///      Emits NativeTokenBridgeInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Only EOA can call depositNativeToken.
-    function test_depositNativeToken_succeeds() external {
+    ///      Only EOA can call bridgeNativeToken.
+    function test_bridgeNativeToken_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -493,31 +493,31 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         emit SentMessageExtension1(address(L1Bridge), 100);
 
         vm.prank(alice, alice);
-        L1Bridge.depositNativeToken(100, 10000, hex"");
+        L1Bridge.bridgeNativeToken(100, 10000, hex"");
     }
 }
 
-contract L1StandardBridge_DepositNativeToken_TestFail is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeToken_TestFail is Bridge_Initializer {
     /// @dev Tests that depositing native token to the bridge reverts
     ///      if the caller is not an EOA.
-    function test_depositNativeToken_notEoa_reverts() external {
+    function test_bridgeNativeToken_notEoa_reverts() external {
         // turn alice into a contract
         vm.etch(alice, hex"ffff");
 
         vm.expectRevert("StandardBridge: function can only be called from an EOA");
         vm.prank(alice, alice);
-        L1Bridge.depositNativeToken(100, 100, hex"");
+        L1Bridge.bridgeNativeToken(100, 100, hex"");
     }
 }
 
-contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeTokenTo_Test is Bridge_Initializer {
     /// @dev Tests that depositing Nativetoken to the bridge succeeds when
     ///      sent to a different address.
     ///      Bridge deposits are updated.
-    ///      Emits ERC20DepositInitiated event.
+    ///      Emits NativeTokenBridgeInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Contracts can call depositNativeTokenTo.
-    function test_depositNativeTokenTo_succeeds() external {
+    ///      Contracts can call bridgeNativeTokenTo.
+    function test_bridgeNativeTokenTo_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -574,7 +574,7 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         emit SentMessageExtension1(address(L1Bridge), 100);
 
         vm.prank(alice, alice);
-        L1Bridge.depositNativeTokenTo(bob, 100, 10000, hex"");
+        L1Bridge.bridgeNativeTokenTo(bob, 100, 10000, hex"");
     }
 }
 
