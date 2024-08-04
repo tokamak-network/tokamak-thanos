@@ -46,17 +46,17 @@ make cannon
     --input ./state.json \
     -- \
     ../op-program/bin/op-program \
-    --network goerli \
-    --l1.trustrpc \
-    --l1.rpckind debug_geth \
-    --l1 http://127.0.0.1:8645 \
-    --l2 http://127.0.0.1:8745 \
-    --l1.head 0x204f815790ca3bb43526ad60ebcc64784ec809bdc3550e82b54a0172f981efab \
-    --l2.head 0xedc79de4d616a9100fdd42192224580daee81ea3d6303de8089d48a6c1bf4816 \
-    --l2.claim 0x530658ab1b1b3ff4829731fc8d5955f0e6b8410db2cd65b572067ba58df1f2b9 \
-    --l2.blocknumber 8813570 \
+    --l1 http://127.0.0.1:8545 \
+    --l2 http://127.0.0.1:9545 \
+    --l1.head 0x9365329285630a16702cb6f9a8928a103bda9c514de641c9bfa088444d388e68 \
+    --l2.head 0x726f3bf1688fa0f25c08d6649140f0c3087eb64c940748d4c6052cd25ad0efcf \
+    --l2.outputroot 0xd6ef62caf6bc52b7d522b62867673cada7d64972c61b5557af68571b66f421d3 \
+    --l2.claim 0xfcb85c6fd7537626bdc4fb16ad34049773b12ee0a1ee94e03cf1a13d6eab1bb2 \
+    --l2.blocknumber 17 \
     --datadir /tmp/fpp-database \
     --log.format terminal \
+    --rollup.config /home/nguyen/Projects/tokamak/tokamak-thanos/.devnet/rollup.json \
+    --l2.genesis /home/nguyen/Projects/tokamak/tokamak-thanos/.devnet/rollup.json \
     --server
 
 # Add --proof-at '=12345' (or pick other pattern, see --help)
