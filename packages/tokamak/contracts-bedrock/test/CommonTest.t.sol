@@ -491,6 +491,10 @@ contract Bridge_Initializer is Messenger_Initializer {
         address indexed l1Token, address indexed l2Token, address indexed from, address to, uint256 amount, bytes data
     );
 
+    event NativeTokenBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
+    event NativeTokenBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
     event ETHBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes data);
 
     event ETHBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes data);
