@@ -183,33 +183,6 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         return systemConfig.nativeTokenAddress();
     }
 
-    /// @notice Deposits some amount of token into the sender's native's account on L2.
-    /// @param _amount      Amount of native being bridged.
-    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
-    /// @param _extraData   Optional data to forward to L2.
-    ///                     Data supplied here will not be used to execute any code on L2 and is
-    ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositNativeToken(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external onlyEOA {
-        _initiateBridgeNativeToken(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
-    }
-
-    /// @notice Deposits some amount of token into the sender's native's account on L2.
-    /// @param _to          Address of the recipient on L2.
-    /// @param _amount      Amount of native being bridged.
-    /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
-    /// @param _extraData   Optional data to forward to L2.
-    ///                     Data supplied here will not be used to execute any code on L2 and is
-    ///                     only emitted as extra data for the convenience of off-chain tooling.
-    function depositNativeTokenTo(
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-    {
-        _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
-    }
 
     /// @notice Sends native tokens to a receiver's address on the other chain.
     /// @param _to          Address of the receiver.
