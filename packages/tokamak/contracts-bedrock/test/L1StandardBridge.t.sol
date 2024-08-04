@@ -453,7 +453,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         );
 
         bytes memory message =
-            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex"");
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, alice, 100, hex"");
 
         // the L1 bridge should call L1CrossDomainMessenger.sendMessage
         vm.expectCall(
@@ -478,10 +478,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
-
-        vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
+        emit NativeTokenBridgeInitiated(alice, alice, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
@@ -536,7 +533,8 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
             abi.encodeWithSelector(ERC20.transferFrom.selector, alice, address(L1Bridge), 100)
         );
 
-        bytes memory message = abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, bob, 100, hex"");
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, bob, 100, hex"");
 
         // the L1 bridge should call L1CrossDomainMessenger.sendMessage
         vm.expectCall(
@@ -561,10 +559,7 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
-
-        vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
+        emit NativeTokenBridgeInitiated(alice, bob, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
