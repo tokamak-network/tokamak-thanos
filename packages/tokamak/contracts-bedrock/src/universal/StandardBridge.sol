@@ -173,7 +173,15 @@ abstract contract StandardBridge is Initializable {
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeNativeToken(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
+    function bridgeNativeToken(
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        onlyEOA
+    {
         _initiateBridgeNativeToken(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -184,7 +192,16 @@ abstract contract StandardBridge is Initializable {
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeNativeTokenTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
+    function bridgeNativeTokenTo(
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        onlyEOA
+    {
         _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
@@ -279,10 +296,21 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
+        payable
         virtual
         onlyOtherBridge
     {
-        require(false, "This function need to be overriden");
+        require(paused() == false, "StandardBridge: paused");
+        require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
+        require(_to != address(this), "StandardBridge: cannot send to self");
+        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
+
+        // Emit the correct events. By default this will be _amount, but child
+        // contracts may override this function in order to emit legacy events as well.
+        _emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
+
+        bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
+        require(success, "StandardBridge: Native token transfer failed");
     }
 
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
@@ -300,21 +328,10 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
-        payable
         virtual
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
-        require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
-        require(_to != address(this), "StandardBridge: cannot send to self");
-        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
-
-        // Emit the correct events. By default this will be _amount, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
-
-        bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
-        require(success, "StandardBridge: ETH transfer failed");
+        require(false, "This function need to be overriden");
     }
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
