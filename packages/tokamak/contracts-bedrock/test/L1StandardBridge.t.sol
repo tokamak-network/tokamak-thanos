@@ -58,7 +58,7 @@ contract L1StandardBridge_Receive_Test is Bridge_Initializer {
                 CrossDomainMessenger.sendMessage.selector,
                 address(L2Bridge),
                 abi.encodeWithSelector(
-                    StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, alice, 100, hex""
+                    StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex""
                 ),
                 200_000
             )
@@ -83,7 +83,7 @@ contract PreBridgeETH is Bridge_Initializer {
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
 
         bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, alice, 500, hex"dead"
+            StandardBridge.finalizeBridgeETH.selector, alice, alice, 500, hex"dead"
         );
 
         if (isLegacy) {
@@ -189,7 +189,7 @@ contract PreBridgeETHTo is Bridge_Initializer {
         }
 
         bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, bob, 600, hex"dead"
+            StandardBridge.finalizeBridgeETH.selector, alice, bob, 600, hex"dead"
         );
 
         // the L1 bridge should call
@@ -729,7 +729,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_Test is Bridge_Initializer {
             abi.encode(address(L1Bridge.OTHER_BRIDGE()))
         );
         vm.prank(messenger);
-        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, alice, 100, hex"");
         uint256 afterBalance = nativeToken.balanceOf(address(alice));
         assertEq(beforeBalance + 100, afterBalance);
     }
@@ -758,7 +758,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("ERC20: insufficient allowance");
-        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, alice, 100, hex"");
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the L1 bridge.
@@ -772,7 +772,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("StandardBridge: cannot send to self");
-        L1Bridge.finalizeBridgeETH(alice, address(L1Bridge), 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, address(L1Bridge), 100, hex"");
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the messenger.
@@ -786,6 +786,6 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("StandardBridge: cannot send to messenger");
-        L1Bridge.finalizeBridgeETH(alice, messenger, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, messenger, 100, hex"");
     }
 }
