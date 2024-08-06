@@ -610,7 +610,7 @@ contract L1StandardBridge_FinalizeETHWithdrawal_Test is Bridge_Initializer {
         // ensure that the messenger has ETH to call with
         vm.deal(address(L1Bridge), 100);
         vm.prank(address(L1Bridge.messenger()));
-        L1Bridge.finalizeBridgeERC20(address(0), Predeploys.ETH, alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
 
         assertEq(aliceBalance + 100, alice.balance);
     }
