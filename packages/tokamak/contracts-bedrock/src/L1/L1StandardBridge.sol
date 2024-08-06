@@ -586,34 +586,4 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] - _amount;
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
     }
-
-    function finalizeBridgeERC20(
-        address _localToken,
-        address _remoteToken,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _extraData
-    )
-        public
-        override
-        onlyOtherBridge
-    {
-        require(paused() == false, "L1 StandardBridge: paused");
-
-        if (_isOptimismMintableERC20(_localToken)) {
-            require(
-                _isCorrectTokenPair(_localToken, _remoteToken),
-                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
-            );
-            OptimismMintableERC20(_localToken).mint(_to, _amount);
-        } else {
-            IERC20(_localToken).safeTransfer(_to, _amount);
-
-            // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
-            // contracts may override this function in order to emit legacy events as well.
-            _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
-            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
-        }
-    }
 }
