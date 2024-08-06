@@ -217,6 +217,8 @@ contract L2StandardBridge is StandardBridge, ISemver {
     {
         if (_l1Token == address(0) && _l2Token == Predeploys.LEGACY_ERC20_NATIVE_TOKEN) {
             finalizeBridgeNativeToken(_from, _to, _amount, _extraData);
+        } else if (_l1Token == address(0) && _l2Token == Predeploys.ETH) {
+            finalizeBridgeETH(_from, _to, _amount, _extraData);
         } else {
             finalizeBridgeERC20(_l2Token, _l1Token, _from, _to, _amount, _extraData);
         }
