@@ -51,7 +51,7 @@ jobs:
           echo "GITCOMMIT=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           context: .
@@ -94,7 +94,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           context: .
@@ -135,7 +135,7 @@ jobs:
           echo "GITCOMMIT=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           context: .
@@ -146,72 +146,6 @@ jobs:
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
             GITVERSION=${{ steps.build_args.outputs.GITVERSION }}
-
-  start-runners:
-    strategy:
-      matrix:
-        number: [0, 1, 2, 3, 4]
-    name: Start EC2 Runner
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Start EC2 runner
-        id: start-ec2-runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: start
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          ec2-image-id: ami-0ceeb1418a9676af7
-          ec2-instance-type: m7g.2xlarge
-          subnet-id: subnet-0fb32a6561595a820
-          security-group-id: sg-06ecd9031cc2c8899
-          iam-role-name: ec2-runner
-          pre-runner-script: shutdown -P +40
-
-      - name: Runner status
-        id: status
-        run: |
-          echo "Runner label:" ${{ steps.start-ec2-runner.outputs.label }}
-          echo "EC2 instances id:" ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-      - uses: cloudposse/github-action-matrix-outputs-write@main
-        id: out
-        with:
-          matrix-step-name: ${{ github.job }}
-          matrix-key: ${{ matrix.number }}
-          outputs: |-
-            label: ${{ steps.start-ec2-runner.outputs.label }}
-            ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
-
-  runners:
-    name: EC2 Runner
-    needs: [start-runners]
-    runs-on: ubuntu-latest
-    outputs:
-      result: ${{ steps.read.outputs.result }}
-    steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@main
-        id: read
-        with:
-          matrix-step-name: start-runners
-
-  ec2-update-arm64:
-    name: Update EC2 ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
-    needs: [runners, version]
-    strategy:
-      matrix:
-        number: [0, 1, 2, 3, 4]
-    runs-on: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
-    steps:
-      - name: update shutdown behavior
-        run: |
-          aws ec2 modify-instance-attribute --instance-initiated-shutdown-behavior terminate --instance-id ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
 
   chain-mon-amd64:
     name: Publish ${{ matrix.target }}
@@ -233,121 +167,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
 
-      - name: Docker Image Name
-        id: docker-image-name
-        run: |
-          ARCHITECTURE=$(uname -m)
-          if [ "$ARCHITECTURE" = "x86_64" ]; then
-            ARCHITECTURE="amd64"
-          fi
-          if [ "$ARCHITECTURE" = "aarch64" ]; then
-            ARCHITECTURE="arm64"
-          fi
-          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
-
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ops/docker/Dockerfile.packages
           target: ${{ matrix.target }}
           push: true
           provenance: false
-          tags: ${{ steps.docker-image-name.outputs.docker-image-name }}
-
-  chain-mon-arm64:
-    name: Publish ${{ matrix.target }}
-    needs: [runners, ec2-update-arm64, version]
-    runs-on: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
-    strategy:
-      matrix:
-        include:
-          - number: 0
-            target: fault-mon
-          - number: 1
-            target: balance-mon
-          - number: 2
-            target: drippie-mon
-          - number: 3
-            target: wd-mon
-          - number: 4
-            target: replica-mon
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
-
-      - name: Docker Image Name
-        id: docker-image-name
-        run: |
-          ARCHITECTURE=$(uname -m)
-          if [ "$ARCHITECTURE" = "x86_64" ]; then
-            ARCHITECTURE="amd64"
-          fi
-          if [ "$ARCHITECTURE" = "aarch64" ]; then
-            ARCHITECTURE="arm64"
-          fi
-          echo "docker-image-name=tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-$ARCHITECTURE" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./ops/docker/Dockerfile.packages
-          target: ${{ matrix.target }}
-          push: true
-          provenance: false
-          tags: ${{ steps.docker-image-name.outputs.docker-image-name }}
-
-  stop-runners:
-    name: Stop self-hosted EC2 runners
-    strategy:
-      matrix:
-        number: [0, 1, 2, 3, 4]
-    needs: [runners, chain-mon-arm64]
-    runs-on: ubuntu-latest
-    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Stop EC2 runner
-        uses: machulav/ec2-github-runner@v2
-        with:
-          mode: stop
-          github-token: ${{ secrets.ACCESS_TOKEN }}
-          label: ${{ fromJson(needs.runners.outputs.result).label[format('{0}', matrix.number)] }}
-          ec2-instance-id: ${{ fromJson(needs.runners.outputs.result).ec2-instance-id[format('{0}', matrix.number)] }}
-
-  merge:
-    name: Build multi-arch images
-    needs: [version, chain-mon-amd64, chain-mon-arm64]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [fault-mon, balance-mon, drippie-mon, wd-mon, replica-mon]
-    steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
-
-      - name: Create and push manifest
-        uses: Noelware/docker-manifest-action@master
-        with:
-          inputs: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
-          images: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-amd64,tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}-arm64
-          push: true
+          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
