@@ -57,9 +57,7 @@ contract L1StandardBridge_Receive_Test is Bridge_Initializer {
             abi.encodeWithSelector(
                 CrossDomainMessenger.sendMessage.selector,
                 address(L2Bridge),
-                abi.encodeWithSelector(
-                    StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex""
-                ),
+                abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex""),
                 200_000
             )
         );
@@ -82,12 +80,12 @@ contract PreBridgeETH is Bridge_Initializer {
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
 
-        bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeETH.selector, alice, alice, 500, hex"dead"
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 500, hex"dead");
+
+        vm.expectCall(
+            address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 500, 50000, hex"dead")
         );
-
-
-        vm.expectCall(address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 500, 50000, hex"dead"));
 
         vm.expectCall(
             address(L1Messenger),
@@ -165,9 +163,8 @@ contract PreBridgeETHTo is Bridge_Initializer {
             address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.bridgeETHTo.selector, bob, 600, 60000, hex"dead")
         );
 
-        bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeETH.selector, alice, bob, 600, hex"dead"
-        );
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, bob, 600, hex"dead");
 
         // the L1 bridge should call
         // L1CrossDomainMessenger.sendMessage
