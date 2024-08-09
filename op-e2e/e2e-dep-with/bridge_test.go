@@ -165,7 +165,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 
 	opts.Value = big.NewInt(params.Ether)
 	tx, err := transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l1StandardBridge.BridgeETH(opts, 200000, []byte{})
+		return l1StandardBridge.BridgeETH(opts, opts.Value, 200000, []byte{})
 	})
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
