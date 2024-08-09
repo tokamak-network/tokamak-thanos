@@ -133,14 +133,14 @@ contract GasBenchMark_L1StandardBridge_Deposit is Bridge_Initializer {
         vm.pauseGasMetering();
         setPrevBaseFee(vm, address(op), 1 gwei);
         vm.resumeGasMetering();
-        L1Bridge.bridgeETH{ value: 500 }(50000, hex"");
+        L1Bridge.bridgeETH{ value: 500 }(500, 50000, hex"");
     }
 
     function test_bridgeETH_benchmark_1() external {
         vm.pauseGasMetering();
         setPrevBaseFee(vm, address(op), 10 gwei);
         vm.resumeGasMetering();
-        L1Bridge.bridgeETH{ value: 500 }(50000, hex"");
+        L1Bridge.bridgeETH{ value: 500 }(500, 50000, hex"");
     }
 
     function test_depositERC20_benchmark_0() external {
