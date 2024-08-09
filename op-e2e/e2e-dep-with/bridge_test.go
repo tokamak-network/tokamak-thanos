@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -216,7 +215,7 @@ func TestETHBridgeDeposits(t *testing.T) {
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
-	withdrawalTx, err := l2StandardBridge.BridgeERC20(l2Opts, predeploys.ETHAddr, common.Address{}, big.NewInt(params.Ether), 200000, []byte{})
+	withdrawalTx, err := l2StandardBridge.Withdraw(l2Opts, predeploys.ETHAddr, big.NewInt(params.Ether), 200000, []byte{})
 	require.NoError(t, err)
 	withdrawalReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, withdrawalTx.Hash())
 	require.NoError(t, err)
