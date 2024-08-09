@@ -277,7 +277,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
+        require(msg.value == _amount, "StandardBridge: Incorrect Native token value");
 
         // Emit the correct events. By default this will be _amount, but child
         // contracts may override this function in order to emit legacy events as well.

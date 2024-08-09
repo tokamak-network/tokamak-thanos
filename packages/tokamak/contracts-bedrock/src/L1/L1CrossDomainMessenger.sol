@@ -214,18 +214,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         }
     }
 
-    /// @notice Sends a message to some target address on the other chain. Note that if the call
-    ///         always reverts, then the message will be unrelayable, and any ETH sent will be
-    ///         permanently locked. The same will occur if the target on the other chain is
-    ///         considered unsafe (see the _isUnsafeTarget() function).
-    /// @param _target      Target contract or wallet address.
-    /// @param _message     Message to trigger the target address with.
-    /// @param _minGasLimit Minimum gas limit that the message can be executed with.
-    function sendMessage(address _target, bytes calldata _message, uint32 _minGasLimit) external override payable {
-        require(msg.value == 0, "Not allow ETH");
-        super.sendMessage(_target, _message, _minGasLimit);
-    }
-
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
     ///         be executed via cross-chain call from the other messenger OR if the message was
     ///         already received once and is currently being replayed.
