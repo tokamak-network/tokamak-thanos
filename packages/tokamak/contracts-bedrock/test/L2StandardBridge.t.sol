@@ -103,7 +103,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
     function test_withdraw_insufficientValue_reverts() external {
         assertEq(address(messagePasser).balance, 0);
 
-        vm.expectRevert("StandardBridge: bridging ETH must include sufficient ETH value");
+        vm.expectRevert("StandardBridge: Incorrect Native token value");
         vm.prank(alice, alice);
         L2Bridge.withdraw(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 100, 1000, hex"");
     }

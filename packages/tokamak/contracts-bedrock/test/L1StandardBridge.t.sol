@@ -87,7 +87,7 @@ contract PreBridgeETH is Bridge_Initializer {
         );
 
 
-        vm.expectCall(address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 50000, hex"dead"));
+        vm.expectCall(address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 500, 50000, hex"dead"));
 
         vm.expectCall(
             address(L1Messenger),
@@ -137,7 +137,7 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     ///      ETH ends up in the optimismPortal.
     function test_bridgeETH_succeeds() external {
         _preBridgeETH();
-        L1Bridge.bridgeETH{ value: 500 }(50000, hex"dead");
+        L1Bridge.bridgeETH{ value: 500 }(500, 50000, hex"dead");
         assertEq(address(L1Bridge).balance, 500);
     }
 }
@@ -148,7 +148,7 @@ contract L1StandardBridge_BridgeETH_TestFail is Bridge_Initializer {
         vm.etch(alice, address(L1Token).code);
         vm.expectRevert("StandardBridge: function can only be called from an EOA");
         vm.prank(alice);
-        L1Bridge.bridgeETH{ value: 1 }(300, hex"");
+        L1Bridge.bridgeETH{ value: 1 }(1, 300, hex"");
     }
 }
 
@@ -162,7 +162,7 @@ contract PreBridgeETHTo is Bridge_Initializer {
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
 
         vm.expectCall(
-            address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.bridgeETHTo.selector, bob, 60000, hex"dead")
+            address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.bridgeETHTo.selector, bob, 600, 60000, hex"dead")
         );
 
         bytes memory message = abi.encodeWithSelector(
@@ -218,7 +218,7 @@ contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     ///      ETH ends up in the optimismPortal.
     function test_bridgeETHTo_succeeds() external {
         _preBridgeETHTo();
-        L1Bridge.bridgeETHTo{ value: 600 }(bob, 60000, hex"dead");
+        L1Bridge.bridgeETHTo{ value: 600 }(bob, 600, 60000, hex"dead");
         assertEq(address(L1Bridge).balance, 600);
     }
 }
