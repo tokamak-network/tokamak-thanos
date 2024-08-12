@@ -342,10 +342,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Check that this withdrawal has not already been finalized, this is replay protection.
         require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
 
-        address nativeTokenAddress = systemConfig.nativeTokenAddress();
+        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
 
         // Not allow to call native token contract because users can transfer all token out of the contract
-        require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
+        require(_tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
 
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
@@ -354,8 +354,8 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             require(
-                IERC20(nativeTokenAddress).approve(
-                    _tx.target, _tx.value + IERC20(nativeTokenAddress).allowance(address(this), _tx.target)
+                IERC20(_nativeTokenAddress).approve(
+                    _tx.target, _tx.value + IERC20(_nativeTokenAddress).allowance(address(this), _tx.target)
                 ),
                 "Optimism approve failed"
             );
@@ -435,11 +435,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         internal
         metered(_gasLimit)
     {
-        address nativeTokenAddress = systemConfig.nativeTokenAddress();
+        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
 
         // Lock token in this contract
         if (_mint > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
+            IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
             depositedAmount += _mint;
         }
 
