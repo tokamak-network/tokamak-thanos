@@ -182,7 +182,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         address _target,
         uint256 _amount,
         uint32 _minGasLimit,
-        bytes calldata _message
+        bytes memory _message
     )
         internal
     {
