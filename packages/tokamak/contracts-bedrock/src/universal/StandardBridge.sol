@@ -299,7 +299,7 @@ abstract contract StandardBridge is Initializable {
         virtual
         onlyOtherBridge
     {
-        require(false, "This function need to be overriden");
+        revert("This function need to be overriden");
     }
 
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
@@ -320,7 +320,7 @@ abstract contract StandardBridge is Initializable {
         virtual
         onlyOtherBridge
     {
-        require(false, "This function need to be overriden");
+        revert("This function need to be overriden");
     }
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
