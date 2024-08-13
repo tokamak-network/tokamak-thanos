@@ -347,17 +347,17 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
+        // Not allow to call native token contract because users can transfer all token out of the contract
+        require(
+            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
+        );
+
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
             depositedAmount -= _tx.value;
         }
-
-        // Not allow to call native token contract because users can transfer all token out of the contract
-        require(
-            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
-        );
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
@@ -408,15 +408,14 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
     }
 
-    // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
-    // use in
-    ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
-    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
-    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
-    /// @param _sender       Sender address
+    /// @notice Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
+    /// use in deriving deposit transactions. Note that if a deposit is made by a contract, its
+    /// address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
+    /// using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @param _sender     Sender address
     /// @param _to         Target address on L2.
-    /// @param _mint       Native token value to deposit into L2.
-    /// @param _value      Native token value to send to the recipient.
+    /// @param _mint       Native token value to deposit into L2's recipient.
+    /// @param _value      Callvalue for L2's transaction
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
