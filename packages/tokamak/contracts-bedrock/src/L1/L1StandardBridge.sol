@@ -281,7 +281,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
     {
         require(_localToken != nativeTokenAddress(), "Cannot use native token");
-        require(_localToken != address(0), "Must not be address(0)")
+        require(_localToken != address(0), "Must not be address(0)");
         super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
     }
 
