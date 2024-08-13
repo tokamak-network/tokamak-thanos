@@ -286,8 +286,10 @@ contract L2StandardBridge is StandardBridge, ISemver {
         if (_l2Token == Predeploys.LEGACY_ERC20_NATIVE_TOKEN) {
             _initiateBridgeNativeToken(_from, _to, _amount, _minGasLimit, _extraData);
         } else if (_l2Token == Predeploys.ETH) {
+            require(msg.value == 0, "Not allow native token when withdraw ETH");
             _initiateBridgeETH(_from, _to, _amount, _minGasLimit, _extraData);
         } else {
+            require(msg.value == 0, "Not allow native token when withdraw ERC20");
             address l1Token = OptimismMintableERC20(_l2Token).l1Token();
             _initiateBridgeERC20(_l2Token, l1Token, _from, _to, _amount, _minGasLimit, _extraData);
         }
