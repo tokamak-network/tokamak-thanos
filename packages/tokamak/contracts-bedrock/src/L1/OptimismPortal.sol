@@ -344,23 +344,20 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
 
         address _nativeTokenAddress = systemConfig.nativeTokenAddress();
 
-        // Not allow to call native token contract because users can transfer all token out of the contract
-        require(_tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
-
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
-            require(
-                IERC20(_nativeTokenAddress).approve(
-                    _tx.target, _tx.value + IERC20(_nativeTokenAddress).allowance(address(this), _tx.target)
-                ),
-                "Optimism approve failed"
-            );
+            IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
             depositedAmount -= _tx.value;
         }
+
+        // Not allow to call native token contract because users can transfer all token out of the contract
+        require(
+            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
+        );
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
