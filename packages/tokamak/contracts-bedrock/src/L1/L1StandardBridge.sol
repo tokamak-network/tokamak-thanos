@@ -456,7 +456,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 
-        // If TON is chosen as the native token, we have to perform those 2 below steps
+        // If TON is chosen as the native token, we have to perform those 2 steps below
         // TON does not allow transferFrom to the recipient directly
         IERC20(_nativeTokenAddress).safeTransferFrom(address(messenger), address(this), _amount);
         IERC20(_nativeTokenAddress).safeTransfer(_to, _amount);
