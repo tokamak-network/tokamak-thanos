@@ -39,7 +39,7 @@ func TestE2EBridgeTransfersStandardBridgeETHDeposit(t *testing.T) {
 
 	// (1) Test Deposit Initiation
 	depositTx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l1StandardBridge.DepositETH(opts, 200_000, []byte{byte(1)})
+		return l1StandardBridge.BridgeETH(opts, 200_000, []byte{byte(1)})
 	})
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), testSuite.L1Client, depositTx.Hash())
