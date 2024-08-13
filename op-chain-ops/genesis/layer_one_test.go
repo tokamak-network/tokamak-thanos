@@ -135,6 +135,6 @@ func TestBuildL1DeveloperGenesis(t *testing.T) {
 	require.NoError(t, err)
 	tOpts.Value = big.NewInt(0.001 * params.Ether)
 	tOpts.GasLimit = 1_000_000
-	_, err = bridge.DepositETH(tOpts, 200000, nil)
+	_, err = bridge.BridgeETH(tOpts, 200000, nil)
 	require.NoError(t, err)
 }
