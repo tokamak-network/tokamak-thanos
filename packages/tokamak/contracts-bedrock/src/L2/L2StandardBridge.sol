@@ -114,6 +114,14 @@ contract L2StandardBridge is StandardBridge, ISemver {
         _emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
+    /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of ETH being bridged.
+    /// @param _extraData Extra data to be sent with the transaction. Note that the recipient will
+    ///                   not be triggered with this data, but it will be emitted and can be used
+    ///                   to identify the transaction.
     function finalizeBridgeETH(
         address _from,
         address _to,
@@ -127,6 +135,32 @@ contract L2StandardBridge is StandardBridge, ISemver {
         require(paused() == false, "StandardBridge: paused");
         OptimismMintableERC20(Predeploys.ETH).mint(_to, _amount);
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
+    }
+
+    /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of the ERC20 being bridged.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function finalizeBridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        override
+        onlyOtherBridge
+    {
+        require(_localToken != Predeploys.ETH, "Cannot finalizeBridgeERC20 with ETH as localToken");
+        super.finalizeBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
     /// @custom:legacy
@@ -308,6 +342,22 @@ contract L2StandardBridge is StandardBridge, ISemver {
         super._emitNativeTokenBridgeInitiated(_from, _to, _amount, _extraData);
     }
 
+    /// @notice Emits the legacy DepositFinalized event followed by the NativeTokenBridgeFinalized event.
+    ///         This is necessary for backwards compatibility with the legacy bridge.
+    /// @inheritdoc StandardBridge
+    function _emitNativeTokenBridgeFinalized(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        super._emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
+    }
+
     /// @notice Initiates a bridge of ETH through the CrossDomainMessenger.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
@@ -371,6 +421,32 @@ contract L2StandardBridge is StandardBridge, ISemver {
         super._emitETHBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
+    /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+        override
+    {
+        require(_localToken != Predeploys.ETH, "Cannot use ETH");
+        require(_localToken != Predeploys.LEGACY_ERC20_NATIVE_TOKEN, "Cannot use LEGACY_ERC20_NATIVE_TOKEN");
+        super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
+    }
+
     /// @notice Emits the legacy WithdrawalInitiated event followed by the ERC20BridgeInitiated
     ///         event. This is necessary for backwards compatibility with the legacy bridge.
     /// @inheritdoc StandardBridge
@@ -387,22 +463,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
     {
         emit WithdrawalInitiated(_remoteToken, _localToken, _from, _to, _amount, _extraData);
         super._emitERC20BridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
-    }
-
-    /// @notice Emits the legacy DepositFinalized event followed by the NativeTokenBridgeFinalized event.
-    ///         This is necessary for backwards compatibility with the legacy bridge.
-    /// @inheritdoc StandardBridge
-    function _emitNativeTokenBridgeFinalized(
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes memory _extraData
-    )
-        internal
-        override
-    {
-        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
-        super._emitNativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
     /// @notice Emits the legacy DepositFinalized event followed by the ERC20BridgeFinalized event.
