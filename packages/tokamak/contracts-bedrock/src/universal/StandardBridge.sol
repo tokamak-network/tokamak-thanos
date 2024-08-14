@@ -48,6 +48,20 @@ abstract contract StandardBridge is Initializable {
     ///         would be a multiple of 50.
     uint256[45] private __gap;
 
+    /// @notice Emitted when an Native token bridge is initiated to the other chain.
+    /// @param from      Address of the sender.
+    /// @param to        Address of the receiver.
+    /// @param amount    Amount of Native token sent.
+    /// @param extraData Extra data sent with the transaction.
+    event NativeTokenBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
+    /// @notice Emitted when an Native token bridge is finalized on this chain.
+    /// @param from      Address of the sender.
+    /// @param to        Address of the receiver.
+    /// @param amount    Amount of Native token sent.
+    /// @param extraData Extra data sent with the transaction.
+    event NativeTokenBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
+
     /// @notice Emitted when an ETH bridge is initiated to the other chain.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
@@ -153,13 +167,52 @@ abstract contract StandardBridge is Initializable {
         return false;
     }
 
-    /// @notice Sends ETH to the sender's address on the other chain.
+    /// @notice Sends L2 Native token to the sender's address on the other chain.
+    /// @param _amount      Amount of native token to bridge.
     /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeETH(uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
-        _initiateBridgeETH(msg.sender, msg.sender, msg.value, _minGasLimit, _extraData);
+    function bridgeNativeToken(
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        onlyEOA
+    {
+        _initiateBridgeNativeToken(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Sends L2 Native token to an arbitrary address on the other chain.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of native token to bridge.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function bridgeNativeTokenTo(
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        onlyEOA
+    {
+        _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Sends ETH to the sender's address on the other chain.
+    /// @param _amount      Amount of ETH to bridge.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function bridgeETH(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) public payable onlyEOA {
+        _initiateBridgeETH(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
     /// @notice Sends ETH to a receiver's address on the other chain. Note that if ETH is sent to a
@@ -174,8 +227,8 @@ abstract contract StandardBridge is Initializable {
     /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
-    function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) public payable {
-        _initiateBridgeETH(msg.sender, _to, msg.value, _minGasLimit, _extraData);
+    function bridgeETHTo(address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) public payable {
+        _initiateBridgeETH(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
     /// @notice Sends ERC20 tokens to the sender's address on the other chain. Note that if the
@@ -197,7 +250,6 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
-        virtual
         onlyEOA
     {
         _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
@@ -224,9 +276,30 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
-        virtual
     {
         _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Finalizes an Native token bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of Native token being bridged.
+    /// @param _extraData Extra data to be sent with the transaction. Note that the recipient will
+    ///                   not be triggered with this data, but it will be emitted and can be used
+    ///                   to identify the transaction.
+    function finalizeBridgeNativeToken(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        payable
+        virtual
+        onlyOtherBridge
+    {
+        revert("This function need to be overriden");
     }
 
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
@@ -244,21 +317,10 @@ abstract contract StandardBridge is Initializable {
         bytes calldata _extraData
     )
         public
-        payable
         virtual
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
-        require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
-        require(_to != address(this), "StandardBridge: cannot send to self");
-        require(_to != address(messenger), "StandardBridge: cannot send to messenger");
-
-        // Emit the correct events. By default this will be _amount, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
-
-        bool success = SafeCall.call(_to, gasleft(), _amount, hex"");
-        require(success, "StandardBridge: ETH transfer failed");
+        revert("This function need to be overriden");
     }
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
@@ -301,6 +363,27 @@ abstract contract StandardBridge is Initializable {
         _emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
+    /// @notice Initiates a bridge of L2 native token through the CrossDomainMessenger.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of L2 native token being bridged.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeNativeToken(
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes memory _extraData
+    )
+        internal
+        virtual
+    {
+        revert("_initiateBridgeNativeToken need to be overriden");
+    }
+
     /// @notice Initiates a bridge of ETH through the CrossDomainMessenger.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
@@ -319,17 +402,7 @@ abstract contract StandardBridge is Initializable {
         internal
         virtual
     {
-        require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
-
-        // Emit the correct events. By default this will be _amount, but child
-        // contracts may override this function in order to emit legacy events as well.
-        _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
-
-        messenger.sendMessage{ value: _amount }({
-            _target: address(otherBridge),
-            _message: abi.encodeWithSelector(this.finalizeBridgeETH.selector, _from, _to, _amount, _extraData),
-            _minGasLimit: _minGasLimit
-        });
+        revert("_initiateBridgeETH to be overriden");
     }
 
     /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
@@ -408,6 +481,40 @@ abstract contract StandardBridge is Initializable {
         } else {
             return _otherToken == IOptimismMintableERC20(_mintableToken).remoteToken();
         }
+    }
+
+    /// @notice Emits the NativeTokenBridgeInitiated event
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of Native token sent.
+    /// @param _extraData Extra data sent with the transaction.
+    function _emitNativeTokenBridgeInitiated(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        virtual
+    {
+        emit NativeTokenBridgeInitiated(_from, _to, _amount, _extraData);
+    }
+
+    /// @notice Emits the NativeTokenBridgeFinalized
+    /// @param _from      Address of the sender.
+    /// @param _to        Address of the receiver.
+    /// @param _amount    Amount of Native token sent.
+    /// @param _extraData Extra data sent with the transaction.
+    function _emitNativeTokenBridgeFinalized(
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes memory _extraData
+    )
+        internal
+        virtual
+    {
+        emit NativeTokenBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
     /// @notice Emits the ETHBridgeInitiated event and if necessary the appropriate legacy event

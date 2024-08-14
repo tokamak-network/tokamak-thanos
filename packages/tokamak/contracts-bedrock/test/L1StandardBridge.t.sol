@@ -57,9 +57,7 @@ contract L1StandardBridge_Receive_Test is Bridge_Initializer {
             abi.encodeWithSelector(
                 CrossDomainMessenger.sendMessage.selector,
                 address(L2Bridge),
-                abi.encodeWithSelector(
-                    StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, alice, 100, hex""
-                ),
+                abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex""),
                 200_000
             )
         );
@@ -76,23 +74,19 @@ contract L1StandardBridge_Receive_TestFail { }
 contract PreBridgeETH is Bridge_Initializer {
     /// @dev Asserts the expected calls and events for bridging ETH depending
     ///      on whether the bridge call is legacy or not.
-    function _preBridgeETH(bool isLegacy) internal {
+    function _preBridgeETH() internal {
         assertEq(address(L1Bridge).balance, 0);
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
 
-        bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, alice, 500, hex"dead"
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 500, hex"dead");
+
+        vm.expectCall(
+            address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 500, 50000, hex"dead")
         );
 
-        if (isLegacy) {
-            vm.expectCall(
-                address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.depositETH.selector, 50000, hex"dead")
-            );
-        } else {
-            vm.expectCall(address(L1Bridge), 500, abi.encodeWithSelector(L1Bridge.bridgeETH.selector, 50000, hex"dead"));
-        }
         vm.expectCall(
             address(L1Messenger),
             0,
@@ -133,19 +127,6 @@ contract PreBridgeETH is Bridge_Initializer {
     }
 }
 
-contract L1StandardBridge_DepositETH_Test is PreBridgeETH {
-    /// @dev Tests that depositing ETH succeeds.
-    ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
-    ///      Calls depositTransaction on the OptimismPortal.
-    ///      Only EOA can call depositETH.
-    ///      ETH ends up in the optimismPortal.
-    function test_depositETH_succeeds() external {
-        _preBridgeETH({ isLegacy: true });
-        L1Bridge.depositETH{ value: 500 }(50000, hex"dead");
-        assertEq(address(L1Bridge).balance, 500);
-    }
-}
-
 contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     /// @dev Tests that bridging ETH succeeds.
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
@@ -153,44 +134,37 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     ///      Only EOA can call bridgeETH.
     ///      ETH ends up in the optimismPortal.
     function test_bridgeETH_succeeds() external {
-        _preBridgeETH({ isLegacy: false });
-        L1Bridge.bridgeETH{ value: 500 }(50000, hex"dead");
+        _preBridgeETH();
+        L1Bridge.bridgeETH{ value: 500 }(500, 50000, hex"dead");
         assertEq(address(L1Bridge).balance, 500);
     }
 }
 
-contract L1StandardBridge_DepositETH_TestFail is Bridge_Initializer {
+contract L1StandardBridge_BridgeETH_TestFail is Bridge_Initializer {
     /// @dev Tests that depositing ETH reverts if the call is not from an EOA.
-    function test_depositETH_notEoa_reverts() external {
+    function test_bridgeETH_notEoa_reverts() external {
         vm.etch(alice, address(L1Token).code);
         vm.expectRevert("StandardBridge: function can only be called from an EOA");
         vm.prank(alice);
-        L1Bridge.depositETH{ value: 1 }(300, hex"");
+        L1Bridge.bridgeETH{ value: 1 }(1, 300, hex"");
     }
 }
 
 contract PreBridgeETHTo is Bridge_Initializer {
     /// @dev Asserts the expected calls and events for bridging ETH to a different
     ///      address depending on whether the bridge call is legacy or not.
-    function _preBridgeETHTo(bool isLegacy) internal {
+    function _preBridgeETHTo() internal {
         assertEq(address(op).balance, 0);
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
 
-        if (isLegacy) {
-            vm.expectCall(
-                address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.depositETHTo.selector, bob, 60000, hex"dead")
-            );
-        } else {
-            vm.expectCall(
-                address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.bridgeETHTo.selector, bob, 60000, hex"dead")
-            );
-        }
-
-        bytes memory message = abi.encodeWithSelector(
-            StandardBridge.finalizeBridgeERC20.selector, Predeploys.ETH, address(0), alice, bob, 600, hex"dead"
+        vm.expectCall(
+            address(L1Bridge), 600, abi.encodeWithSelector(L1Bridge.bridgeETHTo.selector, bob, 600, 60000, hex"dead")
         );
+
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, bob, 600, hex"dead");
 
         // the L1 bridge should call
         // L1CrossDomainMessenger.sendMessage
@@ -233,19 +207,6 @@ contract PreBridgeETHTo is Bridge_Initializer {
     }
 }
 
-contract L1StandardBridge_DepositETHTo_Test is PreBridgeETHTo {
-    /// @dev Tests that depositing ETH to a different address succeeds.
-    ///      Emits ETHDepositInitiated event.
-    ///      Calls depositTransaction on the OptimismPortal.
-    ///      EOA or contract can call depositETHTo.
-    ///      ETH ends up in the optimismPortal.
-    function test_depositETHTo_succeeds() external {
-        _preBridgeETHTo({ isLegacy: true });
-        L1Bridge.depositETHTo{ value: 600 }(bob, 60000, hex"dead");
-        assertEq(address(L1Bridge).balance, 600);
-    }
-}
-
 contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     /// @dev Tests that bridging ETH to a different address succeeds.
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
@@ -253,18 +214,18 @@ contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     ///      Only EOA can call bridgeETHTo.
     ///      ETH ends up in the optimismPortal.
     function test_bridgeETHTo_succeeds() external {
-        _preBridgeETHTo({ isLegacy: false });
-        L1Bridge.bridgeETHTo{ value: 600 }(bob, 60000, hex"dead");
+        _preBridgeETHTo();
+        L1Bridge.bridgeETHTo{ value: 600 }(bob, 600, 60000, hex"dead");
         assertEq(address(L1Bridge).balance, 600);
     }
 }
 
 contract L1StandardBridge_DepositETHTo_TestFail is Bridge_Initializer { }
 
-contract L1StandardBridge_DepositERC20_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeERC20_Test is Bridge_Initializer {
     using stdStorage for StdStorage;
 
-    // depositERC20
+    // bridgeERC20
     // - updates bridge.deposits
     // - emits ERC20DepositInitiated
     // - calls optimismPortal.depositTransaction
@@ -274,8 +235,8 @@ contract L1StandardBridge_DepositERC20_Test is Bridge_Initializer {
     ///      Bridge deposits are updated.
     ///      Emits ERC20DepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Only EOA can call depositERC20.
-    function test_depositERC20_succeeds() external {
+    ///      Only EOA can call bridgeERC20.
+    function test_bridgeERC20_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -334,32 +295,32 @@ contract L1StandardBridge_DepositERC20_Test is Bridge_Initializer {
         emit SentMessageExtension1(address(L1Bridge), 0);
 
         vm.prank(alice);
-        L1Bridge.depositERC20(address(L1Token), address(L2Token), 100, 10000, hex"");
+        L1Bridge.bridgeERC20(address(L1Token), address(L2Token), 100, 10000, hex"");
         assertEq(L1Bridge.deposits(address(L1Token), address(L2Token)), 100);
     }
 }
 
-contract L1StandardBridge_DepositERC20_TestFail is Bridge_Initializer {
+contract L1StandardBridge_BridgeERC20_TestFail is Bridge_Initializer {
     /// @dev Tests that depositing an ERC20 to the bridge reverts
     ///      if the caller is not an EOA.
-    function test_depositERC20_notEoa_reverts() external {
+    function test_bridgeERC20_notEoa_reverts() external {
         // turn alice into a contract
         vm.etch(alice, hex"ffff");
 
         vm.expectRevert("StandardBridge: function can only be called from an EOA");
         vm.prank(alice, alice);
-        L1Bridge.depositERC20(address(0), address(0), 100, 100, hex"");
+        L1Bridge.bridgeERC20(address(0), address(0), 100, 100, hex"");
     }
 }
 
-contract L1StandardBridge_DepositERC20To_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeERC20To_Test is Bridge_Initializer {
     /// @dev Tests that depositing ERC20 to the bridge succeeds when
     ///      sent to a different address.
     ///      Bridge deposits are updated.
     ///      Emits ERC20DepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Contracts can call depositERC20.
-    function test_depositERC20To_succeeds() external {
+    ///      Contracts can call bridgeERC20.
+    function test_bridgeERC20To_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -416,13 +377,13 @@ contract L1StandardBridge_DepositERC20To_Test is Bridge_Initializer {
         );
 
         vm.prank(alice);
-        L1Bridge.depositERC20To(address(L1Token), address(L2Token), bob, 1000, 10000, hex"");
+        L1Bridge.bridgeERC20To(address(L1Token), address(L2Token), bob, 1000, 10000, hex"");
 
         assertEq(L1Bridge.deposits(address(L1Token), address(L2Token)), 1000);
     }
 }
 
-contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeToken_Test is Bridge_Initializer {
     using stdStorage for StdStorage;
 
     // deposit to L2's native tokens
@@ -433,10 +394,10 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
 
     /// @dev Tests that depositing L2's native token to the bridge succeeds.
     ///      Bridge deposits are updated.
-    ///      Emits ERC20DepositInitiated event.
+    ///      Emits NativeTokenBridgeInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Only EOA can call depositNativeToken.
-    function test_depositNativeToken_succeeds() external {
+    ///      Only EOA can call bridgeNativeToken.
+    function test_bridgeNativeToken_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -453,7 +414,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         );
 
         bytes memory message =
-            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex"");
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, alice, 100, hex"");
 
         // the L1 bridge should call L1CrossDomainMessenger.sendMessage
         vm.expectCall(
@@ -478,10 +439,7 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
-
-        vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
+        emit NativeTokenBridgeInitiated(alice, alice, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
@@ -496,31 +454,31 @@ contract L1StandardBridge_DepositNativeToken_Test is Bridge_Initializer {
         emit SentMessageExtension1(address(L1Bridge), 100);
 
         vm.prank(alice, alice);
-        L1Bridge.depositNativeToken(100, 10000, hex"");
+        L1Bridge.bridgeNativeToken(100, 10000, hex"");
     }
 }
 
-contract L1StandardBridge_DepositNativeToken_TestFail is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeToken_TestFail is Bridge_Initializer {
     /// @dev Tests that depositing native token to the bridge reverts
     ///      if the caller is not an EOA.
-    function test_depositNativeToken_notEoa_reverts() external {
+    function test_bridgeNativeToken_notEoa_reverts() external {
         // turn alice into a contract
         vm.etch(alice, hex"ffff");
 
         vm.expectRevert("StandardBridge: function can only be called from an EOA");
         vm.prank(alice, alice);
-        L1Bridge.depositNativeToken(100, 100, hex"");
+        L1Bridge.bridgeNativeToken(100, 100, hex"");
     }
 }
 
-contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
+contract L1StandardBridge_BridgeNativeTokenTo_Test is Bridge_Initializer {
     /// @dev Tests that depositing Nativetoken to the bridge succeeds when
     ///      sent to a different address.
     ///      Bridge deposits are updated.
-    ///      Emits ERC20DepositInitiated event.
+    ///      Emits NativeTokenBridgeInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
-    ///      Contracts can call depositNativeTokenTo.
-    function test_depositNativeTokenTo_succeeds() external {
+    ///      Contracts can call bridgeNativeTokenTo.
+    function test_bridgeNativeTokenTo_succeeds() external {
         uint256 nonce = L1Messenger.messageNonce();
         uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(L1Messenger));
@@ -536,7 +494,8 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
             abi.encodeWithSelector(ERC20.transferFrom.selector, alice, address(L1Bridge), 100)
         );
 
-        bytes memory message = abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, bob, 100, hex"");
+        bytes memory message =
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, bob, 100, hex"");
 
         // the L1 bridge should call L1CrossDomainMessenger.sendMessage
         vm.expectCall(
@@ -561,10 +520,7 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         bytes memory opaqueData = abi.encodePacked(uint256(100), uint256(100), baseGas, false, innerMessage);
 
         vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20DepositInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
-
-        vm.expectEmit(true, true, true, true, address(L1Bridge));
-        emit ERC20BridgeInitiated(address(nativeToken), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, bob, 100, hex"");
+        emit NativeTokenBridgeInitiated(alice, bob, 100, hex"");
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(true, true, true, true, address(op));
@@ -579,7 +535,7 @@ contract L1StandardBridge_DepositNativeTokenTo_Test is Bridge_Initializer {
         emit SentMessageExtension1(address(L1Bridge), 100);
 
         vm.prank(alice, alice);
-        L1Bridge.depositNativeTokenTo(bob, 100, 10000, hex"");
+        L1Bridge.bridgeNativeTokenTo(bob, 100, 10000, hex"");
     }
 }
 
@@ -615,7 +571,7 @@ contract L1StandardBridge_FinalizeETHWithdrawal_Test is Bridge_Initializer {
         // ensure that the messenger has ETH to call with
         vm.deal(address(L1Bridge), 100);
         vm.prank(address(L1Bridge.messenger()));
-        L1Bridge.finalizeBridgeERC20(address(0), Predeploys.ETH, alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
 
         assertEq(aliceBalance + 100, alice.balance);
     }
@@ -734,7 +690,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_Test is Bridge_Initializer {
             abi.encode(address(L1Bridge.OTHER_BRIDGE()))
         );
         vm.prank(messenger);
-        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, alice, 100, hex"");
         uint256 afterBalance = nativeToken.balanceOf(address(alice));
         assertEq(beforeBalance + 100, afterBalance);
     }
@@ -763,7 +719,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("ERC20: insufficient allowance");
-        L1Bridge.finalizeBridgeETH(alice, alice, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, alice, 100, hex"");
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the L1 bridge.
@@ -777,7 +733,7 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("StandardBridge: cannot send to self");
-        L1Bridge.finalizeBridgeETH(alice, address(L1Bridge), 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, address(L1Bridge), 100, hex"");
     }
 
     /// @dev Tests that finalizing bridged ETH reverts if the destination is the messenger.
@@ -791,6 +747,6 @@ contract L1StandardBridge_FinalizeBridgeNativeToken_TestFail is Bridge_Initializ
         );
         vm.prank(messenger);
         vm.expectRevert("StandardBridge: cannot send to messenger");
-        L1Bridge.finalizeBridgeETH(alice, messenger, 100, hex"");
+        L1Bridge.finalizeBridgeNativeToken(alice, messenger, 100, hex"");
     }
 }

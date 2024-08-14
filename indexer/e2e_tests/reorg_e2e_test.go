@@ -43,7 +43,7 @@ func TestE2EReorgDeletion(t *testing.T) {
 		return latestL1Header != nil, err
 	}))
 
-	depositTx, err := l1StandardBridge.DepositETH(l1Opts, 200_000, []byte{byte(1)})
+	depositTx, err := l1StandardBridge.BridgeETH(l1Opts, l1Opts.Value, 200_000, []byte{byte(1)})
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), testSuite.L1Client, depositTx.Hash())
 	require.NoError(t, err)

@@ -342,23 +342,20 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Check that this withdrawal has not already been finalized, this is replay protection.
         require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
 
-        address nativeTokenAddress = systemConfig.nativeTokenAddress();
-
-        // Not allow to call native token contract because users can transfer all token out of the contract
-        require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
+        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
 
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
+        // Not allow to call native token contract because users can transfer all token out of the contract
+        require(
+            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
+        );
+
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
-            require(
-                IERC20(nativeTokenAddress).approve(
-                    _tx.target, _tx.value + IERC20(nativeTokenAddress).allowance(address(this), _tx.target)
-                ),
-                "Optimism approve failed"
-            );
+            IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
             depositedAmount -= _tx.value;
         }
 
@@ -411,15 +408,14 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
     }
 
-    // @notice Accepts deposits of L1's ERC20 as L2's native token and data, and emits a TransactionDeposited event for
-    // use in
-    ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
-    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
-    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
-    /// @param _sender       Sender address
+    /// @notice Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
+    /// use in deriving deposit transactions. Note that if a deposit is made by a contract, its
+    /// address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
+    /// using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @param _sender     Sender address
     /// @param _to         Target address on L2.
-    /// @param _mint       Native token value to deposit into L2.
-    /// @param _value      Native token value to send to the recipient.
+    /// @param _mint       Native token value to deposit into L2's recipient.
+    /// @param _value      Callvalue for L2's transaction
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
@@ -435,11 +431,11 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         internal
         metered(_gasLimit)
     {
-        address nativeTokenAddress = systemConfig.nativeTokenAddress();
+        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
 
         // Lock token in this contract
         if (_mint > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
+            IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
             depositedAmount += _mint;
         }
 

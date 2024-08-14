@@ -300,17 +300,17 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         }
 
         xDomainMsgSender = _sender;
-        bool approvalStatus = true;
-        if (_value != 0) {
-            approvalStatus = IERC20(_nativeTokenAddress).approve(_target, _value);
+        // _target must not be address(0). otherwise, this transaction will be reverted
+        if (_value != 0 && _target != address(0)) {
+            IERC20(_nativeTokenAddress).approve(_target, _value);
         }
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
-        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
-        if (_value != 0 && !success) {
-            approvalStatus = IERC20(_nativeTokenAddress).approve(_target, 0);
+        if (_value != 0 && _target != address(0) && !success) {
+            IERC20(_nativeTokenAddress).approve(_target, 0);
         }
+        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
-        if (success && approvalStatus) {
+        if (success) {
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {
