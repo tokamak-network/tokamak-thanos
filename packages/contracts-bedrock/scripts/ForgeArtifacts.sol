@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { Vm } from "forge-std/Vm.sol";
 import { Executables } from "scripts/Executables.sol";
 import { stdJson } from "forge-std/StdJson.sol";
+import { Process } from "scripts/libraries/Process.sol";
 
 /// @notice Contains information about a storage slot. Mirrors the layout of the storage
 ///         slot object in Forge artifacts so that we can deserialize JSON into this struct.
@@ -41,7 +42,7 @@ library ForgeArtifacts {
         cmd[2] = string.concat(
             Executables.echo, " ", _name, " | ", Executables.sed, " -E 's/[.][0-9]+\\.[0-9]+\\.[0-9]+//g'"
         );
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         out_ = string(res);
     }
 
@@ -58,7 +59,7 @@ library ForgeArtifacts {
         cmd[0] = Executables.bash;
         cmd[1] = "-c";
         cmd[2] = string.concat(Executables.jq, " -r '.storageLayout' < ", _getForgeArtifactPath(_name));
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         layout_ = string(res);
     }
 
@@ -68,7 +69,7 @@ library ForgeArtifacts {
         cmd[0] = Executables.bash;
         cmd[1] = "-c";
         cmd[2] = string.concat(Executables.jq, " -r '.abi' < ", _getForgeArtifactPath(_name));
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         abi_ = string(res);
     }
 
@@ -78,7 +79,7 @@ library ForgeArtifacts {
         cmd[0] = Executables.bash;
         cmd[1] = "-c";
         cmd[2] = string.concat(Executables.jq, " '.methodIdentifiers | keys' < ", _getForgeArtifactPath(_name));
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         ids_ = stdJson.readStringArray(string(res), "");
     }
 
@@ -87,7 +88,7 @@ library ForgeArtifacts {
         cmd[0] = Executables.bash;
         cmd[1] = "-c";
         cmd[2] = string.concat(Executables.forge, " config --json | ", Executables.jq, " -r .out");
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         string memory contractName = _stripSemver(_name);
         dir_ = string.concat(vm.projectRoot(), "/", string(res), "/", contractName, ".sol");
     }
@@ -112,7 +113,7 @@ library ForgeArtifacts {
             Executables.jq,
             " -R -s -c 'split(\"\n\") | map(select(length > 0))'"
         );
-        bytes memory res = vm.ffi(cmd);
+        bytes memory res = Process.run(cmd);
         string[] memory files = stdJson.readStringArray(string(res), "");
         out_ = string.concat(directory, "/", files[0]);
     }
@@ -139,18 +140,44 @@ library ForgeArtifacts {
             Executables.jq,
             " '.storage[] | select(.label == \"_initialized\" and .type == \"t_uint8\")'"
         );
-        bytes memory rawSlot = vm.parseJson(string(vm.ffi(command)));
+        bytes memory rawSlot = vm.parseJson(string(Process.run(command)));
         slot_ = abi.decode(rawSlot, (StorageSlot));
     }
 
+    /// @notice Returns whether or not a contract is initialized.
+    ///         Needs the name to get the storage layout.
+    function isInitialized(string memory _name, address _address) internal returns (bool initialized_) {
+        StorageSlot memory slot = ForgeArtifacts.getInitializedSlot(_name);
+        bytes32 slotVal = vm.load(_address, bytes32(vm.parseUint(slot.slot)));
+        initialized_ = uint8((uint256(slotVal) >> (slot.offset * 8)) & 0xFF) != 0;
+    }
+
     /// @notice Returns the function ABIs of all L1 contracts.
-    function getL1ContractFunctionAbis() internal returns (Abi[] memory abis_) {
+    function getContractFunctionAbis(
+        string memory path,
+        string[] memory pathExcludes
+    )
+        internal
+        returns (Abi[] memory abis_)
+    {
+        string memory pathExcludesPat;
+        for (uint256 i = 0; i < pathExcludes.length; i++) {
+            pathExcludesPat = string.concat(pathExcludesPat, " -path \"", pathExcludes[i], "\"");
+            if (i != pathExcludes.length - 1) {
+                pathExcludesPat = string.concat(pathExcludesPat, " -o ");
+            }
+        }
+
         string[] memory command = new string[](3);
         command[0] = Executables.bash;
         command[1] = "-c";
         command[2] = string.concat(
             Executables.find,
-            " src/{L1,governance,universal/ProxyAdmin.sol} -type f -exec basename {} \\;",
+            " ",
+            path,
+            bytes(pathExcludesPat).length > 0 ? string.concat(" ! \\( ", pathExcludesPat, " \\)") : "",
+            " -type f ",
+            "-exec basename {} \\;",
             " | ",
             Executables.sed,
             " 's/\\.[^.]*$//'",
@@ -158,13 +185,13 @@ library ForgeArtifacts {
             Executables.jq,
             " -R -s 'split(\"\n\")[:-1]'"
         );
-        string[] memory contractNames = abi.decode(vm.parseJson(string(vm.ffi(command))), (string[]));
+        string[] memory contractNames = abi.decode(vm.parseJson(string(Process.run(command))), (string[]));
 
         abis_ = new Abi[](contractNames.length);
 
         for (uint256 i; i < contractNames.length; i++) {
             string memory contractName = contractNames[i];
-            string[] memory methodIdentifiers = ForgeArtifacts.getMethodIdentifiers(contractName);
+            string[] memory methodIdentifiers = getMethodIdentifiers(contractName);
             abis_[i].contractName = contractName;
             abis_[i].entries = new AbiEntry[](methodIdentifiers.length);
             for (uint256 j; j < methodIdentifiers.length; j++) {
@@ -178,10 +205,7 @@ library ForgeArtifacts {
     /// @notice Accepts a filepath and then ensures that the directory
     ///         exists for the file to live in.
     function ensurePath(string memory _path) internal {
-        (, bytes memory returndata) =
-            address(vm).call(abi.encodeWithSignature("split(string,string)", _path, string("/")));
-        string[] memory outputs = abi.decode(returndata, (string[]));
-
+        string[] memory outputs = vm.split(_path, "/");
         string memory path = "";
         for (uint256 i = 0; i < outputs.length - 1; i++) {
             path = string.concat(path, outputs[i], "/");

@@ -33,15 +33,15 @@ func StartDAServer(cliCtx *cli.Context) error {
 		l.Info("Using file storage", "path", cfg.FileStoreDirPath)
 		store = NewFileStore(cfg.FileStoreDirPath)
 	} else if cfg.S3Enabled() {
-		l.Info("Using S3 storage", "bucket", cfg.S3Bucket)
-		s3, err := NewS3Store(cliCtx.Context, cfg.S3Bucket)
+		l.Info("Using S3 storage", "bucket", cfg.S3Config().Bucket)
+		s3, err := NewS3Store(cfg.S3Config())
 		if err != nil {
 			return fmt.Errorf("failed to create S3 store: %w", err)
 		}
 		store = s3
 	}
 
-	server := plasma.NewDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, l)
+	server := plasma.NewDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, l, cfg.UseGenericComm)
 
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("failed to start the DA server")

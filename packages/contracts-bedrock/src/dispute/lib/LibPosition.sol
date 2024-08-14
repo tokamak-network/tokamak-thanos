@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "src/libraries/DisputeTypes.sol";
-import "src/libraries/DisputeErrors.sol";
+using LibPosition for Position global;
+
+/// @notice A `Position` represents a position of a claim within the game tree.
+/// @dev This is represented as a "generalized index" where the high-order bit
+/// is the level in the tree and the remaining bits is a unique bit pattern, allowing
+/// a unique identifier for each node in the tree. Mathematically, it is calculated
+/// as 2^{depth} + indexAtDepth.
+type Position is uint128;
 
 /// @title LibPosition
 /// @notice This library contains helper functions for working with the `Position` type.
 library LibPosition {
+    /// @notice the `MAX_POSITION_BITLEN` is the number of bits that the `Position` type, and the implementation of
+    ///         its behavior within this library, can safely support.
+    uint8 internal constant MAX_POSITION_BITLEN = 126;
+
     /// @notice Computes a generalized index (2^{depth} + indexAtDepth).
     /// @param _depth The depth of the position.
     /// @param _indexAtDepth The index at the depth of the position.
@@ -152,7 +162,13 @@ library LibPosition {
         returns (Position ancestor_)
     {
         // This function only works for positions that are below the upper bound.
-        if (_position.depth() <= _upperBoundExclusive) revert ClaimAboveSplit();
+        if (_position.depth() <= _upperBoundExclusive) {
+            assembly {
+                // Revert with `ClaimAboveSplit()`
+                mstore(0x00, 0xb34b5c22)
+                revert(0x1C, 0x04)
+            }
+        }
 
         // Grab the global trace ancestor.
         ancestor_ = traceAncestor(_position);

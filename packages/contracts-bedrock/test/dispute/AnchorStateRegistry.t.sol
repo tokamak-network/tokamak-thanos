@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "src/libraries/DisputeTypes.sol";
-import "src/libraries/DisputeErrors.sol";
+import "src/dispute/lib/Types.sol";
+import "src/dispute/lib/Errors.sol";
 
 import { Test } from "forge-std/Test.sol";
 import { FaultDisputeGame_Init, _changeClaimStatus } from "test/dispute/FaultDisputeGame.t.sol";
@@ -22,7 +22,7 @@ contract AnchorStateRegistry_Init is FaultDisputeGame_Init {
 
 contract AnchorStateRegistry_Initialize_Test is AnchorStateRegistry_Init {
     /// @dev Tests that initialization is successful.
-    function test_initialize_succeeds() public {
+    function test_initialize_succeeds() public view {
         (Hash cannonRoot, uint256 cannonL2BlockNumber) = anchorStateRegistry.anchors(GameTypes.CANNON);
         (Hash permissionedCannonRoot, uint256 permissionedCannonL2BlockNumber) =
             anchorStateRegistry.anchors(GameTypes.PERMISSIONED_CANNON);

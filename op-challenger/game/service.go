@@ -69,12 +69,12 @@ type Service struct {
 }
 
 // NewService creates a new Service.
-func NewService(ctx context.Context, logger log.Logger, cfg *config.Config) (*Service, error) {
+func NewService(ctx context.Context, logger log.Logger, cfg *config.Config, m metrics.Metricer) (*Service, error) {
 	s := &Service{
 		systemClock: clock.SystemClock,
 		l1Clock:     clock.NewSimpleClock(),
 		logger:      logger,
-		metrics:     metrics.NewMetrics(),
+		metrics:     m,
 	}
 
 	if err := s.initFromConfig(ctx, cfg); err != nil {
@@ -198,11 +198,8 @@ func (s *Service) initMetricsServer(cfg *opmetrics.CLIConfig) error {
 }
 
 func (s *Service) initFactoryContract(cfg *config.Config) error {
-	factoryContract, err := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress,
+	factoryContract := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress,
 		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize))
-	if err != nil {
-		return fmt.Errorf("failed to bind the fault dispute game factory contract: %w", err)
-	}
 	s.factoryContract = factoryContract
 	return nil
 }

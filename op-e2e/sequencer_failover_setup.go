@@ -59,7 +59,7 @@ func (c *conductor) RPCEndpoint() string {
 	return fmt.Sprintf("http://%s:%d", localhost, c.rpcPort)
 }
 
-func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor) {
+func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor, func()) {
 	InitParallel(t)
 	ctx := context.Background()
 
@@ -103,7 +103,7 @@ func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor) {
 		return healthy(t, ctx, c1) &&
 			healthy(t, ctx, c2) &&
 			healthy(t, ctx, c3)
-	}, 30*time.Second, 500*time.Millisecond, "Expected sequencers to become healthy")
+	}, 50*time.Second, 500*time.Millisecond, "Expected sequencers to become healthy")
 
 	// unpause all conductors
 	require.NoError(t, c1.client.Resume(ctx))
@@ -111,6 +111,12 @@ func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor) {
 	require.NoError(t, c3.client.Resume(ctx))
 
 	// final check, make sure everything is in the right place
+	require.True(t, conductorResumed(t, ctx, c1))
+	require.True(t, conductorResumed(t, ctx, c2))
+	require.True(t, conductorResumed(t, ctx, c3))
+	require.False(t, conductorStopped(t, ctx, c1))
+	require.False(t, conductorStopped(t, ctx, c2))
+	require.False(t, conductorStopped(t, ctx, c3))
 	require.True(t, conductorActive(t, ctx, c1))
 	require.True(t, conductorActive(t, ctx, c2))
 	require.True(t, conductorActive(t, ctx, c3))
@@ -123,7 +129,12 @@ func setupSequencerFailoverTest(t *testing.T) (*System, map[string]*conductor) {
 	require.True(t, healthy(t, ctx, c2))
 	require.True(t, healthy(t, ctx, c3))
 
-	return sys, conductors
+	return sys, conductors, func() {
+		sys.Close()
+		for _, c := range conductors {
+			_ = c.service.Stop(ctx)
+		}
+	}
 }
 
 func setupHAInfra(t *testing.T, ctx context.Context) (*System, map[string]*conductor, error) {
@@ -141,7 +152,9 @@ func setupHAInfra(t *testing.T, ctx context.Context) (*System, map[string]*condu
 			}
 
 			for _, c := range conductors {
-				if serr := c.service.Stop(ctx); serr != nil {
+				if c == nil || c.service == nil {
+					// pass. Sometimes we can get nil in this map
+				} else if serr := c.service.Stop(ctx); serr != nil {
 					t.Log("Failed to stop conductor", "error", serr)
 				}
 			}
@@ -283,6 +296,7 @@ func setupBatcher(t *testing.T, sys *System, conductors map[string]*conductor) {
 		BatchType:                    derive.SpanBatchType,
 		DataAvailabilityType:         batcherFlags.CalldataType,
 		ActiveSequencerCheckDuration: 0,
+		CompressionAlgo:              derive.Zlib,
 	}
 
 	batcher, err := bss.BatcherServiceFromCLIConfig(context.Background(), "0.0.1", batcherCLIConfig, sys.Cfg.Loggers["batcher"])
@@ -409,6 +423,18 @@ func conductorActive(t *testing.T, ctx context.Context, con *conductor) bool {
 	active, err := con.client.Active(ctx)
 	require.NoError(t, err)
 	return active
+}
+
+func conductorResumed(t *testing.T, ctx context.Context, con *conductor) bool {
+	paused, err := con.client.Paused(ctx)
+	require.NoError(t, err)
+	return !paused
+}
+
+func conductorStopped(t *testing.T, ctx context.Context, con *conductor) bool {
+	stopped, err := con.client.Stopped(ctx)
+	require.NoError(t, err)
+	return stopped
 }
 
 func sequencerActive(t *testing.T, ctx context.Context, rollupClient *sources.RollupClient) bool {

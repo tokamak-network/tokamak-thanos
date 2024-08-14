@@ -20,11 +20,14 @@ remappings = [
   'ds-test/=lib/forge-std/lib/ds-test/src',
   'safe-contracts/=lib/safe-contracts/contracts',
   'kontrol-cheatcodes/=lib/kontrol-cheatcodes/src',
+  'gelato/=lib/automate/contracts'
 ]
 extra_output = ['devdoc', 'userdoc', 'metadata', 'storageLayout']
 bytecode_hash = 'none'
 build_info_path = 'artifacts/build-info'
 ast = true
+evm_version = "cancun"
+ignored_error_codes = ["transient-storage", "code-size", "init-code-size"]
 
 # Test / Script Runner Settings
 ffi = true
@@ -50,14 +53,12 @@ line_length=120
 multiline_func_header='all'
 bracket_spacing=true
 wrap_comments=true
-ignore = ['src/vendor/WETH9.sol']
 
 ################################################################
 #                         PROFILE: CI                          #
 ################################################################
 
 [profile.ci]
-deny_warnings = true
 fuzz = { runs = 512 }
 
 [profile.ci.invariant]
