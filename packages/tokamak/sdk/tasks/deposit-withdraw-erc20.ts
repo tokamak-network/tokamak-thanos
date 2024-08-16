@@ -2,7 +2,7 @@ import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
-import {Event, Contract, Wallet, utils, ethers, BytesLike} from 'ethers'
+import { Event, Contract, Wallet, utils, ethers, BytesLike } from 'ethers'
 import { predeploys } from '@tokamak-network/core-utils'
 import Artifact__OptimismMintableERC20TokenFactory from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
 import Artifact__OptimismMintableERC20Token from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
@@ -11,7 +11,6 @@ import Artifact__WNativeToken from '@tokamak-network/thanos-contracts/forge-arti
 import { CrossChainMessenger, MessageStatus, Portals } from '../src'
 
 const privateKey = process.env.PRIVATE_KEY as BytesLike
-
 
 const l1Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L1_URL
@@ -32,13 +31,9 @@ let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
 let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
-
-
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
   if (nativeTokenAddress === '') {
-    const Deployment__NativeToken = await hre.deployments.get(
-      'L2NativeToken'
-    )
+    const Deployment__NativeToken = await hre.deployments.get('L2NativeToken')
     nativeTokenAddress = Deployment__NativeToken.address
   }
 
@@ -296,10 +291,10 @@ const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
 
   console.log('Starting withdrawal')
   console.log(`Balance WTON before withdrawing...`)
-  let l1Balance = await WTON.balanceOf(l1Wallet.address);
+  let l1Balance = await WTON.balanceOf(l1Wallet.address)
   console.log('l1 WTON balance: ', l1Balance.toString())
 
-  let l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address);
+  let l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
   console.log('l2 WTON balance:', l2Balance.toString())
 
   // report balances
@@ -344,10 +339,10 @@ const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
   }
 
   console.log(`Balance WTON before finalizing...`)
-  l1Balance = await WTON.balanceOf(l1Wallet.address);
+  l1Balance = await WTON.balanceOf(l1Wallet.address)
   console.log('l1 WTON balance: ', l1Balance.toString())
 
-  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address);
+  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
   console.log('l2 WTON balance:', l2Balance.toString())
 
   const tx = await messenger.finalizeMessage(withdrawalReceipt)
@@ -355,18 +350,17 @@ const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
   console.log('Finalized message tx', receipt.transactionHash)
 
   console.log(`Balance WTON after withdrawing...`)
-  l1Balance = await WTON.balanceOf(l1Wallet.address);
+  l1Balance = await WTON.balanceOf(l1Wallet.address)
   console.log('l1 WTON balance: ', l1Balance.toString())
 
-  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address);
+  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
   console.log('l2 WTON balance:', l2Balance.toString())
   console.log('Withdrawal success')
 }
 
 // deploys a WTON contract, mints some WTON and then
 // deposits that into L2 through the StandardBridge.
-task('deposit-erc20', 'Deposit WTON onto L2.')
-  .setAction(async (args, hre) => {
+task('deposit-erc20', 'Deposit WTON onto L2.').setAction(async (args, hre) => {
   await updateAddresses(hre)
   await depositWTON(hre)
 })
