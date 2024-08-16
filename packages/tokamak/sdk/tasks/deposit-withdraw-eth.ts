@@ -145,7 +145,7 @@ const depositETH = async (amount: NumberLike) => {
   let l2Balance = await ethContract.balanceOf(l2Wallet.address)
   console.log('l2 eth balance:', l2Balance.toString())
 
-  const depositTx = await messenger.depositETH(amount)
+  const depositTx = await messenger.bridgeETH(amount)
   await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
