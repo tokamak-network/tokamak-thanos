@@ -319,7 +319,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
       }
 
       if (opts?.recipient === undefined) {
-        return this.l1Bridge.populateTransaction.depositERC20(
+        return this.l1Bridge.populateTransaction.bridgeERC20(
           toAddress(l1Token),
           toAddress(l2Token),
           amount,
@@ -328,7 +328,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
           opts?.overrides || {}
         )
       } else {
-        return this.l1Bridge.populateTransaction.depositERC20To(
+        return this.l1Bridge.populateTransaction.bridgeERC20To(
           toAddress(l1Token),
           toAddress(l2Token),
           toAddress(opts.recipient),
