@@ -11,7 +11,6 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -57,6 +56,10 @@ var (
 		Name:  "outfile.l1",
 		Usage: "Path to L1 genesis output file",
 	}
+	l2AllocsFlag = &cli.StringFlag{
+		Name:  "l2-allocs",
+		Usage: "Path to L2 genesis state dump",
+	}
 
 	l1Flags = []cli.Flag{
 		deployConfigFlag,
@@ -69,6 +72,7 @@ var (
 		l1RPCFlag,
 		l1StartingBlockFlag,
 		deployConfigFlag,
+		l2AllocsFlag,
 		l1DeploymentsFlag,
 		outfileL2Flag,
 		outfileRollupFlag,
@@ -108,9 +112,9 @@ var Subcommands = cli.Commands{
 				return fmt.Errorf("deploy config at %s invalid: %w", deployConfig, err)
 			}
 
-			var dump *state.Dump
+			var dump *genesis.ForgeAllocs
 			if l1Allocs := ctx.String("l1-allocs"); l1Allocs != "" {
-				dump, err = genesis.NewStateDump(l1Allocs)
+				dump, err = genesis.LoadForgeAllocs(l1Allocs)
 				if err != nil {
 					return err
 				}

@@ -5,11 +5,24 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+)
 
-	"github.com/ethereum-optimism/superchain-registry/superchain"
+var (
+	// The default values for the ResourceConfig, used as part of
+	// an EIP-1559 curve for deposit gas.
+	DefaultResourceConfig = bindings.ResourceMeteringResourceConfig{
+		MaxResourceLimit:            genesis.MaxResourceLimit,
+		ElasticityMultiplier:        genesis.ElasticityMultiplier,
+		BaseFeeMaxChangeDenominator: genesis.BaseFeeMaxChangeDenominator,
+		MinimumBaseFee:              genesis.MinimumBaseFee,
+		SystemTxMaxGas:              genesis.SystemTxMaxGas,
+		MaximumBaseFee:              genesis.MaximumBaseFee,
+	}
 )
 
 // CheckL1 will check that the versions of the contracts on L1 match the versions

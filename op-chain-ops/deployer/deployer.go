@@ -10,11 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 )
@@ -98,8 +97,8 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		chainConfig.ShanghaiTime = u64ptr(0)
 	}
 
-	alloc := core.GenesisAlloc{
-		crypto.PubkeyToAddress(TestKey.PublicKey): core.GenesisAccount{
+	alloc := types.GenesisAlloc{
+		crypto.PubkeyToAddress(TestKey.PublicKey): types.Account{
 			Balance: thousandETH,
 		},
 	}
@@ -108,23 +107,22 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		if err != nil {
 			return nil, err
 		}
-		alloc[*address] = core.GenesisAccount{
+		alloc[*address] = types.Account{
 			Code: bytecode,
 		}
 	}
 
-	return backends.NewSimulatedBackendWithOpts(
-		backends.WithCacheConfig(&core.CacheConfig{
+	return backends.NewSimulatedBackendFromConfig(
+		ethconfig.Config{
+			Genesis: &core.Genesis{
+				Config:     &chainConfig,
+				Timestamp:  ts,
+				Difficulty: big.NewInt(0),
+				Alloc:      alloc,
+				GasLimit:   30_000_000,
+			},
 			Preimages: true,
-		}),
-		backends.WithGenesis(core.Genesis{
-			Config:     &chainConfig,
-			Timestamp:  ts,
-			Difficulty: big.NewInt(0),
-			Alloc:      alloc,
-			GasLimit:   30_000_000,
-		}),
-		backends.WithConsensus(beacon.New(ethash.NewFaker())),
+		},
 	), nil
 }
 
@@ -188,7 +186,9 @@ func Deploy(backend *backends.SimulatedBackend, constructors []Constructor, cb D
 // The function logs a fatal error and exits if there are any issues with transaction mining, if the deployment fails,
 // or if the deployed bytecode is not found at the computed address.
 func DeployWithDeterministicDeployer(backend *backends.SimulatedBackend, contractName string) ([]byte, error) {
-	opts, err := bind.NewKeyedTransactorWithChainID(TestKey, backend.Blockchain().Config().ChainID)
+	ChainID, _ := backend.ChainID(context.Background())
+
+	opts, err := bind.NewKeyedTransactorWithChainID(TestKey, ChainID)
 	if err != nil {
 		return nil, err
 	}

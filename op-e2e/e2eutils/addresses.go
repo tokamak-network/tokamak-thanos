@@ -5,13 +5,13 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 )
 
-func collectAllocAddrs(alloc core.GenesisAlloc) []common.Address {
+func collectAllocAddrs(alloc types.GenesisAlloc) []common.Address {
 	var out []common.Address
 	for addr := range alloc {
 		out = append(out, addr)

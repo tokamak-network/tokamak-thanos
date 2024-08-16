@@ -34,8 +34,12 @@ func init() {
 	cli.VersionFlag.(*cli.BoolFlag).Category = MiscCategory
 }
 
-func prefixEnvVars(name string) []string {
-	return []string{EnvVarPrefix + "_" + name}
+func prefixEnvVars(names ...string) []string {
+	envs := make([]string, 0, len(names))
+	for _, name := range names {
+		envs = append(envs, EnvVarPrefix+"_"+name)
+	}
+	return envs
 }
 
 var (
@@ -76,11 +80,11 @@ var (
 		EnvVars:  prefixEnvVars("L1_BEACON_HEADER"),
 		Category: L1RPCCategory,
 	}
-	BeaconArchiverAddr = &cli.StringFlag{
-		Name:     "l1.beacon-archiver",
-		Usage:    "Address of L1 Beacon-node compatible HTTP endpoint to use. This is used to fetch blobs that the --l1.beacon does not have (i.e expired blobs).",
-		Required: false,
-		EnvVars:  prefixEnvVars("L1_BEACON_ARCHIVER"),
+	BeaconFallbackAddrs = &cli.StringSliceFlag{
+		Name:     "l1.beacon-fallbacks",
+		Aliases:  []string{"l1.beacon-archiver"},
+		Usage:    "Addresses of L1 Beacon-API compatible HTTP fallback endpoints. Used to fetch blob sidecars not availalbe at the l1.beacon (e.g. expired blobs).",
+		EnvVars:  prefixEnvVars("L1_BEACON_FALLBACKS", "L1_BEACON_ARCHIVER"),
 		Category: L1RPCCategory,
 	}
 	BeaconCheckIgnore = &cli.BoolFlag{
@@ -291,6 +295,12 @@ var (
 		EnvVars:  prefixEnvVars("ROLLUP_LOAD_PROTOCOL_VERSIONS"),
 		Category: RollupCategory,
 	}
+	SafeDBPath = &cli.StringFlag{
+		Name:     "safedb.path",
+		Usage:    "File path used to persist safe head update data. Disabled if not set.",
+		EnvVars:  prefixEnvVars("SAFEDB_PATH"),
+		Category: OperationsCategory,
+	}
 	/* Deprecated Flags */
 	L2EngineSyncEnabled = &cli.BoolFlag{
 		Name:    "l2.engine-sync",
@@ -365,7 +375,7 @@ var requiredFlags = []cli.Flag{
 var optionalFlags = []cli.Flag{
 	BeaconAddr,
 	BeaconHeader,
-	BeaconArchiverAddr,
+	BeaconFallbackAddrs,
 	BeaconCheckIgnore,
 	BeaconFetchAllSidecars,
 	SyncModeFlag,
@@ -399,6 +409,7 @@ var optionalFlags = []cli.Flag{
 	ConductorEnabledFlag,
 	ConductorRpcFlag,
 	ConductorRpcTimeoutFlag,
+	SafeDBPath,
 	IsForkPublicNetworkFlag,
 }
 

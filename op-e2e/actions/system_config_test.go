@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"

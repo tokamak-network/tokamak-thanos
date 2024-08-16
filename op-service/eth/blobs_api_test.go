@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
