@@ -80,7 +80,7 @@ describe('ECO token', () => {
       ethers.utils.parseEther('0.1')
     )
 
-    const txResponse = await crossChainMessenger.depositERC20(
+    const txResponse = await crossChainMessenger.bridgeERC20(
       ECO_L1_TOKEN_ADDRESS,
       ECO_L2_TOKEN_ADDRESS,
       ethers.utils.parseEther('0.1')
