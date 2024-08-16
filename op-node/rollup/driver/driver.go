@@ -9,9 +9,13 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/async"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/attributes"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/clsync"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/conductor"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/finality"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
@@ -57,12 +61,29 @@ type L2Chain interface {
 type DerivationPipeline interface {
 	Reset()
 	Step(ctx context.Context) error
-	AddUnsafePayload(payload *eth.ExecutionPayloadEnvelope)
-	Finalize(ref eth.L1BlockRef)
-	FinalizedL1() eth.L1BlockRef
 	Origin() eth.L1BlockRef
 	EngineReady() bool
+}
+
+type CLSync interface {
 	LowestQueuedUnsafeBlock() eth.L2BlockRef
+	AddUnsafePayload(payload *eth.ExecutionPayloadEnvelope)
+	Proceed(ctx context.Context) error
+}
+
+type Finalizer interface {
+	Finalize(ctx context.Context, ref eth.L1BlockRef)
+	FinalizedL1() eth.L1BlockRef
+	derive.FinalizerHooks
+}
+
+type PlasmaIface interface {
+	// Notify L1 finalized head so plasma finality is always behind L1
+	Finalize(ref eth.L1BlockRef)
+	// Set the engine finalization signal callback
+	OnFinalizedHeadSignal(f plasma.HeadSignalFn)
+
+	derive.PlasmaInputFetcher
 }
 
 type L1StateIface interface {
@@ -114,14 +135,41 @@ type SequencerStateListener interface {
 }
 
 // NewDriver composes an events handler that tracks L1 state, triggers L2 derivation, and optionally sequences new L2 blocks.
-func NewDriver(driverCfg *Config, cfg *rollup.Config, l2 L2Chain, l1 L1Chain, l1Blobs derive.L1BlobsFetcher, altSync AltSync, network Network, log log.Logger, snapshotLog log.Logger, metrics Metrics, sequencerStateListener SequencerStateListener, syncCfg *sync.Config, sequencerConductor conductor.SequencerConductor, plasma derive.PlasmaInputFetcher) *Driver {
+func NewDriver(
+	driverCfg *Config,
+	cfg *rollup.Config,
+	l2 L2Chain,
+	l1 L1Chain,
+	l1Blobs derive.L1BlobsFetcher,
+	altSync AltSync,
+	network Network,
+	log log.Logger,
+	snapshotLog log.Logger,
+	metrics Metrics,
+	sequencerStateListener SequencerStateListener,
+	safeHeadListener derive.SafeHeadListener,
+	syncCfg *sync.Config,
+	sequencerConductor conductor.SequencerConductor,
+	plasma PlasmaIface,
+) *Driver {
 	l1 = NewMeteredL1Fetcher(l1, metrics)
 	l1State := NewL1State(log, metrics)
 	sequencerConfDepth := NewConfDepth(driverCfg.SequencerConfDepth, l1State.L1Head, l1)
 	findL1Origin := NewL1OriginSelector(log, cfg, sequencerConfDepth)
 	verifConfDepth := NewConfDepth(driverCfg.VerifierConfDepth, l1State.L1Head, l1)
 	engine := derive.NewEngineController(l2, log, metrics, cfg, syncCfg.SyncMode)
-	derivationPipeline := derive.NewDerivationPipeline(log, cfg, verifConfDepth, l1Blobs, plasma, l2, engine, metrics, syncCfg)
+	clSync := clsync.NewCLSync(log, cfg, metrics, engine)
+
+	var finalizer Finalizer
+	if cfg.PlasmaEnabled() {
+		finalizer = finality.NewPlasmaFinalizer(log, cfg, l1, engine, plasma)
+	} else {
+		finalizer = finality.NewFinalizer(log, cfg, l1, engine)
+	}
+
+	attributesHandler := attributes.NewAttributesHandler(log, cfg, engine, l2)
+	derivationPipeline := derive.NewDerivationPipeline(log, cfg, verifConfDepth, l1Blobs, plasma, l2, engine,
+		metrics, syncCfg, safeHeadListener, finalizer, attributesHandler)
 	attrBuilder := derive.NewFetchingAttributesBuilder(cfg, l1, l2)
 	meteredEngine := NewMeteredEngine(cfg, engine, metrics, log) // Only use the metered engine in the sequencer b/c it records sequencing metrics.
 	sequencer := NewSequencer(log, cfg, meteredEngine, attrBuilder, findL1Origin, metrics)
@@ -130,6 +178,8 @@ func NewDriver(driverCfg *Config, cfg *rollup.Config, l2 L2Chain, l1 L1Chain, l1
 	return &Driver{
 		l1State:            l1State,
 		derivation:         derivationPipeline,
+		clSync:             clSync,
+		finalizer:          finalizer,
 		engineController:   engine,
 		stateReq:           make(chan chan struct{}),
 		forceReset:         make(chan chan struct{}, 10),

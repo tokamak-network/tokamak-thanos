@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/matrix"
 	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
@@ -29,7 +28,7 @@ type Verifier interface {
 }
 
 type Sender interface {
-	SendAndWait(txPurpose string, txs ...txmgr.TxCandidate) ([]*types.Receipt, error)
+	SendAndWaitSimple(txPurpose string, txs ...txmgr.TxCandidate) error
 }
 
 type PreimageChallenger struct {
@@ -80,7 +79,7 @@ func (c *PreimageChallenger) Challenge(ctx context.Context, blockHash common.Has
 	wg.Wait()
 	c.log.Debug("Created preimage challenge transactions", "count", len(txs))
 	if len(txs) > 0 {
-		_, err := c.sender.SendAndWait("challenge preimages", txs...)
+		err := c.sender.SendAndWaitSimple("challenge preimages", txs...)
 		if err != nil {
 			c.metrics.RecordPreimageChallengeFailed()
 			return fmt.Errorf("failed to send challenge txs: %w", err)

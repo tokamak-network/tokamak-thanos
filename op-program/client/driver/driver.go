@@ -7,10 +7,14 @@ import (
 	"io"
 
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/node/safedb"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/attributes"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
@@ -29,6 +33,18 @@ type L2Source interface {
 	L2OutputRoot(uint64) (eth.Bytes32, error)
 }
 
+type NoopFinalizer struct{}
+
+func (n NoopFinalizer) OnDerivationL1End(ctx context.Context, derivedFrom eth.L1BlockRef) error {
+	return nil
+}
+
+func (n NoopFinalizer) PostProcessSafeL2(l2Safe eth.L2BlockRef, derivedFrom eth.L1BlockRef) {}
+
+func (n NoopFinalizer) Reset() {}
+
+var _ derive.FinalizerHooks = (*NoopFinalizer)(nil)
+
 type Driver struct {
 	logger         log.Logger
 	pipeline       Derivation
@@ -39,7 +55,8 @@ type Driver struct {
 
 func NewDriver(logger log.Logger, cfg *rollup.Config, l1Source derive.L1Fetcher, l1BlobsSource derive.L1BlobsFetcher, l2Source L2Source, targetBlockNum uint64) *Driver {
 	engine := derive.NewEngineController(l2Source, logger, metrics.NoopMetrics, cfg, sync.CLSync)
-	pipeline := derive.NewDerivationPipeline(logger, cfg, l1Source, l1BlobsSource, nil, l2Source, engine, metrics.NoopMetrics, &sync.Config{})
+	attributesHandler := attributes.NewAttributesHandler(logger, cfg, engine, l2Source)
+	pipeline := derive.NewDerivationPipeline(logger, cfg, l1Source, l1BlobsSource, plasma.Disabled, l2Source, engine, metrics.NoopMetrics, &sync.Config{}, safedb.Disabled, NoopFinalizer{}, attributesHandler)
 	pipeline.Reset()
 	return &Driver{
 		logger:         logger,
@@ -82,11 +99,12 @@ func (d *Driver) SafeHead() eth.L2BlockRef {
 }
 
 func (d *Driver) ValidateClaim(l2ClaimBlockNum uint64, claimedOutputRoot eth.Bytes32) error {
-	outputRoot, err := d.l2OutputRoot(l2ClaimBlockNum)
+	l2Head := d.SafeHead()
+	outputRoot, err := d.l2OutputRoot(min(l2ClaimBlockNum, l2Head.Number))
 	if err != nil {
 		return fmt.Errorf("calculate L2 output root: %w", err)
 	}
-	d.logger.Info("Validating claim", "head", d.SafeHead(), "output", outputRoot, "claim", claimedOutputRoot)
+	d.logger.Info("Validating claim", "head", l2Head, "output", outputRoot, "claim", claimedOutputRoot)
 	if claimedOutputRoot != outputRoot {
 		return fmt.Errorf("%w: claim: %v actual: %v", ErrClaimNotValid, claimedOutputRoot, outputRoot)
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/state"
 )
@@ -25,7 +26,7 @@ func TestAddBalance(t *testing.T) {
 		value := new(big.Int).Rand(rng, big.NewInt(1000))
 
 		db.CreateAccount(addr)
-		db.AddBalance(addr, value)
+		db.AddBalance(addr, uint256.MustFromBig(value))
 
 		account := db.GetAccount(addr)
 		require.NotNil(t, account)
