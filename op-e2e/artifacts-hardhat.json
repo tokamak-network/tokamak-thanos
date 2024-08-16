@@ -1,0 +1,12 @@
+[
+  "QuoterV2",
+  "SwapRouter02",
+  "UniswapV3Factory",
+  "NFTDescriptor",
+  "NonfungiblePositionManager",
+  "NonfungibleTokenPositionDescriptor",
+  "TickLens",
+  "UniswapInterfaceMulticall",
+  "UniversalRouter",
+  "UnsupportedProtocol"
+]

@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 )
 
 var _ vm.StateDB = (*MemoryStateDB)(nil)
@@ -45,9 +46,9 @@ func (db *MemoryStateDB) Genesis() *core.Genesis {
 	return db.genesis
 }
 
-// GetAccount is a getter for a core.GenesisAccount found in
+// GetAccount is a getter for a types.Account found in
 // the core.Genesis
-func (db *MemoryStateDB) GetAccount(addr common.Address) *core.GenesisAccount {
+func (db *MemoryStateDB) GetAccount(addr common.Address) *types.Account {
 	db.rw.RLock()
 	defer db.rw.RUnlock()
 
@@ -69,7 +70,7 @@ func (db *MemoryStateDB) CreateAccount(addr common.Address) {
 
 func (db *MemoryStateDB) createAccount(addr common.Address) {
 	if _, ok := db.genesis.Alloc[addr]; !ok {
-		db.genesis.Alloc[addr] = core.GenesisAccount{
+		db.genesis.Alloc[addr] = types.Account{
 			Code:    []byte{},
 			Storage: make(map[common.Hash]common.Hash),
 			Balance: big.NewInt(0),
@@ -78,7 +79,7 @@ func (db *MemoryStateDB) createAccount(addr common.Address) {
 	}
 }
 
-func (db *MemoryStateDB) SubBalance(addr common.Address, amount *big.Int) {
+func (db *MemoryStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -89,11 +90,11 @@ func (db *MemoryStateDB) SubBalance(addr common.Address, amount *big.Int) {
 	if account.Balance.Sign() == 0 {
 		return
 	}
-	account.Balance = new(big.Int).Sub(account.Balance, amount)
+	account.Balance = new(big.Int).Sub(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
 }
 
-func (db *MemoryStateDB) AddBalance(addr common.Address, amount *big.Int) {
+func (db *MemoryStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -101,19 +102,19 @@ func (db *MemoryStateDB) AddBalance(addr common.Address, amount *big.Int) {
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))
 	}
-	account.Balance = new(big.Int).Add(account.Balance, amount)
+	account.Balance = new(big.Int).Add(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
 }
 
-func (db *MemoryStateDB) GetBalance(addr common.Address) *big.Int {
+func (db *MemoryStateDB) GetBalance(addr common.Address) *uint256.Int {
 	db.rw.RLock()
 	defer db.rw.RUnlock()
 
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
-		return common.Big0
+		return uint256.NewInt(0)
 	}
-	return account.Balance
+	return uint256.MustFromBig((account.Balance))
 }
 
 func (db *MemoryStateDB) GetNonce(addr common.Address) uint64 {
@@ -246,6 +247,14 @@ func (db *MemoryStateDB) DeleteState(addr common.Address, key common.Hash) {
 	db.genesis.Alloc[addr] = account
 }
 
+func (db *MemoryStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
+	panic("transient state is unsupported")
+}
+
+func (db *MemoryStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
+	panic("transient state is unsupported")
+}
+
 func (db *MemoryStateDB) SelfDestruct(common.Address) {
 	panic("SelfDestruct unimplemented")
 }
@@ -282,10 +291,6 @@ func (db *MemoryStateDB) Empty(addr common.Address) bool {
 	return ok || (isZeroNonce && isZeroValue && isEmptyCode)
 }
 
-func (db *MemoryStateDB) PrepareAccessList(sender common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
-	panic("PrepareAccessList unimplemented")
-}
-
 func (db *MemoryStateDB) AddressInAccessList(addr common.Address) bool {
 	panic("AddressInAccessList unimplemented")
 }
@@ -304,6 +309,10 @@ func (db *MemoryStateDB) AddAddressToAccessList(addr common.Address) {
 // even if the feature/fork is not active yet
 func (db *MemoryStateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
 	panic("AddSlotToAccessList unimplemented")
+}
+
+func (db *MemoryStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
+	// no-op, no transient state to prepare, nor any access-list to set/prepare
 }
 
 func (db *MemoryStateDB) RevertToSnapshot(int) {
@@ -336,16 +345,4 @@ func (db *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Hash
 		}
 	}
 	return nil
-}
-
-func (db *MemoryStateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
-	panic("transient state is unsupported")
-}
-
-func (db *MemoryStateDB) SetTransientState(addr common.Address, key, value common.Hash) {
-	panic("transient state is unsupported")
-}
-
-func (db *MemoryStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
-	// no-op, no transient state to prepare, nor any access-list to set/prepare
 }

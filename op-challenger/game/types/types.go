@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 var ErrInvalidPrestate = errors.New("absolute prestate does not match")
@@ -42,12 +40,8 @@ func GameStatusFromUint8(i uint8) (GameStatus, error) {
 }
 
 type GameMetadata struct {
+	Index     uint64
 	GameType  uint32
 	Timestamp uint64
 	Proxy     common.Address
-}
-
-type TxSender interface {
-	From() common.Address
-	SendAndWait(txPurpose string, txs ...txmgr.TxCandidate) ([]*ethtypes.Receipt, error)
 }

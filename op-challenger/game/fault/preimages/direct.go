@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
@@ -21,11 +20,11 @@ type PreimageGameContract interface {
 type DirectPreimageUploader struct {
 	log log.Logger
 
-	txSender gameTypes.TxSender
+	txSender TxSender
 	contract PreimageGameContract
 }
 
-func NewDirectPreimageUploader(logger log.Logger, txSender gameTypes.TxSender, contract PreimageGameContract) *DirectPreimageUploader {
+func NewDirectPreimageUploader(logger log.Logger, txSender TxSender, contract PreimageGameContract) *DirectPreimageUploader {
 	return &DirectPreimageUploader{logger, txSender, contract}
 }
 
@@ -38,7 +37,7 @@ func (d *DirectPreimageUploader) UploadPreimage(ctx context.Context, claimIdx ui
 	if err != nil {
 		return fmt.Errorf("failed to create pre-image oracle tx: %w", err)
 	}
-	if _, err := d.txSender.SendAndWait("populate pre-image oracle", candidate); err != nil {
+	if err := d.txSender.SendAndWaitSimple("populate pre-image oracle", candidate); err != nil {
 		return fmt.Errorf("failed to populate pre-image oracle: %w", err)
 	}
 	return nil
