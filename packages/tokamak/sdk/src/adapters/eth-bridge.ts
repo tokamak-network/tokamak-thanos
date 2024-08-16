@@ -135,7 +135,8 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
       }
 
       if (opts?.recipient === undefined) {
-        return this.l1Bridge.populateTransaction.depositETH(
+        return this.l1Bridge.populateTransaction.bridgeETH(
+          amount,
           opts?.l2GasLimit || 200_000, // Default to 200k gas limit.
           '0x', // No data.
           {
@@ -144,8 +145,9 @@ export class ETHBridgeAdapter extends StandardBridgeAdapter {
           }
         )
       } else {
-        return this.l1Bridge.populateTransaction.depositETHTo(
+        return this.l1Bridge.populateTransaction.bridgeETHTo(
           toAddress(opts.recipient),
+          amount,
           opts?.l2GasLimit || 200_000, // Default to 200k gas limit.
           '0x', // No data.
           {
