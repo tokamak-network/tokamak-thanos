@@ -167,7 +167,7 @@ const depositNativeToken = async (amount: NumberLike) => {
   await approveTx.wait()
   console.log('Approve tx:', approveTx.hash)
 
-  const depositTx = await messenger.depositNativeToken(amount)
+  const depositTx = await messenger.bridgeNativeToken(amount)
   await depositTx.wait()
   console.log(
     'Deposit native token from L1 to L2, tx_hash:',
