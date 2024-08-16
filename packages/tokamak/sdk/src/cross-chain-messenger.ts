@@ -2480,20 +2480,34 @@ export class CrossChainMessenger {
       opts?: {
         recipient?: AddressLike
         l2GasLimit?: NumberLike
-        overrides?: PayableOverrides
+        overrides?: CallOverrides
       },
       isEstimatingGas: boolean = false
     ): Promise<TransactionRequest> => {
+      // if we don't include the users address the estimation will fail from lack of allowance
+      if (!ethers.Signer.isSigner(this.l1SignerOrProvider)) {
+        throw new Error('unable to deposit without an l1 signer')
+      }
+
+      const from = (this.l1SignerOrProvider as Signer).getAddress()
+
       const getOpts = async () => {
         if (isEstimatingGas) {
           return opts
         }
-        const gasEstimation = await this.estimateGas.bridgeETH(amount, opts)
+        const gasEstimation = await this.estimateGas.bridgeETH(amount, {
+          ...opts,
+          overrides: {
+            ...opts?.overrides,
+            from: opts?.overrides?.from ?? from,
+          },
+        })
         return {
           ...opts,
           overrides: {
             ...opts?.overrides,
             gasLimit: gasEstimation.add(gasEstimation.div(2)),
+            from: opts?.overrides?.from ?? from,
           },
         }
       }
