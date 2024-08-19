@@ -11,7 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
 
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/state"
@@ -63,11 +65,13 @@ func TestSetAndGetStorageSlots(t *testing.T) {
 	slots, err := state.ComputeStorageSlots(&layout, values)
 	require.Nil(t, err)
 
-	backend := backends.NewSimulatedBackend(
-		core.GenesisAlloc{
-			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
-		},
-		15000000,
+	backend := backends.NewSimulatedBackendFromConfig(
+		ethconfig.Config{Genesis: &core.Genesis{
+			Alloc: types.GenesisAlloc{
+				crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+			},
+			GasLimit: 15000000,
+		}},
 	)
 	opts, err := bind.NewKeyedTransactorWithChainID(testKey, chainID)
 	require.Nil(t, err)
