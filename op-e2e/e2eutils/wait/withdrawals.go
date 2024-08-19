@@ -125,7 +125,7 @@ func ForWithdrawalCheck(ctx context.Context, client *ethclient.Client, withdrawa
 			return false, fmt.Errorf("hash withdrawal: %w", err)
 		}
 
-		err = portal.CheckWithdrawal(opts, wdHash)
+		err = portal.CheckWithdrawal(opts, wdHash, proofSubmitter)
 		return err == nil, nil
 	})
 }

@@ -219,8 +219,8 @@ def geth_init(paths):
     delete_file(pjoin(paths.bedrock_devnet_path, 'password'))
     delete_file(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
 
-def devnet_l1_genesis(paths):
-    log.info('Generating L1 genesis state')
+def devnet_l1_allocs(paths):
+    log.info('Generating L1 genesis allocs')
     init_devnet_l1_deploy_config(paths)
 
     fqn = 'scripts/Deploy.s.sol:Deploy'

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"runtime"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
@@ -290,7 +290,7 @@ func runE2ESystemTest(t *testing.T, sys *System) {
 	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
-	cfg := DefaultSystemConfig(t)
+	// cfg := DefaultSystemConfig(t)
 	l1Client := sys.Clients["l1"]
 	l2Seq := sys.Clients["sequencer"]
 	l2Verif := sys.Clients["verifier"]
@@ -310,26 +310,8 @@ func runE2ESystemTest(t *testing.T, sys *System) {
 	opts, err := bind.NewKeyedTransactorWithChainID(ethPrivKey, sys.Cfg.L1ChainIDBig())
 	require.Nil(t, err)
 	mintAmount := big.NewInt(1_000_000_000_000)
-
-	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-	require.NoError(t, err)
-
-	// faucet NativeToken
-	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	// Approve NativeToken with the OP
-	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		l2Opts.Mint = mintAmount
-		l2Opts.Value = mintAmount
-	})
+	opts.Value = mintAmount
+	SendDepositTx(t, sys.Cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {})
 
 	// Confirm balance
 	ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
@@ -1104,25 +1086,24 @@ func TestWithdrawals(t *testing.T) {
 	// Send deposit tx
 	mintAmount := big.NewInt(1_000_000_000_000)
 
-	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-	require.NoError(t, err)
+	// nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	// require.NoError(t, err)
 
-	// faucet NativeToken
-	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
+	// // faucet NativeToken
+	// tx, err := nativeTokenContract.Faucet(opts, mintAmount)
+	// require.NoError(t, err)
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
 
-	// Approve NativeToken with the OP
-	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
+	// // Approve NativeToken with the OP
+	// tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	// require.NoError(t, err)
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
 
-	// opts.Value = mintAmount
+	opts.Value = mintAmount
 	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		l2Opts.Value = mintAmount
-		l2Opts.Mint = mintAmount
+		l2Opts.Value = common.Big0
 	})
 
 	// Confirm L2 balance
@@ -1165,23 +1146,52 @@ func TestWithdrawals(t *testing.T) {
 	diff = diff.Sub(diff, fees)
 	require.Equal(t, withdrawAmount, diff)
 
-	startBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// startBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// require.Nil(t, err)
+
+	// proveReceipt, finalizeReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
+	// require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
+	// require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
+
+	// tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
+	// require.NoError(t, err)
+
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
+
+	// endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// require.Nil(t, err)
+
+	// diff = new(big.Int).Sub(endBalance, startBalance)
+
+	// Take start balance on L1
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	startBalanceBeforeFinalize, err := l1Client.BalanceAt(ctx, fromAddr, nil)
 	require.Nil(t, err)
 
-	proveReceipt, finalizeReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
-	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
-	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
+	proveReceipt, finalizeReceipt, resolveClaimReceipt, resolveReceipt := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
 
-	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
-	require.NoError(t, err)
-
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// Verify balance after withdrawal
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	endBalanceAfterFinalize, err := wait.ForBalanceChange(ctx, l1Client, fromAddr, startBalanceBeforeFinalize)
 	require.Nil(t, err)
 
-	diff = new(big.Int).Sub(endBalance, startBalance)
+	// Ensure that withdrawal - gas fees are added to the L1 balance
+	// Fun fact, the fee is greater than the withdrawal amount
+	// NOTE: The gas fees include *both* the ProveWithdrawalTransaction and FinalizeWithdrawalTransaction transactions.
+	diff = new(big.Int).Sub(endBalanceAfterFinalize, startBalanceBeforeFinalize)
+	proveFee := new(big.Int).Mul(new(big.Int).SetUint64(proveReceipt.GasUsed), proveReceipt.EffectiveGasPrice)
+	finalizeFee := new(big.Int).Mul(new(big.Int).SetUint64(finalizeReceipt.GasUsed), finalizeReceipt.EffectiveGasPrice)
+	fees = new(big.Int).Add(proveFee, finalizeFee)
+	if e2eutils.UseFaultProofs() {
+		resolveClaimFee := new(big.Int).Mul(new(big.Int).SetUint64(resolveClaimReceipt.GasUsed), resolveClaimReceipt.EffectiveGasPrice)
+		resolveFee := new(big.Int).Mul(new(big.Int).SetUint64(resolveReceipt.GasUsed), resolveReceipt.EffectiveGasPrice)
+		fees = new(big.Int).Add(fees, resolveClaimFee)
+		fees = new(big.Int).Add(fees, resolveFee)
+	}
+	withdrawAmount = withdrawAmount.Sub(withdrawAmount, fees)
 	require.Equal(t, withdrawAmount, diff)
 }
 

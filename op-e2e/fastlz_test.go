@@ -16,9 +16,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/simulated"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/fastlz"
-	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 )
 
 var (

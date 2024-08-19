@@ -60,7 +60,7 @@ services:
       context: ../
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-node-target
-    image: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z l1 ${WAITING_L1_PORT:-8545}; do sleep 1; done; echo 'Port is now available' &&
       op-node
@@ -118,7 +118,7 @@ services:
       context: ../
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-proposer-target
-    image: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-proposer:${IMAGE_TAG:-latest}
     ports:
       - '6062:6060'
       - '7302:7300'
@@ -150,7 +150,7 @@ services:
       context: ../
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-batcher-target
-    image: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-batcher:${IMAGE_TAG:-latest}
     ports:
       - '6061:6060'
       - '7301:7300'
@@ -184,7 +184,7 @@ services:
       context: ../
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-challenger-target
-    image: tokamaknetwork/thanos-op-stack-go:${IMAGE_TAG:-latest}
+    image: tokamaknetwork/thanos-op-challenger:${IMAGE_TAG:-latest}
     volumes:
       - "challenger_data:/db"
       - "../op-program/bin:/op-program"
@@ -210,7 +210,7 @@ services:
       OP_CHALLENGER_NUM_CONFIRMATIONS: 1
 
   da-server:
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/da-server:devnet
+    image: tokamaknetwork/thanos-da-server:${IMAGE_TAG:-latest}
     build:
       context: ../
       dockerfile: ops/docker/op-stack-go/Dockerfile

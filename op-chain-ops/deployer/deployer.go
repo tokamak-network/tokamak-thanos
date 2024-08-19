@@ -56,14 +56,14 @@ func NewL1Backend() (*backends.SimulatedBackend, error) {
 // NewL2Backend returns a SimulatedBackend suitable for L2.
 // It has the latest L2 hardforks enabled.
 func NewL2Backend() (*backends.SimulatedBackend, error) {
-	backend, err := NewBackendWithGenesisTimestamp(ChainID, 0, false, nil)
+	backend, err := NewBackendWithGenesisTimestamp(ChainID, 0, true, nil)
 	return backend, err
 }
 
 // NewL2BackendWithChainIDAndPredeploys returns a SimulatedBackend suitable for L2.
 // It has the latest L2 hardforks enabled, and allows for the configuration of the network's chain ID and predeploys.
 func NewL2BackendWithChainIDAndPredeploys(chainID *big.Int, predeploys map[string]*common.Address) (*backends.SimulatedBackend, error) {
-	backend, err := NewBackendWithGenesisTimestamp(chainID, 0, false, predeploys)
+	backend, err := NewBackendWithGenesisTimestamp(chainID, 0, true, predeploys)
 	return backend, err
 }
 
@@ -89,7 +89,7 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		// and the timestamp verification of PoS is not against the wallclock,
 		// preventing blocks from getting stuck temporarily in the future-blocks queue, decreasing setup time a lot.
 		MergeNetsplitBlock:            big.NewInt(0),
-		TerminalTotalDifficulty:       big.NewInt(0),
+		TerminalTotalDifficulty:       big.NewInt(-1),
 		TerminalTotalDifficultyPassed: true,
 	}
 
@@ -147,6 +147,8 @@ func Deploy(backend *backends.SimulatedBackend, constructors []Constructor, cb D
 		// so we need to both commit the change here as
 		// well as wait for the transaction receipt.
 		backend.Commit()
+		_, err = bind.WaitMined(ctx, backend, tx)
+		fmt.Printf("%+v", err)
 		addr, err := bind.WaitDeployed(ctx, backend, tx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", deployment.Name, err)
