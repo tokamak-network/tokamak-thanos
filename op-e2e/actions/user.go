@@ -347,14 +347,14 @@ func (s *CrossLayerUser) ActDeposit(t Testing) {
 
 	// Finally send TX
 	s.L1.txOpts.GasLimit = 0
-	tx, err := s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositTransferValue, depositGas, false, s.L2.txCallData)
+	tx, err := s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, false, s.L2.txCallData)
 	require.Nil(t, err, "with deposit tx")
 
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
 	s.L1.txOpts.GasLimit = tx.Gas() + (tx.Gas() / 10)
 
-	tx, err = s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositTransferValue, depositGas, false, s.L2.txCallData)
+	tx, err = s.L1.env.Bindings.OptimismPortal.DepositTransaction(&s.L1.txOpts, toAddr, depositTransferValue, depositGas, false, s.L2.txCallData)
 	require.NoError(t, err, "failed to create deposit tx")
 
 	s.L1.txOpts.GasLimit = 0
@@ -468,7 +468,7 @@ func (s *CrossLayerUser) getDisputeGame(t Testing, params withdrawals.ProvenWith
 	wdHash, err := wd.Hash()
 	require.Nil(t, err)
 
-	game, err := portal2.ProvenWithdrawals(&bind.CallOpts{}, wdHash)
+	game, err := portal2.ProvenWithdrawals(&bind.CallOpts{}, wdHash, s.L1.address)
 	require.Nil(t, err)
 	require.NotNil(t, game, "withdrawal should be proven")
 

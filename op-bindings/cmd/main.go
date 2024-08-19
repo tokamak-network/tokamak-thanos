@@ -212,14 +212,12 @@ func localFlags() []cli.Flag {
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     HardhatArtifactsFlagName,
-			Usage:    "Path to hardhat-artifacts directory, containing compiled contract artifacts",
-			Required: true,
+			Name:  HardhatArtifactsFlagName,
+			Usage: "Path to hardhat-artifacts directory, containing compiled contract artifacts",
 		},
 		&cli.StringFlag{
-			Name:     HardhatContractsListFlagName,
-			Usage:    "Path to file containing list of hardhat contract names to generate bindings for",
-			Required: true,
+			Name:  HardhatContractsListFlagName,
+			Usage: "Path to file containing list of hardhat contract names to generate bindings for",
 		},
 	}
 }

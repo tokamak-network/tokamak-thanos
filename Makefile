@@ -99,10 +99,7 @@ contracts-bedrock-docker:
 .PHONY: contracts-bedrock-docker
 
 submodules:
-	# CI will checkout submodules on its own (and fails on these commands)
-	if [ -z "$$GITHUB_ENV" ]; then \
-		git submodule update --init --recursive; \
-	fi
+	git submodule update --init --recursive
 .PHONY: submodules
 
 op-bindings:
