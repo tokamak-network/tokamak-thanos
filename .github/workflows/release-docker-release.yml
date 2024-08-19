@@ -70,12 +70,17 @@ jobs:
       matrix:
         target:
           [
+            cannon
+            op-program,
+            op-heartbeat,
+            op-wheel,
             op-node,
+            op-challenger,
+            op-dispute-mon,
             op-batcher,
             op-proposer,
-            op-challenger,
-            op-heartbeat,
-            op-program,
+            op-conductor,
+            da-server,
           ]
     steps:
       - name: Checkout
@@ -98,11 +103,10 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           context: .
-          file: ./${{ matrix.target }}/Dockerfile
+          file: ./ops/docker/op-stack-go/Dockerfile
+          target: ${{ matrix.target }}-target
           push: true
           tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
-          build-args: |
-            OP_STACK_GO_BUILDER=tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.release-docker-tag }}
 
   etc:
     name: Publish ${{ matrix.target }}

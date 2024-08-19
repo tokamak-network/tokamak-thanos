@@ -197,7 +197,7 @@ func FinalizeWithdrawal(t *testing.T, cfg SystemConfig, l1Client *ethclient.Clie
 		wdHash, err := wd.Hash()
 		require.Nil(t, err)
 
-		game, err := portal2.ProvenWithdrawals(&bind.CallOpts{}, wdHash)
+		game, err := portal2.ProvenWithdrawals(&bind.CallOpts{}, wdHash, opts.From)
 		require.Nil(t, err)
 		require.NotNil(t, game, "withdrawal should be proven")
 

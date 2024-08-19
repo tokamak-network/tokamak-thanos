@@ -22,7 +22,17 @@ compile:
 
 bindings: bindgen-local
 
-bindgen-local: compile bindgen-generate-local
+bindgen-local: compile bindgen-generate-local-preview bindgen-generate-local
+
+bindgen-generate-local-preview:
+	go run ./cmd/ \
+		generate \
+		--metadata-out ./bindingspreview \
+		--bindings-package bindingspreview \
+		--contracts-list ./artifacts-preview.json \
+		--log.level $(log-level) \
+		local \
+		--forge-artifacts $(contracts-dir)/forge-artifacts
 
 bindgen-generate-local:
 	go run ./cmd/ \

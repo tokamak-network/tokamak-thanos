@@ -194,25 +194,42 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		}
 	}
 
-	if err := PerformUpgradeTxs(db); err != nil {
+	if err := PerformUpgradeTxs(config, db); err != nil {
 		return nil, fmt.Errorf("failed to perform upgrade txs: %w", err)
 	}
 
 	return db.Genesis(), nil
 }
 
-func PerformUpgradeTxs(db *state.MemoryStateDB) error {
+func PerformUpgradeTxs(config *DeployConfig, db *state.MemoryStateDB) error {
+	sim := squash.NewSimulator(db)
+
 	// Only the Ecotone upgrade is performed with upgrade-txs.
 	if !db.Genesis().Config.IsEcotone(db.Genesis().Timestamp) {
 		return nil
 	}
-	sim := squash.NewSimulator(db)
+
 	ecotone, err := derive.EcotoneNetworkUpgradeTransactions()
 	if err != nil {
 		return fmt.Errorf("failed to build ecotone upgrade txs: %w", err)
 	}
-	if err := sim.AddUpgradeTxs(ecotone); err != nil {
-		return fmt.Errorf("failed to apply ecotone upgrade txs: %w", err)
+
+	if err := sim.AddUpgradeTxs(ecotone[4:]); err != nil {
+		return fmt.Errorf("failed to apply upgrade txs: %w", err)
+	}
+
+	// Only the Ecotone upgrade is performed with upgrade-txs.
+	if !db.Genesis().Config.IsFjord(db.Genesis().Timestamp) {
+		return nil
+	}
+
+	fjord, err := derive.FjordNetworkUpgradeTransactions()
+	if err != nil {
+		return fmt.Errorf("failed to build fjord upgrade txs: %w", err)
+	}
+
+	if err := sim.AddUpgradeTxs(fjord); err != nil {
+		return fmt.Errorf("failed to apply upgrade txs: %w", err)
 	}
 	return nil
 }

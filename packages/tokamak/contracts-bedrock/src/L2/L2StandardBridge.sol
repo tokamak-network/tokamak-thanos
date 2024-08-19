@@ -6,7 +6,7 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import { L1Block } from "src/L2/L1Block.sol";
 
 /// @custom:proxied
 /// @custom:predeploy 0x4200000000000000000000000000000000000010
@@ -52,8 +52,8 @@ contract L2StandardBridge is StandardBridge, ISemver {
         bytes extraData
     );
 
-    /// @custom:semver 1.8.0
-    string public constant version = "1.8.0";
+    /// @custom:semver 1.10.0
+    string public constant version = "1.10.0";
 
     /// @notice Constructs the L2StandardBridge contract.
     constructor() StandardBridge() {
@@ -72,35 +72,20 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
     receive() external payable override onlyEOA {
         _initiateWithdrawal(
-            Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
-            msg.sender,
-            msg.sender,
-            msg.value,
-            RECEIVE_DEFAULT_GAS_LIMIT,
-            bytes("")
+            Predeploys.LEGACY_ERC20_ETH, msg.sender, msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, bytes("")
         );
+    }
+
+    /// @inheritdoc StandardBridge
+    function gasPayingToken() internal view override returns (address addr_, uint8 decimals_) {
+        (addr_, decimals_) = L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).gasPayingToken();
     }
 
     /// @custom:legacy
-    /// @notice Initiates a withdrawal native token from L2 to L1.
-    ///         This function only works with native token
-    /// @param _minGasLimit Minimum gas limit to use for the transaction.
-    /// @param _extraData   Extra data attached to the withdrawal.
-    function withdrawNativeToken(uint32 _minGasLimit, bytes calldata _extraData) external payable onlyEOA {
-        _initiateWithdrawal(
-            Predeploys.LEGACY_ERC20_NATIVE_TOKEN, msg.sender, msg.sender, msg.value, _minGasLimit, _extraData
-        );
-    }
-
-    /// @notice Initiates a withdrawal native token from L2 to L1 to a target account on L1.
-    /// @param _to          Recipient account on L1.
-    /// @param _minGasLimit Minimum gas limit to use for the transaction.
-    /// @param _extraData   Extra data attached to the withdrawal.
-    function withdrawNativeTokenTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable {
-        _initiateWithdrawal(Predeploys.LEGACY_ERC20_NATIVE_TOKEN, msg.sender, _to, msg.value, _minGasLimit, _extraData);
-    }
-
     /// @notice Initiates a withdrawal from L2 to L1.
+    ///         This function only works with OptimismMintableERC20 tokens or ether. Use the
+    ///         `bridgeERC20` function to bridge native L2 tokens to L1.
+    ///         Subject to be deprecated in the future.
     /// @param _l2Token     Address of the L2 token to withdraw.
     /// @param _amount      Amount of the L2 token to withdraw.
     /// @param _minGasLimit Minimum gas limit to use for the transaction.
@@ -116,6 +101,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         virtual
         onlyEOA
     {
+        require(isCustomGasToken() == false, "L2StandardBridge: not supported with custom gas token");
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -127,6 +113,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
     ///         call will fail for any amount of gas, then the ETH will be locked permanently.
     ///         This function only works with OptimismMintableERC20 tokens or ether. Use the
     ///         `bridgeERC20To` function to bridge native L2 tokens to L1.
+    ///         Subject to be deprecated in the future.
     /// @param _l2Token     Address of the L2 token to withdraw.
     /// @param _to          Recipient account on L1.
     /// @param _amount      Amount of the L2 token to withdraw.
@@ -143,35 +130,8 @@ contract L2StandardBridge is StandardBridge, ISemver {
         payable
         virtual
     {
+        require(isCustomGasToken() == false, "L2StandardBridge: not supported with custom gas token");
         _initiateWithdrawal(_l2Token, msg.sender, _to, _amount, _minGasLimit, _extraData);
-    }
-
-    /// @custom:legacy
-    /// @notice Finalizes a deposit from L1 to L2. To finalize a deposit of ether, use address(0)
-    ///         and the l1Token and the Legacy ERC20 ether predeploy address as the l2Token.
-    /// @param _l1Token   Address of the L1 token to deposit.
-    /// @param _l2Token   Address of the corresponding L2 token.
-    /// @param _from      Address of the depositor.
-    /// @param _to        Address of the recipient.
-    /// @param _amount    Amount of the tokens being deposited.
-    /// @param _extraData Extra data attached to the deposit.
-    function finalizeDeposit(
-        address _l1Token,
-        address _l2Token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _extraData
-    )
-        external
-        payable
-        virtual
-    {
-        if (_l1Token == address(0) && _l2Token == Predeploys.LEGACY_ERC20_NATIVE_TOKEN) {
-            finalizeBridgeETH(_from, _to, _amount, _extraData);
-        } else {
-            finalizeBridgeERC20(_l2Token, _l1Token, _from, _to, _amount, _extraData);
-        }
     }
 
     /// @custom:legacy
@@ -199,7 +159,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
     )
         internal
     {
-        if (_l2Token == Predeploys.LEGACY_ERC20_NATIVE_TOKEN) {
+        if (_l2Token == Predeploys.LEGACY_ERC20_ETH) {
             _initiateBridgeETH(_from, _to, _amount, _minGasLimit, _extraData);
         } else {
             address l1Token = OptimismMintableERC20(_l2Token).l1Token();
@@ -219,7 +179,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        emit WithdrawalInitiated(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        emit WithdrawalInitiated(address(0), Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
         super._emitETHBridgeInitiated(_from, _to, _amount, _extraData);
     }
 
@@ -235,7 +195,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
-        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, _from, _to, _amount, _extraData);
+        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_ETH, _from, _to, _amount, _extraData);
         super._emitETHBridgeFinalized(_from, _to, _amount, _extraData);
     }
 

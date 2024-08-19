@@ -39,8 +39,6 @@
     "EAS",
     "SchemaRegistry",
     "ProtocolVersions",
-    "Safe",
-    "SafeProxyFactory",
     "DelayedVetoable",
     "ISemver",
     "StorageSetter",
