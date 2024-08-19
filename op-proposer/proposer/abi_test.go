@@ -10,8 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
@@ -28,7 +30,12 @@ func simulatedBackend() (privateKey *ecdsa.PrivateKey, address common.Address, o
 	if err != nil {
 		return nil, common.Address{}, nil, nil, err
 	}
-	backend = backends.NewSimulatedBackend(types.GenesisAlloc{from: {Balance: big.NewInt(params.Ether)}}, 50_000_000) // nolint:staticcheck
+	backend = backends.NewSimulatedBackendFromConfig(ethconfig.Config{
+		Genesis: &core.Genesis{
+			Alloc:    types.GenesisAlloc{from: {Balance: big.NewInt(params.Ether)}},
+			GasLimit: 50_000_000,
+		},
+	})
 
 	return privateKey, from, opts, backend, nil
 }
