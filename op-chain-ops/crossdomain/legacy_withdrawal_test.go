@@ -18,9 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"github.com/ethereum/go-ethereum/ethclient/simulated"
 )
 
 // callFrame represents the response returned from geth's
@@ -203,11 +202,13 @@ func findPassMessage(trace *callFrame) *callFrame {
 
 // findCrossDomainMessage will parse a CrossDomainMessage from a receipt
 func findCrossDomainMessage(receipt *types.Receipt) (*crossdomain.CrossDomainMessage, error) {
-	backend := backends.NewSimulatedBackendFromConfig(ethconfig.Config{
-		Genesis: &core.Genesis{
-			GasLimit: 15000000,
-		},
-	}) // nolint:staticcheck
+	b := simulated.NewBackend(nil, simulated.WithBlockGasLimit(15000000))
+
+	backend := &backends.SimulatedBackend{
+		Backend: b,
+		Client:  b.Client(),
+	}
+
 	l2xdm, err := bindings.NewL2CrossDomainMessenger(predeploys.L2CrossDomainMessengerAddr, backend)
 	if err != nil {
 		return nil, err
