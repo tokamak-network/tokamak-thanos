@@ -27,7 +27,7 @@ jobs:
       # Copy necessary tools from Docker container
       - name: Copy foundry from Docker container
         run: |
-          container_id=$(docker create tokamaknetwork/thanos-ci-builder:latest)
+          container_id=$(docker create tokamaknetwork/thanos-ci-builder:fjord)
           mkdir -p $HOME/bin
           docker cp $container_id:/usr/local/bin/cast $HOME/bin/
           docker cp $container_id:/usr/local/bin/anvil $HOME/bin/

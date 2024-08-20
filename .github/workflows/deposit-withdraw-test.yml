@@ -1,15 +1,13 @@
 name: 'Deposit and Withdrawal End To End Test'
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   deposit-withdrawal-e2e-tests:
     name: 'Deposit and Withdrawal E2E tests'
     runs-on: ubuntu-latest
     container:
-      image: tokamaknetwork/thanos-ci-builder:latest
+      image: tokamaknetwork/thanos-ci-builder:fjord
     steps:
       - name: Check CPUs
         run: lscpu && echo
@@ -25,8 +23,7 @@ jobs:
 
       - name: Setup
         run: |
-          make cannon-prestate
-          DEPLOYMENT_CONTEXT=devnetL1 make devnet-allocs
+          make devnet-allocs
 
       - name: Run deposit withdrawal e2e tests
         run: make test-deposit-withdrawal
