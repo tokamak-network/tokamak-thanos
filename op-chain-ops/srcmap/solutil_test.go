@@ -7,7 +7,7 @@ import (
 func TestSourcemap(t *testing.T) {
 	t.Skip("TODO(clabby): This test is disabled until source IDs have been added to foundry artifacts.")
 
-	// contractsDir := "../../packages/contracts-bedrock"
+	// contractsDir := "../../packages/tokamak/contracts-bedrock"
 	// sources := []string{path.Join(contractsDir, "src/cannon/MIPS.sol")}
 	// for i, source := range sources {
 	// 	sources[i] = path.Join(contractsDir, source)
