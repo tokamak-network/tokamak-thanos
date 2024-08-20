@@ -60,14 +60,22 @@ jobs:
 
   cannon-go-lint-and-test:
     runs-on: ubuntu-latest
+    container:
+      image: tokamaknetwork/thanos-ci-builder:fjord
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
+
+      - name: Install Gotestsum
+        run: go install gotest.tools/gotestsum@v1.11.0
 
       - name: Check if changes affect relevant paths
         id: changes-check
@@ -80,8 +88,12 @@ jobs:
               - 'packages/tokamak/contracts-bedrock/src/cannon/**'
             op-preimage:
               - 'op-preimage/**'
+
       - name: Prep Cannon results dir
         run: mkdir -p /tmp/test-results
+
+      - name: Make Allocs
+        run: make devnet-allocs
 
       - name: Build Cannon example binaries
         run: make elf
