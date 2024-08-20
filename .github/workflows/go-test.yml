@@ -1,16 +1,14 @@
 name: Go E2E tests
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   go-test:
     runs-on: ubuntu-latest
     name: Go test ${{matrix.name}}
     container:
-      image: tokamaknetwork/thanos-ci-builder:latest
+      image: tokamaknetwork/thanos-ci-builder:fjord
     strategy:
       matrix:
         include:
