@@ -107,7 +107,7 @@ export const DEPOSIT_CONFIRMATION_BLOCKS: {
   [L2ChainID.ZORA_MAINNET]: 50 as const,
   [L2ChainID.MODE_SEPOLIA]: 25 as const,
   [L2ChainID.MODE_MAINNET]: 50 as const,
-  [L2ChainID.THANOS_SEPOLIA_TEST]: 111551118080 as const,
+  [L2ChainID.THANOS_SEPOLIA]: 111551118080 as const,
 }
 
 export const CHAIN_BLOCK_TIMES: {
@@ -366,7 +366,7 @@ export const CONTRACT_ADDRESSES: {
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   },
   // internal testnet
-  [L2ChainID.THANOS_SEPOLIA_TEST]: {
+  [L2ChainID.THANOS_SEPOLIA]: {
     l1: {
       AddressManager: '0xd9Ada4AE23bFA230351D1D14a561525D77Eb15Eb' as const,
       L1CrossDomainMessenger:
