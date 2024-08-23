@@ -368,17 +368,17 @@ export const CONTRACT_ADDRESSES: {
   // internal testnet
   [L2ChainID.THANOS_SEPOLIA_TEST]: {
     l1: {
-      AddressManager: '0x41CC1728eE5CD632FE86d7C17bf756182D0f2f26' as const,
+      AddressManager: '0xd9Ada4AE23bFA230351D1D14a561525D77Eb15Eb' as const,
       L1CrossDomainMessenger:
-        '0x8ca593C92446104B4DA968786735dbd503886ed7' as const,
-      L1StandardBridge: '0x5D2Ed95c0230Bd53E336f12fA9123847768B2B3E' as const,
+        '0x9D28a920206281B4a56AEf8bC1c515Cc4C656d3f' as const,
+      L1StandardBridge: '0x385076516318551d566CAaE5EC59c23fe09cbF65' as const,
       StateCommitmentChain:
         '0x0000000000000000000000000000000000000000' as const,
       CanonicalTransactionChain:
         '0x0000000000000000000000000000000000000000' as const,
       BondManager: '0x0000000000000000000000000000000000000000' as const,
-      OptimismPortal: '0x54A01163474FCD8a781455f09Ff0910e7e31B772' as const,
-      L2OutputOracle: '0xfa565a84075091044FC891e3f73E26A014A4fd8c' as const,
+      OptimismPortal: '0x7b6db1316e22167b56211cDDC33431098BaBC3c2' as const,
+      L2OutputOracle: '0xaB8A5Ac696675D65D09E24C2876Aa8a7e1Af5640' as const,
     },
     // TODO: change predeploys in L2
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
