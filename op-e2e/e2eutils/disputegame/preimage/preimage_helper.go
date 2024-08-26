@@ -22,6 +22,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
@@ -42,8 +43,7 @@ func NewHelper(t *testing.T, opts *bind.TransactOpts, client *ethclient.Client, 
 	oracleBindings, err := bindings.NewPreimageOracle(addr, client)
 	require.NoError(err)
 
-	oracle, err := contracts.NewPreimageOracleContract(addr, batching.NewMultiCaller(client.Client(), batching.DefaultBatchSize))
-	require.NoError(err)
+	oracle := contracts.NewPreimageOracleContract(addr, batching.NewMultiCaller(client.Client(), batching.DefaultBatchSize))
 	return &Helper{
 		t:              t,
 		require:        require,
@@ -127,7 +127,7 @@ func (h *Helper) WaitForChallenged(ctx context.Context, ident types.LargePreimag
 	timedCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	err := wait.For(timedCtx, time.Second, func() (bool, error) {
-		metadata, err := h.oracle.GetProposalMetadata(ctx, batching.BlockLatest, ident)
+		metadata, err := h.oracle.GetProposalMetadata(ctx, rpcblock.Latest, ident)
 		if err != nil {
 			return false, err
 		}

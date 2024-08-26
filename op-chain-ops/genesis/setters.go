@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -21,12 +22,14 @@ import (
 const PrecompileCount = 256
 
 // FundDevAccounts will fund each of the development accounts.
-func FundDevAccounts(db vm.StateDB) {
+func FundDevAccounts(gen *core.Genesis) {
 	for _, account := range DevAccounts {
-		if !db.Exist(account) {
-			db.CreateAccount(account)
+		acc := gen.Alloc[account]
+		if acc.Balance == nil {
+			acc.Balance = new(big.Int)
 		}
-		db.AddBalance(account, devBalance)
+		acc.Balance = acc.Balance.Add(acc.Balance, devBalance)
+		gen.Alloc[account] = acc
 	}
 }
 
@@ -36,7 +39,7 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 		return err
 	}
 	if len(depBytecode) == 0 {
-		return errors.New("Proxy has empty bytecode")
+		return errors.New("the contract 'Proxy' has empty bytecode")
 	}
 
 	l2UsdcBridgeProxyBytecode, err := bindings.GetDeployedBytecode("L2UsdcBridgeProxy")
@@ -93,11 +96,15 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address, namespace *big.Int
 
 // SetPrecompileBalances will set a single wei at each precompile address.
 // This is an optimization to make calling them cheaper.
-func SetPrecompileBalances(db vm.StateDB) {
+func SetPrecompileBalances(gen *core.Genesis) {
 	for i := 0; i < PrecompileCount; i++ {
 		addr := common.BytesToAddress([]byte{byte(i)})
-		db.CreateAccount(addr)
-		db.AddBalance(addr, common.Big1)
+		acc := gen.Alloc[addr]
+		if acc.Balance == nil {
+			acc.Balance = new(big.Int)
+		}
+		acc.Balance = acc.Balance.Add(acc.Balance, big.NewInt(1))
+		gen.Alloc[addr] = acc
 	}
 }
 

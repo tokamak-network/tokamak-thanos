@@ -1,15 +1,13 @@
 name: pnpm-monorepo
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   pnpm-monorepo:
     runs-on: ubuntu-latest
     container:
-      image: tokamaknetwork/thanos-ci-builder:latest
+      image: tokamaknetwork/thanos-ci-builder:fjord
 
     steps:
       - name: Checkout
@@ -61,12 +59,6 @@ jobs:
           path: |
             packages/**/dist
             packages/tokamak/contracts-bedrock/forge-artifacts
-
-      - name: Generate FPAC allocs
-        run: DEVNET_FPAC="true" make devnet-allocs
-
-      - name: Copy FPAC allocs to .devnet-fault-proofs
-        run: cp -r .devnet/ .devnet-fault-proofs/
 
       - name: Generate non-FPAC allocs
         run: make devnet-allocs

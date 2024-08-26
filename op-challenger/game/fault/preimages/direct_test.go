@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
@@ -83,13 +82,13 @@ func (s *mockTxSender) From() common.Address {
 	return common.Address{}
 }
 
-func (s *mockTxSender) SendAndWait(_ string, _ ...txmgr.TxCandidate) ([]*ethtypes.Receipt, error) {
+func (s *mockTxSender) SendAndWaitSimple(_ string, _ ...txmgr.TxCandidate) error {
 	s.sends++
 	if s.sendFails {
-		return nil, mockTxMgrSendError
+		return mockTxMgrSendError
 	}
 	if s.statusFail {
-		return []*ethtypes.Receipt{{Status: ethtypes.ReceiptStatusFailed}}, nil
+		return errors.New("transaction reverted")
 	}
-	return []*ethtypes.Receipt{{Status: ethtypes.ReceiptStatusSuccessful}}, nil
+	return nil
 }

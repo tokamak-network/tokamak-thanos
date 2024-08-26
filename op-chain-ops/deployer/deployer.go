@@ -10,11 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 )
@@ -57,14 +56,14 @@ func NewL1Backend() (*backends.SimulatedBackend, error) {
 // NewL2Backend returns a SimulatedBackend suitable for L2.
 // It has the latest L2 hardforks enabled.
 func NewL2Backend() (*backends.SimulatedBackend, error) {
-	backend, err := NewBackendWithGenesisTimestamp(ChainID, 0, false, nil)
+	backend, err := NewBackendWithGenesisTimestamp(ChainID, 0, true, nil)
 	return backend, err
 }
 
 // NewL2BackendWithChainIDAndPredeploys returns a SimulatedBackend suitable for L2.
 // It has the latest L2 hardforks enabled, and allows for the configuration of the network's chain ID and predeploys.
 func NewL2BackendWithChainIDAndPredeploys(chainID *big.Int, predeploys map[string]*common.Address) (*backends.SimulatedBackend, error) {
-	backend, err := NewBackendWithGenesisTimestamp(chainID, 0, false, predeploys)
+	backend, err := NewBackendWithGenesisTimestamp(chainID, 0, true, predeploys)
 	return backend, err
 }
 
@@ -90,7 +89,7 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		// and the timestamp verification of PoS is not against the wallclock,
 		// preventing blocks from getting stuck temporarily in the future-blocks queue, decreasing setup time a lot.
 		MergeNetsplitBlock:            big.NewInt(0),
-		TerminalTotalDifficulty:       big.NewInt(0),
+		TerminalTotalDifficulty:       big.NewInt(-1),
 		TerminalTotalDifficultyPassed: true,
 	}
 
@@ -98,8 +97,8 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		chainConfig.ShanghaiTime = u64ptr(0)
 	}
 
-	alloc := core.GenesisAlloc{
-		crypto.PubkeyToAddress(TestKey.PublicKey): core.GenesisAccount{
+	alloc := types.GenesisAlloc{
+		crypto.PubkeyToAddress(TestKey.PublicKey): types.Account{
 			Balance: thousandETH,
 		},
 	}
@@ -108,23 +107,22 @@ func NewBackendWithGenesisTimestamp(chainID *big.Int, ts uint64, shanghai bool, 
 		if err != nil {
 			return nil, err
 		}
-		alloc[*address] = core.GenesisAccount{
+		alloc[*address] = types.Account{
 			Code: bytecode,
 		}
 	}
 
-	return backends.NewSimulatedBackendWithOpts(
-		backends.WithCacheConfig(&core.CacheConfig{
+	return backends.NewSimulatedBackendFromConfig(
+		ethconfig.Config{
+			Genesis: &core.Genesis{
+				Config:     &chainConfig,
+				Timestamp:  ts,
+				Difficulty: big.NewInt(0),
+				Alloc:      alloc,
+				GasLimit:   30_000_000,
+			},
 			Preimages: true,
-		}),
-		backends.WithGenesis(core.Genesis{
-			Config:     &chainConfig,
-			Timestamp:  ts,
-			Difficulty: big.NewInt(0),
-			Alloc:      alloc,
-			GasLimit:   30_000_000,
-		}),
-		backends.WithConsensus(beacon.New(ethash.NewFaker())),
+		},
 	), nil
 }
 
@@ -149,6 +147,8 @@ func Deploy(backend *backends.SimulatedBackend, constructors []Constructor, cb D
 		// so we need to both commit the change here as
 		// well as wait for the transaction receipt.
 		backend.Commit()
+		_, err = bind.WaitMined(ctx, backend, tx)
+		fmt.Printf("%+v", err)
 		addr, err := bind.WaitDeployed(ctx, backend, tx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", deployment.Name, err)
@@ -188,7 +188,9 @@ func Deploy(backend *backends.SimulatedBackend, constructors []Constructor, cb D
 // The function logs a fatal error and exits if there are any issues with transaction mining, if the deployment fails,
 // or if the deployed bytecode is not found at the computed address.
 func DeployWithDeterministicDeployer(backend *backends.SimulatedBackend, contractName string) ([]byte, error) {
-	opts, err := bind.NewKeyedTransactorWithChainID(TestKey, backend.Blockchain().Config().ChainID)
+	ChainID, _ := backend.ChainID(context.Background())
+
+	opts, err := bind.NewKeyedTransactorWithChainID(TestKey, ChainID)
 	if err != nil {
 		return nil, err
 	}

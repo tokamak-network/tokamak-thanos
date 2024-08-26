@@ -10,6 +10,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/test"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 func TestAccessor_UsesSelector(t *testing.T) {
@@ -67,4 +68,32 @@ func TestAccessor_UsesSelector(t *testing.T) {
 		require.Equal(t, expectedProofData, actualProofData)
 		require.Equal(t, expectedPreimageData, actualPreimageData)
 	})
+
+	t.Run("GetL2BlockNumberChallenge", func(t *testing.T) {
+		provider := &ChallengeTraceProvider{
+			TraceProvider: provider1,
+		}
+		accessor := &Accessor{
+			selector: func(ctx context.Context, actualGame types.Game, ref types.Claim, pos types.Position) (types.TraceProvider, error) {
+				require.Equal(t, game, actualGame)
+				require.Equal(t, game.Claims()[0], ref)
+				require.Equal(t, types.RootPosition, pos)
+				return provider, nil
+			},
+		}
+		challenge, err := accessor.GetL2BlockNumberChallenge(ctx, game)
+		require.NoError(t, err)
+		require.NotNil(t, challenge)
+		require.Equal(t, eth.Bytes32{0xaa, 0xbb}, challenge.Output.OutputRoot)
+	})
+}
+
+type ChallengeTraceProvider struct {
+	types.TraceProvider
+}
+
+func (c *ChallengeTraceProvider) GetL2BlockNumberChallenge(_ context.Context) (*types.InvalidL2BlockNumberChallenge, error) {
+	return &types.InvalidL2BlockNumberChallenge{
+		Output: &eth.OutputResponse{OutputRoot: eth.Bytes32{0xaa, 0xbb}},
+	}, nil
 }
