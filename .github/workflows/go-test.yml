@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Go test ${{matrix.name}}
     container:
-      image: tokamaknetwork/thanos-ci-builder:fjord
+      image: tokamaknetwork/thanos-ci-builder:latest
     strategy:
       matrix:
         include:
@@ -61,7 +61,7 @@ jobs:
   cannon-go-lint-and-test:
     runs-on: ubuntu-latest
     container:
-      image: tokamaknetwork/thanos-ci-builder:fjord
+      image: tokamaknetwork/thanos-ci-builder:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
