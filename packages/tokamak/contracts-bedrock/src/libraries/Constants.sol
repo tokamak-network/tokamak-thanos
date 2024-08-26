@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ResourceMetering } from "../L1/ResourceMetering.sol";
+import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 
 /// @title Constants
 /// @notice Constants is a library for storing constants. Simple! Don't put everything in here, just
@@ -30,6 +30,13 @@ library Constants {
     /// @dev `bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1)`
     bytes32 internal constant PROXY_OWNER_ADDRESS = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
+    /// @notice The address that represents ether when dealing with ERC20 token addresses.
+    address internal constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    /// @notice The address that represents the system caller responsible for L1 attributes
+    ///         transactions.
+    address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
+
     /// @notice Returns the default values for the ResourceConfig. These are the recommended values
     ///         for a production network.
     function DEFAULT_RESOURCE_CONFIG() internal pure returns (ResourceMetering.ResourceConfig memory) {
@@ -43,8 +50,4 @@ library Constants {
         });
         return config;
     }
-
-    /// @notice The `reinitailizer` input for upgradable contracts. This value must be updated
-    ///         each time that the contracts are deployed.
-    uint8 internal constant INITIALIZER = 3;
 }

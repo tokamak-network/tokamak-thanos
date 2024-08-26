@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
 
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game"
@@ -11,9 +12,9 @@ import (
 )
 
 // Main is the programmatic entry-point for running op-challenger with a given configuration.
-func Main(ctx context.Context, logger log.Logger, cfg *config.Config) (cliapp.Lifecycle, error) {
+func Main(ctx context.Context, logger log.Logger, cfg *config.Config, m metrics.Metricer) (cliapp.Lifecycle, error) {
 	if err := cfg.Check(); err != nil {
 		return nil, err
 	}
-	return game.NewService(ctx, logger, cfg)
+	return game.NewService(ctx, logger, cfg, m)
 }

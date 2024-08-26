@@ -1,5 +1,4 @@
 packages:
   - 'packages/*'
   - 'packages/tokamak/*'
-  - 'endpoint-monitor'
   - 'indexer/api-ts'

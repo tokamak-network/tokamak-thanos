@@ -6,10 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	bindingspreview "github.com/tokamak-network/tokamak-thanos/op-bindings/bindingspreview"
 
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
@@ -134,11 +136,15 @@ func runCrossLayerUserTest(gt *testing.T, test hardforkScheduledTest) {
 		seq.RollupClient(), miner.EthClient(), seqEngine.EthClient(), seqEngine.EngineClient(t, sd.RollupCfg))
 
 	var proposer *L2Proposer
-	if e2eutils.UseFPAC() {
+	if e2eutils.UseFaultProofs() {
+		optimismPortal2Contract, err := bindingspreview.NewOptimismPortal2(sd.DeploymentsL1.OptimismPortalProxy, miner.EthClient())
+		require.NoError(t, err)
+		respectedGameType, err := optimismPortal2Contract.RespectedGameType(&bind.CallOpts{})
+		require.NoError(t, err)
 		proposer = NewL2Proposer(t, log, &ProposerCfg{
 			DisputeGameFactoryAddr: &sd.DeploymentsL1.DisputeGameFactoryProxy,
 			ProposalInterval:       6 * time.Second,
-			DisputeGameType:        0,
+			DisputeGameType:        respectedGameType,
 			ProposerKey:            dp.Secrets.Proposer,
 			AllowNonFinalized:      true,
 		}, miner.EthClient(), seq.RollupClient())
@@ -279,8 +285,8 @@ func runCrossLayerUserTest(gt *testing.T, test hardforkScheduledTest) {
 	miner.ActL1StartBlock(13)(t)
 	miner.ActL1EndBlock(t)
 
-	// If using FPAC we need to resolve the game
-	if e2eutils.UseFPAC() {
+	// If using fault proofs we need to resolve the game
+	if e2eutils.UseFaultProofs() {
 		// Resolve the root claim
 		alice.ActResolveClaim(t)
 		miner.ActL1StartBlock(12)(t)

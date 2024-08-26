@@ -1,31 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { StdUtils, stdStorage, StdStorage } from "forge-std/Test.sol";
+import { StdUtils } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
-import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
-import { Portal_Initializer } from "test/CommonTest.t.sol";
-import { EIP1967Helper } from "test/CommonTest.t.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
+import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Types } from "src/libraries/Types.sol";
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-import "forge-std/console.sol";
-
-interface NativeToken is IERC20 {
-    function faucet(uint256 _amount) external;
-}
-
 contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
-    using stdStorage for StdStorage;
-
     Vm internal vm;
     OptimismPortal internal portal;
     bool public failedToComplete;
@@ -61,18 +49,13 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
         payable
     {
         vm.assume((!_isCreation || _to == address(0)) && _data.length <= 120_000);
-        address nativeTokenAddress = portal.nativeTokenAddress();
 
         uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
         // Give the depositor some ether
         vm.deal(address(this), preDepositvalue);
-        NativeToken(nativeTokenAddress).faucet(preDepositvalue);
-
-        // cache the contract's native token balance
-        uint256 preDepositBalance = NativeToken(nativeTokenAddress).balanceOf(address(this));
+        // cache the contract's eth balance
+        uint256 preDepositBalance = address(this).balance;
         uint256 value = bound(preDepositvalue, 0, preDepositBalance);
-
-        NativeToken(nativeTokenAddress).approve(address(portal), value);
 
         (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
         ResourceMetering.ResourceConfig memory rcfg = resourceConfig();
@@ -81,7 +64,7 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
             bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
         );
 
-        try portal.depositTransaction(_to, value, value, gasLimit, _isCreation, _data) {
+        try portal.depositTransaction{ value: value }(_to, value, gasLimit, _isCreation, _data) {
             // Do nothing; Call succeeded
         } catch {
             failedToComplete = true;
@@ -89,7 +72,7 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
     }
 }
 
-contract OptimismPortal_Invariant_Harness is Portal_Initializer {
+contract OptimismPortal_Invariant_Harness is CommonTest {
     // Reusable default values for a test withdrawal
     Types.WithdrawalTransaction _defaultTx;
 
@@ -101,8 +84,6 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
     bytes32 _withdrawalHash;
     bytes[] _withdrawalProof;
     Types.OutputRootProof internal _outputRootProof;
-
-    uint256 immutable depositedAmountSlotIndex = 57;
 
     function setUp() public virtual override {
         super.setUp();
@@ -126,31 +107,31 @@ contract OptimismPortal_Invariant_Harness is Portal_Initializer {
             messagePasserStorageRoot: _storageRoot,
             latestBlockhash: bytes32(uint256(0))
         });
-        _proposedBlockNumber = oracle.nextBlockNumber();
-        _proposedOutputIndex = oracle.nextOutputIndex();
-
-        // setup value for total deposit amount
-        vm.store(address(op), bytes32(depositedAmountSlotIndex), bytes32(_defaultTx.value));
+        _proposedBlockNumber = l2OutputOracle.nextBlockNumber();
+        _proposedOutputIndex = l2OutputOracle.nextOutputIndex();
 
         // Configure the oracle to return the output root we've prepared.
-        vm.warp(oracle.computeL2Timestamp(_proposedBlockNumber) + 1);
-        vm.prank(oracle.PROPOSER());
-        oracle.proposeL2Output(_outputRoot, _proposedBlockNumber, 0, 0);
+        vm.warp(l2OutputOracle.computeL2Timestamp(_proposedBlockNumber) + 1);
+        vm.prank(l2OutputOracle.PROPOSER());
+        l2OutputOracle.proposeL2Output(_outputRoot, _proposedBlockNumber, 0, 0);
 
         // Warp beyond the finalization period for the block we've proposed.
-        vm.warp(oracle.getL2Output(_proposedOutputIndex).timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.warp(
+            l2OutputOracle.getL2Output(_proposedOutputIndex).timestamp + l2OutputOracle.FINALIZATION_PERIOD_SECONDS()
+                + 1
+        );
         // Fund the portal so that we can withdraw ETH.
-        vm.deal(address(op), 0xFFFFFFFF);
+        vm.deal(address(optimismPortal), 0xFFFFFFFF);
     }
 }
 
-contract OptimismPortal_Deposit_Invariant is Portal_Initializer {
+contract OptimismPortal_Deposit_Invariant is CommonTest {
     OptimismPortal_Depositor internal actor;
 
     function setUp() public override {
         super.setUp();
         // Create a deposit actor.
-        actor = new OptimismPortal_Depositor(vm, op);
+        actor = new OptimismPortal_Depositor(vm, optimismPortal);
 
         targetContract(address(actor));
 
@@ -165,7 +146,7 @@ contract OptimismPortal_Deposit_Invariant is Portal_Initializer {
     ///
     ///                   All deposits, barring creation transactions and transactions
     ///                   sent to `address(0)`, should always succeed.
-    function invariant_deposit_completes() external {
+    function invariant_deposit_completes() external view {
         assertEq(actor.failedToComplete(), false);
     }
 }
@@ -175,12 +156,12 @@ contract OptimismPortal_CannotTimeTravel is OptimismPortal_Invariant_Harness {
         super.setUp();
 
         // Prove the withdrawal transaction
-        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+        optimismPortal.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
         // Set the target contract to the portal proxy
-        targetContract(address(op));
+        targetContract(address(optimismPortal));
         // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
-        excludeSender(EIP1967Helper.getAdmin(address(op)));
+        excludeSender(EIP1967Helper.getAdmin(address(optimismPortal)));
     }
 
     /// @custom:invariant `finalizeWithdrawalTransaction` should revert if the finalization
@@ -190,7 +171,7 @@ contract OptimismPortal_CannotTimeTravel is OptimismPortal_Invariant_Harness {
     ///                   until after the finalization period has elapsed.
     function invariant_cannotFinalizeBeforePeriodHasPassed() external {
         vm.expectRevert("OptimismPortal: proven withdrawal finalization period has not elapsed");
-        op.finalizeWithdrawalTransaction(_defaultTx);
+        optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
     }
 }
 
@@ -199,18 +180,18 @@ contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness 
         super.setUp();
 
         // Prove the withdrawal transaction
-        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+        optimismPortal.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
         // Warp past the finalization period.
-        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.warp(block.timestamp + l2OutputOracle.FINALIZATION_PERIOD_SECONDS() + 1);
 
         // Finalize the withdrawal transaction.
-        op.finalizeWithdrawalTransaction(_defaultTx);
+        optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
 
         // Set the target contract to the portal proxy
-        targetContract(address(op));
+        targetContract(address(optimismPortal));
         // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
-        excludeSender(EIP1967Helper.getAdmin(address(op)));
+        excludeSender(EIP1967Helper.getAdmin(address(optimismPortal)));
     }
 
     /// @custom:invariant `finalizeWithdrawalTransaction` should revert if the withdrawal
@@ -220,7 +201,7 @@ contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness 
     ///                   allows a withdrawal to be finalized twice.
     function invariant_cannotFinalizeTwice() external {
         vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
-        op.finalizeWithdrawalTransaction(_defaultTx);
+        optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
     }
 }
 
@@ -229,15 +210,15 @@ contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant
         super.setUp();
 
         // Prove the withdrawal transaction
-        op.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
+        optimismPortal.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
         // Warp past the finalization period.
-        vm.warp(block.timestamp + oracle.FINALIZATION_PERIOD_SECONDS() + 1);
+        vm.warp(block.timestamp + l2OutputOracle.FINALIZATION_PERIOD_SECONDS() + 1);
 
         // Set the target contract to the portal proxy
-        targetContract(address(op));
+        targetContract(address(optimismPortal));
         // Exclude the proxy admin from the senders so that the proxy cannot be upgraded
-        excludeSender(EIP1967Helper.getAdmin(address(op)));
+        excludeSender(EIP1967Helper.getAdmin(address(optimismPortal)));
     }
 
     /// @custom:invariant A withdrawal should **always** be able to be finalized
@@ -248,15 +229,10 @@ contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant
     ///                   exactly `FINALIZATION_PERIOD_SECONDS` after it was successfully
     ///                   proven.
     function invariant_canAlwaysFinalize() external {
-        uint256 bobBalanceBefore = token.balanceOf(address(bob));
+        uint256 bobBalanceBefore = address(bob).balance;
 
-        op.finalizeWithdrawalTransaction(_defaultTx);
+        optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
 
-        dealL2NativeToken(address(op), _defaultTx.value);
-
-        vm.prank(address(bob), address(bob));
-        token.transferFrom(address(op), address(bob), _defaultTx.value);
-
-        assertEq(token.balanceOf(address(bob)), bobBalanceBefore + _defaultTx.value);
+        assertEq(address(bob).balance, bobBalanceBefore + _defaultTx.value);
     }
 }

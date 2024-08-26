@@ -10,8 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient/simulated"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
@@ -28,7 +29,15 @@ func simulatedBackend() (privateKey *ecdsa.PrivateKey, address common.Address, o
 	if err != nil {
 		return nil, common.Address{}, nil, nil, err
 	}
-	backend = backends.NewSimulatedBackend(core.GenesisAlloc{from: {Balance: big.NewInt(params.Ether)}}, 50_000_000)
+
+	b := simulated.NewBackend(types.GenesisAlloc{
+		from: {Balance: big.NewInt(params.Ether)},
+	}, simulated.WithBlockGasLimit(50_000_000))
+
+	backend = &backends.SimulatedBackend{
+		Backend: b,
+		Client:  b.Client(),
+	}
 
 	return privateKey, from, opts, backend, nil
 }
@@ -80,7 +89,7 @@ func TestManualABIPacking(t *testing.T) {
 	txData, err := proposeL2OutputTxData(l2ooAbi, output)
 	require.NoError(t, err)
 
-	// set a gas limit to disable gas estimation. The invariantes that the L2OO tries to uphold
+	// set a gas limit to disable gas estimation. The invariants that the L2OO tries to uphold
 	// are not maintained in this test.
 	opts.GasLimit = 100_000
 	tx, err := l2oo.ProposeL2Output(

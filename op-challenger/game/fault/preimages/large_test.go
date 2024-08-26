@@ -20,7 +20,7 @@ import (
 	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
@@ -310,7 +310,7 @@ func (s *mockPreimageOracleContract) ChallengePeriod(_ context.Context) (uint64,
 	return mockChallengePeriod, nil
 }
 
-func (s *mockPreimageOracleContract) GetProposalMetadata(_ context.Context, _ batching.Block, idents ...keccakTypes.LargePreimageIdent) ([]keccakTypes.LargePreimageMetaData, error) {
+func (s *mockPreimageOracleContract) GetProposalMetadata(_ context.Context, _ rpcblock.Block, idents ...keccakTypes.LargePreimageIdent) ([]keccakTypes.LargePreimageMetaData, error) {
 	if s.squeezeCallClaimSize > 0 {
 		metadata := make([]keccakTypes.LargePreimageMetaData, 0)
 		for _, ident := range idents {

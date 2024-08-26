@@ -10,7 +10,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     container:
-      image: tokamaknetwork/thanos-ci-builder:latest
+      image: tokamaknetwork/thanos-ci-builder:fjord
     defaults:
       run:
         shell: bash

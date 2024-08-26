@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"

@@ -9,20 +9,24 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 func NewOutputAlphabetTraceAccessor(
 	logger log.Logger,
 	m metrics.Metricer,
 	prestateProvider types.PrestateProvider,
-	rollupClient OutputRootProvider,
+	rollupClient OutputRollupClient,
+	l2Client utils.L2HeaderSource,
+	l1Head eth.BlockID,
 	splitDepth types.Depth,
 	prestateBlock uint64,
 	poststateBlock uint64,
 ) (*trace.Accessor, error) {
-	outputProvider := NewTraceProviderFromInputs(logger, prestateProvider, rollupClient, splitDepth, prestateBlock, poststateBlock)
+	outputProvider := NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
 	alphabetCreator := func(ctx context.Context, localContext common.Hash, depth types.Depth, agreed contracts.Proposal, claimed contracts.Proposal) (types.TraceProvider, error) {
 		provider := alphabet.NewTraceProvider(agreed.L2BlockNumber, depth)
 		return provider, nil

@@ -1,6 +1,32 @@
 # Smart Contract Style Guide
 
-This document providing guidance on how we organize and write our smart contracts. For cases where
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Standards and Conventions](#standards-and-conventions)
+  - [Style](#style)
+    - [Comments](#comments)
+    - [Errors](#errors)
+    - [Function Parameters](#function-parameters)
+    - [Function Return Arguments](#function-return-arguments)
+    - [Event Parameters](#event-parameters)
+    - [Immutable variables](#immutable-variables)
+    - [Spacers](#spacers)
+  - [Proxy by Default](#proxy-by-default)
+  - [Versioning](#versioning)
+    - [Exceptions](#exceptions)
+  - [Dependencies](#dependencies)
+  - [Source Code](#source-code)
+  - [Tests](#tests)
+    - [Expect Revert with Low Level Calls](#expect-revert-with-low-level-calls)
+    - [Organizing Principles](#organizing-principles)
+    - [Test function naming convention](#test-function-naming-convention)
+    - [Contract Naming Conventions](#contract-naming-conventions)
+- [Withdrawing From Fee Vaults](#withdrawing-from-fee-vaults)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+This document provides guidance on how we organize and write our smart contracts. For cases where
 this document does not provide guidance, please refer to existing contracts for guidance,
 with priority on the `L2OutputOracle` and `OptimismPortal`.
 
@@ -21,9 +47,10 @@ with additional rules. These are:
 We also have the following custom tags:
 
 - `@custom:proxied`: Add to a contract whenever it's meant to live behind a proxy.
-- `@custom:upgradeable`: Add to a contract whenever it's meant to be used in an upgradeable contract.
-- `@custom:semver`: Add to a constructor to indicate the version of a contract.
+- `@custom:upgradeable`: Add to a contract whenever it's meant to be inherited by an upgradeable contract.
+- `@custom:semver`: Add to `version` variable which indicate the contracts semver.
 - `@custom:legacy`: Add to an event or function when it only exists for legacy support.
+- `@custom:network-specific`: Add to state variables which vary between OP Chains.
 
 #### Errors
 
@@ -54,7 +81,7 @@ Immutable variables:
 - should have a hand written getter function
 
 This approach clearly indicates to the developer that the value is immutable, without exposing
-the non-standard casing to the interface. It also ensure that we don’t need to break the ABIs if
+the non-standard casing to the interface. It also ensures that we don’t need to break the ABIs if
 we switch between values being in storage and immutable.
 
 #### Spacers
@@ -105,6 +132,12 @@ making changes to a well-known, simple, and recognizable contract.
 Where basic functionality is already supported by an existing contract in the OpenZeppelin library,
 we should default to using the Upgradeable version of that contract.
 
+### Source Code
+
+The following guidelines should be followed for all contracts in the `src/` directory:
+
+- All state changing functions should emit a corresponding event. This ensures that all actions are transparent, can be easily monitored, and can be reconstructed from the event logs.
+
 ### Tests
 
 Tests are written using Foundry.
@@ -114,8 +147,13 @@ All test contracts and functions should be organized and named according to the 
 These guidelines are also encoded in a script which can be run with:
 
 ```
-tsx scripts/forge-test-names.ts
+tsx scripts/checks/check-test-names.ts
 ```
+
+#### Expect Revert with Low Level Calls
+
+There is a non-intuitive behavior in foundry tests, which is documented [here](https://book.getfoundry.sh/cheatcodes/expect-revert?highlight=expectrevert#expectrevert).
+When testing for a revert on a low-level call, please use the `revertsAsExpected` pattern suggested there.
 
 _Note: This is a work in progress, not all test files are compliant with these guidelines._
 
@@ -153,7 +191,7 @@ Test contracts should be named one of the following according to their use:
 To minimize clutter, getter functions can be grouped together into a single test contract,
   ie. `TargetContract_Getters_Test`.
 
-## Withdrawaing From Fee Vaults
+## Withdrawing From Fee Vaults
 
 See the file `scripts/FeeVaultWithdrawal.s.sol` to withdraw from the L2 fee vaults. It includes
 instructions on how to run it. `foundry` is required.

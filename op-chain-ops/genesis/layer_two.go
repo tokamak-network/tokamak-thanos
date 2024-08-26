@@ -3,8 +3,11 @@ package genesis
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -22,6 +25,16 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
+type L2AllocsMode string
+
+const (
+	L2AllocsDelta   L2AllocsMode = "delta"
+	L2AllocsEcotone L2AllocsMode = "ecotone"
+	L2AllocsFjord   L2AllocsMode = "" // the default in solidity scripting / testing
+)
+
+type AllocsLoader func(mode L2AllocsMode) *ForgeAllocs
+
 // BuildL2Genesis will build the L2 genesis block.
 func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Genesis, error) {
 	genspec, err := NewL2Genesis(config, l1StartBlock)
@@ -29,16 +42,17 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		return nil, err
 	}
 
-	db := state.NewMemoryStateDB(genspec)
 	if config.FundDevAccounts {
 		log.Info("Funding developer accounts in L2 genesis")
-		FundDevAccounts(db)
+		FundDevAccounts(genspec)
 	}
 
 	if config.SetPrecompileBalances {
 		log.Info("Setting precompile balances in L2 genesis")
-		SetPrecompileBalances(db)
+		SetPrecompileBalances(genspec)
 	}
+
+	db := state.NewMemoryStateDB(genspec)
 
 	storage, err := NewL2StorageConfig(config, l1StartBlock)
 	if err != nil {
@@ -180,25 +194,56 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 		}
 	}
 
-	if err := PerformUpgradeTxs(db); err != nil {
+	if err := PerformUpgradeTxs(config, db); err != nil {
 		return nil, fmt.Errorf("failed to perform upgrade txs: %w", err)
 	}
 
 	return db.Genesis(), nil
 }
 
-func PerformUpgradeTxs(db *state.MemoryStateDB) error {
+func PerformUpgradeTxs(config *DeployConfig, db *state.MemoryStateDB) error {
+	sim := squash.NewSimulator(db)
+
 	// Only the Ecotone upgrade is performed with upgrade-txs.
 	if !db.Genesis().Config.IsEcotone(db.Genesis().Timestamp) {
 		return nil
 	}
-	sim := squash.NewSimulator(db)
+
 	ecotone, err := derive.EcotoneNetworkUpgradeTransactions()
 	if err != nil {
 		return fmt.Errorf("failed to build ecotone upgrade txs: %w", err)
 	}
-	if err := sim.AddUpgradeTxs(ecotone); err != nil {
-		return fmt.Errorf("failed to apply ecotone upgrade txs: %w", err)
+
+	if err := sim.AddUpgradeTxs(ecotone[4:]); err != nil {
+		return fmt.Errorf("failed to apply upgrade txs: %w", err)
+	}
+
+	// Only the Ecotone upgrade is performed with upgrade-txs.
+	if !db.Genesis().Config.IsFjord(db.Genesis().Timestamp) {
+		return nil
+	}
+
+	fjord, err := derive.FjordNetworkUpgradeTransactions()
+	if err != nil {
+		return fmt.Errorf("failed to build fjord upgrade txs: %w", err)
+	}
+
+	if err := sim.AddUpgradeTxs(fjord); err != nil {
+		return fmt.Errorf("failed to apply upgrade txs: %w", err)
 	}
 	return nil
+}
+
+func LoadForgeAllocs(allocsPath string) (*ForgeAllocs, error) {
+	path := filepath.Join(allocsPath)
+	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open forge allocs %q: %w", path, err)
+	}
+	defer f.Close()
+	var out ForgeAllocs
+	if err := json.NewDecoder(f).Decode(&out); err != nil {
+		return nil, fmt.Errorf("failed to json-decode forge allocs %q: %w", path, err)
+	}
+	return &out, nil
 }

@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-service/solabi"
 )
 
@@ -276,12 +276,12 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 			// The L2 spec states to use the MIN_BLOB_GASPRICE from EIP-4844 if not yet active on L1.
 			l1BlockInfo.BlobBaseFee = big.NewInt(1)
 		}
-		blobBaseFeeScalar, baseFeeScalar, err := sysCfg.EcotoneScalars()
+		scalars, err := sysCfg.EcotoneScalars()
 		if err != nil {
 			return nil, err
 		}
-		l1BlockInfo.BlobBaseFeeScalar = blobBaseFeeScalar
-		l1BlockInfo.BaseFeeScalar = baseFeeScalar
+		l1BlockInfo.BlobBaseFeeScalar = scalars.BlobBaseFeeScalar
+		l1BlockInfo.BaseFeeScalar = scalars.BaseFeeScalar
 		out, err := l1BlockInfo.marshalBinaryEcotone()
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal Ecotone l1 block info: %w", err)

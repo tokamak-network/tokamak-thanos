@@ -30,6 +30,8 @@ var (
 	ImplementationSlotForZepplin = common.HexToHash("0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3")
 	// implementationSlot represents the EIP 1967 admin storage slot
 	AdminSlotForZepplin = common.HexToHash("0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b")
+	// The devBalance is the amount of wei that a dev account is funded with.
+	devBalance = hexutil.MustDecodeBig("0x200000000000000000000000000000000000000000000000000000000000000")
 )
 
 // DevAccounts represent the standard hardhat development accounts.
@@ -55,16 +57,13 @@ var DevAccounts = []common.Address{
 	common.HexToAddress("0xcd3B766CCDd6AE721141F452C550Ca635964ce71"),
 	common.HexToAddress("0xdD2FD4581271e230360230F9337D5c0430Bf44C0"),
 	common.HexToAddress("0xdF3e18d64BC6A983f673Ab319CCaE4f1a57C7097"),
-	common.HexToAddress("0xde3829a23df1479438622a08a116e8eb3f620bb5"),
+	common.HexToAddress("0xDe3829A23DF1479438622a08a116E8Eb3f620BB5"),
 	common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 	// Test account used by geth tests
 	common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"),
 	// Deployer of create2 deterministic proxy https://github.com/Arachnid/deterministic-deployment-proxy
 	common.HexToAddress("0x3fab184622dc19b6109349b94811493bf2a45362"),
 }
-
-// The devBalance is the amount of wei that a dev account is funded with.
-var devBalance = hexutil.MustDecodeBig("0x200000000000000000000000000000000000000000000000000000000000000")
 
 // AddressToCodeNamespace takes a predeploy address and computes
 // the implementation address that the implementation should be deployed at
