@@ -10,11 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/caching"
 )
 
@@ -102,7 +102,7 @@ func (s *L2Client) L2BlockRefByLabel(ctx context.Context, label eth.BlockLabel) 
 	if err != nil {
 		// Both geth and erigon like to serve non-standard errors for the safe and finalized heads, correct that.
 		// This happens when the chain just started and nothing is marked as safe/finalized yet.
-		if strings.Contains(err.Error(), "block not found") || strings.Contains(err.Error(), "Unknown block") {
+		if strings.Contains(err.Error(), "block not found") || strings.Contains(err.Error(), "Unknown block") || strings.Contains(err.Error(), "unknown block") {
 			err = ethereum.NotFound
 		}
 		// w%: wrap to preserve ethereum.NotFound case

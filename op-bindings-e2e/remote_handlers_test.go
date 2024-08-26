@@ -14,7 +14,7 @@ import (
 
 var generator bindgen.BindGenGeneratorRemote = bindgen.BindGenGeneratorRemote{}
 
-func configureGenerator(t *testing.T) error {
+func configureGenerator(_ *testing.T) error {
 	generator.ContractDataClients.Eth = etherscan.NewEthereumClient(os.Getenv("ETHERSCAN_APIKEY_ETH"))
 	generator.ContractDataClients.Op = etherscan.NewOptimismClient(os.Getenv("ETHERSCAN_APIKEY_OP"))
 

@@ -2,18 +2,23 @@ package fault
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	gethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/claims"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/preimages"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/responder"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 type actor func(ctx context.Context) error
@@ -31,6 +36,11 @@ type L1HeaderSource interface {
 	HeaderByHash(context.Context, common.Hash) (*gethTypes.Header, error)
 }
 
+type TxSender interface {
+	From() common.Address
+	SendAndWaitSimple(txPurpose string, txs ...txmgr.TxCandidate) error
+}
+
 type GamePlayer struct {
 	act                actor
 	loader             GameInfo
@@ -44,10 +54,12 @@ type GamePlayer struct {
 type GameContract interface {
 	preimages.PreimageGameContract
 	responder.GameContract
+	claims.BondContract
 	GameInfo
 	ClaimLoader
 	GetStatus(ctx context.Context) (gameTypes.GameStatus, error)
 	GetMaxGameDepth(ctx context.Context) (types.Depth, error)
+	GetMaxClockDuration(ctx context.Context) (time.Duration, error)
 	GetOracle(ctx context.Context) (*contracts.PreimageOracleContract, error)
 	GetL1Head(ctx context.Context) (common.Hash, error)
 }
@@ -56,17 +68,20 @@ type resourceCreator func(ctx context.Context, logger log.Logger, gameDepth type
 
 func NewGamePlayer(
 	ctx context.Context,
-	cl types.ClockReader,
+	systemClock clock.Clock,
+	l1Clock types.ClockReader,
 	logger log.Logger,
 	m metrics.Metricer,
 	dir string,
 	addr common.Address,
-	txSender gameTypes.TxSender,
+	txSender TxSender,
 	loader GameContract,
 	syncValidator SyncValidator,
 	validators []Validator,
 	creator resourceCreator,
 	l1HeaderSource L1HeaderSource,
+	selective bool,
+	claimants []common.Address,
 ) (*GamePlayer, error) {
 	logger = logger.New("game", addr)
 
@@ -87,6 +102,11 @@ func NewGamePlayer(
 				return nil
 			},
 		}, nil
+	}
+
+	maxClockDuration, err := loader.GetMaxClockDuration(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch the game duration: %w", err)
 	}
 
 	gameDepth, err := loader.GetMaxGameDepth(ctx)
@@ -119,14 +139,14 @@ func NewGamePlayer(
 		return nil, fmt.Errorf("failed to load min large preimage size: %w", err)
 	}
 	direct := preimages.NewDirectPreimageUploader(logger, txSender, loader)
-	large := preimages.NewLargePreimageUploader(logger, cl, txSender, oracle)
+	large := preimages.NewLargePreimageUploader(logger, l1Clock, txSender, oracle)
 	uploader := preimages.NewSplitPreimageUploader(direct, large, minLargePreimageSize)
 	responder, err := responder.NewFaultResponder(logger, txSender, loader, uploader, oracle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the responder: %w", err)
 	}
 
-	agent := NewAgent(m, loader, gameDepth, accessor, responder, logger)
+	agent := NewAgent(m, systemClock, l1Clock, loader, gameDepth, maxClockDuration, accessor, responder, logger, selective, claimants)
 	return &GamePlayer{
 		act:                agent.Act,
 		loader:             loader,
@@ -157,8 +177,11 @@ func (g *GamePlayer) ProgressGame(ctx context.Context) gameTypes.GameStatus {
 		g.logger.Trace("Skipping completed game")
 		return g.status
 	}
-	if err := g.syncValidator.ValidateNodeSynced(ctx, g.gameL1Head); err != nil {
-		g.logger.Error("Local node not sufficiently up to date", "err", err)
+	if err := g.syncValidator.ValidateNodeSynced(ctx, g.gameL1Head); errors.Is(err, ErrNotInSync) {
+		g.logger.Warn("Local node not sufficiently up to date", "err", err)
+		return g.status
+	} else if err != nil {
+		g.logger.Error("Could not check local node was in sync", "err", err)
 		return g.status
 	}
 	g.logger.Trace("Checking if actions are required")

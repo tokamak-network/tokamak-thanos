@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"runtime"
+	"slices"
 	"testing"
 	"time"
 
@@ -24,16 +24,14 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/slices"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
-	gethutils "github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
@@ -44,6 +42,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
@@ -91,7 +90,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestL2OutputSubmitter(t *testing.T) {
-	InitParallel(t, SkipOnFPAC)
+	InitParallel(t, SkipOnFaultProofs)
 
 	cfg := DefaultSystemConfig(t)
 	cfg.NonFinalizedProposals = true // speed up the time till we see output proposals
@@ -159,8 +158,8 @@ func TestL2OutputSubmitter(t *testing.T) {
 	}
 }
 
-func TestL2OutputSubmitterFPAC(t *testing.T) {
-	InitParallel(t, SkipOnNotFPAC)
+func TestL2OutputSubmitterFaultProofs(t *testing.T) {
+	InitParallel(t, SkipOnL2OO)
 
 	cfg := DefaultSystemConfig(t)
 	cfg.NonFinalizedProposals = true // speed up the time till we see output proposals
@@ -243,7 +242,7 @@ func TestSystemE2EDencunAtGenesisWithBlobs(t *testing.T) {
 	InitParallel(t)
 
 	cfg := DefaultSystemConfig(t)
-	//cancun is on from genesis:
+	// cancun is on from genesis:
 	genesisActivation := hexutil.Uint64(0)
 	cfg.DeployConfig.L1CancunTimeOffset = &genesisActivation // i.e. turn cancun on at genesis time + 0
 
@@ -267,10 +266,10 @@ func TestSystemE2EDencunAtGenesisWithBlobs(t *testing.T) {
 	require.Nil(t, err, "Waiting for blob tx on L1")
 	// end sending blob-containing txns on l1
 	l2Client := sys.Clients["sequencer"]
-	finalizedBlock, err := gethutils.WaitForL1OriginOnL2(sys.RollupConfig, blockContainsBlob.BlockNumber.Uint64(), l2Client, 30*time.Duration(cfg.DeployConfig.L1BlockTime)*time.Second)
+	finalizedBlock, err := geth.WaitForL1OriginOnL2(sys.RollupConfig, blockContainsBlob.BlockNumber.Uint64(), l2Client, 30*time.Duration(cfg.DeployConfig.L1BlockTime)*time.Second)
 	require.Nil(t, err, "Waiting for L1 origin of blob tx on L2")
 	finalizationTimeout := 30 * time.Duration(cfg.DeployConfig.L1BlockTime) * time.Second
-	_, err = gethutils.WaitForBlockToBeSafe(finalizedBlock.Header().Number, l2Client, finalizationTimeout)
+	_, err = geth.WaitForBlockToBeSafe(finalizedBlock.Header().Number, l2Client, finalizationTimeout)
 	require.Nil(t, err, "Waiting for safety of L2 block")
 }
 
@@ -291,7 +290,7 @@ func runE2ESystemTest(t *testing.T, sys *System) {
 	log := testlog.Logger(t, log.LevelInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
-	cfg := DefaultSystemConfig(t)
+	// cfg := DefaultSystemConfig(t)
 	l1Client := sys.Clients["l1"]
 	l2Seq := sys.Clients["sequencer"]
 	l2Verif := sys.Clients["verifier"]
@@ -311,26 +310,8 @@ func runE2ESystemTest(t *testing.T, sys *System) {
 	opts, err := bind.NewKeyedTransactorWithChainID(ethPrivKey, sys.Cfg.L1ChainIDBig())
 	require.Nil(t, err)
 	mintAmount := big.NewInt(1_000_000_000_000)
-
-	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-	require.NoError(t, err)
-
-	// faucet NativeToken
-	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	// Approve NativeToken with the OP
-	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		l2Opts.Mint = mintAmount
-		l2Opts.Value = mintAmount
-	})
+	opts.Value = mintAmount
+	SendDepositTx(t, sys.Cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {})
 
 	// Confirm balance
 	ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
@@ -1023,10 +1004,10 @@ func TestL1InfoContract(t *testing.T) {
 			BatcherAddr:    sys.RollupConfig.Genesis.SystemConfig.BatcherAddr,
 		}
 		if sys.RollupConfig.IsEcotone(b.Time()) && !sys.RollupConfig.IsEcotoneActivationBlock(b.Time()) {
-			blobBaseFeeScalar, baseFeeScalar, err := sys.RollupConfig.Genesis.SystemConfig.EcotoneScalars()
+			scalars, err := sys.RollupConfig.Genesis.SystemConfig.EcotoneScalars()
 			require.NoError(t, err)
-			l1blocks[h].BlobBaseFeeScalar = blobBaseFeeScalar
-			l1blocks[h].BaseFeeScalar = baseFeeScalar
+			l1blocks[h].BlobBaseFeeScalar = scalars.BlobBaseFeeScalar
+			l1blocks[h].BaseFeeScalar = scalars.BaseFeeScalar
 			if excess := b.ExcessBlobGas(); excess != nil {
 				l1blocks[h].BlobBaseFee = eip4844.CalcBlobFee(*excess)
 			} else {
@@ -1105,25 +1086,24 @@ func TestWithdrawals(t *testing.T) {
 	// Send deposit tx
 	mintAmount := big.NewInt(1_000_000_000_000)
 
-	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-	require.NoError(t, err)
+	// nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	// require.NoError(t, err)
 
-	// faucet NativeToken
-	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
+	// // faucet NativeToken
+	// tx, err := nativeTokenContract.Faucet(opts, mintAmount)
+	// require.NoError(t, err)
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
 
-	// Approve NativeToken with the OP
-	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
+	// // Approve NativeToken with the OP
+	// tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	// require.NoError(t, err)
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
 
-	// opts.Value = mintAmount
+	opts.Value = mintAmount
 	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
-		l2Opts.Value = mintAmount
-		l2Opts.Mint = mintAmount
+		l2Opts.Value = common.Big0
 	})
 
 	// Confirm L2 balance
@@ -1166,23 +1146,52 @@ func TestWithdrawals(t *testing.T) {
 	diff = diff.Sub(diff, fees)
 	require.Equal(t, withdrawAmount, diff)
 
-	startBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// startBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// require.Nil(t, err)
+
+	// proveReceipt, finalizeReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
+	// require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
+	// require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
+
+	// tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
+	// require.NoError(t, err)
+
+	// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	// require.NoError(t, err)
+
+	// endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// require.Nil(t, err)
+
+	// diff = new(big.Int).Sub(endBalance, startBalance)
+
+	// Take start balance on L1
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	startBalanceBeforeFinalize, err := l1Client.BalanceAt(ctx, fromAddr, nil)
 	require.Nil(t, err)
 
-	proveReceipt, finalizeReceipt, _, _ := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
-	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
-	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
+	proveReceipt, finalizeReceipt, resolveClaimReceipt, resolveReceipt := ProveAndFinalizeWithdrawal(t, cfg, sys, "verifier", ethPrivKey, receipt)
 
-	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
-	require.NoError(t, err)
-
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
-	endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
+	// Verify balance after withdrawal
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	endBalanceAfterFinalize, err := wait.ForBalanceChange(ctx, l1Client, fromAddr, startBalanceBeforeFinalize)
 	require.Nil(t, err)
 
-	diff = new(big.Int).Sub(endBalance, startBalance)
+	// Ensure that withdrawal - gas fees are added to the L1 balance
+	// Fun fact, the fee is greater than the withdrawal amount
+	// NOTE: The gas fees include *both* the ProveWithdrawalTransaction and FinalizeWithdrawalTransaction transactions.
+	diff = new(big.Int).Sub(endBalanceAfterFinalize, startBalanceBeforeFinalize)
+	proveFee := new(big.Int).Mul(new(big.Int).SetUint64(proveReceipt.GasUsed), proveReceipt.EffectiveGasPrice)
+	finalizeFee := new(big.Int).Mul(new(big.Int).SetUint64(finalizeReceipt.GasUsed), finalizeReceipt.EffectiveGasPrice)
+	fees = new(big.Int).Add(proveFee, finalizeFee)
+	if e2eutils.UseFaultProofs() {
+		resolveClaimFee := new(big.Int).Mul(new(big.Int).SetUint64(resolveClaimReceipt.GasUsed), resolveClaimReceipt.EffectiveGasPrice)
+		resolveFee := new(big.Int).Mul(new(big.Int).SetUint64(resolveReceipt.GasUsed), resolveReceipt.EffectiveGasPrice)
+		fees = new(big.Int).Add(fees, resolveClaimFee)
+		fees = new(big.Int).Add(fees, resolveFee)
+	}
+	withdrawAmount = withdrawAmount.Sub(withdrawAmount, fees)
 	require.Equal(t, withdrawAmount, diff)
 }
 
@@ -1237,6 +1246,18 @@ func TestFees(t *testing.T) {
 		cfg.DeployConfig.L2GenesisEcotoneTimeOffset = new(hexutil.Uint64)
 		testFees(t, cfg)
 	})
+	t.Run("fjord", func(t *testing.T) {
+		InitParallel(t)
+		cfg := DefaultSystemConfig(t)
+		cfg.DeployConfig.L1GenesisBlockBaseFeePerGas = (*hexutil.Big)(big.NewInt(7))
+
+		cfg.DeployConfig.L2GenesisRegolithTimeOffset = new(hexutil.Uint64)
+		cfg.DeployConfig.L2GenesisCanyonTimeOffset = new(hexutil.Uint64)
+		cfg.DeployConfig.L2GenesisDeltaTimeOffset = new(hexutil.Uint64)
+		cfg.DeployConfig.L2GenesisEcotoneTimeOffset = new(hexutil.Uint64)
+		cfg.DeployConfig.L2GenesisFjordTimeOffset = new(hexutil.Uint64)
+		testFees(t, cfg)
+	})
 }
 
 func testFees(t *testing.T, cfg SystemConfig) {
@@ -1247,6 +1268,10 @@ func testFees(t *testing.T, cfg SystemConfig) {
 	l2Seq := sys.Clients["sequencer"]
 	l2Verif := sys.Clients["verifier"]
 	l1 := sys.Clients["l1"]
+
+	// Wait for first block after genesis. The genesis block has zero L1Block values and will throw off the GPO checks
+	_, err = geth.WaitForBlock(big.NewInt(1), l2Verif, time.Minute)
+	require.NoError(t, err)
 
 	config := sys.L2Genesis().Config
 
@@ -1276,7 +1301,8 @@ func testFees(t *testing.T, cfg SystemConfig) {
 
 		scalar, err := gpoContract.Scalar(&bind.CallOpts{})
 		require.Nil(t, err, "reading gpo scalar")
-		require.Equal(t, scalar.Uint64(), cfg.DeployConfig.GasPriceOracleScalar, "wrong gpo scalar")
+		feeScalar := cfg.DeployConfig.FeeScalar()
+		require.Equal(t, scalar, new(big.Int).SetBytes(feeScalar[:]), "wrong gpo scalar")
 	} else {
 		_, err := gpoContract.Overhead(&bind.CallOpts{})
 		require.ErrorContains(t, err, "deprecated")
@@ -1374,11 +1400,25 @@ func testFees(t *testing.T, cfg SystemConfig) {
 	require.NoError(t, err)
 	require.Equal(t, sys.RollupConfig.IsEcotone(header.Time), gpoEcotone, "GPO and chain must have same ecotone view")
 
+	gpoFjord, err := gpoContract.IsFjord(nil)
+	require.NoError(t, err)
+	require.Equal(t, sys.RollupConfig.IsFjord(header.Time), gpoFjord, "GPO and chain must have same fjord view")
+
 	gpoL1Fee, err := gpoContract.GetL1Fee(&bind.CallOpts{}, bytes)
 	require.Nil(t, err)
 
 	adjustedGPOFee := gpoL1Fee
-	if sys.RollupConfig.IsRegolith(header.Time) {
+	if sys.RollupConfig.IsFjord(header.Time) {
+		// The fastlz size of the transaction is 102 bytes
+		require.Equal(t, uint64(102), tx.RollupCostData().FastLzSize)
+		// Which results in both the fjord cost function and GPO using the minimum value for the fastlz regression:
+		// Geth Linear Regression: -42.5856 + 102 * 0.8365 = 42.7374
+		// GPO Linear Regression: -42.5856 + 170 * 0.8365 = 99.6194
+		// The additional 68 (170 vs. 102) is due to the GPO adding 68 bytes to account for the signature.
+		require.Greater(t, types.MinTransactionSize.Uint64(), uint64(99))
+		// Because of this, we don't need to do any adjustment as the GPO and cost func are both bounded to the minimum value.
+		// However, if the fastlz regression output is ever larger than the minimum, this will require an adjustment.
+	} else if sys.RollupConfig.IsRegolith(header.Time) {
 		// if post-regolith, adjust the GPO fee by removing the overhead it adds because of signature data
 		artificialGPOOverhead := big.NewInt(68 * 16) // it adds 68 bytes to cover signature and RLP data
 		l1BaseFee := big.NewInt(7)                   // we assume the L1 basefee is the minimum, 7
@@ -1493,26 +1533,28 @@ func TestBatcherMultiTx(t *testing.T) {
 	InitParallel(t)
 
 	cfg := DefaultSystemConfig(t)
-	cfg.BatcherTargetL1TxSizeBytes = 2 // ensures that batcher txs are as small as possible
+	cfg.MaxPendingTransactions = 0 // no limit on parallel txs
+	// ensures that batcher txs are as small as possible
+	cfg.BatcherMaxL1TxSizeBytes = derive.FrameV0OverHeadSize + 1 /*version bytes*/ + 1
 	cfg.DisableBatcher = true
 	sys, err := cfg.Start(t)
-	require.Nil(t, err, "Error starting up system")
+	require.NoError(t, err, "Error starting up system")
 	defer sys.Close()
 
 	l1Client := sys.Clients["l1"]
 	l2Seq := sys.Clients["sequencer"]
 
 	_, err = geth.WaitForBlock(big.NewInt(10), l2Seq, time.Duration(cfg.DeployConfig.L2BlockTime*15)*time.Second)
-	require.Nil(t, err, "Waiting for L2 blocks")
+	require.NoError(t, err, "Waiting for L2 blocks")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	l1Number, err := l1Client.BlockNumber(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// start batch submission
 	err = sys.BatchSubmitter.Driver().StartBatchSubmitting()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	totalTxCount := 0
 	// wait for up to 10 L1 blocks, usually only 3 is required, but it's
@@ -1520,7 +1562,7 @@ func TestBatcherMultiTx(t *testing.T) {
 	// so we wait additional blocks.
 	for i := int64(0); i < 10; i++ {
 		block, err := geth.WaitForBlock(big.NewInt(int64(l1Number)+i), l1Client, time.Duration(cfg.DeployConfig.L1BlockTime*5)*time.Second)
-		require.Nil(t, err, "Waiting for l1 blocks")
+		require.NoError(t, err, "Waiting for l1 blocks")
 		totalTxCount += len(block.Transactions())
 
 		if totalTxCount >= 10 {

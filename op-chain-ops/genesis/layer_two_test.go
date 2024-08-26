@@ -10,10 +10,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient/simulated"
 
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
@@ -31,13 +32,15 @@ var testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d
 
 // Tests the BuildL2MainnetGenesis factory with the provided config.
 func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesis {
-	backend := backends.NewSimulatedBackend(
-		core.GenesisAlloc{
+	backend := simulated.NewBackend(
+		types.GenesisAlloc{
 			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
 		},
-		15000000,
 	)
-	block, err := backend.BlockByNumber(context.Background(), common.Big0)
+	defer backend.Close()
+
+	client := backend.Client()
+	block, err := client.BlockByNumber(context.Background(), nil)
 	require.NoError(t, err)
 
 	gen, err := genesis.BuildL2Genesis(config, block)

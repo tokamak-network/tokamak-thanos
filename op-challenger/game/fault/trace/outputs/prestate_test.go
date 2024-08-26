@@ -5,12 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/outputs/source"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 func newOutputPrestateProvider(t *testing.T, prestateBlock uint64) (*OutputPrestateProvider, *stubRollupClient) {
-	rollupClient := stubRollupClient{
+	rollupClient := &stubRollupClient{
 		outputs: map[uint64]*eth.OutputResponse{
 			prestateBlock: {
 				OutputRoot: eth.Bytes32(prestateOutputRoot),
@@ -24,9 +23,9 @@ func newOutputPrestateProvider(t *testing.T, prestateBlock uint64) (*OutputPrest
 		},
 	}
 	return &OutputPrestateProvider{
-		rollupClient:  source.NewUnrestrictedOutputSource(&rollupClient),
+		rollupClient:  rollupClient,
 		prestateBlock: prestateBlock,
-	}, &rollupClient
+	}, rollupClient
 }
 
 func TestAbsolutePreStateCommitment(t *testing.T) {

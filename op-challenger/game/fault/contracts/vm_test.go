@@ -6,22 +6,21 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
+	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
 )
 
 func TestVMContract_Oracle(t *testing.T) {
-	vmAbi, err := bindings.MIPSMetaData.GetAbi()
-	require.NoError(t, err)
+	vmAbi := snapshots.LoadMIPSABI()
 
 	stubRpc := batchingTest.NewAbiBasedRpc(t, vmAddr, vmAbi)
-	vmContract, err := NewVMContract(vmAddr, batching.NewMultiCaller(stubRpc, batching.DefaultBatchSize))
-	require.NoError(t, err)
+	vmContract := NewVMContract(vmAddr, batching.NewMultiCaller(stubRpc, batching.DefaultBatchSize))
 
-	stubRpc.SetResponse(vmAddr, methodOracle, batching.BlockLatest, nil, []interface{}{oracleAddr})
+	stubRpc.SetResponse(vmAddr, methodOracle, rpcblock.Latest, nil, []interface{}{oracleAddr})
 
 	oracleContract, err := vmContract.Oracle(context.Background())
 	require.NoError(t, err)

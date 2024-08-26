@@ -7,28 +7,21 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
-
-	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
-	ophttp "github.com/tokamak-network/tokamak-thanos/op-service/httputil"
-	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
-
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	libp2pmetrics "github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/ethereum/go-ethereum/common"
-
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
+	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	ophttp "github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
-const (
-	Namespace = "op_node"
-
-	BatchMethod = "<batch>"
-)
+const Namespace = "op_node"
 
 type Metricer interface {
 	RecordInfo(version string)
@@ -121,6 +114,8 @@ type Metrics struct {
 	L1ReorgDepth prometheus.Histogram
 
 	TransactionsSequencedTotal prometheus.Counter
+
+	PlasmaMetrics plasma.Metricer
 
 	// Channel Bank Metrics
 	headChannelOpenedEvent *metrics.Event
@@ -383,6 +378,8 @@ func NewMetrics(procName string) *Metrics {
 			"recommended",
 			"required",
 		}),
+
+		PlasmaMetrics: plasma.MakeMetrics(ns, factory),
 
 		registry: registry,
 		factory:  factory,

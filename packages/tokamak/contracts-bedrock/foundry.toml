@@ -16,13 +16,13 @@ remappings = [
   '@openzeppelin/contracts_v3.1.0/=lib/openzeppelin-contracts_v3.1.0/contracts',
   '@openzeppelin/contracts_v5.0.1/=lib/openzeppelin-contracts_v5.0.1/contracts',
   '@rari-capital/solmate/=lib/solmate',
-  '@cwia/=lib/clones-with-immutable-args/src',
   '@lib-keccak/=lib/lib-keccak/contracts/lib',
+  '@solady/=lib/solady/src',
   'forge-std/=lib/forge-std/src',
   'ds-test/=lib/forge-std/lib/ds-test/src',
   'safe-contracts/=lib/safe-contracts/contracts',
   'kontrol-cheatcodes/=lib/kontrol-cheatcodes/src',
-  'solady/=lib/solady/src',
+  'gelato/=lib/automate/contracts'
 ]
 extra_output = ['devdoc', 'userdoc', 'metadata', 'storageLayout']
 bytecode_hash = 'none'
@@ -30,6 +30,10 @@ build_info = true
 build_info_path = 'artifacts/build-info'
 
 libraries = ["src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:SignatureChecker:0x4200000000000000000000000000000000000776"]
+
+ast = true
+evm_version = "cancun"
+ignored_error_codes = ["transient-storage", "code-size", "init-code-size"]
 
 # Test / Script Runner Settings
 ffi = true
