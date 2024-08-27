@@ -18,6 +18,8 @@ import { predeploys } from '@tokamak-network/core-utils'
 import disputeGameFactory from '@tokamak-network/thanos-contracts/forge-artifacts/DisputeGameFactory.sol/DisputeGameFactory.json'
 import optimismPortal2 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismPortal2.sol/OptimismPortal2.json'
 import faultDisputeGame from '@tokamak-network/thanos-contracts/forge-artifacts/FaultDisputeGame.sol/FaultDisputeGame.json'
+import l1UsdcBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1UsdcBridge.sol/L1UsdcBridge.json'
+import l2UsdcBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L2UsdcBridge.sol/L2UsdcBridge.json'
 
 import { toAddress } from './coercion'
 import { DeepPartial } from './type-utils'
@@ -26,6 +28,7 @@ import {
   StandardBridgeAdapter,
   ETHBridgeAdapter,
   NativeTokenBridgeAdapter,
+  USDCBridgeAdapter,
 } from '../adapters'
 import {
   CONTRACT_ADDRESSES,
@@ -113,6 +116,12 @@ export const getContractInterfaceBedrock = (
       break
     case 'FaultDisputeGame':
       artifact = faultDisputeGame
+      break
+    case 'L1UsdcBridge':
+      artifact = l1UsdcBridge
+      break
+    case 'L2UsdcBridge':
+      artifact = l2UsdcBridge
       break
   }
   return new ethers.utils.Interface(artifact.abi)
@@ -344,6 +353,13 @@ export const getBridgeAdapters = (
               opts?.contracts?.l1?.L1StandardBridge ||
               CONTRACT_ADDRESSES[l2ChainId].l1.L1StandardBridge,
             l2Bridge: predeploys.L2StandardBridge,
+          },
+          Usdc: {
+            Adapter: USDCBridgeAdapter,
+            l1Bridge:
+              opts?.contracts?.l1?.L1UsdcBridge ||
+              CONTRACT_ADDRESSES[l2ChainId].l1.L1UsdcBridge,
+            l2Bridge: predeploys.L2UsdcBridge,
           },
         }
       : {}),

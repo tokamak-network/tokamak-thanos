@@ -57,6 +57,8 @@ export interface OEL1Contracts {
   OptimismPortal2?: Contract
   DisputeGameFactory?: Contract
   FaultDisputeGame?: Contract
+  // USDC
+  L1UsdcBridge?: Contract
 }
 
 /**
@@ -74,6 +76,7 @@ export interface OEL2Contracts {
   OVM_SequencerFeeVault: Contract
   WETH: Contract
   BedrockMessagePasser: Contract
+  L2UsdcBridge: Contract
 }
 
 /**
