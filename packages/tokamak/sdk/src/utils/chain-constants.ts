@@ -135,6 +135,7 @@ export const DEFAULT_L2_CONTRACT_ADDRESSES: OEL2ContractsLike = {
   OVM_SequencerFeeVault: predeploys.SequencerFeeVault,
   WETH: predeploys.WNativeToken,
   BedrockMessagePasser: predeploys.L2ToL1MessagePasser,
+  L2UsdcBridge: predeploys.L2UsdcBridge,
 }
 
 /**
@@ -379,6 +380,7 @@ export const CONTRACT_ADDRESSES: {
       BondManager: '0x0000000000000000000000000000000000000000' as const,
       OptimismPortal: '0x7b6db1316e22167b56211cDDC33431098BaBC3c2' as const,
       L2OutputOracle: '0xaB8A5Ac696675D65D09E24C2876Aa8a7e1Af5640' as const,
+      L1UsdcBridge: '0xE390EE020Afb7F8e4A2Dc44a71088db2acd72CF3' as const,
     },
     // TODO: change predeploys in L2
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
