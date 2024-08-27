@@ -430,6 +430,8 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("basefeeScalar()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("blobbasefeeScalar()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("maximumGasLimit()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("NATIVE_TOKEN_ADDRESS_SLOT()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("nativeTokenAddress()") });
 
         // SystemConfigInterop
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("UNSAFE_BLOCK_SIGNER_SLOT()") });
@@ -500,6 +502,8 @@ contract Specification_Test is CommonTest {
             _sel: _getSel("removeDependency(uint256)"),
             _auth: Role.SYSTEMCONFIGOWNER
         });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("NATIVE_TOKEN_ADDRESS_SLOT()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("nativeTokenAddress()") });
 
         // ProxyAdmin
         _addSpec({ _name: "ProxyAdmin", _sel: _getSel("addressManager()") });
@@ -803,9 +807,11 @@ contract Specification_Test is CommonTest {
 
     /// @notice Ensures that there's an auth spec for every L1 contract function.
     function testContractAuth() public {
-        string[] memory pathExcludes = new string[](2);
+        string[] memory pathExcludes = new string[](4);
         pathExcludes[0] = "src/dispute/interfaces/*";
         pathExcludes[1] = "src/dispute/lib/*";
+        pathExcludes[2] = "src/L1/L2NativeToken.sol";
+        pathExcludes[3] = "src/L1/OnApprove.sol";
         Abi[] memory abis =
             ForgeArtifacts.getContractFunctionAbis("src/{L1,dispute,governance,universal/ProxyAdmin.sol}", pathExcludes);
 

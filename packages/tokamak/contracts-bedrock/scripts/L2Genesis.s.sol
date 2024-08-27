@@ -187,7 +187,7 @@ contract L2Genesis is Deployer {
     ///         Warning: the predeploy accounts have contract code, but 0 nonce value.
     function setPredeployProxies() public {
         console.log("Setting Predeploy proxies");
-        bytes memory code = vm.getDeployedCode("Proxy.sol:Proxy");
+        bytes memory code = vm.getDeployedCode("src/universal/Proxy.sol:Proxy");
         uint160 prefix = uint160(0x420) << 148;
 
         console.log(
