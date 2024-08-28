@@ -43,12 +43,6 @@ library Predeploys {
     address internal constant OPTIMISM_MINTABLE_ERC20_FACTORY = 0x4200000000000000000000000000000000000012;
 
     /// @custom:legacy
-    /// @notice Address of the LegacyERC20NativeToken predeploy. Deprecated. Balances are migrated to the
-    ///         state trie as of the Bedrock upgrade. Contract has been locked and write functions
-    ///         can no longer be accessed.
-    address internal constant LEGACY_ERC20_NATIVE_TOKEN = 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000;
-
-    /// @custom:legacy
     /// @notice Address of the L1BlockNumber predeploy. Deprecated. Use the L1Block predeploy
     ///         instead, which exposes more information about the L1 state.
     address internal constant L1_BLOCK_NUMBER = 0x4200000000000000000000000000000000000013;
@@ -132,7 +126,7 @@ library Predeploys {
     /// @notice Address of the LegacyERC20ETH predeploy. Deprecated. Balances are migrated to the
     ///         state trie as of the Bedrock upgrade. Contract has been locked and write functions
     ///         can no longer be accessed.
-    address internal constant LEGACY_ERC20_ETH = 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000;
+    address internal constant LEGACY_ERC20_NATIVE_TOKEN = 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000;
 
     /// @notice Address of the CrossL2Inbox predeploy.
     address internal constant CROSS_L2_INBOX = 0x4200000000000000000000000000000000000022;

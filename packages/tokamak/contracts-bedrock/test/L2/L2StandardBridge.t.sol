@@ -80,7 +80,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit WithdrawalInitiated(address(0), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+        emit WithdrawalInitiated(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         vm.expectEmit(true, true, true, true);
         emit ETHBridgeInitiated(alice, alice, 100, hex"");
@@ -150,7 +150,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
 
         vm.expectRevert("StandardBridge: bridging ETH must include sufficient ETH value");
         vm.prank(alice, alice);
-        l2StandardBridge.withdraw{ value: 1 }(address(Predeploys.LEGACY_ERC20_ETH), 100, 1, hex"");
+        l2StandardBridge.withdraw{ value: 1 }(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 100, 1, hex"");
     }
 
     /// @dev Tests that `withdraw` reverts when sending value and attempting to withdraw
@@ -176,7 +176,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.mockCall(address(l1Block), abi.encodeWithSignature("gasPayingToken()"), abi.encode(address(1), uint8(18)));
         vm.expectRevert("L2StandardBridge: not supported with custom gas token");
         vm.prank(alice, alice);
-        l2StandardBridge.withdraw(address(Predeploys.LEGACY_ERC20_ETH), 1, 1, hex"");
+        l2StandardBridge.withdraw(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 1, 1, hex"");
     }
 
     /// @dev Tests that `withdraw` reverts with custom gas token.
@@ -202,7 +202,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.mockCall(address(l1Block), abi.encodeWithSignature("gasPayingToken()"), abi.encode(address(1), uint8(18)));
         vm.expectRevert("L2StandardBridge: not supported with custom gas token");
         vm.prank(alice, alice);
-        l2StandardBridge.withdraw{ value: 1 ether }(address(Predeploys.LEGACY_ERC20_ETH), 1, 1, hex"");
+        l2StandardBridge.withdraw{ value: 1 ether }(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 1, 1, hex"");
     }
 
     /// @dev Tests that `withdrawTo` reverts with custom gas token.
@@ -210,7 +210,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.mockCall(address(l1Block), abi.encodeWithSignature("gasPayingToken()"), abi.encode(address(1), uint8(18)));
         vm.expectRevert("L2StandardBridge: not supported with custom gas token");
         vm.prank(alice, alice);
-        l2StandardBridge.withdrawTo(address(Predeploys.LEGACY_ERC20_ETH), bob, 1, 1, hex"");
+        l2StandardBridge.withdrawTo(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), bob, 1, 1, hex"");
     }
 
     /// @dev Tests that `withdrawTo` reverts with custom gas token.
@@ -236,7 +236,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.mockCall(address(l1Block), abi.encodeWithSignature("gasPayingToken()"), abi.encode(address(1), uint8(18)));
         vm.expectRevert("L2StandardBridge: not supported with custom gas token");
         vm.prank(alice, alice);
-        l2StandardBridge.withdrawTo{ value: 1 ether }(address(Predeploys.LEGACY_ERC20_ETH), bob, 1, 1, hex"");
+        l2StandardBridge.withdrawTo{ value: 1 ether }(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), bob, 1, 1, hex"");
     }
 
     /// @dev Tests that the legacy `withdraw` interface on the L2StandardBridge
@@ -248,7 +248,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         vm.expectEmit(address(l2StandardBridge));
         emit WithdrawalInitiated({
             l1Token: address(0),
-            l2Token: Predeploys.LEGACY_ERC20_ETH,
+            l2Token: Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
             from: alice,
             to: alice,
             amount: 100,
@@ -260,7 +260,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
 
         vm.prank(alice, alice);
         l2StandardBridge.withdraw{ value: 100 }({
-            _l2Token: Predeploys.LEGACY_ERC20_ETH,
+            _l2Token: Predeploys.LEGACY_ERC20_NATIVE_TOKEN,
             _amount: 100,
             _minGasLimit: 1000,
             _extraData: hex""
@@ -661,7 +661,7 @@ contract L2StandardBridge_FinalizeBridgeETH_Test is Bridge_Initializer {
         vm.prank(messenger);
 
         vm.expectEmit(true, true, true, true);
-        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_ETH, alice, alice, 100, hex"");
+        emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         vm.expectEmit(true, true, true, true);
         emit ETHBridgeFinalized(alice, alice, 100, hex"");
