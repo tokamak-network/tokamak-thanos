@@ -16,6 +16,7 @@ import { hexStringEquals, predeploys } from '@tokamak-network/core-utils'
 import l1StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import l2StandardBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import optimismMintableERC20 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
+import erc20 from '@tokamak-network/thanos-contracts/forge-artifacts/ERC20/IERC20.sol/IERC20.json'
 
 import { CrossChainMessenger } from '../cross-chain-messenger'
 import {
@@ -202,7 +203,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
 
     const token = new Contract(
       toAddress(l1Token),
-      optimismMintableERC20.abi,
+      erc20.abi,
       this.messenger.l1Provider
     )
 
@@ -292,7 +293,7 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
 
       const token = new Contract(
         toAddress(l1Token),
-        optimismMintableERC20.abi,
+        erc20.abi,
         this.messenger.l1Provider
       )
 

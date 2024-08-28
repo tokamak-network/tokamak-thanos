@@ -12,7 +12,7 @@ import {
   TransactionResponse,
   BlockTag,
 } from '@ethersproject/abstract-provider'
-import optimismMintableERC20 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
+import erc20 from '@tokamak-network/thanos-contracts/forge-artifacts/ERC20/IERC20.sol/IERC20.json'
 
 import {
   TokenBridgeMessage,
@@ -124,7 +124,7 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
 
     const token = new Contract(
       toAddress(l1Token),
-      optimismMintableERC20.abi,
+      erc20.abi,
       this.messenger.l1Provider
     )
 
@@ -191,7 +191,7 @@ export class NativeTokenBridgeAdapter extends StandardBridgeAdapter {
 
       const token = new Contract(
         toAddress(l1Token),
-        optimismMintableERC20.abi,
+        erc20.abi,
         this.messenger.l1Provider
       )
 
