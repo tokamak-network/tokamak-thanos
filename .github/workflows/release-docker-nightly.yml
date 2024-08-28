@@ -70,7 +70,7 @@ jobs:
       matrix:
         target:
           [
-            cannon
+            cannon,
             op-program,
             op-heartbeat,
             op-wheel,
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [endpoint-monitor, indexer, op-exporter, proxyd]
+        target: [indexer, op-exporter, proxyd]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
