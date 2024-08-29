@@ -4,6 +4,7 @@
     "L1CrossDomainMessenger",
     "L1StandardBridge",
     "OptimismPortal",
+    "OptimismPortal2",
     "L2OutputOracle",
     "AddressManager",
     "L1Block",
