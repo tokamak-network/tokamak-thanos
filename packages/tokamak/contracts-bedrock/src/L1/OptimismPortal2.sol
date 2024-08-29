@@ -78,8 +78,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @custom:network-specific
     SystemConfig public systemConfig;
 
-    /// @notice Address of native (ERC-20 token)
-    address public nativeTokenAddress;
+    /// @custom:spacer nativeTokenAddress
+    /// @notice Spacer for backwards compatibility.
+    address public spacer_native_token_address;
 
     /// @notice Address of the DisputeGameFactory.
     /// @custom:network-specific
@@ -138,7 +139,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         respectedGameType = _initialRespectedGameType;
 
         initialize({
-            _nativeTokenAddress: address(0),
             _disputeGameFactory: DisputeGameFactory(address(0)),
             _systemConfig: SystemConfig(address(0)),
             _superchainConfig: SuperchainConfig(address(0))
@@ -150,7 +150,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     function initialize(
-        address _nativeTokenAddress,
         DisputeGameFactory _disputeGameFactory,
         SystemConfig _systemConfig,
         SuperchainConfig _superchainConfig
@@ -158,7 +157,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         public
         initializer
     {
-        nativeTokenAddress = _nativeTokenAddress;
         disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
@@ -190,6 +188,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @custom:legacy
     function guardian() public view returns (address) {
         return superchainConfig.guardian();
+    }
+
+    function nativeTokenAddress() external view returns (address) {
+        return systemConfig.nativeTokenAddress();
     }
 
     /// @notice Getter for the current paused status.
@@ -337,8 +339,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Check that the withdrawal can be finalized.
         checkWithdrawal(withdrawalHash);
 
+        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
+
         // Not allow to call native token contract because users can transfer all token out of the contract
-        require(_tx.target != nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract");
+        require(
+            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
+        );
 
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
@@ -347,8 +353,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             require(
-                IERC20(nativeTokenAddress).approve(
-                    _tx.target, _tx.value + IERC20(nativeTokenAddress).allowance(address(this), _tx.target)
+                IERC20(_nativeTokenAddress).approve(
+                    _tx.target, _tx.value + IERC20(_nativeTokenAddress).allowance(address(this), _tx.target)
                 ),
                 "Optimism approve failed"
             );
@@ -429,7 +435,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     {
         // Lock token in this contract
         if (_mint > 0) {
-            IERC20(nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
+            address _nativeTokenAddress = systemConfig.nativeTokenAddress();
+            IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
         }
 
         if (_isCreation) {
