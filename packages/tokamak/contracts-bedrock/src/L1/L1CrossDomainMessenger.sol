@@ -82,7 +82,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
     function unpackOnApproveData(bytes calldata _data)
-        public
+        internal
         pure
         returns (address _to, uint32 _minGasLimit, bytes calldata _message)
     {
