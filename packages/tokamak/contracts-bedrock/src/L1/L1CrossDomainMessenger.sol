@@ -310,7 +310,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {
-            if (_value != 0 && _target != address(0) && !success) {
+            if (_value != 0 && _target != address(0)) {
                 IERC20(_nativeTokenAddress).approve(_target, 0);
             }
             failedMessages[versionedHash] = true;
