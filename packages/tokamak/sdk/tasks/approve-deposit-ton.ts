@@ -199,8 +199,8 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   console.log('l2 native balance before depositing: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, l1Wallet.address, amount, 200000, '0x']
+    ['address', 'uint32', 'bytes'],
+    [l1Wallet.address, 200000, '0x']
   )
   const approveAndCallTx = await (
     await tonContract
@@ -285,8 +285,8 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('l2cdm wton balance: ', l2CDMBalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
+    ['address', 'uint32', 'bytes'],
+    [predeploys.WNativeToken, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via CDM: ', data)
@@ -319,8 +319,9 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   )
 }
 
-const approveAndDepositTONViaOP = async (amount: NumberLike) => {
-  console.log('Deposit TON via Portal:', amount)
+const approveAndDepositTONViaOP = async (mint: NumberLike, value: Number) => {
+  console.log('Mint TON via Portal:', mint)
+  console.log('Value TON via Portal:', value)
   console.log('TON address:', l2NativeToken)
 
   const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
@@ -349,15 +350,15 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('l2 wton balance: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
+    ['address', 'uint256', 'uint32', 'bytes'],
+    [predeploys.WNativeToken, value, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via Portal: ', data)
   const approveAndCallTx = await (
     await tonContract
       .connect(l1Wallet)
-      .approveAndCall(optimismPortal, ethers.BigNumber.from(amount), data)
+      .approveAndCall(optimismPortal, ethers.BigNumber.from(mint), data)
   ).wait()
   console.log('approveAndCallTx:', approveAndCallTx.transactionHash)
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
@@ -392,8 +393,9 @@ task('approve-deposit-ton-cdm', 'Deposits ERC20-TON to L2.')
   })
 
 task('approve-deposit-ton-portal', 'Deposits ERC20-TON to L2.')
-  .addParam('amount', 'Deposit amount', '1', types.string)
+  .addParam('amount', 'Mint amount', '2', types.string)
+  .addParam('value', 'Value amount', '1', types.string)
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
-    await approveAndDepositTONViaOP(args.amount)
+    await approveAndDepositTONViaOP(args.amount, args.value)
   })
