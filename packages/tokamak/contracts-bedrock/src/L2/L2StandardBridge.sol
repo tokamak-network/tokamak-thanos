@@ -102,6 +102,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         onlyOtherBridge
     {
         require(paused() == false, "StandardBridge: paused");
+        require(msg.value != 0, "StandardBridge: msg.value is zero amount");
         require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
@@ -313,6 +314,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
         internal
         override
     {
+        require(msg.value != 0, "StandardBridge: msg.value is zero amount");
         require(msg.value == _amount, "StandardBridge: Incorrect Native token value");
 
         // Emit the correct events. By default this will be _amount, but child
