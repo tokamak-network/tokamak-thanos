@@ -225,7 +225,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
      /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
     function unpackOnApproveData(bytes calldata _data)
-        public
+        internal
         pure
         returns (address _to, uint256 _value, uint32 _gasLimit, bytes calldata _message)
     {
