@@ -242,6 +242,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         internal
         override
     {
+        require(msg.value != 0, "StandardBridge: msg.value is zero amount");
         require(msg.value == _amount, "StandardBridge: bridging ETH must include sufficient ETH value");
         deposits[address(0)][Predeploys.ETH] = deposits[address(0)][Predeploys.ETH] + _amount;
         _emitETHBridgeInitiated(_from, _to, _amount, _extraData);
