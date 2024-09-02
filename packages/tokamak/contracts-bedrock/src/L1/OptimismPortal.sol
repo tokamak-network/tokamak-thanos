@@ -72,8 +72,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @notice Spacer for backwards compatibility.
     address public spacer_native_token_address;
 
-    uint256 public depositedAmount;
-
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
     ///         transactions on L2.
@@ -406,7 +404,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
-            depositedAmount -= _tx.value;
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -488,7 +485,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Lock token in this contract
         if (_mint > 0) {
             IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
-            depositedAmount += _mint;
         }
 
         if (_isCreation) {
