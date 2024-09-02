@@ -63,11 +63,11 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @notice Contract of the Superchain Config.
     SuperchainConfig public superchainConfig;
 
-    /// @notice Contract of the L2OutputOracle.
+    /// @notice Address of the L2OutputOracle contract.
     /// @custom:network-specific
     L2OutputOracle public l2Oracle;
 
-    /// @notice Contract of the SystemConfig.
+    /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
     SystemConfig public systemConfig;
 
@@ -334,12 +334,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // bugs, then we know that this withdrawal was actually triggered on L2 and can therefore
         // be relayed on L1.
         require(
-            SecureMerkleTrie.verifyInclusionProof({
-                _key: abi.encode(storageKey),
-                _value: hex"01",
-                _proof: _withdrawalProof,
-                _root: _outputRootProof.messagePasserStorageRoot
-            }),
+            SecureMerkleTrie.verifyInclusionProof(
+                abi.encode(storageKey), hex"01", _withdrawalProof, _outputRootProof.messagePasserStorageRoot
+            ),
             "OptimismPortal: invalid withdrawal inclusion proof"
         );
 
@@ -427,7 +424,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
-            depositedAmount -= _tx.value;
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -509,7 +505,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Lock token in this contract
         if (_mint > 0) {
             IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
-            depositedAmount += _mint;
         }
 
         if (_isCreation) {
