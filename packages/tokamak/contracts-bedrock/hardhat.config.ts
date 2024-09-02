@@ -27,9 +27,9 @@ export default {
       url: "http://localhost:9545",
       chainId: 901,
     },
-    'thanos-sepolia-test': {
-      url: "https://rpc.thanos-sepolia-test.tokamak.network",
-      chainId: 111551118080,
+    'thanos-sepolia': {
+      url: "https://rpc.thanos-sepolia.tokamak.network",
+      chainId: 111551119090,
     },
   },
   etherscan: {
@@ -44,11 +44,11 @@ export default {
         },
       },
       {
-        network: "thanos-sepolia-test",
-        chainId: 111551118080,
+        network: "thanos-sepolia",
+        chainId: 111551119090,
         urls: {
-          apiURL: "https://explorer.thanos-sepolia-test.tokamak.network/api",
-          browserURL: "https://explorer.thanos-sepolia-test.tokamak.network",
+          apiURL: "https://explorer.thanos-sepolia.tokamak.network/api",
+          browserURL: "https://explorer.thanos-sepolia.tokamak.network",
         },
       },
     ],

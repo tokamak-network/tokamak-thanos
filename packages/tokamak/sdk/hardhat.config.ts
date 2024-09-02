@@ -55,6 +55,10 @@ const config: HardhatUserConfig = {
       url: process.env.L1_RPC || '',
       accounts: [process.env.PRIVATE_KEY_DEPLOYER || ethers.constants.HashZero],
     },
+    'thanos-sepolia': {
+      url: process.env.L1_RPC || '',
+      accounts: [process.env.PRIVATE_KEY || ethers.constants.HashZero],
+    },
   },
   external: {
     contracts: [
@@ -72,6 +76,9 @@ const config: HardhatUserConfig = {
       goerli: [
         '../contracts-bedrock/deployments/goerli',
         '../contracts/deployments/goerli',
+      ],
+      'thanos-sepolia': [
+        '../contracts-bedrock/deployments/thanos-sepolia'
       ],
     },
   },
