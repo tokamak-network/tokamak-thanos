@@ -76,12 +76,19 @@ if ! command -v nvm &> /dev/null; then
     export NVM_DIR="$HOME/.nvm"
     mkdir -p "$NVM_DIR"
 
-    # Add NVM to the current shell session
+    # Extract the HOMEBREW_PREFIX path
+    HOMEBREW_PREFIX=$(brew config | grep 'HOMEBREW_PREFIX' | awk '{print $2}')
+
+    # Check if the NVM configuration is already in the .zshrc file
+    if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' ~/.zshrc; then
+
+    # If the configuration is not found, add NVM to the current shell session
     {
         echo 'export NVM_DIR="$HOME/.nvm"'
-        echo '[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"'
-        echo '[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"'
+        echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
+        echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
     } >> ~/.zshrc
+fi
 
 else
     echo "NVM is already installed."
