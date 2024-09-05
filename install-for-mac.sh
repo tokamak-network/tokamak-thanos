@@ -1,8 +1,24 @@
-#!/bin/zsh
-
 TOTAL_STEPS=10
 
 echo "🚀 Starting package installation for MacOS!"
+
+echo
+
+# Check Shell
+if [ -n "$ZSH_VERSION" ]; then
+    SHELL_NAME="zsh"
+elif [ -n "$BASH_VERSION" ]; then
+    SHELL_NAME="bash"
+fi
+
+# Set Config File
+if [ "$SHELL_NAME" = "zsh" ]; then
+    CONFIG_FILE="$HOME/.zshrc"
+elif [ "$SHELL_NAME" = "bash" ]; then
+    CONFIG_FILE="$HOME/.profile"
+fi
+
+echo "The current shell is $SHELL_NAME. The installation will proceed based on $SHELL_NAME."
 
 echo
 
@@ -10,7 +26,11 @@ echo
 echo "[1/$TOTAL_STEPS] ----- Installing Homebrew..."
 if ! command -v brew &> /dev/null; then
     echo "Homebrew not found, installing..."
-    /bin/zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if [ "$SHELL_NAME" = "zsh" ]; then
+        /bin/zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    elif [ "$SHELL_NAME" = "bash" ]; then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
 else
     echo "Homebrew is already installed."
 fi
@@ -66,8 +86,6 @@ echo
 echo "[6/$TOTAL_STEPS] ----- Installing Node.js (v20.16.0)..."
 
 ## 6-1. Install NVM
-source ~/.zshrc
-
 if ! command -v nvm &> /dev/null; then
     echo "NVM not found, installing..."
     brew install nvm
@@ -80,23 +98,26 @@ if ! command -v nvm &> /dev/null; then
     HOMEBREW_PREFIX=$(brew config | grep 'HOMEBREW_PREFIX' | awk '{print $2}')
 
     # Check if the NVM configuration is already in the .zshrc file
-    if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' ~/.zshrc; then
+    if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
 
-    # If the configuration is not found, add NVM to the current shell session
-    {
-        echo 'export NVM_DIR="$HOME/.nvm"'
-        echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
-        echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
-    } >> ~/.zshrc
-fi
+        # If the configuration is not found, add NVM to the current shell session
+        {
+            echo ''
+            echo 'export NVM_DIR="$HOME/.nvm"'
+            echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
+            echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
+        } >> "$CONFIG_FILE"
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.profile
+        fi
+    fi
 
 else
     echo "NVM is already installed."
 fi
-
-# Ensure NVM is loaded in this script
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 ## 6-2. Install Node.js v20.16.0 using NVM
 echo "[6/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
@@ -156,6 +177,17 @@ echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
 if ! command -v docker &> /dev/null; then
     echo "Docker not found, installing..."
     brew install --cask docker
+    # Add Docker alias to shell config file if not already present
+    if ! grep -Fxq 'alias docker="/Applications/Docker.app/Contents/Resources/bin/docker"' "$CONFIG_FILE"; then
+        echo 'alias docker="/Applications/Docker.app/Contents/Resources/bin/docker"' >> "$CONFIG_FILE"
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.profile
+        fi
+    fi
+
 else
     echo "Docker is already installed."
 fi
