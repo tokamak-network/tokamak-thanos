@@ -172,22 +172,11 @@ fi
 
 echo
 
-# 9. Install Docker Engine
+# 9. Install Docker (Docker Machine, Docker Compose, and other related tools)
 echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
 if ! command -v docker &> /dev/null; then
     echo "Docker not found, installing..."
     brew install --cask docker
-    # Add Docker alias to shell config file if not already present
-    if ! grep -Fxq 'alias docker="/Applications/Docker.app/Contents/Resources/bin/docker"' "$CONFIG_FILE"; then
-        echo 'alias docker="/Applications/Docker.app/Contents/Resources/bin/docker"' >> "$CONFIG_FILE"
-
-        if [ "$SHELL_NAME" = "zsh" ]; then
-            source ~/.zshrc
-        elif [ "$SHELL_NAME" = "bash" ]; then
-            source ~/.profile
-        fi
-    fi
-
 else
     echo "Docker is already installed."
 fi
