@@ -298,15 +298,17 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         if (_value != 0 && _target != address(0)) {
             IERC20(_nativeTokenAddress).approve(_target, _value);
         }
+        // _target is expected to perform a transferFrom to collect token
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
+        if (_value != 0 && _target != address(0)) {
+                IERC20(_nativeTokenAddress).approve(_target, 0);
+        }
+        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
         if (success) {
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {
-            if (_value != 0 && _target != address(0)) {
-                IERC20(_nativeTokenAddress).approve(_target, 0);
-            }
             failedMessages[versionedHash] = true;
             emit FailedRelayedMessage(versionedHash);
 
@@ -319,6 +321,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
                 revert("CrossDomainMessenger: failed to relay message");
             }
         }
-        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
+
     }
 }
