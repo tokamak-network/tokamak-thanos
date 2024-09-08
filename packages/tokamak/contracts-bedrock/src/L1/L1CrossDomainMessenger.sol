@@ -306,6 +306,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
         if (success) {
+            // This check is identical to the one above, but it ensures that the same message cannot be relayed
+            // twice, and adds a layer of protection against reentrancy.
+            assert(successfulMessages[versionedHash] == false);
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {
