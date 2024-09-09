@@ -860,7 +860,7 @@ contract Deploy is Deployer {
                         nativeTokenAddress: cfg.nativeTokenAddress()
                     })
                 )
-                )
+            )
         });
 
         SystemConfig config = SystemConfig(systemConfigProxy);
@@ -924,7 +924,7 @@ contract Deploy is Deployer {
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
-                )
+            )
         });
 
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
@@ -950,7 +950,7 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L1ERC721Bridge.initialize,
                 (L1CrossDomainMessenger(l1CrossDomainMessengerProxy), SuperchainConfig(superchainConfigProxy))
-                )
+            )
         });
 
         L1ERC721Bridge bridge = L1ERC721Bridge(l1ERC721BridgeProxy);
@@ -1022,7 +1022,7 @@ contract Deploy is Deployer {
                     OptimismPortal(payable(optimismPortalProxy)),
                     SystemConfig(systemConfigProxy)
                 )
-                )
+            )
         });
 
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
@@ -1077,7 +1077,7 @@ contract Deploy is Deployer {
                     cfg.l2OutputOracleChallenger(),
                     cfg.finalizationPeriodSeconds()
                 )
-                )
+            )
         });
 
         L2OutputOracle oracle = L2OutputOracle(l2OutputOracleProxy);
@@ -1121,7 +1121,7 @@ contract Deploy is Deployer {
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
-                )
+            )
         });
 
         OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
@@ -1152,7 +1152,7 @@ contract Deploy is Deployer {
                     ProtocolVersion.wrap(requiredProtocolVersion),
                     ProtocolVersion.wrap(recommendedProtocolVersion)
                 )
-                )
+            )
         });
 
         ProtocolVersions versions = ProtocolVersions(protocolVersionsProxy);

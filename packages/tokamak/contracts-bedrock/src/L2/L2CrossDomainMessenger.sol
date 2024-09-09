@@ -38,11 +38,12 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
     }
 
     /// @notice Send a message to the address _to on L1 including _value amount of L2 native token on L1
-    ///         What the messge is handled on L1Cross looks like
+    ///         How the messge is handled on L1Cross looks like
     ///             IERC20(L1_Native_Token).approve(_to, amount)
     ///             address(_to).call{gas: _minGasLimit}(_message);
     ///             IERC20(L1_Native_Token).approve(_to, amount)
-    ///         The address (_to) need to perform transferFrom when handling the message to collect _value mount of L2 native token from L1CrossDomainMessenger_
+    ///         The address (_to) need to perform transferFrom when handling the message to collect _value mount of L2
+    /// native token from L1CrossDomainMessenger_
     /// @param _to          Address of a smart contract on L1
     /// @param _gasLimit    Minimum gas limit that the message can be executed with.
     /// @param _value       Amount of L2 native token for handling with the message by
