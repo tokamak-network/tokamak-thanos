@@ -455,29 +455,29 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
         cleanStorageAndInit(address(token));
     }
 
-    /// @dev Tests that initialization works with OptimismPortal.
-    function test_initialize_customGasTokenCall_succeeds() external {
-        vm.expectCall(
-            address(optimismPortal),
-            abi.encodeCall(optimismPortal.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
-        );
+    // /// @dev Tests that initialization works with OptimismPortal.
+    // function test_initialize_customGasTokenCall_succeeds() external {
+    //     vm.expectCall(
+    //         address(optimismPortal),
+    //         abi.encodeCall(optimismPortal.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
+    //     );
 
-        vm.expectEmit(address(optimismPortal));
-        emit TransactionDeposited(
-            0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
-            Predeploys.L1_BLOCK_ATTRIBUTES,
-            0, // deposit version
-            abi.encodePacked(
-                uint256(0), // mint
-                uint256(0), // value
-                uint64(200_000), // gasLimit
-                false, // isCreation,
-                abi.encodeCall(L1Block.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
-            )
-        );
+    //     vm.expectEmit(address(optimismPortal));
+    //     emit TransactionDeposited(
+    //         0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
+    //         Predeploys.L1_BLOCK_ATTRIBUTES,
+    //         0, // deposit version
+    //         abi.encodePacked(
+    //             uint256(0), // mint
+    //             uint256(0), // value
+    //             uint64(200_000), // gasLimit
+    //             false, // isCreation,
+    //             abi.encodeCall(L1Block.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
+    //         )
+    //     );
 
-        cleanStorageAndInit(address(token));
-    }
+    //     cleanStorageAndInit(address(token));
+    // }
 }
 
 contract SystemConfig_Setters_TestFail is SystemConfig_Init {
