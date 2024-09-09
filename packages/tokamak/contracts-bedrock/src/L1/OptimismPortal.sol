@@ -15,13 +15,14 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { ISemver } from "src/universal/ISemver.sol";
+import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal is Initializable, ResourceMetering, ISemver {
+contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -70,8 +71,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @custom:spacer nativeTokenAddress
     /// @notice Spacer for backwards compatibility.
     address public spacer_native_token_address;
-
-    uint256 public depositedAmount;
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -154,6 +153,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     }
 
     function nativeTokenAddress() external view returns (address) {
+        return _nativeToken();
+    }
+
+    function _nativeToken() internal view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
@@ -197,6 +200,51 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         Optimism system and Bedrock.
     function donateETH() external payable {
         // Intentionally empty.
+    }
+
+     /// @notice unpack onApprove data
+    /// @param _data     Data used in OnApprove contract
+    function unpackOnApproveData(bytes calldata _data)
+        internal
+        pure
+        returns (address _to, uint256 _value, uint32 _gasLimit, bytes calldata _message)
+    {
+        require(_data.length >= 56, "invalid onApprove data");
+        assembly {
+            // The layout of a "bytes calldata" is:
+            // The first 20 bytes: _to
+            // The next 32 bytes: _value
+            // The next 4 bytes: _gasLimit
+            // The rest: _message
+            _to := shr(96, calldataload(_data.offset))
+            _value := calldataload(add(_data.offset, 20))
+            _gasLimit := shr(224, calldataload(add(_data.offset, 52)))
+            _message.offset := add(_data.offset, 56)
+            _message.length := sub(_data.length, 56)
+        }
+    }
+
+    /// @notice ERC20 onApprove callback
+    /// @param _owner    Account that called approveAndCall
+    /// @param _amount   Approved amount
+    /// @param _data     Data used in OnApprove contract
+    function onApprove(
+        address _owner,
+        address,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        override
+        returns (bool)
+    {
+        (address to,  uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        if (msg.sender == _nativeToken()) {
+            _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message, true);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /// @notice Getter for the resource config.
@@ -342,7 +390,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         // Check that this withdrawal has not already been finalized, this is replay protection.
         require(finalizedWithdrawals[withdrawalHash] == false, "OptimismPortal: withdrawal has already been finalized");
 
-        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
 
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
@@ -356,7 +404,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
             IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
-            depositedAmount -= _tx.value;
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -405,20 +452,21 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     )
         external
     {
-        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
+        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data, false);
     }
 
     /// @notice Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
     /// use in deriving deposit transactions. Note that if a deposit is made by a contract, its
     /// address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     /// using the CrossDomainMessenger contracts for a simpler developer experience.
-    /// @param _sender     Sender address
-    /// @param _to         Target address on L2.
-    /// @param _mint       Native token value to deposit into L2's recipient.
-    /// @param _value      Callvalue for L2's transaction
-    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
-    /// @param _data       Data to trigger the recipient with.
+    /// @param _sender              Sender address
+    /// @param _to                  Target address on L2.
+    /// @param _mint                Native token value to deposit into L2's recipient.
+    /// @param _value               Callvalue for L2's transaction
+    /// @param _gasLimit            Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _isCreation          Whether or not the transaction is a contract creation.
+    /// @param _data                Data to trigger the recipient with.
+    /// @param _isOnApproveTrigger  Whether or not the transaction is trigger from approveAndCall.
     function _depositTransaction(
         address _sender,
         address _to,
@@ -426,17 +474,17 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
-        bytes calldata _data
+        bytes calldata _data,
+        bool _isOnApproveTrigger
     )
         internal
         metered(_gasLimit)
     {
-        address _nativeTokenAddress = systemConfig.nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
 
         // Lock token in this contract
         if (_mint > 0) {
             IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
-            depositedAmount += _mint;
         }
 
         if (_isCreation) {
@@ -454,10 +502,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from = _sender;
-        if (_sender != tx.origin) {
-            from = AddressAliasHelper.applyL1ToL2Alias(_sender);
-        }
+        address from = ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future

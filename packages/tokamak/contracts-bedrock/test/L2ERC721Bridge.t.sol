@@ -92,7 +92,7 @@ contract L2ERC721Bridge_Test is ERC721Bridge_Initializer {
                     abi.encodeCall(
                         L2ERC721Bridge.finalizeBridgeERC721,
                         (address(remoteToken), address(localToken), alice, alice, tokenId, hex"5678")
-                        ),
+                    ),
                     1234
                 )
             )
@@ -169,7 +169,7 @@ contract L2ERC721Bridge_Test is ERC721Bridge_Initializer {
                     abi.encodeCall(
                         L1ERC721Bridge.finalizeBridgeERC721,
                         (address(remoteToken), address(localToken), alice, bob, tokenId, hex"5678")
-                        ),
+                    ),
                     1234
                 )
             )

@@ -277,7 +277,7 @@ contract DeployPeriphery is Deployer {
                     dripcheck: CheckBalanceLow(mustGetAddress("CheckBalanceLow")),
                     checkparams: abi.encode(
                         CheckBalanceLow.Params({ target: mustGetAddress("FaucetProxy"), threshold: cfg.faucetDripV1Threshold() })
-                        ),
+                    ),
                     actions: actions
                 })
             });
@@ -306,7 +306,7 @@ contract DeployPeriphery is Deployer {
                     dripcheck: CheckBalanceLow(mustGetAddress("CheckBalanceLow")),
                     checkparams: abi.encode(
                         CheckBalanceLow.Params({ target: mustGetAddress("FaucetProxy"), threshold: cfg.faucetDripV2Threshold() })
-                        ),
+                    ),
                     actions: actions
                 })
             });
@@ -341,7 +341,7 @@ contract DeployPeriphery is Deployer {
                             target: mustGetAddress("FaucetProxy"),
                             threshold: cfg.faucetAdminDripV1Threshold()
                         })
-                        ),
+                    ),
                     actions: actions
                 })
             });
@@ -368,7 +368,7 @@ contract DeployPeriphery is Deployer {
                     // Gelato represents ETH as 0xeeeee....eeeee
                     0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE,
                     cfg.faucetGelatoBalanceV1Value()
-                    ),
+                ),
                 value: cfg.faucetGelatoBalanceV1Value()
             });
             drippie.create({
@@ -383,7 +383,7 @@ contract DeployPeriphery is Deployer {
                             threshold: cfg.faucetGelatoThreshold(),
                             treasury: cfg.faucetGelatoTreasury()
                         })
-                        ),
+                    ),
                     actions: actions
                 })
             });

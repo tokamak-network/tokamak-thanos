@@ -82,24 +82,20 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
     function unpackOnApproveData(bytes calldata _data)
-        public
+        internal
         pure
-        returns (address _from, address _to, uint256 _amount, uint32 _minGasLimit, bytes calldata _message)
+        returns (address _to, uint32 _minGasLimit, bytes calldata _message)
     {
-        require(_data.length >= 76, "Invalid onApprove data for L1CrossDomainMessenger");
+        require(_data.length >= 24, "Invalid onApprove data for L1CrossDomainMessenger");
         assembly {
             // The layout of a "bytes calldata" is:
-            // The first 20 bytes: _from
             // The next 20 bytes: _to
-            // The next 32 bytes: _amount
             // The next 4 bytes: _minGasLimit
             // The rest: _message
-            _from := shr(96, calldataload(_data.offset))
-            _to := shr(96, calldataload(add(_data.offset, 20)))
-            _amount := calldataload(add(_data.offset, 40))
-            _minGasLimit := shr(224, calldataload(add(_data.offset, 72)))
-            _message.offset := add(_data.offset, 76)
-            _message.length := sub(_data.length, 76)
+            _to := shr(96, calldataload(_data.offset))
+            _minGasLimit := shr(224, calldataload(add(_data.offset, 20)))
+            _message.offset := add(_data.offset, 24)
+            _message.length := sub(_data.length, 24)
         }
     }
 
@@ -118,10 +114,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         returns (bool)
     {
         require(msg.sender == address(nativeTokenAddress()), "only accept native token approve callback");
-        (address from, address to, uint256 amount, uint32 minGasLimit, bytes calldata message) =
-            unpackOnApproveData(_data);
-        require(_owner == from && _amount == amount && amount > 0, "invalid onApprove data");
-        _sendNativeTokenMessage(from, to, amount, minGasLimit, message);
+        (address to, uint32 minGasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        _sendNativeTokenMessage(_owner, to, _amount, minGasLimit, message);
         return true;
     }
 
@@ -300,17 +294,21 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         }
 
         xDomainMsgSender = _sender;
-        // _target must not be address(0). otherwise, this transaction will be reverted
+        // _target must not be address(0). otherwise, this transaction could be reverted
         if (_value != 0 && _target != address(0)) {
             IERC20(_nativeTokenAddress).approve(_target, _value);
         }
+        // _target is expected to perform a transferFrom to collect token
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
-        if (_value != 0 && _target != address(0) && !success) {
+        if (_value != 0 && _target != address(0)) {
             IERC20(_nativeTokenAddress).approve(_target, 0);
         }
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
         if (success) {
+            // This check is identical to the one above, but it ensures that the same message cannot be relayed
+            // twice, and adds a layer of protection against reentrancy.
+            assert(successfulMessages[versionedHash] == false);
             successfulMessages[versionedHash] = true;
             emit RelayedMessage(versionedHash);
         } else {

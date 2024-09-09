@@ -241,7 +241,7 @@ func TestSendNativeTokenMessageWithOnApprove(t *testing.T) {
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
 
-	calldata := e2e.EncodeCallData(opts.From, opts.From, amount, uint32(200000), []byte{})
+	calldata := e2e.EncodeCallData(opts.From, uint32(200000), []byte{})
 
 	l1BalanceBeforeDeposit, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, opts.From)
 	require.NoError(t, err)
