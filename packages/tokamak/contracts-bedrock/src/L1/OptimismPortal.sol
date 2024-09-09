@@ -403,7 +403,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
         if (_tx.value > 0) {
-            IERC20(_nativeTokenAddress).safeIn(_tx.target, _tx.value);
+            IERC20(_nativeTokenAddress).safeIncreaseAllowance(_tx.target, _tx.value);
         }
 
         // Trigger the call to the target contract. We use a custom low level method
