@@ -85,15 +85,15 @@ contract GasBenchMark_OptimismPortal is CommonTest {
     }
 
     function test_depositTransaction_benchmark() external {
-        optimismPortal.depositTransaction{ value: 100 }(
-            address(1), 0, 50000, false, hex"0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
+        optimismPortal.depositTransaction(
+            address(1), 0, 100, 50000, false, hex"0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
         );
     }
 
     function test_depositTransaction_benchmark_1() external {
         setPrevBaseFee(vm, address(optimismPortal), 1 gwei);
-        optimismPortal.depositTransaction{ value: 100 }(
-            address(1), 0, 50000, false, hex"0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
+        optimismPortal.depositTransaction(
+            address(1), 0, 100, 50000, false, hex"0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000"
         );
     }
 
@@ -136,14 +136,14 @@ contract GasBenchMark_L1StandardBridge_Deposit is Bridge_Initializer {
         vm.pauseGasMetering();
         setPrevBaseFee(vm, address(optimismPortal), 1 gwei);
         vm.resumeGasMetering();
-        l1StandardBridge.depositETH{ value: 500 }(50000, hex"");
+        l1StandardBridge.bridgeETH{ value: 500 }(500, 50000, hex"");
     }
 
     function test_depositETH_benchmark_1() external {
         vm.pauseGasMetering();
         setPrevBaseFee(vm, address(optimismPortal), 10 gwei);
         vm.resumeGasMetering();
-        l1StandardBridge.depositETH{ value: 500 }(50000, hex"");
+        l1StandardBridge.bridgeETH{ value: 500 }(500, 50000, hex"");
     }
 
     function test_depositERC20_benchmark_0() external {
