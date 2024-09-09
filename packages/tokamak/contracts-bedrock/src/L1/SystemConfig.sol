@@ -314,28 +314,10 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         symbol_ = GasPayingToken.getSymbol();
     }
 
-    /// @notice Internal setter for the gas paying token address, includes validation.
-    ///         The token must not already be set and must be non zero and not the ether address
-    ///         to set the token address. This prevents the token address from being changed
-    ///         and makes it explicitly opt-in to use custom gas token.
+    /// @notice Internal setter for the gas paying token address. Does not allow on Thanos
     /// @param _token Address of the gas paying token.
     function _setGasPayingToken(address _token) internal virtual {
-        if (_token != address(0) && _token != Constants.ETHER && !isCustomGasToken()) {
-            require(
-                ERC20(_token).decimals() == GAS_PAYING_TOKEN_DECIMALS, "SystemConfig: bad decimals of gas paying token"
-            );
-            bytes32 name = GasPayingToken.sanitize(ERC20(_token).name());
-            bytes32 symbol = GasPayingToken.sanitize(ERC20(_token).symbol());
-
-            // Set the gas paying token in storage and in the OptimismPortal.
-            GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
-            OptimismPortal(payable(optimismPortal())).setGasPayingToken({
-                _token: _token,
-                _decimals: GAS_PAYING_TOKEN_DECIMALS,
-                _name: name,
-                _symbol: symbol
-            });
-        }
+        assert(_token != address(0) && _token != Constants.ETHER && !isCustomGasToken());
     }
 
     /// @notice Updates the unsafe block signer address. Can only be called by the owner.
