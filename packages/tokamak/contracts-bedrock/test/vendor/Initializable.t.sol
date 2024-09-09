@@ -264,7 +264,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: deploy.mustGetAddress("L1StandardBridge"),
                 initCalldata: abi.encodeCall(
-                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, systemConfig, superchainConfig)
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1StandardBridge")
             })
@@ -274,7 +274,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: address(l1StandardBridge),
                 initCalldata: abi.encodeCall(
-                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, systemConfig, superchainConfig)
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1StandardBridgeProxy")
             })

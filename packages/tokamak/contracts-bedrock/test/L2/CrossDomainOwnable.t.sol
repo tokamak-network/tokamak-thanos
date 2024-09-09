@@ -65,6 +65,7 @@ contract CrossDomainOwnableThroughPortal_Test is CommonTest {
         vm.prank(alice);
         optimismPortal.depositTransaction({
             _to: address(setter),
+            _mint: 0,
             _value: 0,
             _gasLimit: 30_000,
             _isCreation: false,
