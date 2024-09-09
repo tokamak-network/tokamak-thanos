@@ -1163,8 +1163,9 @@ contract Deploy is Deployer {
                 L1StandardBridge.initialize,
                 (
                     L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    SuperchainConfig(superchainConfigProxy),
-                    SystemConfig(systemConfigProxy)
+                    SystemConfig(systemConfigProxy),
+                    SuperchainConfig(superchainConfigProxy)
+
                 )
             )
         });
