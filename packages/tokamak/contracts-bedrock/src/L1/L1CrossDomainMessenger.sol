@@ -59,7 +59,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         SystemConfig _systemConfig
     )
         public
-        reinitializer(Constants.INITIALIZER)
+        initializer
     {
         superchainConfig = _superchainConfig;
         portal = _portal;
