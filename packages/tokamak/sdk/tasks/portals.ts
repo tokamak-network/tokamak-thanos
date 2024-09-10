@@ -271,6 +271,41 @@ const depositViaOPV1 = async (mint: NumberLike, value: NumberLike) => {
   )
 }
 
+const calculateRelayedTransactionOnL2 = async (txId: string) => {
+  console.log('calculateRelayedTransactionOnL2:', txId)
+  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
+  const l1Contracts = {
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+  }
+  console.log('l1 contracts:', l1Contracts)
+
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const portals = new Portals({
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
+  const depositReceipt = await l1Provider.getTransactionReceipt(txId)
+  console.log('depositTx:', depositReceipt.transactionHash)
+
+  const relayedTxHash = await portals.waitingDepositTransactionRelayed(
+    depositReceipt,
+    {}
+  )
+  const status = await portals.getMessageStatus(depositReceipt)
+  console.log('deposit status relayed:', status === MessageStatus.RELAYED)
+  console.log('relayedTxHash:', relayedTxHash)
+}
+
 const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
   console.log('Withdraw Native token:', amount)
   console.log('Native token address:', l2NativeToken)
@@ -503,4 +538,15 @@ task(
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await withdrawViaBedrockMessagePasserV2(args.amount)
+  })
+
+task(
+  'calculate-hash',
+  'Calculate relayed deposit hash'
+)
+  .addParam('amount', 'Withdrawal amount', '1', types.string)
+  .setAction(async (args, hre) => {
+    console.log('update addresses')
+    await updateAddresses(hre)
+    await calculateRelayedTransactionOnL2(args.amount)
   })
