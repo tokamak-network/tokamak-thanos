@@ -152,6 +152,7 @@ const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   const messenger = new CrossChainMessenger({
     l1SignerOrProvider: l1Wallet,
@@ -253,6 +254,7 @@ const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
 
   const messenger = new CrossChainMessenger({
