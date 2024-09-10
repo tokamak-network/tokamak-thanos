@@ -125,6 +125,7 @@ const depositNativeToken = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('L1 contracts:', l1Contracts)
 
@@ -216,6 +217,7 @@ const depositNativeTokenViaMessenger = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('l1 contracts:', l1Contracts)
 
@@ -299,6 +301,7 @@ const withdrawNativeToken = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
 
   const bridges = {
