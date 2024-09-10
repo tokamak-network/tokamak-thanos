@@ -158,6 +158,7 @@ const approveAndDepositTON = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('l1 contracts:', l1Contracts)
 
@@ -249,6 +250,7 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('l1 contracts:', l1Contracts)
 
@@ -339,6 +341,7 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('l1 contracts:', l1Contracts)
 

@@ -1,34 +1,81 @@
-import { promises as fs } from 'fs'
-
-import { task, types } from 'hardhat/config'
+import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
-import { Event, Contract, Wallet, providers, utils, ethers } from 'ethers'
-import { predeploys, sleep } from '@tokamak-network/core-utils'
+import { Event, Contract, Wallet, utils, ethers, BytesLike } from 'ethers'
+import { predeploys } from '@tokamak-network/core-utils'
 import Artifact__OptimismMintableERC20TokenFactory from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20Factory.sol/OptimismMintableERC20Factory.json'
 import Artifact__OptimismMintableERC20Token from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
-import Artifact__L2ToL1MessagePasser from '@tokamak-network/thanos-contracts/forge-artifacts/L2ToL1MessagePasser.sol/L2ToL1MessagePasser.json'
-import Artifact__L2CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L2CrossDomainMessenger.sol/L2CrossDomainMessenger.json'
-import Artifact__L2StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
-import Artifact__OptimismPortal from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismPortal.sol/OptimismPortal.json'
-import Artifact__L1CrossDomainMessenger from '@tokamak-network/thanos-contracts/forge-artifacts/L1CrossDomainMessenger.sol/L1CrossDomainMessenger.json'
-import Artifact__L1StandardBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
-import Artifact__L2OutputOracle from '@tokamak-network/thanos-contracts/forge-artifacts/L2OutputOracle.sol/L2OutputOracle.json'
 import Artifact__WNativeToken from '@tokamak-network/thanos-contracts/forge-artifacts/WNativeToken.sol/WNativeToken.json'
 
-import {
-  CrossChainMessenger,
-  MessageStatus,
-  CONTRACT_ADDRESSES,
-  OEContractsLike,
-  DEFAULT_L2_CONTRACT_ADDRESSES,
-} from '../src'
+import { CrossChainMessenger, MessageStatus, Portals } from '../src'
+
+const privateKey = process.env.PRIVATE_KEY as BytesLike
+
+const l1Provider = new ethers.providers.StaticJsonRpcProvider(
+  process.env.L1_URL
+)
+const l2Provider = new ethers.providers.StaticJsonRpcProvider(
+  process.env.L2_URL
+)
+
+const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+
+const zeroAddr = '0x'.padEnd(42, '0')
+
+let nativeTokenAddress = process.env.NATIVE_TOKEN || ''
+let addressManager = process.env.ADDRESS_MANAGER || ''
+let l1CrossDomainMessenger = process.env.L1_CROSS_DOMAIN_MESSENGER || ''
+let l1StandardBridge = process.env.L1_STANDARD_BRIDGE || ''
+let optimismPortal = process.env.OPTIMISM_PORTAL || ''
+let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
+
+const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
+  if (nativeTokenAddress === '') {
+    const Deployment__NativeToken = await hre.deployments.get('L2NativeToken')
+    nativeTokenAddress = Deployment__NativeToken.address
+  }
+
+  if (addressManager === '') {
+    const Deployment__AddressManager = await hre.deployments.get(
+      'AddressManager'
+    )
+    addressManager = Deployment__AddressManager.address
+  }
+
+  if (l1CrossDomainMessenger === '') {
+    const Deployment__L1CrossDomainMessenger = await hre.deployments.get(
+      'L1CrossDomainMessengerProxy'
+    )
+    l1CrossDomainMessenger = Deployment__L1CrossDomainMessenger.address
+  }
+
+  if (l1StandardBridge === '') {
+    const Deployment__L1StandardBridge = await hre.deployments.get(
+      'L1StandardBridgeProxy'
+    )
+    l1StandardBridge = Deployment__L1StandardBridge.address
+  }
+
+  if (optimismPortal === '') {
+    const Deployment__OptimismPortal = await hre.deployments.get(
+      'OptimismPortalProxy'
+    )
+    optimismPortal = Deployment__OptimismPortal.address
+  }
+
+  if (l2OutputOracle === '') {
+    const Deployment__L2OutputOracle = await hre.deployments.get(
+      'L2OutputOracleProxy'
+    )
+    l2OutputOracle = Deployment__L2OutputOracle.address
+  }
+}
 
 const deployWTON = async (
   hre: HardhatRuntimeEnvironment,
-  signer: SignerWithAddress,
+  signer: Wallet,
   wrap: boolean
 ): Promise<Contract> => {
   const Factory__WTON = new hre.ethers.ContractFactory(
@@ -92,73 +139,37 @@ const createOptimismMintableERC20 = async (
   )
 }
 
-const depositWTON = async (
-  hre: HardhatRuntimeEnvironment,
-  l2ProviderUrl: string,
-  l1ContractsJsonPath: string,
-  signerIndex: number
-) => {
-  const signers = await hre.ethers.getSigners()
-  if (signers.length === 0) {
-    throw new Error('No configured signers')
+const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
+  const l1ChainId = await l1Wallet.getChainId()
+  const l2ChainId = await l2Wallet.getChainId()
+
+  const l1Contracts = {
+    StateCommitmentChain: zeroAddr,
+    CanonicalTransactionChain: zeroAddr,
+    BondManager: zeroAddr,
+    AddressManager: addressManager,
+    L1CrossDomainMessenger: l1CrossDomainMessenger,
+    L1StandardBridge: l1StandardBridge,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
-  if (signerIndex < 0 || signers.length <= signerIndex) {
-    throw new Error('Invalid signer index')
-  }
-  const signer = signers[signerIndex]
-  const address = await signer.getAddress()
-  console.log(`Using signer ${address}`)
-
-  // Ensure that the signer has a balance before trying to
-  // do anything
-  const balance = await signer.getBalance()
-  if (balance.eq(0)) {
-    throw new Error('Signer has no balance')
-  }
-
-  const l2NativeToken = process.env.NATIVE_TOKEN || ''
-
-  const l2Provider = new providers.StaticJsonRpcProvider(l2ProviderUrl)
-
-  const l2Signer = new hre.ethers.Wallet(
-    hre.network.config.accounts[signerIndex],
-    l2Provider
-  )
-
-  const l2ChainId = await l2Signer.getChainId()
-  let contractAddrs = CONTRACT_ADDRESSES[l2ChainId]
-  if (l1ContractsJsonPath) {
-    const data = await fs.readFile(l1ContractsJsonPath)
-    const json = JSON.parse(data.toString())
-    contractAddrs = {
-      l1: {
-        AddressManager: json.AddressManager,
-        L1CrossDomainMessenger: json.L1CrossDomainMessengerProxy,
-        L1StandardBridge: json.L1StandardBridgeProxy,
-        StateCommitmentChain: ethers.constants.AddressZero,
-        CanonicalTransactionChain: ethers.constants.AddressZero,
-        BondManager: ethers.constants.AddressZero,
-        OptimismPortal: json.OptimismPortalProxy,
-        L2OutputOracle: json.L2OutputOracleProxy,
-      },
-      l2: DEFAULT_L2_CONTRACT_ADDRESSES,
-    } as OEContractsLike
-  }
-
   const messenger = new CrossChainMessenger({
-    l1SignerOrProvider: signer,
-    l2SignerOrProvider: l2Signer,
-    l1ChainId: await signer.getChainId(),
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+    l1ChainId,
     l2ChainId,
-    nativeTokenAddress: l2NativeToken,
+    nativeTokenAddress,
     bedrock: true,
-    contracts: contractAddrs,
+    contracts: {
+      l1: l1Contracts,
+    },
   })
   // Ensure deployments module is initialized
   await hre.deployments.all()
 
   console.log('Deploying WTON to L1')
-  const WTON = await deployWTON(hre, signer, true)
+  const WTON = await deployWTON(hre, l1Wallet, true)
   console.log(`Deployed to ${WTON.address}`)
 
   // Save WTON address to deployments
@@ -170,7 +181,7 @@ const depositWTON = async (
   console.log('Creating L2 WTON')
   const OptimismMintableERC20 = await createOptimismMintableERC20(
     WTON,
-    l2Signer
+    l2Wallet
   )
 
   // Save OptimismMintableERC20 address to deployments
@@ -188,8 +199,17 @@ const depositWTON = async (
   await approvalTx.wait()
   console.log('WTON approved')
 
+  // report balances
+  console.log(`Balance WTON before depositing...`)
+  let l1Balance = await WTON.balanceOf(l1Wallet.address)
+  console.log('l1 WTON balance: ', l1Balance.toString())
+
+  let l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
+  console.log('l2 WTON balance:', l2Balance.toString())
+
+  // deposit WTON
   console.log('Depositing WTON to L2')
-  const depositTx = await messenger.depositERC20(
+  const depositTx = await messenger.bridgeERC20(
     WTON.address,
     OptimismMintableERC20.address,
     utils.parseEther('1')
@@ -197,141 +217,56 @@ const depositWTON = async (
   await depositTx.wait()
   console.log(`ERC20 deposited - ${depositTx.hash}`)
 
-  console.log('Checking to make sure deposit was successful')
-  // Deposit might get reorged, wait and also log for reorgs.
-  let prevBlockHash: string = ''
-  for (let i = 0; i < 12; i++) {
-    const messageReceipt = await signer.provider!.getTransactionReceipt(
-      depositTx.hash
-    )
-    if (messageReceipt.status !== 1) {
-      console.log(`Deposit failed, retrying...`)
-    }
+  const portals = new Portals({
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
+  })
 
-    // Wait for stability, we want some amount of time after any reorg
-    if (prevBlockHash !== '' && messageReceipt.blockHash !== prevBlockHash) {
-      console.log(
-        `Block hash changed from ${prevBlockHash} to ${messageReceipt.blockHash}`
-      )
-      i = 0
-    } else if (prevBlockHash !== '') {
-      console.log(`No reorg detected: ${i}`)
-    }
+  const relayedDepositTx =
+    await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
+  console.log('relayed tx:', relayedDepositTx)
 
-    prevBlockHash = messageReceipt.blockHash
-    await sleep(1000)
-  }
-  console.log(`Deposit confirmed`)
+  console.log(`Balance WTON after depositing...`)
 
-  const l2Balance = await OptimismMintableERC20.balanceOf(address)
-  if (l2Balance.lt(utils.parseEther('1'))) {
-    throw new Error(
-      `bad deposit. recipient balance on L2: ${utils.formatEther(l2Balance)}`
-    )
-  }
+  l1Balance = await WTON.balanceOf(l1Wallet.address)
+  console.log('l1 WTON balance: ', l1Balance.toString())
+
+  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
+  console.log('l2 WTON balance:', l2Balance.toString())
   console.log(`Deposit success`)
 }
 
-const withdrawWTON = async (
-  hre: HardhatRuntimeEnvironment,
-  l2ProviderUrl: string,
-  l1ContractsJsonPath: string,
-  signerIndex: number
-) => {
-  const signers = await hre.ethers.getSigners()
-  if (signers.length === 0) {
-    throw new Error('No configured signers')
+const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
+  const l1ChainId = (await l1Provider.getNetwork()).chainId
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+
+  const l1Contracts = {
+    StateCommitmentChain: zeroAddr,
+    CanonicalTransactionChain: zeroAddr,
+    BondManager: zeroAddr,
+    AddressManager: addressManager,
+    L1CrossDomainMessenger: l1CrossDomainMessenger,
+    L1StandardBridge: l1StandardBridge,
+    OptimismPortal: optimismPortal,
+    L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
-  if (signerIndex < 0 || signers.length <= signerIndex) {
-    throw new Error('Invalid signer index')
-  }
-  const signer = signers[signerIndex]
-  const address = await signer.getAddress()
-  console.log(`Using signer ${address}`)
-
-  // Ensure that the signer has a balance before trying to
-  // do anything
-  const balance = await signer.getBalance()
-  if (balance.eq(0)) {
-    throw new Error('Signer has no balance')
-  }
-
-  const l2NativeToken = process.env.NATIVE_TOKEN || ''
-
-  const l2Provider = new providers.StaticJsonRpcProvider(l2ProviderUrl)
-
-  const l2Signer = new hre.ethers.Wallet(
-    hre.network.config.accounts[signerIndex],
-    l2Provider
-  )
-
-  const l2ChainId = await l2Signer.getChainId()
-  let contractAddrs = CONTRACT_ADDRESSES[l2ChainId]
-  if (l1ContractsJsonPath) {
-    const data = await fs.readFile(l1ContractsJsonPath)
-    const json = JSON.parse(data.toString())
-    contractAddrs = {
-      l1: {
-        AddressManager: json.AddressManager,
-        L1CrossDomainMessenger: json.L1CrossDomainMessengerProxy,
-        L1StandardBridge: json.L1StandardBridgeProxy,
-        StateCommitmentChain: ethers.constants.AddressZero,
-        CanonicalTransactionChain: ethers.constants.AddressZero,
-        BondManager: ethers.constants.AddressZero,
-        OptimismPortal: json.OptimismPortalProxy,
-        L2OutputOracle: json.L2OutputOracleProxy,
-      },
-      l2: DEFAULT_L2_CONTRACT_ADDRESSES,
-    } as OEContractsLike
-  }
-
-  const OptimismPortal = new hre.ethers.Contract(
-    contractAddrs.l1.OptimismPortal,
-    Artifact__OptimismPortal.abi,
-    signer
-  )
-
-  const L1CrossDomainMessenger = new hre.ethers.Contract(
-    contractAddrs.l1.L1CrossDomainMessenger,
-    Artifact__L1CrossDomainMessenger.abi,
-    signer
-  )
-
-  const L1StandardBridge = new hre.ethers.Contract(
-    contractAddrs.l1.L1StandardBridge,
-    Artifact__L1StandardBridge.abi,
-    signer
-  )
-
-  const L2OutputOracle = new hre.ethers.Contract(
-    contractAddrs.l1.L2OutputOracle,
-    Artifact__L2OutputOracle.abi,
-    signer
-  )
-
-  const L2ToL1MessagePasser = new hre.ethers.Contract(
-    predeploys.L2ToL1MessagePasser,
-    Artifact__L2ToL1MessagePasser.abi
-  )
-
-  const L2CrossDomainMessenger = new hre.ethers.Contract(
-    predeploys.L2CrossDomainMessenger,
-    Artifact__L2CrossDomainMessenger.abi
-  )
-
-  const L2StandardBridge = new hre.ethers.Contract(
-    predeploys.L2StandardBridge,
-    Artifact__L2StandardBridge.abi
-  )
 
   const messenger = new CrossChainMessenger({
-    l1SignerOrProvider: signer,
-    l2SignerOrProvider: l2Signer,
-    l1ChainId: await signer.getChainId(),
-    l2ChainId,
-    nativeTokenAddress: l2NativeToken,
     bedrock: true,
-    contracts: contractAddrs,
+    contracts: {
+      l1: l1Contracts,
+    },
+    l1ChainId,
+    l2ChainId,
+    nativeTokenAddress,
+    l1SignerOrProvider: l1Wallet,
+    l2SignerOrProvider: l2Wallet,
   })
 
   // Access the stored contract addresses
@@ -348,182 +283,93 @@ const withdrawWTON = async (
   const WTON = new hre.ethers.Contract(
     l1WTONAddress,
     Artifact__WNativeToken.abi,
-    signer
+    l1Wallet
   )
   const OptimismMintableERC20 = new hre.ethers.Contract(
     l2WTONAddress,
     Artifact__OptimismMintableERC20Token.abi,
-    l2Signer
+    l2Wallet
   )
 
   console.log('Starting withdrawal')
+  console.log(`Balance WTON before withdrawing...`)
+  let l1Balance = await WTON.balanceOf(l1Wallet.address)
+  console.log('l1 WTON balance: ', l1Balance.toString())
 
-  const preBalance = await WTON.balanceOf(signer.address)
+  let l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
+  console.log('l2 WTON balance:', l2Balance.toString())
+
+  // report balances
+
   const withdraw = await messenger.withdrawERC20(
     WTON.address,
     OptimismMintableERC20.address,
     utils.parseEther('1')
   )
   const withdrawalReceipt = await withdraw.wait()
-  for (const log of withdrawalReceipt.logs) {
-    switch (log.address) {
-      case L2ToL1MessagePasser.address: {
-        const parsed = L2ToL1MessagePasser.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from ${log.address}`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      case L2StandardBridge.address: {
-        const parsed = L2StandardBridge.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from ${log.address}`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      case L2CrossDomainMessenger.address: {
-        const parsed = L2CrossDomainMessenger.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from ${log.address}`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      default: {
-        console.log(`Unknown log from ${log.address} - ${log.topics[0]}`)
-      }
-    }
-  }
 
-  setInterval(async () => {
-    const currentStatus = await messenger.getMessageStatus(withdraw)
-    console.log(`Message status: ${MessageStatus[currentStatus]}`)
-    const latest = await L2OutputOracle.latestBlockNumber()
-    console.log(`Latest L2OutputOracle commitment number: ${latest.toString()}`)
-    const tip = await signer.provider!.getBlockNumber()
-    console.log(`L1 chain tip: ${tip.toString()}`)
+  console.log(
+    ' Withdrawal Tx:',
+    withdrawalReceipt.transactionHash,
+    ' Block',
+    withdrawalReceipt.blockNumber,
+    ' hash',
+    withdraw.hash
+  )
+
+  await messenger.waitForMessageStatus(
+    withdrawalReceipt,
+    MessageStatus.READY_TO_PROVE
+  )
+  console.log('Prove the message')
+  const proveTx = await messenger.proveMessage(withdrawalReceipt)
+  const proveReceipt = await proveTx.wait(3)
+  console.log('Proved the message:', proveReceipt.transactionHash)
+
+  const finalizeInterval = setInterval(async () => {
+    const currentStatus = await messenger.getMessageStatus(withdrawalReceipt)
+    console.log('Message status:', currentStatus)
   }, 3000)
 
-  const now = Math.floor(Date.now() / 1000)
-
-  console.log('Waiting for message to be able to be proved')
-  await messenger.waitForMessageStatus(withdraw, MessageStatus.READY_TO_PROVE)
-
-  console.log('Proving withdrawal...')
-  const prove = await messenger.proveMessage(withdraw)
-  const proveReceipt = await prove.wait()
-  console.log(proveReceipt)
-  if (proveReceipt.status !== 1) {
-    throw new Error('Prove withdrawal transaction reverted')
-  }
-
-  console.log('Waiting for message to be able to be relayed')
-  await messenger.waitForMessageStatus(withdraw, MessageStatus.READY_FOR_RELAY)
-
-  console.log('Finalizing withdrawal...')
-  // TODO: Update SDK to properly estimate gas
-  const finalize = await messenger.finalizeMessage(withdraw, {
-    overrides: { gasLimit: 500_000 },
-  })
-  const finalizeReceipt = await finalize.wait()
-  console.log('finalizeReceipt:', finalizeReceipt)
-  console.log(`Took ${Math.floor(Date.now() / 1000) - now} seconds`)
-
-  for (const log of finalizeReceipt.logs) {
-    switch (log.address) {
-      case OptimismPortal.address: {
-        const parsed = OptimismPortal.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from OptimismPortal (${log.address})`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      case L1CrossDomainMessenger.address: {
-        const parsed = L1CrossDomainMessenger.interface.parseLog(log)
-        console.log(
-          `Log ${parsed.name} from L1CrossDomainMessenger (${log.address})`
-        )
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      case L1StandardBridge.address: {
-        const parsed = L1StandardBridge.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from L1StandardBridge (${log.address})`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      case WTON.address: {
-        const parsed = WTON.interface.parseLog(log)
-        console.log(`Log ${parsed.name} from WTON (${log.address})`)
-        console.log(parsed.args)
-        console.log()
-        break
-      }
-      default:
-        console.log(
-          `Unknown log emitted from ${log.address} - ${log.topics[0]}`
-        )
-    }
-  }
-
-  const postBalance = await WTON.balanceOf(signer.address)
-
-  const expectedBalance = preBalance.add(utils.parseEther('1'))
-  if (!expectedBalance.eq(postBalance)) {
-    throw new Error(
-      `Balance mismatch, expected: ${expectedBalance}, actual: ${postBalance}`
+  try {
+    await messenger.waitForMessageStatus(
+      withdrawalReceipt,
+      MessageStatus.READY_FOR_RELAY
     )
+  } finally {
+    clearInterval(finalizeInterval)
   }
+
+  console.log(`Balance WTON before finalizing...`)
+  l1Balance = await WTON.balanceOf(l1Wallet.address)
+  console.log('l1 WTON balance: ', l1Balance.toString())
+
+  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
+  console.log('l2 WTON balance:', l2Balance.toString())
+
+  const tx = await messenger.finalizeMessage(withdrawalReceipt)
+  const receipt = await tx.wait()
+  console.log('Finalized message tx', receipt.transactionHash)
+
+  console.log(`Balance WTON after withdrawing...`)
+  l1Balance = await WTON.balanceOf(l1Wallet.address)
+  console.log('l1 WTON balance: ', l1Balance.toString())
+
+  l2Balance = await OptimismMintableERC20.balanceOf(l2Wallet.address)
+  console.log('l2 WTON balance:', l2Balance.toString())
   console.log('Withdrawal success')
 }
 
-// TODO(tynes): this task could be modularized in the future
-// so that it can deposit an arbitrary token. Right now it
 // deploys a WTON contract, mints some WTON and then
 // deposits that into L2 through the StandardBridge.
-task('deposit-erc20', 'Deposit WTON onto L2.')
-  .addParam(
-    'l2ProviderUrl',
-    'L2 provider URL.',
-    'http://localhost:9545',
-    types.string
-  )
-  .addOptionalParam(
-    'l1ContractsJsonPath',
-    'Path to a JSON with L1 contract addresses in it',
-    '',
-    types.string
-  )
-  .addOptionalParam('signerIndex', 'Index of signer to use', 0, types.int)
-  .setAction(async (args, hre) => {
-    await depositWTON(
-      hre,
-      args.l2ProviderUrl,
-      args.l1ContractsJsonPath,
-      args.signerIndex
-    )
-  })
+task('deposit-erc20', 'Deposit WTON onto L2.').setAction(async (args, hre) => {
+  await updateAddresses(hre)
+  await depositWTON(hre)
+})
 
-task('withdraw-erc20', 'Withdraw WTON from L2 to L1')
-  .addParam(
-    'l2ProviderUrl',
-    'L2 provider URL.',
-    'http://localhost:9545',
-    types.string
-  )
-  .addOptionalParam(
-    'l1ContractsJsonPath',
-    'Path to a JSON with L1 contract addresses in it',
-    '',
-    types.string
-  )
-  .addOptionalParam('signerIndex', 'Index of signer to use', 0, types.int)
-  .setAction(async (args, hre) => {
-    await withdrawWTON(
-      hre,
-      args.l2ProviderUrl,
-      args.l1ContractsJsonPath,
-      args.signerIndex
-    )
-  })
+task('withdraw-erc20', 'Withdraw WTON from L2 to L1').setAction(
+  async (args, hre) => {
+    await updateAddresses(hre)
+    await withdrawWTON(hre)
+  }
+)
