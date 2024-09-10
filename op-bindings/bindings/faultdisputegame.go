@@ -28,13 +28,7 @@ var (
 	_ = event.NewSubscription
 )
 
-// TypesOutputRootProof is an auto generated low-level Go binding around an user-defined struct.
-type TypesOutputRootProof struct {
-	Version                  [32]byte
-	StateRoot                [32]byte
-	MessagePasserStorageRoot [32]byte
-	LatestBlockhash          [32]byte
-}
+
 
 // FaultDisputeGameMetaData contains all meta data concerning the FaultDisputeGame contract.
 var FaultDisputeGameMetaData = &bind.MetaData{
