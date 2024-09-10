@@ -34,9 +34,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:network-specific
     SystemConfig public systemConfig;
 
-    // /// @notice Address of native token (ERC-20 token)
-    // address public nativeTokenAddress;
-
     /// @notice Semantic version.
     /// @custom:semver 2.4.0
     string public constant version = "2.4.0";

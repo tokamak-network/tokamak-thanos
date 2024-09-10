@@ -23,6 +23,7 @@ import { OnApprove } from "./OnApprove.sol";
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+    /// @notice Allows for interactions with non standard ERC20 tokens.
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -346,9 +347,12 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // bugs, then we know that this withdrawal was actually triggered on L2 and can therefore
         // be relayed on L1.
         require(
-            SecureMerkleTrie.verifyInclusionProof(
-                abi.encode(storageKey), hex"01", _withdrawalProof, _outputRootProof.messagePasserStorageRoot
-            ),
+            SecureMerkleTrie.verifyInclusionProof({
+                _key: abi.encode(storageKey),
+                _value: hex"01",
+                _proof: _withdrawalProof,
+                _root: _outputRootProof.messagePasserStorageRoot
+            }),
             "OptimismPortal: invalid withdrawal inclusion proof"
         );
 
