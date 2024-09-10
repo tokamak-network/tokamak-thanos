@@ -97,6 +97,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         bytes extraData
     );
 
+    /// @notice Semantic version.
     /// @custom:semver 2.2.0
     string public constant version = "2.2.0";
 
