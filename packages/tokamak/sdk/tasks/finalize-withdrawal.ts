@@ -117,6 +117,7 @@ task('finalize-withdrawal', 'Finalize a withdrawal')
             Deployment__L1CrossDomainMessengerProxy?.address,
           L2OutputOracle: Deployment__L2OutputOracleProxy?.address,
           OptimismPortal: Deployment__OptimismPortalProxy?.address,
+          L1UsdcBridge: '0x'.padEnd(42, '0'),
         },
       },
     })
