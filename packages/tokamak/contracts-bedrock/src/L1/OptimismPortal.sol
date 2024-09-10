@@ -126,7 +126,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         SuperchainConfig _superchainConfig
     )
         public
-        reinitializer(Constants.INITIALIZER)
+        initializer
     {
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
