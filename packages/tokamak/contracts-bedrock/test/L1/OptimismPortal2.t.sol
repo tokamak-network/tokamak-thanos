@@ -149,7 +149,7 @@ contract OptimismPortal2_Test is CommonTest {
     function test_depositTransaction_contractCreation_reverts() external {
         // contract creation must have a target of address(0)
         vm.expectRevert(BadTarget.selector);
-        optimismPortal2.depositTransaction(address(1), 1, 0, true, hex"");
+        optimismPortal2.depositTransaction(address(1), 1, 1, 0, true, hex"");
     }
 
     /// @dev Tests that `depositTransaction` reverts when the data is too large.
@@ -160,6 +160,7 @@ contract OptimismPortal2_Test is CommonTest {
         vm.expectRevert(LargeCalldata.selector);
         optimismPortal2.depositTransaction({
             _to: address(0),
+            _mint: 0,
             _value: 0,
             _gasLimit: gasLimit,
             _isCreation: false,
@@ -170,7 +171,7 @@ contract OptimismPortal2_Test is CommonTest {
     /// @dev Tests that `depositTransaction` reverts when the gas limit is too small.
     function test_depositTransaction_smallGasLimit_reverts() external {
         vm.expectRevert(SmallGasLimit.selector);
-        optimismPortal2.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
+        optimismPortal2.depositTransaction({ _to: address(1), _mint: 0, _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
     }
 
     /// @dev Tests that `depositTransaction` succeeds for small,
@@ -184,6 +185,7 @@ contract OptimismPortal2_Test is CommonTest {
 
         optimismPortal2.depositTransaction({
             _to: address(0x40),
+            _mint: 0,
             _value: 0,
             _gasLimit: gasLimit,
             _isCreation: false,
@@ -234,8 +236,9 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.deal(depositor, _mint);
         vm.prank(depositor, depositor);
-        optimismPortal2.depositTransaction{ value: _mint }({
+        optimismPortal2.depositTransaction({
             _to: _to,
+            _mint: _mint,
             _value: _value,
             _gasLimit: _gasLimit,
             _isCreation: _isCreation,
@@ -277,8 +280,9 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.deal(address(this), _mint);
         vm.prank(address(this));
-        optimismPortal2.depositTransaction{ value: _mint }({
+        optimismPortal2.depositTransaction({
             _to: _to,
+            _mint: _mint,
             _value: _value,
             _gasLimit: _gasLimit,
             _isCreation: _isCreation,
@@ -1353,6 +1357,7 @@ contract OptimismPortal2_ResourceFuzz_Test is CommonTest {
         // Do a deposit, should not revert
         optimismPortal2.depositTransaction{ gas: MAX_GAS_LIMIT }({
             _to: address(0x20),
+            _mint: 0,
             _value: 0x40,
             _gasLimit: _gasLimit,
             _isCreation: false,
