@@ -113,6 +113,7 @@ const depositETH = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
   console.log('l1 contracts:', l1Contracts)
 
@@ -186,6 +187,7 @@ const withdrawETH = async (amount: NumberLike) => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
 
   const bridges = {
