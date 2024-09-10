@@ -128,7 +128,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         SuperchainConfig _superchainConfig
     )
         public
-        reinitializer(Constants.INITIALIZER)
+        initializer
     {
         superchainConfig = _superchainConfig;
         systemConfig = _systemConfig;

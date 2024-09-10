@@ -215,7 +215,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         Storage.setAddress(NATIVE_TOKEN_ADDRESS_SLOT, _addresses.nativeTokenAddress);
 
         _setStartBlock();
-        _setGasPayingToken(_addresses.gasPayingToken);
+        // _setGasPayingToken(_addresses.gasPayingToken);
 
         _setResourceConfig(_config);
         require(_gasLimit >= minimumGasLimit(), "SystemConfig: gas limit too low");
