@@ -31,10 +31,6 @@ import { OnApprove } from "./OnApprove.sol";
 contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
-    // address public nativeTokenAddress;
-
-    SystemConfig public systemConfig;
-
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of Native token from L1 into L2 is initiated.
     /// @param from      Address of the depositor.
@@ -101,12 +97,14 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         bytes extraData
     );
 
-    /// @notice Semantic version.
-    /// @custom:semver 2.1.0
-    string public constant version = "2.1.0";
+    /// @custom:semver 2.2.0
+    string public constant version = "2.2.0";
 
     /// @notice Address of the SuperchainConfig contract.
     SuperchainConfig public superchainConfig;
+
+    /// @notice Address of the SystemConfig contract.
+    SystemConfig public systemConfig;
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge() {
@@ -117,15 +115,13 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         });
     }
 
-    /// @notice Initializer
+    /// @notice Initializer.
     /// @param _messenger        Contract for the CrossDomainMessenger on this network.
-    /// @param _systemConfig     Contract for SystemConfig on L1
     /// @param _superchainConfig Contract for the SuperchainConfig on this network.
-
     function initialize(
         CrossDomainMessenger _messenger,
-        SystemConfig _systemConfig,
-        SuperchainConfig _superchainConfig
+        SuperchainConfig _superchainConfig,
+        SystemConfig _systemConfig
     )
         public
         initializer

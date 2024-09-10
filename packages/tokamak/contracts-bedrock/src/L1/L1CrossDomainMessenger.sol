@@ -38,14 +38,14 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     // address public nativeTokenAddress;
 
     /// @notice Semantic version.
-    /// @custom:semver 2.3.0
-    string public constant version = "2.3.0";
+    /// @custom:semver 2.4.0
+    string public constant version = "2.4.0";
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger() {
         initialize({
             _superchainConfig: SuperchainConfig(address(0)),
-            _portal: OptimismPortal(payable(0)),
+            _portal: OptimismPortal(payable(address(0))),
             _systemConfig: SystemConfig(address(0))
         });
     }
@@ -53,6 +53,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @notice Initializes the contract.
     /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
     /// @param _portal Contract of the OptimismPortal contract on this network.
+    /// @param _systemConfig Contract of the SystemConfig contract on this network.
     function initialize(
         SuperchainConfig _superchainConfig,
         OptimismPortal _portal,
@@ -67,8 +68,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
     }
 
-    /// @notice Getter for the OptimismPortal contract.
+    /// @notice Getter function for the OptimismPortal contract on this chain.
+    ///         Public getter is legacy and will be removed in the future. Use `portal()` instead.
     /// @return Contract of the OptimismPortal on this chain.
+    /// @custom:legacy
     function PORTAL() external view returns (OptimismPortal) {
         return portal;
     }
