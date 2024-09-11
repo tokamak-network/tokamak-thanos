@@ -607,6 +607,8 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 		}
 	}
 
+	time.Sleep(1 * time.Second)
+
 	// Geth Clients
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
