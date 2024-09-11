@@ -72,9 +72,9 @@ abstract contract FeeVault {
 
         if (WITHDRAWAL_NETWORK == WithdrawalNetwork.L2) {
             (bool success,) = RECIPIENT.call{ value: value }(hex"");
-            require(success, "FeeVault: failed to send ETH to L2 fee recipient");
+            require(success, "FeeVault: failed to send NativeToken to L2 fee recipient");
         } else {
-            L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).bridgeETHTo{ value: value }(
+            L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).bridgeNativeTokenTo{ value: value }(
                 RECIPIENT, value, WITHDRAWAL_MIN_GAS, bytes("")
             );
         }
