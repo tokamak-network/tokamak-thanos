@@ -35,11 +35,10 @@ func TestE2EBridgeTransactionsOptimismPortalDeposits(t *testing.T) {
 	calldata := []byte{byte(1), byte(2), byte(3)}
 	l1Opts, err := bind.NewKeyedTransactorWithChainID(testSuite.OpCfg.Secrets.Alice, testSuite.OpCfg.L1ChainIDBig())
 	require.NoError(t, err)
-	l1Opts.Value = big.NewInt(params.Ether)
 
 	// In the same deposit transaction, transfer, 0.5ETH to Bob. We do this to ensure we're only indexing
 	// bridged funds from the source address versus any transferred value to a recipient in the same L2 transaction
-	depositTx, err := optimismPortal.DepositTransaction(l1Opts, bobAddr, big.NewInt(params.Ether/2), 100_000, false, calldata)
+	depositTx, err := optimismPortal.DepositTransaction(l1Opts, bobAddr, big.NewInt(params.Ether), big.NewInt(params.Ether/2), 100_000, false, calldata)
 	require.NoError(t, err)
 	depositReceipt, err := wait.ForReceiptOK(context.Background(), testSuite.L1Client, depositTx.Hash())
 	require.NoError(t, err)

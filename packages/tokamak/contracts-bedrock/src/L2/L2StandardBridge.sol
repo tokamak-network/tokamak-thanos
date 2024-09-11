@@ -53,8 +53,8 @@ contract L2StandardBridge is StandardBridge, ISemver {
         bytes extraData
     );
 
-    /// @custom:semver 1.8.0
-    string public constant version = "1.8.0";
+    /// @custom:semver 1.10.0
+    string public constant version = "1.10.0";
 
     /// @notice Constructs the L2StandardBridge contract.
     constructor() StandardBridge() {

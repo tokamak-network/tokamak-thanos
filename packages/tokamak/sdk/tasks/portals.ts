@@ -1,10 +1,10 @@
+import '@nomiclabs/hardhat-ethers'
+import { BigNumber, BytesLike, ethers } from 'ethers'
+import 'hardhat-deploy'
 import { task, types } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import '@nomiclabs/hardhat-ethers'
-import 'hardhat-deploy'
-import { BigNumber, BytesLike, ethers } from 'ethers'
 
-import { Portals, NumberLike, asL2Provider, MessageStatus } from '../src'
+import { asL2Provider, MessageStatus, NumberLike, Portals } from '../src'
 
 console.log('Setup task...')
 
@@ -540,10 +540,7 @@ task(
     await withdrawViaBedrockMessagePasserV2(args.amount)
   })
 
-task(
-  'calculate-hash',
-  'Calculate relayed deposit hash'
-)
+task('calculate-hash', 'Calculate relayed deposit hash')
   .addParam('amount', 'Withdrawal amount', '1', types.string)
   .setAction(async (args, hre) => {
     console.log('update addresses')
