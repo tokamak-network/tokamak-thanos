@@ -358,12 +358,17 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance after: ', l1TONBalance.toString())
   while (true) {
-    const l2BalanceAfter = await LegacyERC20NativeToken.balanceOf(l1Wallet.address)
+    const l2BalanceAfter = await LegacyERC20NativeToken.balanceOf(
+      l1Wallet.address
+    )
     if (l2BalanceAfter.eq(l2BalancePrev)) {
       await sleep(1000)
       continue
     }
-    console.log('l2 LegacyERC20NativeToken balance: ', l2BalanceAfter.toString())
+    console.log(
+      'l2 LegacyERC20NativeToken balance: ',
+      l2BalanceAfter.toString()
+    )
     console.log(
       'added LegacyERC20NativeToken balance: ',
       l2BalanceAfter.sub(l2BalancePrev).toString()
