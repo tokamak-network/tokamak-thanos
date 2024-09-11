@@ -1,7 +1,7 @@
-import { task, types } from 'hardhat/config'
 import '@nomiclabs/hardhat-ethers'
-import 'hardhat-deploy'
 import { BytesLike, ethers } from 'ethers'
+import 'hardhat-deploy'
+import { task, types } from 'hardhat/config'
 
 import { NumberLike } from '../src'
 
@@ -76,7 +76,7 @@ const fundNativeToken = async (amount: NumberLike) => {
 }
 
 task('fund-native-token', 'Send L2NativeToken to L1.')
-  .addParam('amount', 'Send amount', '1', types.string)
+  .addParam('amount', 'Send amount', '1000000000000000000', types.string)
   .setAction(async (args) => {
     await fundNativeToken(args.amount)
   })
