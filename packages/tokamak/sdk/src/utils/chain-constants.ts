@@ -1,39 +1,39 @@
-import { ethers } from 'ethers'
-import portalArtifactsMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/OptimismPortalProxy.json'
-import portalArtifactsGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/OptimismPortalProxy.json'
-import portalArtifactsSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/OptimismPortalProxy.json'
-import portalArtifactsThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/OptimismPortalProxy.json'
-import l2OutputOracleArtifactsMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L2OutputOracleProxy.json'
-import l2OutputOracleArtifactsGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L2OutputOracleProxy.json'
-import l2OutputOracleArtifactsSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L2OutputOracleProxy.json'
-import l2OutputOracleArtifactsThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L2OutputOracleProxy.json'
-import addressManagerArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/AddressManager.json'
-import addressManagerArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/AddressManager.json'
-import addressManagerArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/AddressManager.json'
-import addressManagerArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/AddressManager.json'
-import l1StandardBridgeArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L1StandardBridgeProxy.json'
-import l1StandardBridgeArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L1StandardBridgeProxy.json'
-import l1StandardBridgeArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L1StandardBridgeProxy.json'
-import l1StandardBridgeArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L1StandardBridgeProxy.json'
-import l1CrossDomainMessengerArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L1CrossDomainMessengerProxy.json'
-import l1CrossDomainMessengerArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L1CrossDomainMessengerProxy.json'
-import l1CrossDomainMessengerArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L1CrossDomainMessengerProxy.json'
-import l1CrossDomainMessengerArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L1CrossDomainMessengerProxy.json'
 import { predeploys } from '@tokamak-network/core-utils'
+import addressManagerArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/AddressManager.json'
+import l1CrossDomainMessengerArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L1CrossDomainMessengerProxy.json'
+import l1StandardBridgeArtifactGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L1StandardBridgeProxy.json'
+import l2OutputOracleArtifactsGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/L2OutputOracleProxy.json'
+import portalArtifactsGoerli from '@tokamak-network/thanos-contracts/deployments/goerli/OptimismPortalProxy.json'
+import addressManagerArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/AddressManager.json'
+import l1CrossDomainMessengerArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L1CrossDomainMessengerProxy.json'
+import l1StandardBridgeArtifactMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L1StandardBridgeProxy.json'
+import l2OutputOracleArtifactsMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/L2OutputOracleProxy.json'
+import portalArtifactsMainnet from '@tokamak-network/thanos-contracts/deployments/mainnet/OptimismPortalProxy.json'
+import addressManagerArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/AddressManager.json'
+import l1CrossDomainMessengerArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L1CrossDomainMessengerProxy.json'
+import l1StandardBridgeArtifactSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L1StandardBridgeProxy.json'
+import l2OutputOracleArtifactsSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/L2OutputOracleProxy.json'
+import portalArtifactsSepolia from '@tokamak-network/thanos-contracts/deployments/sepolia/OptimismPortalProxy.json'
+import addressManagerArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/AddressManager.json'
+import l1CrossDomainMessengerArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L1CrossDomainMessengerProxy.json'
+import l1StandardBridgeArtifactThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L1StandardBridgeProxy.json'
+import l2OutputOracleArtifactsThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/L2OutputOracleProxy.json'
+import portalArtifactsThanosSepoliaTest from '@tokamak-network/thanos-contracts/deployments/thanos-sepolia-test/OptimismPortalProxy.json'
+import { ethers } from 'ethers'
 
 import {
+  DAIBridgeAdapter,
+  ECOBridgeAdapter,
+  StandardBridgeAdapter,
+} from '../adapters'
+import {
+  BridgeAdapterData,
   L1ChainID,
   L2ChainID,
   OEContractsLike,
   OEL1ContractsLike,
   OEL2ContractsLike,
-  BridgeAdapterData,
 } from '../interfaces'
-import {
-  StandardBridgeAdapter,
-  DAIBridgeAdapter,
-  ECOBridgeAdapter,
-} from '../adapters'
 
 const portalAddresses = {
   mainnet: portalArtifactsMainnet.address,
@@ -99,6 +99,7 @@ export const DEPOSIT_CONFIRMATION_BLOCKS: {
   [L2ChainID.OPTIMISM_SEPOLIA]: 12 as const,
   [L2ChainID.OPTIMISM_HARDHAT_LOCAL]: 2 as const,
   [L2ChainID.OPTIMISM_HARDHAT_DEVNET]: 2 as const,
+  [L2ChainID.OPTIMISM_LOCAL_DEVNET]: 2 as const,
   [L2ChainID.OPTIMISM_BEDROCK_ALPHA_TESTNET]: 12 as const,
   [L2ChainID.BASE_GOERLI]: 25 as const,
   [L2ChainID.BASE_SEPOLIA]: 25 as const,
@@ -383,6 +384,25 @@ export const CONTRACT_ADDRESSES: {
       L1UsdcBridge: '0xE390EE020Afb7F8e4A2Dc44a71088db2acd72CF3' as const,
     },
     // TODO: change predeploys in L2
+    l2: DEFAULT_L2_CONTRACT_ADDRESSES,
+  },
+  [L2ChainID.OPTIMISM_LOCAL_DEVNET]: {
+    l1: {
+      AddressManager: '0xe4EB561155AFCe723bB1fF8606Fbfe9b28d5d38D' as const,
+      L1CrossDomainMessenger:
+        '0x4d8eC2972eb0bC4210c64E651638D4a00ad3B400' as const,
+      L1StandardBridge: '0x072B5bdBFC5e66B55317Ef4B4d1AE7d61592ebB2' as const,
+      StateCommitmentChain:
+        '0x0000000000000000000000000000000000000000' as const,
+      CanonicalTransactionChain:
+        '0x0000000000000000000000000000000000000000' as const,
+      BondManager: '0x0000000000000000000000000000000000000000' as const,
+      OptimismPortal: '0xfe36E31dFE8Cb3A3Aa0CB9f35B191DdB5451b090' as const,
+      OptimismPortal2: '0xfe36E31dFE8Cb3A3Aa0CB9f35B191DdB5451b090' as const,
+      L2OutputOracle: '0x754A91555a8dd5037315ABFd3702ED49d92887b7' as const,
+      DisputeGameFactory: '0x11c81c1A7979cdd309096D1ea53F887EA9f8D14d' as const,
+      L1UsdcBridge: '0x201B36B26b816D061fC552B679f8279Db0Fbbc6A' as const,
+    },
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
   },
 }
