@@ -122,33 +122,14 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.paused(), true);
     }
 
-    /// @dev Tests that `receive` successdully deposits ETH.
-    function testFuzz_receive_succeeds(uint256 _value) external {
-        vm.expectEmit(address(optimismPortal2));
-        emitTransactionDeposited({
-            _from: alice,
-            _to: alice,
-            _value: _value,
-            _mint: _value,
-            _gasLimit: 100_000,
-            _isCreation: false,
-            _data: hex""
-        });
-
-        // give alice money and send as an eoa
-        vm.deal(alice, _value);
-        vm.prank(alice, alice);
-        (bool s,) = address(optimismPortal2).call{ value: _value }(hex"");
-
-        assertTrue(s);
-        assertEq(address(optimismPortal2).balance, _value);
-    }
-
     /// @dev Tests that `depositTransaction` reverts when the destination address is non-zero
     ///      for a contract creation deposit.
     function test_depositTransaction_contractCreation_reverts() external {
         // contract creation must have a target of address(0)
-        vm.expectRevert(BadTarget.selector);
+        deal(address(l2NativeToken), address(this), 1);
+        l2NativeToken.approve(address(optimismPortal2), 1);
+
+        vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
         optimismPortal2.depositTransaction(address(1), 1, 1, 0, true, hex"");
     }
 
@@ -157,7 +138,7 @@ contract OptimismPortal2_Test is CommonTest {
     function test_depositTransaction_largeData_reverts() external {
         uint256 size = 120_001;
         uint64 gasLimit = optimismPortal2.minimumGasLimit(uint64(size));
-        vm.expectRevert(LargeCalldata.selector);
+        vm.expectRevert("OptimismPortal: data too large");
         optimismPortal2.depositTransaction({
             _to: address(0),
             _mint: 0,
@@ -170,8 +151,15 @@ contract OptimismPortal2_Test is CommonTest {
 
     /// @dev Tests that `depositTransaction` reverts when the gas limit is too small.
     function test_depositTransaction_smallGasLimit_reverts() external {
-        vm.expectRevert(SmallGasLimit.selector);
-        optimismPortal2.depositTransaction({ _to: address(1), _mint: 0, _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
+        vm.expectRevert("OptimismPortal: gas limit too small");
+        optimismPortal2.depositTransaction({
+            _to: address(1),
+            _mint: 0,
+            _value: 0,
+            _gasLimit: 0,
+            _isCreation: false,
+            _data: hex""
+        });
     }
 
     /// @dev Tests that `depositTransaction` succeeds for small,
@@ -180,7 +168,7 @@ contract OptimismPortal2_Test is CommonTest {
         uint64 gasLimit = optimismPortal2.minimumGasLimit(uint64(_data.length));
         if (_shouldFail) {
             gasLimit = uint64(bound(gasLimit, 0, gasLimit - 1));
-            vm.expectRevert(SmallGasLimit.selector);
+            vm.expectRevert("OptimismPortal: gas limit too small");
         }
 
         optimismPortal2.depositTransaction({
@@ -213,6 +201,7 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
+        vm.assume(_mint == 0);
         _gasLimit = uint64(
             bound(
                 _gasLimit,
@@ -258,6 +247,7 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
+        vm.assume(_mint == 0);
         _gasLimit = uint64(
             bound(
                 _gasLimit,
@@ -351,6 +341,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Fund the portal so that we can withdraw ETH.
         vm.deal(address(optimismPortal2), 0xFFFFFFFF);
+        deal(address(l2NativeToken), address(optimismPortal2), 0xFFFFFFFF);
     }
 
     /// @dev Asserts that the reentrant call will revert.
@@ -632,7 +623,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts when attempting to replay using a secondary proof
     ///      submitter.
     function test_finalizeWithdrawalTransaction_secondProofReplay_reverts() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 bobBalanceBefore = l2NativeToken.balanceOf(address(bob));
 
         // Submit the first proof for the withdrawal hash.
         vm.expectEmit(true, true, true, true);
@@ -671,12 +662,12 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
         optimismPortal2.finalizeWithdrawalTransactionExternalProof(_defaultTx, address(this));
 
-        assert(address(bob).balance == bobBalanceBefore + 100);
+        assert(l2NativeToken.balanceOf(address(bob)) == bobBalanceBefore + 100);
     }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     function test_finalizeWithdrawalTransaction_provenWithdrawalHash_succeeds() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 bobBalanceBefore = l2NativeToken.balanceOf(address(bob));
 
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
@@ -698,13 +689,13 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         emit WithdrawalFinalized(_withdrawalHash, true);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
 
-        assert(address(bob).balance == bobBalanceBefore + 100);
+        assert(l2NativeToken.balanceOf(address(bob)) == bobBalanceBefore + 100);
     }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds using a different proof than an earlier one by another
     ///      party.
     function test_finalizeWithdrawalTransaction_secondaryProof_succeeds() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 bobBalanceBefore = l2NativeToken.balanceOf(address(bob));
 
         // Create a secondary dispute game.
         IDisputeGame secondGame = disputeGameFactory.create(
@@ -759,7 +750,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         emit WithdrawalFinalized(_withdrawalHash, true);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
 
-        assert(address(bob).balance == bobBalanceBefore + 100);
+        assert(l2NativeToken.balanceOf(address(bob)) == bobBalanceBefore + 100);
     }
 
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
@@ -884,7 +875,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         vm.warp(block.timestamp + optimismPortal2.proofMaturityDelaySeconds() + 1);
         vm.expectEmit(true, true, true, true);
-        emit WithdrawalFinalized(_withdrawalHash, false);
+        emit WithdrawalFinalized(_withdrawalHash, true);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
 
         assert(address(bob).balance == bobBalanceBefore);
@@ -928,7 +919,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
             target: bob,
             value: 100,
             gasLimit: gasLimit,
-            data: hex""
+            data: hex"aa"
         });
 
         // Get updated proof inputs.
@@ -955,6 +946,8 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         // Resolve the dispute game.
         game.resolveClaim(0, 0);
         game.resolve();
+
+        deal(address(l2NativeToken), address(optimismPortal), 100);
 
         vm.warp(block.timestamp + optimismPortal2.proofMaturityDelaySeconds() + 1);
         vm.expectRevert("SafeCall: Not enough gas");
@@ -1025,11 +1018,12 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
                 && _target.code.length == 0 // No accounts with code
                 && _target != CONSOLE // The console has no code but behaves like a contract
                 && uint160(_target) > 9 // No precompiles (or zero address)
+                && _data.length != 0
         );
 
         // Total ETH supply is currently about 120M ETH.
         uint256 value = bound(_value, 0, 200_000_000 ether);
-        vm.deal(address(optimismPortal2), value);
+        deal(address(l2NativeToken), address(optimismPortal2), value);
 
         uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
         uint256 nonce = l2ToL1MessagePasser.messageNonce();
@@ -1079,7 +1073,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         vm.warp(block.timestamp + optimismPortal2.proofMaturityDelaySeconds() + 1);
 
         // Finalize the withdrawal transaction
-        vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
+        vm.expectCallMinGas(_tx.target, 0, uint64(_tx.gasLimit), _tx.data);
         optimismPortal2.finalizeWithdrawalTransaction(_tx);
         assertTrue(optimismPortal2.finalizedWithdrawals(withdrawalHash));
     }

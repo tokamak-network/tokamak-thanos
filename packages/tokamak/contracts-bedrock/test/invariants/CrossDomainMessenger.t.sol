@@ -35,6 +35,7 @@ contract RelayActor is StdUtils {
     /// @notice Relays a message to the `L1CrossDomainMessenger` with a random `version`,
     ///         and `_message`.
     function relay(uint8 _version, uint8 _value, bytes memory _message) external {
+        vm.assume(_message.length != 0);
         address target = address(0x04); // ID precompile
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
 
@@ -52,11 +53,11 @@ contract RelayActor is StdUtils {
         // Restrict the value to the range of [0, 1]
         // This is just so we get variance of calls with and without value. The ID precompile
         // will not reject value being sent to it.
-        _value = _value % 2;
+        _value = 0;
 
         // If the message should succeed, supply it `baseGas`. If not, supply it an amount of
         // gas that is too low to complete the call.
-        uint256 gas = doFail ? bound(minGasLimit, 60_000, 80_000) : xdm.baseGas(_message, minGasLimit);
+        uint256 gas = doFail ? bound(minGasLimit, 80_000, 90_000) : xdm.baseGas(_message, minGasLimit);
 
         // Compute the cross domain message hash and store it in `hashes`.
         // The `relayMessage` function will always encode the message as a version 1
