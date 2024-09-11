@@ -42,7 +42,7 @@ export CONTAINER_NAME=kontrol-tests
 if [ "$KONTROL_FP_DEPLOYMENT" = true ]; then
   export CONTAINER_NAME=kontrol-fp-tests
 fi
-KONTROLRC=$(jq -r .kontrol < "$WORKSPACE_DIR/../../versions.json")
+KONTROLRC=$(jq -r .kontrol < "$WORKSPACE_DIR/../../../versions.json")
 export KONTROL_RELEASE=$KONTROLRC
 export LOCAL=false
 export SCRIPT_TESTS=false
