@@ -407,7 +407,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
-        if (_tx.value > 0) {
+        if (_tx.value != 0) {
             if (_tx.data.length != 0) {
                 IERC20(_nativeTokenAddress).approve(_tx.target, _tx.value);
             } else {
@@ -430,7 +430,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         }
 
         // Reset approval after a call
-        if (_tx.data.length != 0 && _tx.value > 0) {
+        if (_tx.data.length != 0 && _tx.value != 0) {
             IERC20(_nativeTokenAddress).approve(_tx.target, 0);
         }
 
