@@ -23,6 +23,7 @@ import { OnApprove } from "./OnApprove.sol";
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
+    /// @notice Allows for interactions with non standard ERC20 tokens.
     using SafeERC20 for IERC20;
 
     /// @notice Represents a proven withdrawal.
@@ -63,13 +64,40 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     /// @notice Contract of the Superchain Config.
     SuperchainConfig public superchainConfig;
 
-    /// @notice Address of the L2OutputOracle contract.
+    /// @notice Contract of the L2OutputOracle.
     /// @custom:network-specific
     L2OutputOracle public l2Oracle;
 
-    /// @notice Address of the SystemConfig contract.
+    /// @notice Contract of the SystemConfig.
     /// @custom:network-specific
     SystemConfig public systemConfig;
+
+    /// @custom:spacer disputeGameFactory
+    /// @notice Spacer for backwards compatibility.
+    address private spacer_56_0_20;
+
+    /// @custom:spacer provenWithdrawals
+    /// @notice Spacer for backwards compatibility.
+    bytes32 private spacer_57_0_32;
+
+    /// @custom:spacer disputeGameBlacklist
+    /// @notice Spacer for backwards compatibility.
+    bytes32 private spacer_58_0_32;
+
+    /// @custom:spacer respectedGameType + respectedGameTypeUpdatedAt
+    /// @notice Spacer for backwards compatibility.
+    bytes32 private spacer_59_0_32;
+
+    /// @custom:spacer proofSubmitters
+    /// @notice Spacer for backwards compatibility.
+    bytes32 private spacer_60_0_32;
+
+    /// @notice Represents the amount of native asset minted in L2. This may not
+    ///         be 100% accurate due to the ability to send ether to the contract
+    ///         without triggering a deposit transaction. It also is used to prevent
+    ///         overflows for L2 account balances when custom gas tokens are used.
+    ///         It is not safe to trust `ERC20.balanceOf` as it may lie.
+    uint256 internal _balance;
 
     /// @custom:spacer nativeTokenAddress
     /// @notice Spacer for backwards compatibility.
@@ -102,9 +130,9 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0
+    /// @custom:semver 2.8.1-beta.1
     function version() public pure virtual returns (string memory) {
-        return "1.0.0";
+        return "2.8.1-beta.1";
     }
 
     /// @notice Constructs the OptimismPortal contract.
@@ -207,7 +235,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Intentionally empty.
     }
 
-     /// @notice unpack onApprove data
+    /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
     function unpackOnApproveData(bytes calldata _data)
         internal
@@ -243,7 +271,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         override
         returns (bool)
     {
-        (address to,  uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        (address to, uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == _nativeToken()) {
             _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message, true);
             return true;
@@ -319,9 +347,12 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // bugs, then we know that this withdrawal was actually triggered on L2 and can therefore
         // be relayed on L1.
         require(
-            SecureMerkleTrie.verifyInclusionProof(
-                abi.encode(storageKey), hex"01", _withdrawalProof, _outputRootProof.messagePasserStorageRoot
-            ),
+            SecureMerkleTrie.verifyInclusionProof({
+                _key: abi.encode(storageKey),
+                _value: hex"01",
+                _proof: _withdrawalProof,
+                _root: _outputRootProof.messagePasserStorageRoot
+            }),
             "OptimismPortal: invalid withdrawal inclusion proof"
         );
 
@@ -521,7 +552,8 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from = ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
+        address from =
+            ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
