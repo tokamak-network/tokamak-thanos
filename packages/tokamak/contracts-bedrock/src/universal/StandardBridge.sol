@@ -200,7 +200,6 @@ abstract contract StandardBridge is Initializable {
     )
         public
         payable
-        onlyEOA
     {
         _initiateBridgeNativeToken(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
