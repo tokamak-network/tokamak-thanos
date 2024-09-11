@@ -75,7 +75,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
-        require(msg.value == 0, "Deny depositing ETH");
         portal.depositTransaction(_to, _value, _value, _gasLimit, false, _data);
     }
 
@@ -136,6 +135,32 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function paused() public view override returns (bool) {
         return superchainConfig.paused();
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function sendMessage(address _target, bytes calldata _message, uint32 _minGasLimit) external payable override {
+        // we don't support deposit ETH directly through the L1CrossDomainMessenger contract
+        require(msg.value == 0, "Deny depositing ETH");
+
+        // Triggers a message to the other messenger. Note that the amount of gas provided to the
+        // message is the amount of gas requested by the user PLUS the base gas value. We want to
+        // guarantee the property that the call to the target contract will always have at least
+        // the minimum gas limit specified by the user.
+        _sendMessage({
+            _to: address(otherMessenger),
+            _gasLimit: baseGas(_message, _minGasLimit),
+            _value: msg.value,
+            _data: abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), msg.sender, _target, msg.value, _minGasLimit, _message
+            )
+        });
+
+        emit SentMessage(_target, msg.sender, _message, messageNonce(), _minGasLimit);
+        emit SentMessageExtension1(msg.sender, msg.value);
+
+        unchecked {
+            ++msgNonce;
+        }
     }
 
     /// @notice Sends a deposit native token message to some target address on the other chain. Note that if the call
