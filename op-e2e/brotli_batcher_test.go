@@ -3,6 +3,7 @@ package op_e2e
 import (
 	"context"
 	"crypto/ecdsa"
+	"math"
 	"math/big"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	batcherFlags "github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
@@ -40,8 +42,26 @@ func setupAliceAccount(t *testing.T, cfg SystemConfig, sys *System, ethPrivKey *
 	opts, err := bind.NewKeyedTransactorWithChainID(ethPrivKey, cfg.L1ChainIDBig())
 	require.NoError(t, err)
 	mintAmount := big.NewInt(1_000_000_000_000)
-	opts.Value = mintAmount
-	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {})
+
+	nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+	require.NoError(t, err)
+
+	// faucet NativeToken
+	tx, err := nativeTokenContract.Faucet(opts, mintAmount)
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	// Approve NativeToken with the OP
+	tx, err = nativeTokenContract.Approve(opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
+
+	SendDepositTx(t, cfg, l1Client, l2Verif, opts, func(l2Opts *DepositTxOpts) {
+		l2Opts.Mint = mintAmount
+		l2Opts.Value = mintAmount
+	})
 
 	// Confirm balance
 	ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
