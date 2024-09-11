@@ -2,11 +2,12 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import { Test } from "forge-std/Test.sol";
+import { Test, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { Bridge_Initializer } from "test/setup/Bridge_Initializer.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Types } from "src/libraries/Types.sol";
 
@@ -174,6 +175,8 @@ contract GasBenchMark_L1StandardBridge_Deposit is Bridge_Initializer {
 }
 
 contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
+    using stdStorage for StdStorage;
+
     function setUp() public virtual override {
         super.setUp();
         deal(address(L1Token), address(l1StandardBridge), 100, true);
@@ -184,13 +187,21 @@ contract GasBenchMark_L1StandardBridge_Finalize is Bridge_Initializer {
         );
         vm.startPrank(address(l1StandardBridge.messenger()));
         vm.deal(address(l1StandardBridge.messenger()), 100);
+        vm.deal(address(l1StandardBridge), 100);
+
+        uint256 slot = stdstore.target(address(l1StandardBridge)).sig("deposits(address,address)").with_key(
+            address(address(0))
+        ).with_key(address(Predeploys.ETH)).find();
+
+        // Give the L1 bridge some ERC20 tokens
+        vm.store(address(l1StandardBridge), bytes32(slot), bytes32(uint256(100)));
     }
 
     function test_finalizeETHWithdrawal_benchmark() external {
         // TODO: Make this more accurate. It is underestimating the cost because it pranks
         // the call coming from the messenger, which bypasses the portal
         // and oracle.
-        l1StandardBridge.finalizeETHWithdrawal{ value: 100 }(alice, alice, 100, hex"");
+        l1StandardBridge.finalizeETHWithdrawal(alice, alice, 100, hex"");
     }
 }
 
