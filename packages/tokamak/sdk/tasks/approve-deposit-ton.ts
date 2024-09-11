@@ -1,9 +1,9 @@
-import { task, types } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import '@nomiclabs/hardhat-ethers'
-import 'hardhat-deploy'
 import { predeploys, sleep } from '@tokamak-network/core-utils'
 import { BytesLike, ethers } from 'ethers'
+import 'hardhat-deploy'
+import { task, types } from 'hardhat/config'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import {
   CrossChainMessenger,
@@ -200,8 +200,8 @@ const approveAndDepositTON = async (amount: NumberLike) => {
   console.log('l2 native balance before depositing: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, l1Wallet.address, amount, 200000, '0x']
+    ['address', 'uint32', 'bytes'],
+    [l2Wallet.address, 200000, '0x']
   )
   const approveAndCallTx = await (
     await tonContract
@@ -235,11 +235,6 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   console.log('TON address:', l2NativeToken)
 
   const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(
-    predeploys.WNativeToken,
-    erc20ABI,
-    l2Wallet
-  )
 
   const l1Contracts = {
     StateCommitmentChain: zeroAddr,
@@ -281,14 +276,13 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
   let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance:', l1TONBalance.toString())
 
-  const l2CDMBalancePrev = await wtonContract.balanceOf(
-    predeploys.L2CrossDomainMessenger
-  )
-  console.log('l2cdm wton balance: ', l2CDMBalancePrev.toString())
+  const l2TONBalanceBefore = await l2Wallet.getBalance()
+
+  console.log('l2 ton balance: ', l2TONBalanceBefore.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
+    ['address', 'uint32', 'bytes'],
+    [l2Wallet.address, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via CDM: ', data)
@@ -308,16 +302,14 @@ const approveAndDepositTONViaCDM = async (amount: NumberLike) => {
     MessageStatus.RELAYED
   )
 
-  const l2CDMBalanceAfter = await wtonContract.balanceOf(
-    predeploys.L2CrossDomainMessenger
-  )
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
+  const l2TONBalanceAfter = await l2Wallet.getBalance()
   console.log('l1 ton balance after: ', l1TONBalance.toString())
-  console.log('l2cdm wton balance: ', l2CDMBalanceAfter.toString())
+  console.log('l2 ton balance after: ', l2TONBalanceAfter.toString())
 
   console.log(
-    'added wton balance: ',
-    l2CDMBalanceAfter.sub(l2CDMBalancePrev).toString()
+    'added ton balance: ',
+    l2TONBalanceAfter.sub(l2TONBalanceBefore).toString()
   )
 }
 
@@ -326,8 +318,8 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   console.log('TON address:', l2NativeToken)
 
   const tonContract = new ethers.Contract(l2NativeToken, erc20ABI, l1Wallet)
-  const wtonContract = new ethers.Contract(
-    predeploys.WNativeToken,
+  const LegacyERC20NativeToken = new ethers.Contract(
+    predeploys.LegacyERC20NativeToken,
     erc20ABI,
     l2Wallet
   )
@@ -348,12 +340,12 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   let l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance:', l1TONBalance.toString())
 
-  const l2BalancePrev = await wtonContract.balanceOf(l1Wallet.address)
+  const l2BalancePrev = await LegacyERC20NativeToken.balanceOf(l1Wallet.address)
   console.log('l2 wton balance: ', l2BalancePrev.toString())
 
   const data = ethers.utils.solidityPack(
-    ['address', 'address', 'uint256', 'uint32', 'bytes'],
-    [l1Wallet.address, predeploys.WNativeToken, amount, 200000, '0xd0e30db0']
+    ['address', 'uint256', 'uint32', 'bytes'],
+    [l1Wallet.address, amount, 200000, '0xd0e30db0']
   )
 
   console.log('Approve and Call via Portal: ', data)
@@ -366,14 +358,19 @@ const approveAndDepositTONViaOP = async (amount: NumberLike) => {
   l1TONBalance = await tonContract.balanceOf(l1Wallet.address)
   console.log('l1 ton balance after: ', l1TONBalance.toString())
   while (true) {
-    const l2BalanceAfter = await wtonContract.balanceOf(l1Wallet.address)
+    const l2BalanceAfter = await LegacyERC20NativeToken.balanceOf(
+      l1Wallet.address
+    )
     if (l2BalanceAfter.eq(l2BalancePrev)) {
       await sleep(1000)
       continue
     }
-    console.log('l2 wton balance: ', l2BalanceAfter.toString())
     console.log(
-      'added wton balance: ',
+      'l2 LegacyERC20NativeToken balance: ',
+      l2BalanceAfter.toString()
+    )
+    console.log(
+      'added LegacyERC20NativeToken balance: ',
       l2BalanceAfter.sub(l2BalancePrev).toString()
     )
     break
