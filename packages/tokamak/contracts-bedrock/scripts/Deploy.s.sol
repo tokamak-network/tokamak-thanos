@@ -801,7 +801,7 @@ contract Deploy is Deployer {
     }
 
     /// @notice Deploy the Safe
-    function deployL2NativeToken() public onlyDevnet broadcast {
+    function deployL2NativeToken() public broadcast {
         string memory path = Config.deployConfigPath();
         address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
         // If L2NativeToken is already existing on the network, we don't deploy the new contract.
