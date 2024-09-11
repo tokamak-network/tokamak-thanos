@@ -1171,12 +1171,6 @@ func TestWithdrawals(t *testing.T) {
 	require.Equal(t, types.ReceiptStatusSuccessful, proveReceipt.Status)
 	require.Equal(t, types.ReceiptStatusSuccessful, finalizeReceipt.Status)
 
-	tx, err = nativeTokenContract.TransferFrom(opts, cfg.L1Deployments.OptimismPortalProxy, fromAddr, withdrawAmount)
-	require.NoError(t, err)
-
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-	require.NoError(t, err)
-
 	endBalance, err := nativeTokenContract.BalanceOf(&bind.CallOpts{}, fromAddr)
 	require.Nil(t, err)
 
