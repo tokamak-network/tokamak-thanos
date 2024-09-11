@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -302,9 +303,6 @@ func TestMixedDepositValidity(t *testing.T) {
 
 	// Now we create a number of deposits from each transactor
 	for i := 0; i < depositTxCount; i++ {
-		// Determine if this deposit should succeed in transferring value (not minting)
-		validTransfer := randomProvider.Int()%2 == 0
-
 		// Determine the transactor to use
 		transactorIndex := randomProvider.Int() % len(transactors)
 		transactor := transactors[transactorIndex]
@@ -317,70 +315,36 @@ func TestMixedDepositValidity(t *testing.T) {
 		// Create our L1 deposit transaction and send it.
 		mintAmount := big.NewInt(randomProvider.Int63() % 9_000_000)
 
-		// nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-		// require.NoError(t, err)
+		nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+		require.NoError(t, err)
 
-		// // faucet NativeToken
-		// tx, err := nativeTokenContract.Faucet(transactor.Account.L1Opts, mintAmount)
-		// require.NoError(t, err)
-		// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-		// require.NoError(t, err)
+		// faucet NativeToken
+		tx, err := nativeTokenContract.Faucet(transactor.Account.L1Opts, mintAmount)
+		require.NoError(t, err)
+		_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+		require.NoError(t, err)
 
-		// // Approve NativeToken with the OP
-		// tx, err = nativeTokenContract.Approve(transactor.Account.L1Opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-		// require.NoError(t, err)
-		// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-		// require.NoError(t, err)
+		// Approve NativeToken with the OP
+		tx, err = nativeTokenContract.Approve(transactor.Account.L1Opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+		require.NoError(t, err)
+		_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+		require.NoError(t, err)
 
-		// SendDepositTx(t, cfg, l1Client, l2Verif, transactor.Account.L1Opts, func(l2Opts *DepositTxOpts) {
-		// 	l2Opts.GasLimit = 100_000
-		// 	l2Opts.Data = nil
-		// 	l2Opts.ToAddr = toAddr
-		// 	l2Opts.Mint = mintAmount
-		// 	l2Opts.Value = mintAmount
-		// 	l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
-		// })
-
-		// if transactor != receiver {
-		// 	receiver.ExpectedL2Balance = new(big.Int).Add(receiver.ExpectedL2Balance, mintAmount)
-		// } else {
-		// 	transactor.ExpectedL2Balance = new(big.Int).Add(transactor.ExpectedL2Balance, mintAmount)
-		// }
-		// transactor.ExpectedL1Nonce = transactor.ExpectedL1Nonce + 3
-		// transactor.ExpectedL2Nonce = transactor.ExpectedL2Nonce + 1
-
-		transactor.Account.L1Opts.Value = mintAmount
-		var transferValue *big.Int
-		if validTransfer {
-			transferValue = new(big.Int).Div(transactor.ExpectedL2Balance, common.Big3) // send 1/3 our balance which should succeed.
-		} else {
-			transferValue = new(big.Int).Mul(common.Big2, transactor.ExpectedL2Balance) // trigger a revert by trying to transfer our current balance * 2
-		}
 		SendDepositTx(t, cfg, l1Client, l2Verif, transactor.Account.L1Opts, func(l2Opts *DepositTxOpts) {
 			l2Opts.GasLimit = 100_000
-			l2Opts.IsCreation = false
 			l2Opts.Data = nil
 			l2Opts.ToAddr = toAddr
-			l2Opts.Value = transferValue
-			if validTransfer {
-				l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
-			} else {
-				l2Opts.ExpectedStatus = types.ReceiptStatusFailed
-			}
+			l2Opts.Mint = mintAmount
+			l2Opts.Value = mintAmount
+			l2Opts.ExpectedStatus = types.ReceiptStatusSuccessful
 		})
 
-		// Update our expected balances.
-		if validTransfer && transactor != receiver {
-			// Transactor balances changes by minted minus transferred value.
-			transactor.ExpectedL2Balance = new(big.Int).Add(transactor.ExpectedL2Balance, new(big.Int).Sub(mintAmount, transferValue))
-			// Receiver balance changes by transferred value.
-			receiver.ExpectedL2Balance = new(big.Int).Add(receiver.ExpectedL2Balance, transferValue)
+		if transactor != receiver {
+			receiver.ExpectedL2Balance = new(big.Int).Add(receiver.ExpectedL2Balance, mintAmount)
 		} else {
-			// If the transfer failed, minting should've still succeeded but the balance shouldn't have transferred
-			// to the recipient.
 			transactor.ExpectedL2Balance = new(big.Int).Add(transactor.ExpectedL2Balance, mintAmount)
 		}
-		transactor.ExpectedL1Nonce = transactor.ExpectedL1Nonce + 1
+		transactor.ExpectedL1Nonce = transactor.ExpectedL1Nonce + 3
 		transactor.ExpectedL2Nonce = transactor.ExpectedL2Nonce + 1
 	}
 
