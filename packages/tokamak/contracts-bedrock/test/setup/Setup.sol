@@ -30,6 +30,7 @@ import { L2Genesis, L1Dependencies, OutputMode } from "scripts/L2Genesis.s.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ProtocolVersions } from "src/L1/ProtocolVersions.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
 import { AddressManager } from "src/legacy/AddressManager.sol";
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
@@ -65,6 +66,7 @@ contract Setup {
     DelayedWETH delayedWeth;
     L2OutputOracle l2OutputOracle;
     SystemConfig systemConfig;
+    L2NativeToken l2NativeToken;
     L1StandardBridge l1StandardBridge;
     L1CrossDomainMessenger l1CrossDomainMessenger;
     AddressManager addressManager;
@@ -129,6 +131,7 @@ contract Setup {
         delayedWeth = DelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
         l2OutputOracle = L2OutputOracle(deploy.mustGetAddress("L2OutputOracleProxy"));
         systemConfig = SystemConfig(deploy.mustGetAddress("SystemConfigProxy"));
+        l2NativeToken = L2NativeToken(deploy.mustGetAddress("L2NativeToken"));
         l1StandardBridge = L1StandardBridge(deploy.mustGetAddress("L1StandardBridgeProxy"));
         l1CrossDomainMessenger = L1CrossDomainMessenger(deploy.mustGetAddress("L1CrossDomainMessengerProxy"));
         addressManager = AddressManager(deploy.mustGetAddress("AddressManager"));
@@ -149,6 +152,7 @@ contract Setup {
         vm.label(deploy.mustGetAddress("DelayedWETHProxy"), "DelayedWETHProxy");
         vm.label(address(systemConfig), "SystemConfig");
         vm.label(deploy.mustGetAddress("SystemConfigProxy"), "SystemConfigProxy");
+        vm.label(address(l2NativeToken), "L2NativeToken");
         vm.label(address(l1StandardBridge), "L1StandardBridge");
         vm.label(deploy.mustGetAddress("L1StandardBridgeProxy"), "L1StandardBridgeProxy");
         vm.label(address(l1CrossDomainMessenger), "L1CrossDomainMessenger");
