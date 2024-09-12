@@ -131,6 +131,7 @@ const withdrawFee = async () => {
     L1StandardBridge: l1StandardBridge,
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
+    L1UsdcBridge: zeroAddr,
   }
 
   const bridges = {

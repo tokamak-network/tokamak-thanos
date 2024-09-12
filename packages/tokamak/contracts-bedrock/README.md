@@ -37,7 +37,8 @@ This package contains the L1 and L2 contracts and components to build the Thanos
 | [`L1CrossDomainMessenger`](./src/L1/L1CrossDomainMessenger.sol)                    | [`ResolvedDelegateProxy`](./src/legacy/ResolvedDelegateProxy.sol) | High-level interface for sending messages to and receiving messages from Thanos                   |
 | [`L1StandardBridge`](./src/L1/L1StandardBridge.sol)                                | [`L1ChugSplashProxy`](./src/legacy/L1ChugSplashProxy.sol)         | Standardized system for transferring ERC20 tokens to/from Thanos                                  |
 | [`L2OutputOracle`](./src/L1/L2OutputOracle.sol)                                    | [`Proxy`](./src/universal/Proxy.sol)                              | Stores commitments to the state of Thanos which can be used by contracts on L1 to access L2 state |
-| [`OptimismPortal`](./src/L1/OptimismPortal.sol)                                    | [`Proxy`](./src/universal/Proxy.sol)                              | Low-level message passing interface                                                               |
+| [`OptimismPortal`](./src/L1/OptimismPortal.sol)                                    | [`Proxy`](./src/universal/Proxy.sol)                              | Low-level message passing interface supported L2 output root                                                              |
+| [`OptimismPortal2`](./src/L1/OptimismPortal2.sol)                                    | [`Proxy`](./src/universal/Proxy.sol)                              | Low-level message passing interface supported fault proof                                                              |
 | [`OptimismMintableERC20Factory`](./src/universal/OptimismMintableERC20Factory.sol) | [`Proxy`](./src/universal/Proxy.sol)                              | Deploys standard `OptimismMintableERC20` tokens that are compatible with either `StandardBridge`  |
 | [`ProxyAdmin`](./src/universal/ProxyAdmin.sol)                                     | -                                                                 | Contract that can upgrade L1 contracts                                                            |
 
@@ -56,10 +57,31 @@ This package contains the L1 and L2 contracts and components to build the Thanos
 
 ## Installation
 
-We export contract ABIs, contract source code, and contract deployment information for this package via `npm`:
+We export contract ABIs, contract source code, and contract deployment information for this package via `pnpm`:
 
 ```shell
-npm install @tokamak-network/thanos-contracts
+pnpm install @tokamak-network/thanos-contracts
+```
+## Build
+We can build the package in the monorep using `pnpm`
+```shell
+# Install dependencies
+pnpm install
+
+# Compile the contracts and make artifacts
+pnpm build
+```
+
+## Test
+
+We are able to run unit tests for all contracts within the package. The files used for testing are located in the [test](./test) directory. Please refer to [Test Options](https://book.getfoundry.sh/reference/forge/forge-test#test-options) for more `forge test` options.
+
+```shell
+# Run the unit test all contracts in this package
+pnpm test
+
+# Run the unit test for specific contract
+forge test --match-contract <contract-name>
 ```
 
 ## Deployment

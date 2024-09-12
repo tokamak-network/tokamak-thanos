@@ -1990,7 +1990,7 @@ export class CrossChainMessenger {
    * @param opts.overrides Optional transaction overrides.
    * @returns Transaction response for the deposit transaction.
    */
-  public async depositETH(
+  public async bridgeETH(
     amount: NumberLike,
     opts?: {
       recipient?: AddressLike
@@ -2000,7 +2000,7 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l1Signer).sendTransaction(
-      await this.populateTransaction.depositETH(amount, opts)
+      await this.populateTransaction.bridgeETH(amount, opts)
     )
   }
 
@@ -2038,7 +2038,7 @@ export class CrossChainMessenger {
    * @param opts.overrides Optional transaction overrides.
    * @returns Transaction response for the deposit transaction.
    */
-  public async depositNativeToken(
+  public async bridgeNativeToken(
     amount: NumberLike,
     opts?: {
       recipient?: AddressLike
@@ -2048,7 +2048,7 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l1Signer).sendTransaction(
-      await this.populateTransaction.depositNativeToken(amount, opts)
+      await this.populateTransaction.bridgeNativeToken(amount, opts)
     )
   }
 
@@ -2159,7 +2159,7 @@ export class CrossChainMessenger {
    * @param opts.overrides Optional transaction overrides.
    * @returns Transaction response for the deposit transaction.
    */
-  public async depositERC20(
+  public async bridgeERC20(
     l1Token: AddressLike,
     l2Token: AddressLike,
     amount: NumberLike,
@@ -2171,12 +2171,7 @@ export class CrossChainMessenger {
     }
   ): Promise<TransactionResponse> {
     return (opts?.signer || this.l1Signer).sendTransaction(
-      await this.populateTransaction.depositERC20(
-        l1Token,
-        l2Token,
-        amount,
-        opts
-      )
+      await this.populateTransaction.bridgeERC20(l1Token, l2Token, amount, opts)
     )
   }
 
@@ -2480,25 +2475,39 @@ export class CrossChainMessenger {
      * @param isEstimatingGas Enable estimation gas
      * @returns Transaction that can be signed and executed to deposit the ETH.
      */
-    depositETH: async (
+    bridgeETH: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
         l2GasLimit?: NumberLike
-        overrides?: PayableOverrides
+        overrides?: CallOverrides
       },
       isEstimatingGas: boolean = false
     ): Promise<TransactionRequest> => {
+      // if we don't include the users address the estimation will fail from lack of allowance
+      if (!ethers.Signer.isSigner(this.l1SignerOrProvider)) {
+        throw new Error('unable to deposit without an l1 signer')
+      }
+
+      const from = (this.l1SignerOrProvider as Signer).getAddress()
+
       const getOpts = async () => {
         if (isEstimatingGas) {
           return opts
         }
-        const gasEstimation = await this.estimateGas.depositETH(amount, opts)
+        const gasEstimation = await this.estimateGas.bridgeETH(amount, {
+          ...opts,
+          overrides: {
+            ...opts?.overrides,
+            from: opts?.overrides?.from ?? from,
+          },
+        })
         return {
           ...opts,
           overrides: {
             ...opts?.overrides,
             gasLimit: gasEstimation.add(gasEstimation.div(2)),
+            from: opts?.overrides?.from ?? from,
           },
         }
       }
@@ -2545,7 +2554,7 @@ export class CrossChainMessenger {
      * @param isEstimatingGas Enable estimation gas
      * @returns Transaction that can be signed and executed to deposit the L2 Native Token.
      */
-    depositNativeToken: async (
+    bridgeNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2565,16 +2574,13 @@ export class CrossChainMessenger {
 
         const from = (this.l1SignerOrProvider as Signer).getAddress()
 
-        const gasEstimation = await this.estimateGas.depositNativeToken(
-          amount,
-          {
-            ...opts,
-            overrides: {
-              ...opts?.overrides,
-              from: opts?.overrides?.from ?? from,
-            },
-          }
-        )
+        const gasEstimation = await this.estimateGas.bridgeNativeToken(amount, {
+          ...opts,
+          overrides: {
+            ...opts?.overrides,
+            from: opts?.overrides?.from ?? from,
+          },
+        })
         return {
           ...opts,
           overrides: {
@@ -2670,9 +2676,10 @@ export class CrossChainMessenger {
      * @param opts.recipient Optional address to receive the funds on L2. Defaults to sender.
      * @param opts.l2GasLimit Optional gas limit to use for the transaction on L2.
      * @param opts.overrides Optional transaction overrides.
+     * @param isEstimatingGas determine to estimate gas.
      * @returns Transaction that can be signed and executed to deposit the tokens.
      */
-    depositERC20: async (
+    bridgeERC20: async (
       l1Token: AddressLike,
       l2Token: AddressLike,
       amount: NumberLike,
@@ -2694,7 +2701,7 @@ export class CrossChainMessenger {
           throw new Error('unable to deposit without an l1 signer')
         }
         const from = (this.l1SignerOrProvider as Signer).getAddress()
-        const gasEstimation = await this.estimateGas.depositERC20(
+        const gasEstimation = await this.estimateGas.bridgeERC20(
           l1Token,
           l2Token,
           amount,
@@ -2858,7 +2865,7 @@ export class CrossChainMessenger {
      * @param opts.overrides Optional transaction overrides.
      * @returns Gas estimate for the transaction.
      */
-    depositETH: async (
+    bridgeETH: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2867,7 +2874,7 @@ export class CrossChainMessenger {
       }
     ): Promise<BigNumber> => {
       return this.l1Provider.estimateGas(
-        await this.populateTransaction.depositETH(amount, opts, true)
+        await this.populateTransaction.bridgeETH(amount, opts, true)
       )
     },
 
@@ -2902,7 +2909,7 @@ export class CrossChainMessenger {
      * @param opts.overrides Optional transaction overrides.
      * @returns Gas estimate for the transaction.
      */
-    depositNativeToken: async (
+    bridgeNativeToken: async (
       amount: NumberLike,
       opts?: {
         recipient?: AddressLike
@@ -2911,7 +2918,7 @@ export class CrossChainMessenger {
       }
     ): Promise<BigNumber> => {
       return this.l1Provider.estimateGas(
-        await this.populateTransaction.depositNativeToken(amount, opts, true)
+        await this.populateTransaction.bridgeNativeToken(amount, opts, true)
       )
     },
 
@@ -2994,7 +3001,7 @@ export class CrossChainMessenger {
      * @param opts.overrides Optional transaction overrides.
      * @returns Gas estimate for the transaction.
      */
-    depositERC20: async (
+    bridgeERC20: async (
       l1Token: AddressLike,
       l2Token: AddressLike,
       amount: NumberLike,
@@ -3005,7 +3012,7 @@ export class CrossChainMessenger {
       }
     ): Promise<BigNumber> => {
       return this.l1Provider.estimateGas(
-        await this.populateTransaction.depositERC20(
+        await this.populateTransaction.bridgeERC20(
           l1Token,
           l2Token,
           amount,

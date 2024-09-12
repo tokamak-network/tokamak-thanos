@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { StdUtils } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
@@ -13,14 +14,14 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Types } from "src/libraries/Types.sol";
 
-contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
-    Vm internal vm;
+contract OptimismPortal_Depositor is Test, ResourceMetering {
     OptimismPortal internal portal;
+    L2NativeToken internal nativeToken;
     bool public failedToComplete;
 
-    constructor(Vm _vm, OptimismPortal _portal) {
-        vm = _vm;
+    constructor(OptimismPortal _portal, L2NativeToken _nativeToken) {
         portal = _portal;
+        nativeToken = _nativeToken;
         initialize();
     }
 
@@ -52,9 +53,9 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
 
         uint256 preDepositvalue = bound(_value, 0, type(uint128).max);
         // Give the depositor some ether
-        vm.deal(address(this), preDepositvalue);
+        deal(address(nativeToken), address(this), preDepositvalue);
         // cache the contract's eth balance
-        uint256 preDepositBalance = address(this).balance;
+        uint256 preDepositBalance = nativeToken.balanceOf(address(this));
         uint256 value = bound(preDepositvalue, 0, preDepositBalance);
 
         (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
@@ -64,7 +65,9 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
             bound(_gasLimit, portal.minimumGasLimit(uint64(_data.length)), maxResourceLimit - cachedPrevBoughtGas)
         );
 
-        try portal.depositTransaction{ value: value }(_to, value, gasLimit, _isCreation, _data) {
+        nativeToken.approve(address(portal), value);
+
+        try portal.depositTransaction(_to, value, value, gasLimit, _isCreation, _data) {
             // Do nothing; Call succeeded
         } catch {
             failedToComplete = true;
@@ -131,7 +134,7 @@ contract OptimismPortal_Deposit_Invariant is CommonTest {
     function setUp() public override {
         super.setUp();
         // Create a deposit actor.
-        actor = new OptimismPortal_Depositor(vm, optimismPortal);
+        actor = new OptimismPortal_Depositor(optimismPortal, l2NativeToken);
 
         targetContract(address(actor));
 
@@ -179,6 +182,7 @@ contract OptimismPortal_CannotFinalizeTwice is OptimismPortal_Invariant_Harness 
     function setUp() public override {
         super.setUp();
 
+        deal(address(l2NativeToken), address(optimismPortal), _defaultTx.value);
         // Prove the withdrawal transaction
         optimismPortal.proveWithdrawalTransaction(_defaultTx, _proposedOutputIndex, _outputRootProof, _withdrawalProof);
 
@@ -229,10 +233,11 @@ contract OptimismPortal_CanAlwaysFinalizeAfterWindow is OptimismPortal_Invariant
     ///                   exactly `FINALIZATION_PERIOD_SECONDS` after it was successfully
     ///                   proven.
     function invariant_canAlwaysFinalize() external {
-        uint256 bobBalanceBefore = address(bob).balance;
+        uint256 bobBalanceBefore = l2NativeToken.balanceOf(address(bob));
 
+        deal(address(l2NativeToken), address(optimismPortal), _defaultTx.value);
         optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
 
-        assertEq(address(bob).balance, bobBalanceBefore + _defaultTx.value);
+        assertEq(l2NativeToken.balanceOf(address(bob)), bobBalanceBefore + _defaultTx.value);
     }
 }

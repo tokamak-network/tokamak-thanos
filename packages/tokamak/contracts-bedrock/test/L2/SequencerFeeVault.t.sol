@@ -78,7 +78,11 @@ contract SequencerFeeVault_Test is CommonTest {
             Predeploys.L2_STANDARD_BRIDGE,
             address(sequencerFeeVault).balance,
             abi.encodeWithSelector(
-                StandardBridge.bridgeETHTo.selector, sequencerFeeVault.l1FeeWallet(), 35_000, bytes("")
+                StandardBridge.bridgeNativeTokenTo.selector,
+                sequencerFeeVault.l1FeeWallet(),
+                address(sequencerFeeVault).balance,
+                35_000,
+                bytes("")
             )
         );
 
@@ -157,7 +161,7 @@ contract SequencerFeeVault_L2Withdrawal_Test is CommonTest {
 
         // The entire vault's balance is withdrawn
         vm.expectCall(recipient, address(sequencerFeeVault).balance, bytes(""));
-        vm.expectRevert("FeeVault: failed to send ETH to L2 fee recipient");
+        vm.expectRevert("FeeVault: failed to send NativeToken to L2 fee recipient");
         sequencerFeeVault.withdraw();
         assertEq(sequencerFeeVault.totalProcessed(), 0);
     }

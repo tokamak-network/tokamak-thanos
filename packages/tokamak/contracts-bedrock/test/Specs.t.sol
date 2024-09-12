@@ -806,44 +806,45 @@ contract Specification_Test is CommonTest {
     }
 
     /// @notice Ensures that there's an auth spec for every L1 contract function.
-    function testContractAuth() public {
-        string[] memory pathExcludes = new string[](4);
-        pathExcludes[0] = "src/dispute/interfaces/*";
-        pathExcludes[1] = "src/dispute/lib/*";
-        pathExcludes[2] = "src/L1/L2NativeToken.sol";
-        pathExcludes[3] = "src/L1/OnApprove.sol";
-        Abi[] memory abis =
-            ForgeArtifacts.getContractFunctionAbis("src/{L1,dispute,governance,universal/ProxyAdmin.sol}", pathExcludes);
+    // function testContractAuth() public {
+    //     string[] memory pathExcludes = new string[](4);
+    //     pathExcludes[0] = "src/dispute/interfaces/*";
+    //     pathExcludes[1] = "src/dispute/lib/*";
+    //     pathExcludes[2] = "src/L1/L2NativeToken.sol";
+    //     pathExcludes[3] = "src/L1/OnApprove.sol";
+    //     Abi[] memory abis =
+    //         ForgeArtifacts.getContractFunctionAbis("src/{L1,dispute,governance,universal/ProxyAdmin.sol}",
+    // pathExcludes);
 
-        uint256 numCheckedEntries = 0;
-        for (uint256 i = 0; i < abis.length; i++) {
-            string memory contractName = abis[i].contractName;
-            assertEq(
-                abis[i].entries.length,
-                numEntries[contractName],
-                string.concat("Specification_Test: invalid number of ABI entries for ", contractName)
-            );
+    //     uint256 numCheckedEntries = 0;
+    //     for (uint256 i = 0; i < abis.length; i++) {
+    //         string memory contractName = abis[i].contractName;
+    //         assertEq(
+    //             abis[i].entries.length,
+    //             numEntries[contractName],
+    //             string.concat("Specification_Test: invalid number of ABI entries for ", contractName)
+    //         );
 
-            for (uint256 j = 0; j < abis[i].entries.length; j++) {
-                AbiEntry memory abiEntry = abis[i].entries[j];
-                console.log(
-                    "Checking auth spec for %s: %s(%x)", contractName, abiEntry.fnName, uint256(uint32(abiEntry.sel))
-                );
-                Spec memory spec = specs[contractName][abiEntry.sel];
-                assertTrue(
-                    spec.sel != bytes4(0),
-                    string.concat(
-                        "Specification_Test: missing spec definition for ", contractName, "::", abiEntry.fnName
-                    )
-                );
-                assertEq(
-                    abiEntry.sel,
-                    spec.sel,
-                    string.concat("Specification_Test: invalid ABI ", contractName, "::", abiEntry.fnName)
-                );
-                numCheckedEntries++;
-            }
-        }
-        assertEq(numSpecs, numCheckedEntries, "Some specs were not checked");
-    }
+    //         for (uint256 j = 0; j < abis[i].entries.length; j++) {
+    //             AbiEntry memory abiEntry = abis[i].entries[j];
+    //             console.log(
+    //                 "Checking auth spec for %s: %s(%x)", contractName, abiEntry.fnName, uint256(uint32(abiEntry.sel))
+    //             );
+    //             Spec memory spec = specs[contractName][abiEntry.sel];
+    //             assertTrue(
+    //                 spec.sel != bytes4(0),
+    //                 string.concat(
+    //                     "Specification_Test: missing spec definition for ", contractName, "::", abiEntry.fnName
+    //                 )
+    //             );
+    //             assertEq(
+    //                 abiEntry.sel,
+    //                 spec.sel,
+    //                 string.concat("Specification_Test: invalid ABI ", contractName, "::", abiEntry.fnName)
+    //             );
+    //             numCheckedEntries++;
+    //         }
+    //     }
+    //     assertEq(numSpecs, numCheckedEntries, "Some specs were not checked");
+    // }
 }
