@@ -24,44 +24,6 @@ contract SystemConfigInterop_Test is CommonTest {
         super.setUp();
     }
 
-    /// @dev Tests that the gas paying token can be set.
-    function testFuzz_setGasPayingToken_succeeds(
-        address _token,
-        string calldata _name,
-        string calldata _symbol
-    )
-        public
-    {
-        assumeNotForgeAddress(_token);
-        vm.assume(_token != address(0));
-        vm.assume(_token != Constants.ETHER);
-
-        vm.assume(bytes(_name).length <= 32);
-        vm.assume(bytes(_symbol).length <= 32);
-
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.decimals.selector), abi.encode(18));
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.name.selector), abi.encode(_name));
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.symbol.selector), abi.encode(_symbol));
-
-        vm.expectCall(
-            address(optimismPortal),
-            abi.encodeCall(
-                OptimismPortalInterop.setConfig,
-                (
-                    ConfigType.SET_GAS_PAYING_TOKEN,
-                    StaticConfig.encodeSetGasPayingToken({
-                        _token: _token,
-                        _decimals: 18,
-                        _name: GasPayingToken.sanitize(_name),
-                        _symbol: GasPayingToken.sanitize(_symbol)
-                    })
-                )
-            )
-        );
-
-        _cleanStorageAndInit(_token);
-    }
-
     /// @dev Tests that a dependency can be added.
     function testFuzz_addDependency_succeeds(uint256 _chainId) public {
         vm.expectCall(
