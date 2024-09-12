@@ -57,7 +57,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         uint256 nonce = l2CrossDomainMessenger.messageNonce();
 
         bytes memory message =
-            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, 100, hex"");
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, alice, 100, hex"");
         uint64 baseGas = l2CrossDomainMessenger.baseGas(message, 200_000);
         bytes memory withdrawalData = abi.encodeWithSelector(
             CrossDomainMessenger.relayMessage.selector,
@@ -83,7 +83,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         emit WithdrawalInitiated(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         vm.expectEmit(true, true, true, true);
-        emit ETHBridgeInitiated(alice, alice, 100, hex"");
+        emit NativeTokenBridgeInitiated(alice, alice, 100, hex"");
 
         // L2ToL1MessagePasser will emit a MessagePassed event
         vm.expectEmit(address(l2ToL1MessagePasser));
@@ -107,6 +107,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
 
         vm.expectCall(
             address(l2CrossDomainMessenger),
+            100,
             abi.encodeWithSelector(
                 CrossDomainMessenger.sendMessage.selector,
                 address(l1StandardBridge),
@@ -117,6 +118,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
 
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            100,
             abi.encodeWithSelector(
                 L2ToL1MessagePasser.initiateWithdrawal.selector,
                 address(l1CrossDomainMessenger),
@@ -126,8 +128,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         );
 
         vm.prank(alice, alice);
-        (bool success,) = address(l2StandardBridge).call{ value: 100 }(hex"");
-        assertEq(success, true);
+        address(l2StandardBridge).call{ value: 100 }(hex"");
         assertEq(address(l2ToL1MessagePasser).balance, 100);
     }
 
@@ -135,7 +136,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
     function test_withdraw_insufficientValue_reverts() external {
         assertEq(address(l2ToL1MessagePasser).balance, 0);
 
-        vm.expectRevert("StandardBridge: bridging ETH must include sufficient ETH value");
+        vm.expectRevert("StandardBridge: Incorrect Native token value");
         vm.prank(alice, alice);
         l2StandardBridge.withdraw{ value: 1 }(address(Predeploys.LEGACY_ERC20_NATIVE_TOKEN), 100, 1, hex"");
     }
@@ -144,7 +145,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
     ///      an ERC20 token. This prevents ether from being stuck in the contract.
     function test_withdraw_erc20WithValue_reverts() external {
         vm.deal(alice, 100);
-        vm.expectRevert("StandardBridge: cannot send value");
+        vm.expectRevert("Not allow native token when withdraw ERC20");
         vm.prank(alice, alice);
         l2StandardBridge.withdraw{ value: 100 }(address(L2Token), 100, 1, hex"");
     }
@@ -153,7 +154,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
     ///      an ERC20 token. This prevents ether from being stuck in the contract.
     function test_withdrawTo_erc20WithValue_reverts() external {
         vm.deal(alice, 100);
-        vm.expectRevert("StandardBridge: cannot send value");
+        vm.expectRevert("Not allow native token when withdraw ERC20");
         vm.prank(alice, alice);
         l2StandardBridge.withdrawTo{ value: 100 }(address(L2Token), alice, 100, 1, hex"");
     }
@@ -175,7 +176,7 @@ contract L2StandardBridge_Test is Bridge_Initializer {
         });
 
         vm.expectEmit(address(l2StandardBridge));
-        emit ETHBridgeInitiated({ from: alice, to: alice, amount: 100, data: hex"" });
+        emit NativeTokenBridgeInitiated({ from: alice, to: alice, amount: 100, data: hex"" });
 
         vm.prank(alice, alice);
         l2StandardBridge.withdraw{ value: 100 }({
@@ -449,7 +450,7 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         vm.deal(address(l2CrossDomainMessenger), 100);
         vm.prank(address(l2CrossDomainMessenger));
         vm.expectRevert("StandardBridge: cannot send to self");
-        l2StandardBridge.finalizeBridgeETH(alice, address(l2StandardBridge), 100, hex"");
+        l2StandardBridge.finalizeBridgeNativeToken{ value: 100 }(alice, address(l2StandardBridge), 100, hex"");
     }
 
     /// @dev Tests that `finalizeBridgeETH` reverts if the recipient is the messenger.
@@ -462,7 +463,7 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         vm.deal(address(l2CrossDomainMessenger), 100);
         vm.prank(address(l2CrossDomainMessenger));
         vm.expectRevert("StandardBridge: cannot send to messenger");
-        l2StandardBridge.finalizeBridgeETH(alice, address(l2CrossDomainMessenger), 100, hex"");
+        l2StandardBridge.finalizeBridgeNativeToken{ value: 100 }(alice, address(l2CrossDomainMessenger), 100, hex"");
     }
 
     /// @dev Tests that bridging ETH succeeds.
@@ -470,12 +471,12 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         uint256 nonce = l2CrossDomainMessenger.messageNonce();
 
         bytes memory message =
-            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, alice, _value, _extraData);
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, alice, _value, _extraData);
 
         vm.expectCall(
             address(l2StandardBridge),
             _value,
-            abi.encodeWithSelector(l2StandardBridge.bridgeETH.selector, _minGasLimit, _extraData)
+            abi.encodeWithSelector(StandardBridge.bridgeNativeToken.selector, _value, _minGasLimit, _extraData)
         );
 
         vm.expectCall(
@@ -487,7 +488,7 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         );
 
         vm.expectEmit(address(l2StandardBridge));
-        emit ETHBridgeInitiated(alice, alice, _value, _extraData);
+        emit NativeTokenBridgeInitiated(alice, alice, _value, _extraData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l2CrossDomainMessenger));
@@ -500,7 +501,7 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         vm.deal(alice, _value);
         vm.prank(alice, alice);
 
-        l2StandardBridge.bridgeETH(_value, _minGasLimit, _extraData);
+        l2StandardBridge.bridgeNativeToken{ value: _value }(_value, _minGasLimit, _extraData);
     }
 
     /// @dev Tests that bridging ETH to a different address succeeds.
@@ -510,23 +511,24 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         vm.expectCall(
             address(l2StandardBridge),
             _value,
-            abi.encodeWithSelector(l1StandardBridge.bridgeETHTo.selector, bob, _minGasLimit, _extraData)
+            abi.encodeWithSelector(StandardBridge.bridgeNativeTokenTo.selector, bob, _value, _minGasLimit, _extraData)
         );
 
         bytes memory message =
-            abi.encodeWithSelector(StandardBridge.finalizeBridgeETH.selector, alice, bob, _value, _extraData);
+            abi.encodeWithSelector(StandardBridge.finalizeBridgeNativeToken.selector, alice, bob, _value, _extraData);
 
         // the L2 bridge should call
         // L2CrossDomainMessenger.sendMessage
         vm.expectCall(
             address(l2CrossDomainMessenger),
+            _value,
             abi.encodeWithSelector(
                 CrossDomainMessenger.sendMessage.selector, address(l1StandardBridge), message, _minGasLimit
             )
         );
 
         vm.expectEmit(address(l2StandardBridge));
-        emit ETHBridgeInitiated(alice, bob, _value, _extraData);
+        emit NativeTokenBridgeInitiated(alice, bob, _value, _extraData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l2CrossDomainMessenger));
@@ -540,7 +542,7 @@ contract L2StandardBridge_Bridge_Test is Bridge_Initializer {
         vm.deal(alice, _value);
         vm.prank(alice, alice);
 
-        l2StandardBridge.bridgeETHTo(bob, _value, _minGasLimit, _extraData);
+        l2StandardBridge.bridgeNativeTokenTo{ value: _value }(bob, _value, _minGasLimit, _extraData);
     }
 }
 
@@ -560,8 +562,8 @@ contract L2StandardBridge_FinalizeBridgeETH_Test is Bridge_Initializer {
         emit DepositFinalized(address(0), Predeploys.LEGACY_ERC20_NATIVE_TOKEN, alice, alice, 100, hex"");
 
         vm.expectEmit(true, true, true, true);
-        emit ETHBridgeFinalized(alice, alice, 100, hex"");
+        emit NativeTokenBridgeFinalized(alice, alice, 100, hex"");
 
-        l2StandardBridge.finalizeBridgeETH(alice, alice, 100, hex"");
+        l2StandardBridge.finalizeBridgeNativeToken{ value: 100 }(alice, alice, 100, hex"");
     }
 }

@@ -2,7 +2,7 @@ module.exports = {
   extends: '../../../.eslintrc.js',
   overrides: [
     {
-      files: ['src/**/*.ts'],
+      files: ['**/*.ts'],
       rules: {
         'no-restricted-imports': [
           'error',

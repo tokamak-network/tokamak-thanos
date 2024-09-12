@@ -33,6 +33,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils/fuzzerutils"
 )
 
@@ -474,62 +475,62 @@ func TestMixedWithdrawalValidity(t *testing.T) {
 				},
 				ExpectedL1Balance: nil,
 				ExpectedL2Balance: nil,
-				ExpectedL1Nonce:   0, // 3
-				ExpectedL2Nonce:   0, // 1
+				ExpectedL1Nonce:   3,
+				ExpectedL2Nonce:   1,
 			}
 			transactor.Account.L1Opts, err = bind.NewKeyedTransactorWithChainID(transactor.Account.Key, cfg.L1ChainIDBig())
 			require.NoError(t, err)
 			transactor.Account.L2Opts, err = bind.NewKeyedTransactorWithChainID(transactor.Account.Key, cfg.L2ChainIDBig())
 			require.NoError(t, err)
 
-			// amount := big.NewInt(500_000_000_000)
+			amount := big.NewInt(500_000_000_000)
 
-			// nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
-			// require.NoError(t, err)
+			nativeTokenContract, err := bindings.NewL2NativeToken(cfg.L1Deployments.L2NativeToken, l1Client)
+			require.NoError(t, err)
 
-			// // faucet NativeToken
-			// tx, err := nativeTokenContract.Faucet(transactor.Account.L1Opts, amount)
-			// require.NoError(t, err)
-			// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-			// require.NoError(t, err)
+			// faucet NativeToken
+			tx, err := nativeTokenContract.Faucet(transactor.Account.L1Opts, amount)
+			require.NoError(t, err)
+			_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+			require.NoError(t, err)
 
-			// // Approve NativeToken with the OP
-			// tx, err = nativeTokenContract.Approve(transactor.Account.L1Opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
-			// require.NoError(t, err)
-			// _, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-			// require.NoError(t, err)
+			// Approve NativeToken with the OP
+			tx, err = nativeTokenContract.Approve(transactor.Account.L1Opts, cfg.L1Deployments.OptimismPortalProxy, new(big.Int).SetUint64(math.MaxUint64))
+			require.NoError(t, err)
+			_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+			require.NoError(t, err)
 
-			// l2SeqBalance, err := l2Seq.BalanceAt(context.Background(), transactor.Account.L1Opts.From, nil)
-			// require.NoError(t, err)
-			// t.Log("l2SeqBalance:", l2SeqBalance)
+			l2SeqBalance, err := l2Seq.BalanceAt(context.Background(), transactor.Account.L1Opts.From, nil)
+			require.NoError(t, err)
+			t.Log("l2SeqBalance:", l2SeqBalance)
 
-			// // Deposit NativeToken
-			// tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, amount, 200000, false, []byte{})
-			// require.NoError(t, err)
+			// Deposit NativeToken
+			tx, err = depositContract.DepositTransaction(transactor.Account.L1Opts, transactor.Account.L1Opts.From, amount, amount, 200000, false, []byte{})
+			require.NoError(t, err)
 
-			// depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
-			// require.NoError(t, err)
-			// t.Log("Deposit through OptiismPortal", "gas used", depositReceipt.GasUsed)
+			depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+			require.NoError(t, err)
+			t.Log("Deposit through OptiismPortal", "gas used", depositReceipt.GasUsed)
 
-			// depIt, err := depositContract.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
-			// require.NoError(t, err)
-			// var depositEvent *bindings.OptimismPortalTransactionDeposited
-			// for depIt.Next() {
-			// 	depositEvent = depIt.Event
-			// }
-			// require.NotNil(t, depositEvent)
+			depIt, err := depositContract.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
+			require.NoError(t, err)
+			var depositEvent *bindings.OptimismPortalTransactionDeposited
+			for depIt.Next() {
+				depositEvent = depIt.Event
+			}
+			require.NotNil(t, depositEvent)
 
-			// // Calculate relayed depositTx
-			// depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
-			// require.NoError(t, err)
-			// depositedReceipt, err := wait.ForReceiptOK(context.Background(), l2Verif, types.NewTx(depositTx).Hash())
-			// require.NoError(t, err)
+			// Calculate relayed depositTx
+			depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
+			require.NoError(t, err)
+			depositedReceipt, err := wait.ForReceiptOK(context.Background(), l2Verif, types.NewTx(depositTx).Hash())
+			require.NoError(t, err)
 
-			// l2SeqBalance, err = l2Seq.BalanceAt(context.Background(), transactor.Account.L1Opts.From, nil)
-			// require.NoError(t, err)
-			// t.Log("l2SeqBalance after:", l2SeqBalance)
-			// t.Log("receipt GasUsed:", depositedReceipt.GasUsed)
-			// t.Log("receipt EffectiveGasPrice:", depositedReceipt.EffectiveGasPrice)
+			l2SeqBalance, err = l2Seq.BalanceAt(context.Background(), transactor.Account.L1Opts.From, nil)
+			require.NoError(t, err)
+			t.Log("l2SeqBalance after:", l2SeqBalance)
+			t.Log("receipt GasUsed:", depositedReceipt.GasUsed)
+			t.Log("receipt EffectiveGasPrice:", depositedReceipt.EffectiveGasPrice)
 
 			// Obtain the transactor's starting balance on L1.
 			txCtx, txCancel := context.WithTimeout(context.Background(), txTimeoutDuration)
@@ -563,7 +564,7 @@ func TestMixedWithdrawalValidity(t *testing.T) {
 			// Initiate Withdrawal
 			withdrawAmount := big.NewInt(500_000_000_000)
 			transactor.Account.L2Opts.Value = withdrawAmount
-			tx, err := l2l1MessagePasser.InitiateWithdrawal(transactor.Account.L2Opts, fromAddr, big.NewInt(21000), nil)
+			tx, err = l2l1MessagePasser.InitiateWithdrawal(transactor.Account.L2Opts, fromAddr, big.NewInt(21000), nil)
 			require.Nil(t, err, "sending initiate withdraw tx")
 
 			t.Logf("Waiting for tx %s to be in sequencer", tx.Hash().Hex())
