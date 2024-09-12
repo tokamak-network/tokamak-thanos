@@ -65,6 +65,6 @@
   "daResolverRefundPercentage": 50,
   "nativeTokenName": "Tokamak Network Token",
   "nativeTokenSymbol": "TON",
-  "nativeTokenAddress": "0x75fE809aE1C4A66c27a0239F147d0cc5710a104A",
+  "nativeTokenAddress": "0xC7844340d14deAedfDD2f2dD9360c336661b2F0A",
   "l1UsdcAddr": "0x2910E325cf29dd912E3476B61ef12F49cb931096"
 }

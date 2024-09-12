@@ -4,7 +4,7 @@ import {
   TransactionResponse,
 } from '@ethersproject/abstract-provider'
 import { Signer } from '@ethersproject/abstract-signer'
-import { Contract, BigNumber } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 
 import { CrossChainMessenger } from '../cross-chain-messenger'
 import { IBridgeAdapter } from './bridge-adapter'
@@ -29,6 +29,7 @@ export enum L2ChainID {
   OPTIMISM_SEPOLIA = 11155420,
   OPTIMISM_HARDHAT_LOCAL = 31337,
   OPTIMISM_HARDHAT_DEVNET = 17,
+  OPTIMISM_LOCAL_DEVNET = 901,
   OPTIMISM_BEDROCK_ALPHA_TESTNET = 28528,
   BASE_GOERLI = 84531,
   BASE_SEPOLIA = 84532,

@@ -140,8 +140,8 @@ abstract contract CrossDomainMessenger is
     CrossDomainMessenger public otherMessenger;
 
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    ///         A gap size of 43 was chosen here, so that the first slot used in a child contract
-    ///         would be 1 plus a multiple of 50.
+    ///         A gap size of 41 was chosen here, so that the first slot used in a child contract
+    ///         would be a multiple of 50.
     uint256[43] private __gap;
 
     /// @notice Emitted whenever a message is sent to the other chain.
@@ -174,10 +174,6 @@ abstract contract CrossDomainMessenger is
     /// @param _message     Message to trigger the target address with.
     /// @param _minGasLimit Minimum gas limit that the message can be executed with.
     function sendMessage(address _target, bytes calldata _message, uint32 _minGasLimit) external payable {
-        if (isCustomGasToken()) {
-            require(msg.value == 0, "CrossDomainMessenger: cannot send value with custom gas token");
-        }
-
         // Triggers a message to the other messenger. Note that the amount of gas provided to the
         // message is the amount of gas requested by the user PLUS the base gas value. We want to
         // guarantee the property that the call to the target contract will always have at least
@@ -218,6 +214,7 @@ abstract contract CrossDomainMessenger is
     )
         external
         payable
+        virtual
     {
         // On L1 this function will check the Portal for its paused status.
         // On L2 this function should be a no-op, because paused will always return false.
@@ -360,15 +357,6 @@ abstract contract CrossDomainMessenger is
         // Gas reserved for the execution between the `hasMinGas` check and the `CALL`
         // opcode. (Conservative)
         + RELAY_GAS_CHECK_BUFFER;
-    }
-
-    /// @notice Returns the address of the gas token and the token's decimals.
-    function gasPayingToken() internal view virtual returns (address, uint8);
-
-    /// @notice Returns whether the chain uses a custom gas token or not.
-    function isCustomGasToken() internal view returns (bool) {
-        (address token,) = gasPayingToken();
-        return token != Constants.ETHER;
     }
 
     /// @notice Initializer.

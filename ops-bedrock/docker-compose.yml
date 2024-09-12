@@ -88,22 +88,22 @@ services:
       --pprof.enabled
       --rpc.enable-admin
       --l1.beacon=${L1_BEACON}
-      --l1.trustrpc"
+      --l1.trustrpc
       --safedb.path=/db
       --plasma.enabled=${PLASMA_ENABLED}
       --plasma.da-service=${PLASMA_DA_SERVICE}
-      --plasma.da-server=http://da-server:3100
+      --plasma.da-server=http://da-server:3100"
     ports:
       - '7545:8545'
       - '9003:9003'
       - '7300:7300'
       - '6060:6060'
     volumes:
-      - "safedb_data:/db"
-      - "${PWD}/p2p-sequencer-key.txt:/config/p2p-sequencer-key.txt"
-      - "${PWD}/p2p-node-key.txt:/config/p2p-node-key.txt"
-      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
-      - "${PWD}/../.devnet/rollup.json:/rollup.json"
+      - 'safedb_data:/db'
+      - '${PWD}/p2p-sequencer-key.txt:/config/p2p-sequencer-key.txt'
+      - '${PWD}/p2p-node-key.txt:/config/p2p-node-key.txt'
+      - '${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt'
+      - '${PWD}/../.devnet/rollup.json:/rollup.json'
       - op_log:/op_log
     environment:
       L1_FORK_PUBLIC_NETWORK: '${L1_FORK_PUBLIC_NETWORK}'
@@ -171,9 +171,9 @@ services:
       OP_BATCHER_METRICS_ENABLED: 'true'
       OP_BATCHER_RPC_ENABLE_ADMIN: 'true'
       OP_BATCHER_BATCH_TYPE: 0
-      OP_BATCHER_PLASMA_ENABLED: "${PLASMA_ENABLED}"
-      OP_BATCHER_PLASMA_DA_SERVICE: "${PLASMA_DA_SERVICE}"
-      OP_BATCHER_PLASMA_DA_SERVER: "http://da-server:3100"
+      OP_BATCHER_PLASMA_ENABLED: '${PLASMA_ENABLED}'
+      OP_BATCHER_PLASMA_DA_SERVICE: '${PLASMA_DA_SERVICE}'
+      OP_BATCHER_PLASMA_DA_SERVER: 'http://da-server:3100'
 
   op-challenger:
     depends_on:
@@ -186,8 +186,8 @@ services:
       target: op-challenger-target
     image: tokamaknetwork/thanos-op-challenger:${IMAGE_TAG:-latest}
     volumes:
-      - "challenger_data:/db"
-      - "../op-program/bin:/op-program"
+      - 'challenger_data:/db'
+      - '../op-program/bin:/op-program'
     environment:
       OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
       # Note: this will need to be updated to point to a L1 consensus node when there is one in the devnet
@@ -197,7 +197,7 @@ services:
       OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${DGF_ADDRESS}
       # The devnet can't set the absolute prestate output root because the contracts are deployed in L1 genesis
       # before the L2 genesis is known.
-      OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: "true"
+      OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
       OP_CHALLENGER_DATADIR: /db
       OP_CHALLENGER_CANNON_ROLLUP_CONFIG: ./.devnet/rollup.json
       OP_CHALLENGER_CANNON_L2_GENESIS: ./.devnet/genesis-l2.json
@@ -223,14 +223,14 @@ services:
       --log.level=debug
       --generic-commitment="${PLASMA_GENERIC_DA}"
     ports:
-      - "3100:3100"
+      - '3100:3100'
     volumes:
-      - "da_data:/data"
+      - 'da_data:/data'
 
   sentinel:
     image: quarry/sentinel # TODO(10141): We need a public image for this (sentinel is out of repo)
     volumes:
-      - "${PWD}/../.devnet/rollup.json:/rollup.json"
+      - '${PWD}/../.devnet/rollup.json:/rollup.json'
     # private-key is mnemonic index 5 of the test mnemonic.
     command: >
       sentinel
