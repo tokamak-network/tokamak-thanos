@@ -1100,6 +1100,16 @@ contract Deploy is Deployer {
             customGasTokenAddress = cfg.customGasTokenAddress();
         }
 
+        // deployL2NativeToken();
+        address l2NativeTokenAddress = cfg.nativeTokenAddress();
+        if (l2NativeTokenAddress == address(0))
+        {
+            L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
+            l2NativeTokenAddress = address(token);
+
+        }
+        console.log(" [Check ]l2NativeTokenAddress", l2NativeTokenAddress);
+
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
             _implementation: systemConfig,
@@ -1122,7 +1132,7 @@ contract Deploy is Deployer {
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress,
-                        nativeTokenAddress: cfg.nativeTokenAddress()
+                        nativeTokenAddress: l2NativeTokenAddress
                     })
                 )
             )

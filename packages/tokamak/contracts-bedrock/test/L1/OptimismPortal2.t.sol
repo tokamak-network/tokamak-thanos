@@ -126,11 +126,9 @@ contract OptimismPortal2_Test is CommonTest {
     ///      for a contract creation deposit.
     function test_depositTransaction_contractCreation_reverts() external {
         // contract creation must have a target of address(0)
-        deal(address(l2NativeToken), address(this), 1);
-        l2NativeToken.approve(address(optimismPortal2), 1);
 
         vm.expectRevert("OptimismPortal: must send to address(0) when creating a contract");
-        optimismPortal2.depositTransaction(address(1), 1, 1, 0, true, hex"");
+        optimismPortal2.depositTransaction(address(1), 0, 0, 0, true, hex"");
     }
 
     /// @dev Tests that `depositTransaction` reverts when the data is too large.
