@@ -1102,11 +1102,9 @@ contract Deploy is Deployer {
 
         // deployL2NativeToken();
         address l2NativeTokenAddress = cfg.nativeTokenAddress();
-        if (l2NativeTokenAddress == address(0))
-        {
+        if (l2NativeTokenAddress == address(0)) {
             L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
             l2NativeTokenAddress = address(token);
-
         }
         console.log(" [Check ]l2NativeTokenAddress", l2NativeTokenAddress);
 
