@@ -328,7 +328,6 @@ contract OptimismPortal_Test is CommonTest {
         //     _data: _data
         // });
 
-
         l2NativeToken = L2NativeToken(optimismPortal.nativeTokenAddress());
         deal(address(l2NativeToken), depositor, _mint);
         vm.prank(depositor);

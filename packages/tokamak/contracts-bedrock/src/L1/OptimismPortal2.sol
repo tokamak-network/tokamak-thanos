@@ -23,9 +23,10 @@ import "src/dispute/lib/Types.sol";
 
 /// @custom:proxied
 /// @title OptimismPortal2
-/// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
+/// @notice The OptimismPortal2 is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
+/// It is implemented for supporting permissionless fault proofs to help OP Stack chains reach Stage 1.
 contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
@@ -207,10 +208,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         return superchainConfig.paused();
     }
 
+    /// @notice Returns the address of the native token.
+    /// @dev This function provides an external interface to retrieve the native token address
+    ///      by calling the internal `_nativeToken()` function, which fetches the address from `systemConfig`.
+    /// @return The address of the native token in the current system.
     function nativeTokenAddress() external view returns (address) {
         return _nativeToken();
     }
 
+    /// @notice Getter for the native token address
     function _nativeToken() internal view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
@@ -458,7 +464,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         override
         returns (bool)
     {
-        (address to,  uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        (address to, uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == _nativeToken()) {
             _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message, true);
             return true;
@@ -539,7 +545,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from = ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
+        address from =
+            ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
