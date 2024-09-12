@@ -186,6 +186,8 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         return true;
     }
 
+    /// @notice Getter function for address of native token on this network
+    /// @return address The address of native token
     function nativeTokenAddress() public view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
