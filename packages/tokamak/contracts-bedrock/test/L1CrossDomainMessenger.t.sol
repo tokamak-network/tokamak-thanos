@@ -22,6 +22,8 @@ import { SystemConfig } from "src/L1/SystemConfig.sol";
 // Target contract
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { L2NativeToken } from "src/L1/L2NativeToken.sol";
+
 
 contract L1CrossDomainMessenger_Test is Messenger_Initializer {
     /// @dev The receiver address
@@ -97,6 +99,131 @@ contract L1CrossDomainMessenger_Test is Messenger_Initializer {
 
         vm.prank(alice);
         L1Messenger.sendNativeTokenMessage(recipient, NON_ZERO_VALUE, hex"ff", uint32(100));
+    }
+
+  function test_relayMessage_retryAfterFailure_succeeds_geogre() external {
+        address target = address(0xabcd);
+        address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
+        uint256 value = 100;
+
+        dealL2NativeToken(address(op), 2 * value);
+        // dealL2NativeToken(address(target), 10 * value);
+        // dealL2NativeToken(address(sender), 5 * value);
+
+        // Approve the L1Messenger contract
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), type(uint256).max);
+
+        vm.prank(address(L1Messenger));
+        IERC20(token).approve(address(L1Messenger), value);  // Grant the approval
+        vm.prank(address(L1Messenger));
+        IERC20(token).approve(address(target), value);  // Grant the approval
+        vm.prank(address(L1Messenger));
+        IERC20(token).approve(address(sender), value);  // Grant the approval
+
+
+
+        vm.prank(address(sender));
+        IERC20(token).approve(address(L1Messenger), value);  // Grant the approval
+        vm.prank(address(sender));
+        IERC20(token).approve(address(target), value);  // Grant the approval
+        vm.prank(address(sender));
+        IERC20(token).approve(address(sender), value);  // Grant the approval
+
+
+
+        vm.prank(address(target));
+        IERC20(token).approve(address(L1Messenger), value);  // Grant the approval
+        vm.prank(address(target));
+        IERC20(token).approve(address(target), value);  // Grant the approval
+        vm.prank(address(target));
+        IERC20(token).approve(address(sender), value);  // Grant the approval
+
+        IERC20(token).approve(address(L1Messenger), value);  // Grant the approval
+        IERC20(token).approve(address(target), value);  // Grant the approval
+        IERC20(token).approve(address(sender), value);  // Grant the approval
+
+
+        vm.prank(address(op));
+        IERC20(token).approve(address(L1Messenger), value);  // Grant the approval
+        vm.prank(address(op));
+        IERC20(token).approve(address(target), value);  // Grant the approval
+        vm.prank(address(op));
+        IERC20(token).approve(address(sender), value);  // Grant the approval
+
+        bytes memory transferFromCalldata = abi.encodeWithSelector(
+            IERC20.transferFrom.selector,
+            address(L1Messenger),  // sender (who has the tokens)
+            address(target),  // recipient (where tokens are going)
+            value             // amount
+        );
+        bytes32 hash = Hashing.hashCrossDomainMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), sender, target, value, 0, transferFromCalldata
+        );
+
+
+
+        vm.store(address(op), bytes32(senderSlotIndex), bytes32(abi.encode(sender)));
+        vm.etch(target, address(new Reverter()).code);
+        vm.prank(address(op));
+        L1Messenger.relayMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
+            sender,
+            target,
+            value,
+            0,
+            transferFromCalldata
+        );
+
+        assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        assertEq(address(target).balance, 0);
+        assertEq(L1Messenger.successfulMessages(hash), false);
+        assertEq(L1Messenger.failedMessages(hash), true);
+
+
+        uint256 balance = IERC20(token).balanceOf(address(L1Messenger));
+        console.logAddress(address(L1Messenger));
+        console.log("Balance of L1Messenger: ", balance);
+
+        uint256 targetBalance = IERC20(token).balanceOf(target);
+        console.logAddress(address(target));
+        console.log("Balance of target (0xabcd): ", targetBalance);
+
+        balance = IERC20(token).balanceOf(address(sender));
+        console.logAddress(address(sender));
+        console.log("Balance of sender: ", balance);
+
+        // vm.expectEmit(true, true, true, true);
+        // emit RelayedMessage(hash);
+        vm.etch(target, address(token).code);
+
+        vm.expectCall(target, transferFromCalldata);
+        console.log("target address: ", target);
+
+        vm.prank(address(L1Messenger));
+        L2NativeToken(target).faucet(value);
+
+        vm.prank(address(L1Messenger));
+        IERC20(target).approve(address(target), value);
+
+        console.log(IERC20(target).allowance(address(L1Messenger), address(target)));
+        // console.log("second relayMessage", IERC20(target).allowance(address(L1Messenger), address(target)));
+        vm.prank(address(sender));
+        L1Messenger.relayMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
+            sender,
+            target,
+            value,
+            0,
+            transferFromCalldata
+        );
+
+        // assertEq(IERC20(token).balanceOf(address(L1Messenger)), value);
+        // assertEq(IERC20(token).balanceOf(address(target)), 0);
+        // assertEq(address(L1Messenger).balance, 0);
+        // assertEq(address(target).balance, 0);
+        // assertEq(L1Messenger.successfulMessages(hash), true);
+        // assertEq(L1Messenger.failedMessages(hash), true);
     }
 
     /// @dev Tests that the sendMessage function is able to send
