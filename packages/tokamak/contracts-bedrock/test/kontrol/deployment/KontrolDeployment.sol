@@ -18,6 +18,7 @@ contract KontrolDeployment is Deploy {
         transferAddressManagerOwnership(); // to the ProxyAdmin
 
         // deployImplementations();
+        deployL2NativeToken();
         deployOptimismPortal();
         deployL1CrossDomainMessenger();
         deployL2OutputOracle();
@@ -49,6 +50,7 @@ contract KontrolDeployment is Deploy {
         transferAddressManagerOwnership(); // to the ProxyAdmin
 
         // deployImplementations();
+        deployL2NativeToken();
         deployOptimismPortal2();
         deployL1CrossDomainMessenger();
         deploySystemConfig();
