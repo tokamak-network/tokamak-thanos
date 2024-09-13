@@ -257,7 +257,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
 
         if ! command -v sudo &> /dev/null; then
             echo "sudo not found, installing..."
-            apt install -y sudo
+            apt-get install -y sudo
         else
             echo "sudo is already installed."
         fi
@@ -265,7 +265,6 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         # 1. Update package list
         echo "[1/$TOTAL_STEPS] ----- Updating package list..."
         sudo apt-get update -y
-        sudo apt update -y
 
         echo
 
@@ -273,7 +272,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         echo "[2/$TOTAL_STEPS] ----- Installing Git..."
         if ! command -v git &> /dev/null; then
             echo "git not found, installing..."
-            sudo apt install -y git
+            sudo apt-get install -y git
         else
             echo "git is already installed."
         fi
@@ -284,7 +283,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         echo "[3/$TOTAL_STEPS] ----- Installing Make..."
         if ! command -v make &> /dev/null; then
             echo "make not found, installing..."
-            sudo apt install -y make
+            sudo apt-get install -y make
         else
             echo "make is already installed."
         fi
@@ -295,7 +294,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         echo "[4/$TOTAL_STEPS] ----- Installing Build-essential..."
         if ! dpkg -s build-essential &> /dev/null; then
             echo "Build-essential not found, installing..."
-            sudo apt install -y build-essential
+            sudo apt-get install -y build-essential
         else
             echo "Build-essential is already installed."
         fi
@@ -309,7 +308,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
 
             if ! command -v curl &> /dev/null; then
                 echo "curl not found, installing..."
-                sudo apt install -y curl
+                sudo apt-get install -y curl
 
                 if [ "$SHELL_NAME" = "zsh" ]; then
                     source ~/.zshrc
@@ -326,7 +325,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
             sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
 
             # Check if the Go configuration is already in the CONFIG_FILE
-            if ! grep -Fxq 'export PATH=$PATH:/usr/local/go/bin' "$CONFIG_FILE"; then
+            if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
                 # If the configuration is not found, add Go to the current shell session
                 {
                     echo ''
@@ -479,7 +478,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-            sudo apt install -y gnome-terminal
+            sudo apt-get install -y gnome-terminal
 
             # Add Docker's official GPG key:
             sudo apt-get update -y
@@ -507,7 +506,7 @@ elif [ "$OS_TYPE" = "Linux" ]; then
         echo "[10/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
         if ! command -v jq &> /dev/null; then
             echo "jq not found, installing..."
-            sudo apt install -y jq
+            sudo apt-get install -y jq
         else
             echo "jq is already installed."
         fi
