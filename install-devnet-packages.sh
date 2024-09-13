@@ -3,23 +3,43 @@ TOTAL_STEPS=10
 # Detect Operating System
 OS_TYPE=$(uname)
 
+# Detect Architecture
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "x86_64" ]; then
+    ARCH="amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+    ARCH="arm64"
+elif [ "$ARCH" = "armv6l" ]; then
+    ARCH="armv6l"
+elif [ "$ARCH" = "i386" ]; then
+    ARCH="386"
+else
+    echo "$ARCH is an unsupported architecture."
+    exit 1
+fi
+
+echo
+
 # MacOS
 if [ "$OS_TYPE" = "Darwin" ]; then
-    echo "🚀 Starting package installation for MacOS!"
+    OS_TYPE="darwin"
+    echo "🚀 Starting package installation for MacOS $ARCH!"
 
 # Linux
 elif [ "$OS_TYPE" = "Linux" ]; then
-
+    OS_TYPE="linux"
     # Detect the Linux distribution (Ubuntu, Fedora, Arch, etc)
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         OS_NAME=$NAME
     fi
-    echo "🚀 Starting package installation for Linux/$OS_NAME!"
+    echo "🚀 Starting package installation for Linux/$OS_NAME $ARCH!"
 
 # Other OS (Windows, BSD, etc.)
 else
     echo "$OS_TYPE is an unsupported operating system."
+    exit 1
 fi
 
 echo
@@ -33,6 +53,7 @@ elif [ -n "$BASH_VERSION" ]; then
     echo "The current shell is $SHELL_NAME. The installation will proceed based on $SHELL_NAME."
 else
     echo "The current shell is $SHELL_NAME. $SHELL_NAME is an unsupported shell."
+    exit 1
 fi
 
 # Set Config File
@@ -47,7 +68,7 @@ fi
 echo
 
 # MacOS specific steps
-if [ "$OS_TYPE" = "Darwin" ]; then
+if [ "$OS_TYPE" = "darwin" ]; then
 
     # 1. Install Homebrew
     echo "[1/$TOTAL_STEPS] ----- Installing Homebrew..."
@@ -250,7 +271,7 @@ if [ "$OS_TYPE" = "Darwin" ]; then
     echo "All $TOTAL_STEPS steps are complete."
 
 # Linux specific steps
-elif [ "$OS_TYPE" = "Linux" ]; then
+elif [ "$OS_TYPE" = "linux" ]; then
 
     # If the operating system is Ubuntu, execute the following commands
     if [ "$OS_NAME" = "Ubuntu" ]; then
@@ -320,9 +341,12 @@ elif [ "$OS_TYPE" = "Linux" ]; then
                 echo "curl is already installed."
             fi
 
-            sudo curl -L -o go1.22.6.linux-amd64.tar.gz https://go.dev/dl/go1.22.6.linux-amd64.tar.gz
+            GO_FILE_NAME="go1.22.6.${OS_TYPE}-${ARCH}.tar.gz"
+            GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
 
-            sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
+            sudo curl -L -o ${GO_FILE_NAME} ${GO_DOWNLOAD_URL}
+
+            sudo rm -rf /usr/local/go && tar -C /usr/local -xzf ${GO_FILE_NAME}
 
             # Check if the Go configuration is already in the CONFIG_FILE
             if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
