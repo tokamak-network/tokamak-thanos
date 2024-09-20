@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 TOTAL_STEPS=10
+STEP=1
 
 # Detect Operating System
 OS_TYPE=$(uname)
@@ -72,7 +73,8 @@ echo
 if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 1. Install Homebrew
-    echo "[1/$TOTAL_STEPS] ----- Installing Homebrew..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Homebrew..."
+    STEP=$((STEP + 1))
     if ! command -v brew &> /dev/null; then
         echo "Homebrew not found, installing..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -83,7 +85,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 2. Install Git
-    echo "[2/$TOTAL_STEPS] ----- Installing Git..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Git..."
+    STEP=$((STEP + 1))
     if ! command -v git &> /dev/null; then
         echo "git not found, installing..."
         brew install git
@@ -94,7 +97,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 3. Install Make
-    echo "[3/$TOTAL_STEPS] ----- Installing Make..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
+    STEP=$((STEP + 1))
     if ! command -v make &> /dev/null; then
         echo "make not found, installing..."
         brew install make
@@ -105,7 +109,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 4. Install Xcode Command Line Tools
-    echo "[4/$TOTAL_STEPS] ----- Installing Xcode Command Line Tools..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Xcode Command Line Tools..."
+    STEP=$((STEP + 1))
     if ! xcode-select -p &> /dev/null; then
         echo "Xcode Command Line Tools not found, installing..."
         xcode-select --install
@@ -116,7 +121,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 5. Install Go (v1.22.6)
-    echo "[5/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+    STEP=$((STEP + 1))
     if ! go version | grep "go1.22.6" &> /dev/null; then
         echo "Go 1.22.6 not found, installing..."
         brew install go@1.22
@@ -130,7 +136,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # 6. Install Node.js (v20.16.0)
 
     # 6-1. Install NVM
-    echo "[6/$TOTAL_STEPS] ----- Installing NVM..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
     if ! command -v nvm &> /dev/null; then
         echo "NVM not found, installing..."
         brew install nvm
@@ -174,7 +180,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     fi
 
     # 6-2. Install Node.js v20.16.0 using NVM
-    echo "[6/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
     if ! nvm ls | grep "v20.16.0" &> /dev/null; then
         echo "Node.js v20.16.0 not found, installing..."
         nvm install v20.16.0
@@ -183,7 +189,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     fi
 
     # 6-3. Set Node.js v20.16.0 as the default version
-    echo "[6/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
+    STEP=$((STEP + 1))
 
     # Save the current Node.js version
     current_version=$(node -v 2>/dev/null)
@@ -202,7 +209,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 7. Install Pnpm
-    echo "[7/$TOTAL_STEPS] ----- Installing Pnpm..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
+    STEP=$((STEP + 1))
     if ! command -v pnpm &> /dev/null; then
         echo "pnpm not found, installing..."
         brew install pnpm
@@ -213,7 +221,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 8. Install Cargo (v1.78.0)
-    echo "[8/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+    STEP=$((STEP + 1))
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -227,7 +236,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 9. Install Docker
-    echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
+    STEP=$((STEP + 1))
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
         brew install --cask docker
@@ -238,7 +248,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 10. Install Foundry using Pnpm
-    echo "[10/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
+    STEP=$((STEP + 1))
     if ! command -v jq &> /dev/null; then
         echo "jq not found, installing..."
         brew install jq
@@ -273,13 +284,15 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         fi
 
         # 1. Update package list
-        echo "[1/$TOTAL_STEPS] ----- Updating package list..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Updating package list..."
+        STEP=$((STEP + 1))
         sudo apt-get update -y
 
         echo
 
         # 2. Install Git
-        echo "[2/$TOTAL_STEPS] ----- Installing Git..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Git..."
+        STEP=$((STEP + 1))
         if ! command -v git &> /dev/null; then
             echo "git not found, installing..."
             sudo apt-get install -y git
@@ -290,7 +303,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 3. Install Make
-        echo "[3/$TOTAL_STEPS] ----- Installing Make..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
+        STEP=$((STEP + 1))
         if ! command -v make &> /dev/null; then
             echo "make not found, installing..."
             sudo apt-get install -y make
@@ -301,7 +315,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 4. Install Build-essential
-        echo "[4/$TOTAL_STEPS] ----- Installing Build-essential..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Build-essential..."
+        STEP=$((STEP + 1))
         if ! dpkg -s build-essential &> /dev/null; then
             echo "Build-essential not found, installing..."
             sudo apt-get install -y build-essential
@@ -312,7 +327,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 5. Install Go (v1.22.6)
-        echo "[5/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+        STEP=$((STEP + 1))
         if ! go version | grep "go1.22.6" &> /dev/null; then
             echo "Go 1.22.6 not found, installing..."
 
@@ -365,7 +381,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         # 6. Install Node.js (v20.16.0)
 
         # 6-1. Install NVM
-        echo "[6/$TOTAL_STEPS] ----- Installing NVM..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
         if ! command -v nvm &> /dev/null; then
             echo "NVM not found, installing..."
             sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -406,7 +422,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         fi
 
         # 6-2. Install Node.js v20.16.0 using NVM
-        echo "[6/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
         if ! nvm ls | grep "v20.16.0" &> /dev/null; then
             echo "Node.js v20.16.0 not found, installing..."
             nvm install v20.16.0
@@ -415,8 +431,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         fi
 
         # 6-3. Set Node.js v20.16.0 as the default version
-        echo "[6/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
-
+        echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
+        STEP=$((STEP + 1))
         # Save the current Node.js version
         current_version=$(node -v 2>/dev/null)
 
@@ -434,7 +450,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 7. Install Pnpm
-        echo "[7/$TOTAL_STEPS] ----- Installing Pnpm..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
+        STEP=$((STEP + 1))
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
@@ -448,7 +465,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 8. Install Cargo (v1.78.0)
-        echo "[8/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        STEP=$((STEP + 1))
         if ! cargo --version | grep "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -462,7 +480,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 9. Install Docker
-        echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
+        STEP=$((STEP + 1))
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -488,7 +507,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 10. Install Foundry using Pnpm
-        echo "[10/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
+        STEP=$((STEP + 1))
         if ! command -v jq &> /dev/null; then
             echo "jq not found, installing..."
             sudo apt-get install -y jq
