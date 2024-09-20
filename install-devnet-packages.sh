@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 TOTAL_STEPS=10
 
 # Detect Operating System
@@ -6,13 +8,13 @@ OS_TYPE=$(uname)
 # Detect Architecture
 ARCH=$(uname -m)
 
-if [ "$ARCH" = "x86_64" ]; then
+if [[ "$ARCH" == "x86_64" ]]; then
     ARCH="amd64"
-elif [ "$ARCH" = "aarch64" ]; then
+elif [[ "$ARCH" == "aarch64" ]]; then
     ARCH="arm64"
-elif [ "$ARCH" = "armv6l" ]; then
+elif [[ "$ARCH" == "armv6l" ]]; then
     ARCH="armv6l"
-elif [ "$ARCH" = "i386" ]; then
+elif [[ "$ARCH" == "i386" ]]; then
     ARCH="386"
 else
     echo "$ARCH is an unsupported architecture."
@@ -22,19 +24,19 @@ fi
 echo
 
 # MacOS
-if [ "$OS_TYPE" = "Darwin" ]; then
+if [[ "$OS_TYPE" == "Darwin" ]]; then
     OS_TYPE="darwin"
     echo "🚀 Starting package installation for MacOS $ARCH!"
 
 # Linux
-elif [ "$OS_TYPE" = "Linux" ]; then
+elif [[ "$OS_TYPE" == "Linux" ]]; then
     OS_TYPE="linux"
     # Detect the Linux distribution (Ubuntu, Fedora, Arch, etc)
-    if [ -f /etc/os-release ]; then
+    if [[ -f /etc/os-release ]]; then
         . /etc/os-release
         OS_NAME=$NAME
+        echo "🚀 Starting package installation for Linux/$OS_NAME $ARCH!"
     fi
-    echo "🚀 Starting package installation for Linux/$OS_NAME $ARCH!"
 
 # Other OS (Windows, BSD, etc.)
 else
@@ -45,11 +47,10 @@ fi
 echo
 
 # Check Shell
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_NAME="zsh"
+SHELL_NAME=$(basename "$SHELL")
+if [[ "$SHELL_NAME" == "zsh" ]]; then
     echo "The current shell is $SHELL_NAME. The installation will proceed based on $SHELL_NAME."
-elif [ -n "$BASH_VERSION" ]; then
-    SHELL_NAME="bash"
+elif [[ "$SHELL_NAME" == "bash" ]]; then
     echo "The current shell is $SHELL_NAME. The installation will proceed based on $SHELL_NAME."
 else
     echo "The current shell is $SHELL_NAME. $SHELL_NAME is an unsupported shell."
@@ -68,17 +69,13 @@ fi
 echo
 
 # MacOS specific steps
-if [ "$OS_TYPE" = "darwin" ]; then
+if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 1. Install Homebrew
     echo "[1/$TOTAL_STEPS] ----- Installing Homebrew..."
     if ! command -v brew &> /dev/null; then
         echo "Homebrew not found, installing..."
-        if [ "$SHELL_NAME" = "zsh" ]; then
-            /bin/zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        elif [ "$SHELL_NAME" = "bash" ]; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        fi
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     else
         echo "Homebrew is already installed."
     fi
@@ -107,7 +104,7 @@ if [ "$OS_TYPE" = "darwin" ]; then
 
     echo
 
-    # 4. Install Build-essential
+    # 4. Install Xcode Command Line Tools
     echo "[4/$TOTAL_STEPS] ----- Installing Xcode Command Line Tools..."
     if ! xcode-select -p &> /dev/null; then
         echo "Xcode Command Line Tools not found, installing..."
@@ -131,9 +128,9 @@ if [ "$OS_TYPE" = "darwin" ]; then
     echo
 
     # 6. Install Node.js (v20.16.0)
-    echo "[6/$TOTAL_STEPS] ----- Installing Node.js (v20.16.0)..."
 
     # 6-1. Install NVM
+    echo "[6/$TOTAL_STEPS] ----- Installing NVM..."
     if ! command -v nvm &> /dev/null; then
         echo "NVM not found, installing..."
         brew install nvm
@@ -143,7 +140,11 @@ if [ "$OS_TYPE" = "darwin" ]; then
         mkdir -p "$NVM_DIR"
 
         # Extract the HOMEBREW_PREFIX path
-        HOMEBREW_PREFIX=$(brew config | grep 'HOMEBREW_PREFIX' | awk '{print $2}')
+        HOMEBREW_PREFIX=$(brew --prefix)
+
+        [ -s "$HOMEBREW_PREFIX/nvm.sh" ] && \. "$HOMEBREW_PREFIX/nvm.sh"
+        [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
+        hash -r
 
         # Check if the NVM configuration is already in the CONFIG_FILE
         if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
@@ -155,13 +156,6 @@ if [ "$OS_TYPE" = "darwin" ]; then
                 echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
                 echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
             } >> "$CONFIG_FILE"
-
-            if [ "$SHELL_NAME" = "zsh" ]; then
-                source ~/.zshrc
-            elif [ "$SHELL_NAME" = "bash" ]; then
-                source ~/.bashrc
-                source ~/.profile
-            fi
         fi
 
         # Check if the NVM configuration is already in the PROFILE_FILE
@@ -174,15 +168,7 @@ if [ "$OS_TYPE" = "darwin" ]; then
                 echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
                 echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
             } >> "$PROFILE_FILE"
-
-            if [ "$SHELL_NAME" = "zsh" ]; then
-                source ~/.zshrc
-            elif [ "$SHELL_NAME" = "bash" ]; then
-                source ~/.bashrc
-                source ~/.profile
-            fi
         fi
-
     else
         echo "NVM is already installed."
     fi
@@ -203,7 +189,7 @@ if [ "$OS_TYPE" = "darwin" ]; then
     current_version=$(node -v 2>/dev/null)
 
     # Check if the current version is not v20.16.0
-    if ! echo "$current_version" | grep "v20.16.0" &> /dev/null; then
+    if [[ "$current_version" != "v20.16.0" ]]; then
         echo "Current Node.js version: $current_version"
         echo "Switching to Node.js v20.16.0..."
         nvm use v20.16.0
@@ -231,7 +217,7 @@ if [ "$OS_TYPE" = "darwin" ]; then
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source $HOME/.cargo/env
+        source "$HOME/.cargo/env"
         rustup install 1.78.0
         rustup default 1.78.0
     else
@@ -240,7 +226,7 @@ if [ "$OS_TYPE" = "darwin" ]; then
 
     echo
 
-    # 9. Install Docker (Docker Machine, Docker Compose, and other related tools)
+    # 9. Install Docker
     echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
@@ -269,12 +255,15 @@ if [ "$OS_TYPE" = "darwin" ]; then
     echo
 
     echo "All $TOTAL_STEPS steps are complete."
+    echo
+    echo "Please source your profile to apply changes:"
+    echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
 
 # Linux specific steps
-elif [ "$OS_TYPE" = "linux" ]; then
+elif [[ "$OS_TYPE" == "linux" ]]; then
 
     # If the operating system is Ubuntu, execute the following commands
-    if [ "$OS_NAME" = "Ubuntu" ]; then
+    if [[ "$OS_NAME" == "Ubuntu" ]]; then
 
         if ! command -v sudo &> /dev/null; then
             echo "sudo not found, installing..."
@@ -341,12 +330,14 @@ elif [ "$OS_TYPE" = "linux" ]; then
                 echo "curl is already installed."
             fi
 
-            GO_FILE_NAME="go1.22.6.${OS_TYPE}-${ARCH}.tar.gz"
+            GO_FILE_NAME="go1.22.6.linux-${ARCH}.tar.gz"
             GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
 
-            sudo curl -L -o ${GO_FILE_NAME} ${GO_DOWNLOAD_URL}
+            sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
 
-            sudo rm -rf /usr/local/go && tar -C /usr/local -xzf ${GO_FILE_NAME}
+            sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
+            export PATH="$PATH:/usr/local/go/bin"
+            hash -r
 
             # Check if the Go configuration is already in the CONFIG_FILE
             if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
@@ -355,13 +346,6 @@ elif [ "$OS_TYPE" = "linux" ]; then
                     echo ''
                     echo 'export PATH="$PATH:/usr/local/go/bin"'
                 } >> "$CONFIG_FILE"
-
-                if [ "$SHELL_NAME" = "zsh" ]; then
-                    source ~/.zshrc
-                elif [ "$SHELL_NAME" = "bash" ]; then
-                    source ~/.bashrc
-                    source ~/.profile
-                fi
             fi
 
             # Check if the NVM configuration is already in the PROFILE_FILE
@@ -371,15 +355,7 @@ elif [ "$OS_TYPE" = "linux" ]; then
                     echo ''
                     echo 'export PATH="$PATH:/usr/local/go/bin"'
                 } >> "$PROFILE_FILE"
-
-                if [ "$SHELL_NAME" = "zsh" ]; then
-                    source ~/.zshrc
-                elif [ "$SHELL_NAME" = "bash" ]; then
-                    source ~/.bashrc
-                    source ~/.profile
-                fi
             fi
-
         else
             echo "Go 1.22.6 is already installed."
         fi
@@ -387,9 +363,9 @@ elif [ "$OS_TYPE" = "linux" ]; then
         echo
 
         # 6. Install Node.js (v20.16.0)
-        echo "[6/$TOTAL_STEPS] ----- Installing Node.js (v20.16.0)..."
 
         # 6-1. Install NVM
+        echo "[6/$TOTAL_STEPS] ----- Installing NVM..."
         if ! command -v nvm &> /dev/null; then
             echo "NVM not found, installing..."
             sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -397,6 +373,10 @@ elif [ "$OS_TYPE" = "linux" ]; then
             # Create NVM directory if it doesn't exist
             export NVM_DIR="$HOME/.nvm"
             mkdir -p "$NVM_DIR"
+
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            hash -r
 
             # Check if the NVM configuration is already in the CONFIG_FILE
             if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
@@ -408,12 +388,6 @@ elif [ "$OS_TYPE" = "linux" ]; then
                     echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
                     echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
                 } >> "$CONFIG_FILE"
-
-                if [ "$SHELL_NAME" = "zsh" ]; then
-                    source ~/.zshrc
-                elif [ "$SHELL_NAME" = "bash" ]; then
-                    source ~/.profile
-                fi
             fi
 
             # Check if the NVM configuration is already in the PROFILE_FILE
@@ -426,14 +400,7 @@ elif [ "$OS_TYPE" = "linux" ]; then
                     echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
                     echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
                 } >> "$PROFILE_FILE"
-
-                if [ "$SHELL_NAME" = "zsh" ]; then
-                    source ~/.zshrc
-                elif [ "$SHELL_NAME" = "bash" ]; then
-                    source ~/.profile
-                fi
             fi
-
         else
             echo "NVM is already installed."
         fi
@@ -454,7 +421,7 @@ elif [ "$OS_TYPE" = "linux" ]; then
         current_version=$(node -v 2>/dev/null)
 
         # Check if the current version is not v20.16.0
-        if ! echo "$current_version" | grep "v20.16.0" &> /dev/null; then
+        if [[ "$current_version" != "v20.16.0" ]]; then
             echo "Current Node.js version: $current_version"
             echo "Switching to Node.js v20.16.0..."
             nvm use v20.16.0
@@ -471,12 +438,9 @@ elif [ "$OS_TYPE" = "linux" ]; then
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
-
-            if [ "$SHELL_NAME" = "zsh" ]; then
-                source ~/.zshrc
-            elif [ "$SHELL_NAME" = "bash" ]; then
-                source ~/.profile
-            fi
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+            hash -r
         else
             echo "pnpm is already installed."
         fi
@@ -488,7 +452,7 @@ elif [ "$OS_TYPE" = "linux" ]; then
         if ! cargo --version | grep "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            source $HOME/.cargo/env
+            source "$HOME/.cargo/env"
             rustup install 1.78.0
             rustup default 1.78.0
         else
@@ -497,7 +461,7 @@ elif [ "$OS_TYPE" = "linux" ]; then
 
         echo
 
-        # 9. Install Docker (Docker Machine, Docker Compose, and other related tools)
+        # 9. Install Docker
         echo "[9/$TOTAL_STEPS] ----- Installing Docker Engine..."
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
@@ -510,14 +474,11 @@ elif [ "$OS_TYPE" = "linux" ]; then
             sudo install -m 0755 -d /etc/apt/keyrings
             sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
             sudo chmod a+r /etc/apt/keyrings/docker.asc
-
             # Add the repository to Apt sources:
+
             echo \
               "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-              sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-            sudo apt-get update -y
-
+              $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
             # Install the Docker packages.
             sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         else
@@ -544,10 +505,12 @@ elif [ "$OS_TYPE" = "linux" ]; then
         echo
 
         echo "All $TOTAL_STEPS steps are complete."
+        echo
+        echo "Please source your profile to apply changes:"
+        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
 
     # If it is an operating system other than Ubuntu, execute the following commands.
     else
         echo "$OS_NAME is an unsupported operating system."
     fi
 fi
-
