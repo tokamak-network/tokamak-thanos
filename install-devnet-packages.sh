@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 TOTAL_STEPS=10
 STEP=1
 
@@ -68,6 +70,21 @@ elif [ "$SHELL_NAME" = "bash" ]; then
 fi
 
 echo
+
+# Function to display completion message
+function display_completion_message {
+    if [[ $STEP == $TOTAL_STEPS ]]; then
+        echo ""
+        echo "All $TOTAL_STEPS steps are complete. Let's start devnet:"
+        echo -e "\033[1;34m\033[1mmake devnet-up\033[0m"
+    else
+        echo ""
+        echo "Installation was interrupted. Completed $((STEP - 1))/$TOTAL_STEPS steps."
+    fi
+}
+
+# Use trap to display message on script exit, whether successful or due to an error
+trap display_completion_message EXIT
 
 # MacOS specific steps
 if [[ "$OS_TYPE" == "darwin" ]]; then
@@ -249,7 +266,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 10. Install Foundry using Pnpm
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
-    STEP=$((STEP + 1))
     if ! command -v jq &> /dev/null; then
         echo "jq not found, installing..."
         brew install jq
@@ -264,11 +280,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     fi
 
     echo
-
-    echo "All $TOTAL_STEPS steps are complete."
-    echo
-    echo "Please source your profile to apply changes:"
-    echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
 
 # Linux specific steps
 elif [[ "$OS_TYPE" == "linux" ]]; then
@@ -508,7 +519,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 10. Install Foundry using Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
-        STEP=$((STEP + 1))
         if ! command -v jq &> /dev/null; then
             echo "jq not found, installing..."
             sudo apt-get install -y jq
@@ -523,11 +533,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         fi
 
         echo
-
-        echo "All $TOTAL_STEPS steps are complete."
-        echo
-        echo "Please source your profile to apply changes:"
-        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
 
     # If it is an operating system other than Ubuntu, execute the following commands.
     else
