@@ -137,20 +137,20 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 6-1. Install NVM
     echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
+
+    # Create NVM directory if it doesn't exist
+    export NVM_DIR="$HOME/.nvm"
+    mkdir -p "$NVM_DIR"
+
+    # Extract the HOMEBREW_PREFIX path
+    HOMEBREW_PREFIX=$(brew --prefix)
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"
+    [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
+    hash -r
+
     if ! command -v nvm &> /dev/null; then
         echo "NVM not found, installing..."
         brew install nvm
-
-        # Create NVM directory if it doesn't exist
-        export NVM_DIR="$HOME/.nvm"
-        mkdir -p "$NVM_DIR"
-
-        # Extract the HOMEBREW_PREFIX path
-        HOMEBREW_PREFIX=$(brew --prefix)
-
-        [ -s "$HOMEBREW_PREFIX/nvm.sh" ] && \. "$HOMEBREW_PREFIX/nvm.sh"
-        [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
-        hash -r
 
         # Check if the NVM configuration is already in the CONFIG_FILE
         if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
@@ -382,17 +382,17 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 6-1. Install NVM
         echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
+
+        # Create NVM directory if it doesn't exist
+        export NVM_DIR="$HOME/.nvm"
+        mkdir -p "$NVM_DIR"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        hash -r
+
         if ! command -v nvm &> /dev/null; then
             echo "NVM not found, installing..."
             sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-            # Create NVM directory if it doesn't exist
-            export NVM_DIR="$HOME/.nvm"
-            mkdir -p "$NVM_DIR"
-
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-            hash -r
 
             # Check if the NVM configuration is already in the CONFIG_FILE
             if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
