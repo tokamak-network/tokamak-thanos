@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
-
 TOTAL_STEPS=10
 STEP=1
 
@@ -87,7 +85,6 @@ function display_completion_message {
     else
         echo ""
         echo "Installation was interrupted. Completed $((STEP - 1))/$TOTAL_STEPS steps."
-        echo "Error occurred in command: '$BASH_COMMAND'"
 
         echo ""
         echo "Please source your profile to apply changes:"
@@ -206,6 +203,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
                 echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
             } >> "$PROFILE_FILE"
         fi
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.bashrc
+            source ~/.profile
+        fi
     else
         echo "NVM is already installed."
     fi
@@ -232,6 +236,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         nvm use v20.16.0
         nvm alias default v20.16.0
         echo "Node.js v20.16.0 is now set as the default version."
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.bashrc
+            source ~/.profile
+        fi
     else
         echo "Node.js is already v20.16.0."
     fi
@@ -244,6 +255,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     if ! command -v pnpm &> /dev/null; then
         echo "pnpm not found, installing..."
         brew install pnpm
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.bashrc
+            source ~/.profile
+        fi
     else
         echo "pnpm is already installed."
     fi
@@ -259,6 +277,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         rustup install 1.78.0
         rustup default 1.78.0
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.bashrc
+            source ~/.profile
+        fi
     else
         echo "Cargo 1.78.0 is already installed."
     fi
@@ -271,6 +296,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
         brew install --cask docker
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            source ~/.zshrc
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            source ~/.bashrc
+            source ~/.profile
+        fi
     else
         echo "Docker is already installed."
     fi
@@ -390,6 +422,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                     echo 'export PATH="$PATH:/usr/local/go/bin"'
                 } >> "$PROFILE_FILE"
             fi
+
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "Go 1.22.6 is already installed."
         fi
@@ -436,6 +475,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                     echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
                 } >> "$PROFILE_FILE"
             fi
+
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "NVM is already installed."
         fi
@@ -461,6 +507,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             nvm use v20.16.0
             nvm alias default v20.16.0
             echo "Node.js v20.16.0 is now set as the default version."
+
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "Node.js is already v20.16.0."
         fi
@@ -476,6 +529,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
+
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "pnpm is already installed."
         fi
@@ -486,11 +546,18 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         # 8. Install Cargo (v1.78.0)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
         source "$HOME/.cargo/env"
-        if ! cargo --version | grep "1.78.0" &> /dev/null; then
+        if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             rustup install 1.78.0
             rustup default 1.78.0
+            source "$HOME/.cargo/env"
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "Cargo 1.78.0 is already installed."
         fi
@@ -518,6 +585,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
               $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
             # Install the Docker packages.
             sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+            if [ "$SHELL_NAME" = "zsh" ]; then
+                source ~/.zshrc
+            elif [ "$SHELL_NAME" = "bash" ]; then
+                source ~/.bashrc
+                source ~/.profile
+            fi
         else
             echo "Docker is already installed."
         fi
@@ -534,10 +608,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "jq is already installed."
         fi
 
-        if command -v pnpm &> /dev/null; then
-            pnpm -y install:foundry
-        else
-            echo "Pnpm is not installed. Skipping Foundry installation."
+        if ! pnpm -y install:foundry; then
+            exit
         fi
 
         STEP=$((STEP + 1))
