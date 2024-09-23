@@ -1,68 +1,268 @@
 # op-challenger
 
-The `op-challenger` is a modular **op-stack** challenge agent written in
-golang for dispute games including, but not limited to,attestation games,
-fault games, and validity games. To learn more about dispute games, visit
-the [fault proof specs][proof-specs].
+The `op-challenger` is a modular **op-stack** challenge agent written in Go for various dispute games like attestation, fault, and validity games. For more details, visit the [fault proof specs][proof-specs].
 
 [proof-specs]: https://specs.optimism.io/experimental/fault-proof/index.html
 
-## Quickstart
+# Tokamak Thanos Local Devnet Setup
 
-To build the `op-challenger`, run `make` (which executes the `make build`
-[Makefile](./Makefile) target). To view a list of available commands and
-options, run `./bin/op-challenger --help`.
+## 1. Clone the Monorepo
+To clone the Tokamak Thanos repository, use the following command:
 
-## Usage
+```bash
+git clone https://github.com/tokamak-network/tokamak-thanos.git
+```
+<br/>
 
-`op-challenger` is configurable via command line flags and environment
-variables. The help menu shows the available config options and can be
-accessed by running `./op-challenger --help`.
+## 2. Running with Cannon on Local Devnet
+To run the `op-challenger` on the local devnet, begin by cleaning and starting the devnet from the root of the repository:
 
-### Running with Cannon on Local Devnet
-
-To run `op-challenger` against the local devnet, first clean and run
-the devnet from the root of the repository.
-```shell
+```bash
 make devnet-clean
 make devnet-up
 ```
 
-Then build the `op-challenger` with `make op-challenger`.
+> **Note:** After the FPS update, the `ops-bedrock-op-challenger-1` container is automatically created, meaning the challenger node is ready for use.
 
-Run the `op-challenger` with:
-```shell
-DISPUTE_GAME_FACTORY=$(jq -r .DisputeGameFactoryProxy .devnet/addresses.json)
-./op-challenger/bin/op-challenger \
-  --trace-type cannon \
-  --l1-eth-rpc http://localhost:8545 \
-  --rollup-rpc http://localhost:9546 \
-  --game-factory-address $DISPUTE_GAME_FACTORY \
-  --datadir temp/challenger-data \
-  --cannon-rollup-config .devnet/rollup.json  \
-  --cannon-l2-genesis .devnet/genesis-l2.json \
-  --cannon-bin ./cannon/bin/cannon \
-  --cannon-server ./op-program/bin/op-program \
-  --cannon-prestate ./op-program/bin/prestate.json \
-  --l2-eth-rpc http://localhost:9545 \
-  --mnemonic "test test test test test test test test test test test junk" \
-  --hd-path "m/44'/60'/0'/0/8" \
-  --num-confirmations 1
+<br/>
+
+## 3. Running the op-challenger Manually (Optional)
+If you prefer to run your own challenger node for interactive proof (attack/defense), use the following configuration with `/tokamak-thanos/op-challenger/docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  challenger:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-challenger:latest
+    volumes:
+      - "./challenger-data:/data"
+      - "../op-program/bin:/op-program"
+    environment:
+      OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
+      OP_CHALLENGER_L1_BEACON: 'unset'
+      OP_CHALLENGER_ROLLUP_RPC: http://op-node:8545
+      OP_CHALLENGER_TRACE_TYPE: cannon,fast
+      OP_CHALLENGER_GAME_FACTORY_ADDRESS: "0x11c81c1A7979cdd309096D1ea53F887EA9f8D14d"
+      OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: "true"
+      OP_CHALLENGER_DATADIR: /db
+      OP_CHALLENGER_CANNON_ROLLUP_CONFIG: ./.devnet/rollup.json
+      OP_CHALLENGER_CANNON_L2_GENESIS: ./.devnet/genesis-l2.json
+      OP_CHALLENGER_CANNON_BIN: ./cannon/bin/cannon
+      OP_CHALLENGER_CANNON_SERVER: /op-program/op-program
+      OP_CHALLENGER_CANNON_PRESTATE: /op-program/prestate.json
+      OP_CHALLENGER_L2_ETH_RPC: http://l2:8545
+      OP_CHALLENGER_PRIVATE_KEY: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+      OP_CHALLENGER_NUM_CONFIRMATIONS: 1
+    networks:
+      - ops-bedrock_default  
+
+networks:
+  ops-bedrock_default:
+    external: true  
 ```
 
-The mnemonic and hd-path above is a prefunded address on the devnet.
-The challenger will monitor dispute games and respond to any invalid
-claims by posting the correct trace as the counter-claim. The commands
-below can then be used to create and interact with games.
+### Service Initialization
+The `op-challenger` service is configured to interact with both L1 and L2 Ethereum networks via specified RPC endpoints.
 
-## Subcommands
+### Cannon Trace
+Uses the cannon trace type for validating rollup state transitions with the Cannon virtual machine.
 
-The `op-challenger` has a few subcommands to interact with on-chain
-fault dispute games. The subcommands support game creation, performing
-game moves, and viewing fault dispute game data. They should not be
-used in production and are intended to provide convenient manual testing.
+### Dispute Game Management
+Connects to the game-factory-address to manage dispute resolution games, ensuring rollup operations are correctly validated.
+
+### Data Management
+Stores data in a mounted directory (`temp/challenger-data`).
+
+### Transaction Handling
+Utilizes a predefined mnemonic for signing transactions, with the number of confirmations required for finality.
+
+To run the challenger:
+
+```bash
+cd op-challenger
+docker-compose up
+```
+<br/>
+
+## 4. Building the op-program
+Navigate to the `op-program` directory and run the following commands:
+
+```bash
+cd op-program
+make
+```
+
+After building, two important output files will be located in the `bin` folder:
+
+- `op-program`: Executable file intended for use on the host machine.
+- `op-program-client.elf`: MIPS-compiled executable used inside a MIPS emulator or virtual machine as part of Optimism's fault-proof system. It generates prestate and proof data necessary for validating claims in Optimism’s fault dispute game.
+
+
+# Optimism Cannon System: Prestate and Proof Generation, Claim Verification, and Dispute Resolution
+<br/>
+
+## 5. Generate Prestate and Proof Files
+
+To generate the prestate and proof files for the Optimism Cannon system, follow these steps:
+
+```bash
+make cannon-prestate
+cd cannon && make
+```
+
+### Prestate Generation and Verification
+
+After running the commands above, verify the output using:
+
+```bash
+readelf -h bin/op-program-client.elf
+```
+
+Next, rename the generated JSON files:
+
+```bash
+mv op-program/bin/0.json op-program/bin/prestate-proof.json
+```
+
+### Summary of the Process
+
+- This process compiles the `op-program` into a MIPS architecture executable (`op-program-client.elf`).
+- The compiled program is loaded using Cannon and run inside a MIPS-based virtual machine.
+- This execution generates two key files:
+  - **prestate.json**: Represents the initial state.
+  - **prestate-proof.json**: Corresponding proof file for the generated state.
+
+These files are critical for establishing the initial state and proof for Optimism’s Cannon-based fault dispute resolution system.
+
+---
+<br/>
+
+## 6. Verify Claims with `op-program` (Challenger Side)
+
+To verify claims on the challenger side using `op-program`, use the following command:
+
+```bash
+./op-program \
+  --l1 http://127.0.0.1:8545 \   # L1 Ethereum RPC URL
+  --l2 http://127.0.0.1:9545 \   # L2 RPC URL
+  --l1.head 0x2d21d3cbe1d3042263cf7ff8ec834c37ff693be8fdeef3b14d464d3036ccb808 \ # Latest L1 block hash
+  --l2.head 0xe79893e3e165e1f1bcdc7482fe8ce282cdc207ed9f5e5708538200b8a48e5de4 \ # Latest L2 block hash
+  --l2.outputroot 0x7e99eb01431a318395e9969a4bc84db73b7d7032a3f749a39e2e71d89ccbd6f0 \ # Previous block’s output root
+  --l2.claim 0x00685eeb8cd764a60a58784ba10f56743be033c1990ba65bee35e0ffed73bfc2 \ # Claimed output root of the block
+  --l2.blocknumber 18   # The block number being validated
+```
+
+### Output Root Verification
+
+To verify the output root of a specific block, use the following commands:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_outputAtBlock","params":["0x11"],"id":1}' \
+  http://localhost:7545
+
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_outputAtBlock","params":["0x12"],"id":1}' \
+  http://localhost:7545
+
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest", true],"id":1}' \
+  -H "Content-Type: application/json" \
+  http://127.0.0.1:8545
+```
+
+These requests allow you to fetch the output root and block information for further verification of the challenger claims.
+
+---
+<br/>
+
+## 7. Verifying Claims with Cannon
+
+### Fault Proof Virtual Machine (FPVM) State Validation
+
+Using Cannon, you can validate the state of the Fault Proof Virtual Machine (FPVM) by checking the VM’s state after executing specific instructions:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_outputAtBlock","params":["0x11"],"id":1}' \
+  http://localhost:7545
+
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_outputAtBlock","params":["0x12"],"id":1}' \
+  http://localhost:7545
+
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest", true],"id":1}' \
+  -H "Content-Type: application/json" \
+  http://127.0.0.1:8545
+```
+
+### Cannon Run Command for Validation
+
+To validate the claim using Cannon, execute the following:
+
+```bash
+./bin/cannon run \
+  --pprof.cpu \
+  --info-at '%10000000' \
+  --proof-at never \
+  --input ./state.json \
+  -- \
+  ../op-program/bin/op-program \
+  --l2.genesis /path/to/genesis-l2.json \
+  --rollup.config /path/to/rollup.json \
+  --l1.trustrpc \
+  --l1.rpckind debug_geth \
+  --l1 http://127.0.0.1:8545 \
+  --l2 http://127.0.0.1:9545 \
+  --l1.head 0x1efe8ddeb25e41ce2d37afbde433b82a1e3ad5a117f28da51a3130382b22552b \
+  --l2.head 0x7b6449d1b2f2eb41aa74a11e7c415d19bc0e9040cee5d9c5a181beba4e48cfb9 \
+  --l2.outputroot 0x315d68d1a075bf74cf549d0eb741546ff83f2a927278bfeb4c9a4a919e2cf09c \
+  --l2.claim 0x4f65f4c41291764702b14a1ba4ffeb4fab19025791609109a86a7d73e67131ad \
+  --l2.blocknumber 18 \
+  --datadir /tmp/fpp-database \
+  --log.format terminal \
+  --server
+```
+
+### Verifying the Execution Steps
+
+The steps of the Cannon run are validated as follows:
+
+- **Step**: The current instruction being executed (e.g., 10,000,000).
+- **PC (Program Counter)**: The memory address of the current instruction.
+- **Insn**: The machine-level instruction being executed.
+- **IPS**: Instructions processed per second.
+- **Pages**: The number of memory pages used.
+- **Mem**: Total memory usage.
+- **Name**: The function or operation being executed.
+
+By tracing these steps, you can ensure that the target block’s batch and the transactions within it have been properly fetched and executed.
+
+---
+<br/>
+
+## 8. Creating Proof for Dispute Resolution
+
+To generate proof for specific steps during the dispute process, run:
+
+```bash
+./bin/cannon run --proof-at '=2792' --stop-at '=2793' --input state.json
+```
+
+This command provides detailed logs for:
+
+- **Step**: The index of the instruction being executed.
+- **Pre-State**: The state before the step is executed.
+- **Post-State**: The state after the step is executed.
+- **State Data**: Detailed state information such as memory, registers, etc.
+- **Proof Data**: Information proving the correctness of the step, used for on-chain verification and dispute resolution.
+
+<br/>
+
+## Subcommands Overview
 
 ### create-game
+Starts a new fault dispute game to challenge the latest output proposal.
 
 ```shell
 ./bin/op-challenger create-game \
@@ -73,48 +273,21 @@ used in production and are intended to provide convenient manual testing.
   <SIGNER_ARGS>
 ```
 
-Starts a new fault dispute game that disputes the latest output proposal
-in the L2 output oracle.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_FACTORY_ADDRESS` - the address of the dispute game factory contract on L1.
-* `OUTPUT_ROOT` a hex encoded 32 byte hash that is used as the proposed output root.
-* `L2_BLOCK_NUM` the L2 block number the proposed output root is from.
-* `SIGNER_ARGS` arguments to specify the key to sign transactions with (e.g `--private-key`)
-
-Optionally, you may specify the game type (aka "trace type") using the `--trace-type`
-flag, which is set to the cannon trace type by default.
-
 ### move
-
-The `move` subcommand can be run with either the `--attack` or `--defend` flag,
-but not both.
+Makes a move (attack or defend) in an existing game.
 
 ```shell
 ./bin/op-challenger move \
   --l1-eth-rpc <L1_ETH_RPC> \
   --game-address <GAME_ADDRESS> \
-  --attack \
+  --attack | --defend \
   --parent-index <PARENT_INDEX> \
   --claim <CLAIM> \
   <SIGNER_ARGS>
 ```
 
-Performs a move to either attack or defend the latest claim in the specified game.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_ADDRESS` - the address of the dispute game to perform the move in.
-* `(attack|defend)` - the type of move to make.
-  * `attack` indicates that the state hash in your local cannon trace differs to the state
-    hash included in the latest claim.
-  * `defend` indicates that the state hash in your local cannon trace matches the state hash
-    included in the latest claim.
-* `PARENT_INDEX` - the index of the parent claim that will be countered by this new claim.
-  The special value of `latest` will counter the latest claim added to the game.
-* `CLAIM` - the state hash to include in the counter-claim you are posting.
-* `SIGNER_ARGS` arguments to specify the key to sign transactions with (e.g `--private-key`)
-
 ### resolve-claim
+Resolves a specific claim within a dispute game.
 
 ```shell
 ./bin/op-challenger resolve-claim \
@@ -124,15 +297,8 @@ Performs a move to either attack or defend the latest claim in the specified gam
   <SIGNER_ARGS>
 ```
 
-Resolves a claim in a dispute game. Note that this will fail if the claim has already been resolved or if the claim is
-not yet resolvable. If the claim is resolved successfully, the result is printed.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_ADDRESS` - the address of the dispute game to resolve.
-* `CLAIM_INDEX` - the index of the claim to resolve.
-* `SIGNER_ARGS` arguments to specify the key to sign transactions with (e.g `--private-key`).
-
 ### resolve
+Resolves a full dispute game once eligible.
 
 ```shell
 ./bin/op-challenger resolve \
@@ -141,15 +307,8 @@ not yet resolvable. If the claim is resolved successfully, the result is printed
   <SIGNER_ARGS>
 ```
 
-Resolves a dispute game. Note that this will fail if the dispute game has already
-been resolved or if the clocks have not yet expired and further moves are possible.
-If the game is resolved successfully, the result is printed.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_ADDRESS` - the address of the dispute game to resolve.
-* `SIGNER_ARGS` arguments to specify the key to sign transactions with (e.g `--private-key`).
-
 ### list-games
+Lists all dispute games created by the game factory.
 
 ```shell
 ./bin/op-challenger list-games \
@@ -157,20 +316,11 @@ If the game is resolved successfully, the result is printed.
   --game-factory-address <GAME_FACTORY_ADDRESS>
 ```
 
-Prints the games created by the game factory along with their current status.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_FACTORY_ADDRESS` - the address of the dispute game factory contract on L1.
-
 ### list-claims
+Displays current claims in a specific dispute game.
 
 ```shell
-./bin/op-challenger list-games \
+./bin/op-challenger list-claims \
   --l1-eth-rpc <L1_ETH_RPC> \
   --game-address <GAME_ADDRESS>
 ```
-
-Prints the list of current claims in a dispute game.
-
-* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
-* `GAME_ADDRESS` - the address of the dispute game to list the move in.
