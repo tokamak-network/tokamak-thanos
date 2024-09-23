@@ -73,25 +73,38 @@ echo
 
 # Function to display completion message
 function display_completion_message {
-    if [[ $STEP == $TOTAL_STEPS ]]; then
+    if [[ $STEP -gt $TOTAL_STEPS ]]; then
         echo ""
-        echo "All $TOTAL_STEPS steps are complete. Let's start devnet:"
+        echo "All $TOTAL_STEPS steps are complete."
+        echo "Please source your profile to apply changes:"
+        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
+        echo ""
+
+        echo "Let's start devnet:"
         echo -e "\033[1;34m\033[1mmake devnet-up\033[0m"
+        echo ""
+        exit 0
     else
         echo ""
         echo "Installation was interrupted. Completed $((STEP - 1))/$TOTAL_STEPS steps."
+        echo "Error occurred in command: '$BASH_COMMAND'"
+
+        echo ""
+        echo "Please source your profile to apply changes:"
+        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
+        exit 1
     fi
 }
 
 # Use trap to display message on script exit, whether successful or due to an error
 trap display_completion_message EXIT
+trap "echo 'Process interrupted!'; exit 1" INT
 
 # MacOS specific steps
 if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 1. Install Homebrew
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Homebrew..."
-    STEP=$((STEP + 1))
     if ! command -v brew &> /dev/null; then
         echo "Homebrew not found, installing..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -99,11 +112,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Homebrew is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 2. Install Git
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Git..."
-    STEP=$((STEP + 1))
     if ! command -v git &> /dev/null; then
         echo "git not found, installing..."
         brew install git
@@ -111,11 +124,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "git is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 3. Install Make
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
-    STEP=$((STEP + 1))
     if ! command -v make &> /dev/null; then
         echo "make not found, installing..."
         brew install make
@@ -123,11 +136,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "make is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 4. Install Xcode Command Line Tools
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Xcode Command Line Tools..."
-    STEP=$((STEP + 1))
     if ! xcode-select -p &> /dev/null; then
         echo "Xcode Command Line Tools not found, installing..."
         xcode-select --install
@@ -135,11 +148,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Xcode Command Line Tools are already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 5. Install Go (v1.22.6)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-    STEP=$((STEP + 1))
     if ! go version | grep "go1.22.6" &> /dev/null; then
         echo "Go 1.22.6 not found, installing..."
         brew install go@1.22
@@ -148,6 +161,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Go 1.22.6 is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 6. Install Node.js (v20.16.0)
@@ -207,7 +221,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 6-3. Set Node.js v20.16.0 as the default version
     echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
-    STEP=$((STEP + 1))
 
     # Save the current Node.js version
     current_version=$(node -v 2>/dev/null)
@@ -223,11 +236,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Node.js is already v20.16.0."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 7. Install Pnpm
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
-    STEP=$((STEP + 1))
     if ! command -v pnpm &> /dev/null; then
         echo "pnpm not found, installing..."
         brew install pnpm
@@ -235,26 +248,26 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "pnpm is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 8. Install Cargo (v1.78.0)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
-    STEP=$((STEP + 1))
+    source "$HOME/.cargo/env"
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source "$HOME/.cargo/env"
         rustup install 1.78.0
         rustup default 1.78.0
     else
         echo "Cargo 1.78.0 is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 9. Install Docker
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
-    STEP=$((STEP + 1))
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
         brew install --cask docker
@@ -262,6 +275,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Docker is already installed."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
     # 10. Install Foundry using Pnpm
@@ -279,6 +293,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Pnpm is not installed. Skipping Foundry installation."
     fi
 
+    STEP=$((STEP + 1))
     echo
 
 # Linux specific steps
@@ -296,14 +311,13 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 1. Update package list
         echo "[$STEP/$TOTAL_STEPS] ----- Updating package list..."
-        STEP=$((STEP + 1))
         sudo apt-get update -y
 
+        STEP=$((STEP + 1))
         echo
 
         # 2. Install Git
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Git..."
-        STEP=$((STEP + 1))
         if ! command -v git &> /dev/null; then
             echo "git not found, installing..."
             sudo apt-get install -y git
@@ -311,11 +325,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "git is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 3. Install Make
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
-        STEP=$((STEP + 1))
         if ! command -v make &> /dev/null; then
             echo "make not found, installing..."
             sudo apt-get install -y make
@@ -323,11 +337,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "make is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 4. Install Build-essential
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Build-essential..."
-        STEP=$((STEP + 1))
         if ! dpkg -s build-essential &> /dev/null; then
             echo "Build-essential not found, installing..."
             sudo apt-get install -y build-essential
@@ -335,24 +349,19 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Build-essential is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 5. Install Go (v1.22.6)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-        STEP=$((STEP + 1))
+        export PATH="$PATH:/usr/local/go/bin"
+        hash -r
         if ! go version | grep "go1.22.6" &> /dev/null; then
             echo "Go 1.22.6 not found, installing..."
 
             if ! command -v curl &> /dev/null; then
                 echo "curl not found, installing..."
                 sudo apt-get install -y curl
-
-                if [ "$SHELL_NAME" = "zsh" ]; then
-                    source ~/.zshrc
-                elif [ "$SHELL_NAME" = "bash" ]; then
-                    source ~/.bashrc
-                    source ~/.profile
-                fi
             else
                 echo "curl is already installed."
             fi
@@ -363,8 +372,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
 
             sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
-            export PATH="$PATH:/usr/local/go/bin"
-            hash -r
 
             # Check if the Go configuration is already in the CONFIG_FILE
             if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
@@ -387,6 +394,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Go 1.22.6 is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 6. Install Node.js (v20.16.0)
@@ -443,7 +451,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 6-3. Set Node.js v20.16.0 as the default version
         echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
-        STEP=$((STEP + 1))
         # Save the current Node.js version
         current_version=$(node -v 2>/dev/null)
 
@@ -458,41 +465,41 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Node.js is already v20.16.0."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 7. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
-        STEP=$((STEP + 1))
+        export PNPM_HOME="$HOME/.local/share/pnpm"
+        export PATH="$PNPM_HOME:$PATH"
+        hash -r
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
-            export PNPM_HOME="$HOME/.local/share/pnpm"
-            export PATH="$PNPM_HOME:$PATH"
-            hash -r
         else
             echo "pnpm is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 8. Install Cargo (v1.78.0)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
-        STEP=$((STEP + 1))
+        source "$HOME/.cargo/env"
         if ! cargo --version | grep "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            source "$HOME/.cargo/env"
             rustup install 1.78.0
             rustup default 1.78.0
         else
             echo "Cargo 1.78.0 is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 9. Install Docker
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
-        STEP=$((STEP + 1))
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -515,6 +522,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Docker is already installed."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
         # 10. Install Foundry using Pnpm
@@ -532,6 +540,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Pnpm is not installed. Skipping Foundry installation."
         fi
 
+        STEP=$((STEP + 1))
         echo
 
     # If it is an operating system other than Ubuntu, execute the following commands.
