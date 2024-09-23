@@ -61,21 +61,22 @@ networks:
   ops-bedrock_default:
     external: true  
 ```
+> **Note:** This configuration sets up the `op-challenger` service for Optimism dispute games, allowing interaction with L1 and L2 Ethereum networks.
 
-### Service Initialization
-The `op-challenger` service is configured to interact with both L1 and L2 Ethereum networks via specified RPC endpoints.
 
-### Cannon Trace
-Uses the cannon trace type for validating rollup state transitions with the Cannon virtual machine.
+### Key Details:
+- **Image**: Uses the latest `op-challenger` Docker image from oplabs.
+- **Volumes**: 
+  - `challenger-data` stores local challenger data.
+  - `op-program` contains the binary for the fault proof system.
+- **Environment Variables**:
+  - **L1 and L2 RPC Endpoints**: Defines connections to L1 (`http://l1:8545`) and L2 (`http://op-node:8545`).
+  - **Cannon Configuration**: Specifies files for Cannon VM setup, including rollup config, genesis, and prestate.
+  - **Game Factory Address**: Connects to the contract for managing dispute games.
+  - **Private Key**: Used for signing transactions.
+  - **Trace Type**: Set to use Cannon for fast trace validation.
+- **Networks**: The service uses the `ops-bedrock_default` external network for connectivity.
 
-### Dispute Game Management
-Connects to the game-factory-address to manage dispute resolution games, ensuring rollup operations are correctly validated.
-
-### Data Management
-Stores data in a mounted directory (`temp/challenger-data`).
-
-### Transaction Handling
-Utilizes a predefined mnemonic for signing transactions, with the number of confirmations required for finality.
 
 To run the challenger:
 
