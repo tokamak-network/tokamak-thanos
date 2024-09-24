@@ -275,8 +275,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        rustup install 1.78.0
-        rustup default 1.78.0
 
         if [ "$SHELL_NAME" = "zsh" ]; then
             source ~/.zshrc
@@ -284,6 +282,9 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
             source ~/.bashrc
             source ~/.profile
         fi
+
+        rustup install 1.78.0
+        rustup default 1.78.0
     else
         echo "Cargo 1.78.0 is already installed."
     fi
@@ -549,15 +550,16 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            rustup install 1.78.0
-            rustup default 1.78.0
-            source "$HOME/.cargo/env"
+
             if [ "$SHELL_NAME" = "zsh" ]; then
                 source ~/.zshrc
             elif [ "$SHELL_NAME" = "bash" ]; then
                 source ~/.bashrc
                 source ~/.profile
             fi
+
+            rustup install 1.78.0
+            rustup default 1.78.0
         else
             echo "Cargo 1.78.0 is already installed."
         fi
