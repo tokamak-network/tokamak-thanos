@@ -216,7 +216,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 6-2. Install Node.js v20.16.0 using NVM
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
-    if ! nvm ls | grep "v20.16.0" &> /dev/null; then
+    if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
         echo "Node.js v20.16.0 not found, installing..."
         nvm install v20.16.0
     else
@@ -489,7 +489,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 6-2. Install Node.js v20.16.0 using NVM
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
-        if ! nvm ls | grep "v20.16.0" &> /dev/null; then
+        if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
             echo "Node.js v20.16.0 not found, installing..."
             nvm install v20.16.0
         else
