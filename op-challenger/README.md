@@ -1,11 +1,9 @@
-# op-challenger
+# Tokamak Thanos Local Devnet FPS Operation Guide
+## op-challenger
 
 The `op-challenger` is a modular **op-stack** challenge agent written in Go for various dispute games like attestation, fault, and validity games. For more details, visit the [fault proof specs][proof-specs].
 
 [proof-specs]: https://specs.optimism.io/experimental/fault-proof/index.html
-
-# Tokamak Thanos Local Devnet Setup
-
 ## 1. Clone the Monorepo
 To clone the Tokamak Thanos repository, use the following command:
 
