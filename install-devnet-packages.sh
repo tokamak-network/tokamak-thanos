@@ -150,8 +150,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 5. Install Go (v1.22.6)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-    export PATH="$PATH:/usr/local/go/bin"
-    hash -r
     if ! go version | grep "go1.22.6" &> /dev/null; then
         echo "Go 1.22.6 not found, installing..."
 
@@ -208,12 +206,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Create NVM directory if it doesn't exist
     export NVM_DIR="$HOME/.nvm"
     mkdir -p "$NVM_DIR"
-
-    # Extract the HOMEBREW_PREFIX path
-    HOMEBREW_PREFIX=$(brew --prefix)
-    [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"
-    [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
-    hash -r
 
     if ! command -v nvm &> /dev/null; then
         echo "NVM not found, installing..."
@@ -426,8 +418,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 5. Install Go (v1.22.6)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-        export PATH="$PATH:/usr/local/go/bin"
-        hash -r
         if ! go version | grep "go1.22.6" &> /dev/null; then
             echo "Go 1.22.6 not found, installing..."
 
@@ -484,9 +474,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         # Create NVM directory if it doesn't exist
         export NVM_DIR="$HOME/.nvm"
         mkdir -p "$NVM_DIR"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        hash -r
 
         if ! command -v nvm &> /dev/null; then
             echo "NVM not found, installing..."
@@ -563,19 +550,31 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 7. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
-        export PNPM_HOME="$HOME/.local/share/pnpm"
-        export PATH="$PNPM_HOME:$PATH"
-        hash -r
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
 
-            if [ "$SHELL_NAME" = "zsh" ]; then
-                source ~/.zshrc
-            elif [ "$SHELL_NAME" = "bash" ]; then
-                source ~/.bashrc
-                source ~/.profile
+            # Check if the pnpm configuration is already in the CONFIG_FILE
+            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$CONFIG_FILE"; then
+
+                # If the configuration is not found, add pnpm to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                } >> "$CONFIG_FILE"
             fi
+
+            # Check if the pnpm configuration is already in the PROFILE_FILE
+            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$PROFILE_FILE"; then
+
+                # If the configuration is not found, add pnpm to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                } >> "$PROFILE_FILE"
+            fi
+
+            export PATH="/root/.local/share/pnpm:$PATH"
         else
             echo "pnpm is already installed."
         fi
@@ -585,7 +584,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 8. Install Cargo (v1.78.0)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
-        source "$HOME/.cargo/env"
         if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
