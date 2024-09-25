@@ -11,7 +11,7 @@ ARCH=$(uname -m)
 
 if [[ "$ARCH" == "x86_64" ]]; then
     ARCH="amd64"
-elif [[ "$ARCH" == "aarch64" ]]; then
+elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
     ARCH="arm64"
 elif [[ "$ARCH" == "armv6l" ]]; then
     ARCH="armv6l"
