@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 // Testing utilities
 import { Bridge_Initializer } from "test/setup/Bridge_Initializer.sol";
 import { Reverter, ConfigurableCaller } from "test/mocks/Callers.sol";
@@ -163,6 +165,49 @@ contract L1CrossDomainMessenger_Test is Bridge_Initializer {
             sender,
             target,
             0, // value
+            0,
+            hex"1111"
+        );
+
+        // the message hash is in the successfulMessages mapping
+        assert(l1CrossDomainMessenger.successfulMessages(hash));
+        // it is not in the received messages mapping
+        assertEq(l1CrossDomainMessenger.failedMessages(hash), false);
+    }
+
+    /// @dev Tests that the relayMessage function is able to relay a message
+    ///      with value > 0 successfully by calling the target contract
+    function test_relayMessage_v2_succeeds() external {
+        address target = address(0xabcd);
+        address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
+        uint256 value = 100;
+
+        vm.expectCall(target, hex"1111");
+
+        ERC20 nativeToken = ERC20(optimismPortal.nativeTokenAddress());
+
+        deal(address(l2NativeToken), address(optimismPortal), value);
+
+        vm.prank(address(optimismPortal));
+        nativeToken.approve(address(l1CrossDomainMessenger), value);
+
+        // set the value of op.l2Sender() to be the L2 Cross Domain Messenger.
+        vm.store(address(optimismPortal), bytes32(senderSlotIndex), bytes32(abi.encode(sender)));
+        vm.prank(address(optimismPortal));
+
+        vm.expectEmit(address(l1CrossDomainMessenger));
+
+        bytes32 hash = Hashing.hashCrossDomainMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), sender, target, value, 0, hex"1111"
+        );
+
+        emit RelayedMessage(hash);
+
+        l1CrossDomainMessenger.relayMessage(
+            Encoding.encodeVersionedNonce({ _nonce: 0, _version: 1 }), // nonce
+            sender,
+            target,
+            value, // value
             0,
             hex"1111"
         );
