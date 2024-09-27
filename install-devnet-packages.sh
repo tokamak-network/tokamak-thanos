@@ -396,10 +396,10 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "jq is already installed."
     fi
 
-    if command -v pnpm &> /dev/null; then
-        pnpm install:foundry
+    if pnpm install:foundry; then
+        export PATH="$PATH:/root/.foundry/bin"
     else
-        echo "Pnpm is not installed. Skipping Foundry installation."
+        exit
     fi
 
     SUCCESS="true"
@@ -723,7 +723,9 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "jq is already installed."
         fi
 
-        if ! pnpm -y install:foundry; then
+        if pnpm install:foundry; then
+            export PATH="$PATH:/root/.foundry/bin"
+        else
             exit
         fi
 
