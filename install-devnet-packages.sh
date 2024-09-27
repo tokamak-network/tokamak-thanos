@@ -275,6 +275,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 5. Install Node.js (v20.16.0)
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js (v20.16.0)..."
+
     # Save the current Node.js version
     current_node_version=$(node -v 2>/dev/null)
 
@@ -365,6 +367,26 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+        # Check if the Cargo configuration is already in the CONFIG_FILE
+        if ! grep -Fq '. "$HOME/.cargo/env"' "$CONFIG_FILE"; then
+
+            # If the configuration is not found, add Cargo to the current shell session
+            {
+                echo ''
+                echo '. "$HOME/.cargo/env"'
+            } >> "$CONFIG_FILE"
+        fi
+
+        # Check if the Cargo configuration is already in the PROFILE_FILE
+        if ! grep -Fq '. "$HOME/.cargo/env"' "$PROFILE_FILE"; then
+            # If the configuration is not found, add Cargo to the current shell session
+            {
+                echo ''
+                echo '. "$HOME/.cargo/env"'
+            } >> "$PROFILE_FILE"
+        fi
+
         source "$HOME/.cargo/env"
         rustup install 1.78.0
         rustup default 1.78.0
@@ -397,6 +419,24 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     fi
 
     if pnpm install:foundry; then
+        # Check if the foundry configuration is already in the CONFIG_FILE
+        if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+
+            # If the configuration is not found, add foundry to the current shell session
+            {
+                echo ''
+                echo 'export PATH="$PATH:/root/.foundry/bin"'
+            } >> "$CONFIG_FILE"
+        fi
+
+        # Check if the foundry configuration is already in the PROFILE_FILE
+        if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+            # If the configuration is not found, add foundry to the current shell session
+            {
+                echo ''
+                echo 'export PATH="$PATH:/root/.foundry/bin"'
+            } >> "$PROFILE_FILE"
+        fi
         export PATH="$PATH:/root/.foundry/bin"
     else
         exit
@@ -565,6 +605,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 5. Install Node.js (v20.16.0)
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js (v20.16.0)..."
+
         # Save the current Node.js version
         current_node_version=$(node -v 2>/dev/null)
 
@@ -677,6 +719,26 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+            # Check if the Cargo configuration is already in the CONFIG_FILE
+            if ! grep -Fq '. "$HOME/.cargo/env"' "$CONFIG_FILE"; then
+
+                # If the configuration is not found, add Cargo to the current shell session
+                {
+                    echo ''
+                    echo '. "$HOME/.cargo/env"'
+                } >> "$CONFIG_FILE"
+            fi
+
+            # Check if the Cargo configuration is already in the PROFILE_FILE
+            if ! grep -Fq '. "$HOME/.cargo/env"' "$PROFILE_FILE"; then
+                # If the configuration is not found, add Cargo to the current shell session
+                {
+                    echo ''
+                    echo '. "$HOME/.cargo/env"'
+                } >> "$PROFILE_FILE"
+            fi
+
             source "$HOME/.cargo/env"
             rustup install 1.78.0
             rustup default 1.78.0
@@ -724,6 +786,24 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         fi
 
         if pnpm install:foundry; then
+            # Check if the foundry configuration is already in the CONFIG_FILE
+            if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+
+                # If the configuration is not found, add foundry to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="$PATH:/root/.foundry/bin"'
+                } >> "$CONFIG_FILE"
+            fi
+
+            # Check if the foundry configuration is already in the PROFILE_FILE
+            if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+                # If the configuration is not found, add foundry to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="$PATH:/root/.foundry/bin"'
+                } >> "$PROFILE_FILE"
+            fi
             export PATH="$PATH:/root/.foundry/bin"
         else
             exit
