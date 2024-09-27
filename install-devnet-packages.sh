@@ -2,6 +2,7 @@
 
 TOTAL_STEPS=10
 STEP=1
+SUCCESS="false"
 
 # Detect Operating System
 OS_TYPE=$(uname)
@@ -11,10 +12,8 @@ ARCH=$(uname -m)
 
 if [[ "$ARCH" == "x86_64" ]]; then
     ARCH="amd64"
-    export PATH="/usr/local/bin:$PATH"
 elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
     ARCH="arm64"
-    export PATH="/opt/homebrew/bin:$PATH"
 elif [[ "$ARCH" == "armv6l" ]]; then
     ARCH="armv6l"
 elif [[ "$ARCH" == "i386" ]]; then
@@ -73,7 +72,7 @@ echo
 
 # Function to display completion message
 function display_completion_message {
-    if [[ $STEP -gt $TOTAL_STEPS ]]; then
+    if [[ "$SUCCESS" == "true" ]]; then
         echo ""
         echo "All $TOTAL_STEPS steps are complete."
         echo "Please source your profile to apply changes:"
@@ -127,6 +126,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
                 } >> "$PROFILE_FILE"
             fi
         fi
+
+        export PATH="/opt/homebrew/bin:$PATH"
     else
         echo "Homebrew is already installed."
     fi
@@ -146,19 +147,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 3. Install Make
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
-    if ! command -v make &> /dev/null; then
-        echo "make not found, installing..."
-        brew install make
-    else
-        echo "make is already installed."
-    fi
-
-    STEP=$((STEP + 1))
-    echo
-
-    # 4. Install Xcode Command Line Tools
+    # 3. Install Xcode Command Line Tools(Inclue make)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Xcode Command Line Tools..."
     if ! xcode-select -p &> /dev/null; then
         echo "Xcode Command Line Tools not found, installing..."
@@ -170,8 +159,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 5. Install Go (v1.22.6)
-    # 5-1. Install Go (v1.22.6)
+    # 4. Install Go (v1.22.6)
+    # 4-1. Install Go (v1.22.6)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
     export PATH="$PATH:/usr/local/go/bin"
 
@@ -181,12 +170,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Check if the current version is not v1.22.6
     if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
 
+        # If Go is not installed, install Go 1.22.6 directly
         if ! command -v go &> /dev/null; then
             echo "Go not found, installing..."
 
             if ! command -v curl &> /dev/null; then
                 echo "curl not found, installing..."
-                sudo apt-get install -y curl
+                brew install curl
             else
                 echo "curl is already installed."
             fi
@@ -217,60 +207,65 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
             fi
 
             export PATH="$PATH:/usr/local/go/bin"
+
+        # If Go is installed and the current version is Go 1.22.6, install GVM.
         else
-            echo "go is already installed."
-        fi
-
-        # 5-2. Install GVM
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
-        source ~/.gvm/scripts/gvm
-        if ! command -v gvm &> /dev/null; then
-            echo "GVM not found, installing..."
-            bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-
-            # Check if the GVM configuration is already in the CONFIG_FILE
-            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
-
-                # If the configuration is not found, add GVM to the current shell session
-                {
-                    echo ''
-                    echo 'source ~/.gvm/scripts/gvm'
-                } >> "$CONFIG_FILE"
-            fi
-
-            # Check if the GVM configuration is already in the PROFILE_FILE
-            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
-
-                # If the configuration is not found, add GVM to the current shell session
-                {
-                    echo ''
-                    echo 'source ~/.gvm/scripts/gvm'
-                } >> "$PROFILE_FILE"
-            fi
-
+            # 4-2. Install GVM
+            echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
             source ~/.gvm/scripts/gvm
-            gvm use system --default
-        else
-            echo "gvm is already installed."
-        fi
+            if ! command -v gvm &> /dev/null; then
+                echo "GVM not found, installing..."
 
-        # 5-3. Install Go v1.22.6 using GVM
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
-        if ! gvm list | grep 'go1.22.6' &> /dev/null; then
-            echo "Go v1.22.6 not found, installing..."
-            gvm install go1.22.6
-        else
-            echo "Go v1.22.6 is already installed."
-        fi
+                # Install bison for running GVM
+                if ! command -v bison &> /dev/null; then
+                    echo "bison not found, installing..."
+                    apt-get install bison -y
+                else
+                    echo "bison is already installed."
+                fi
 
-        # 5-4. Set Go v1.22.6 as the default version
-        echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
-        echo "Switching to Go v1.22.6..."
-        gvm use go1.22.6
-        echo "Go v1.22.6 is now set as the default version."
+                bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
 
-        else
-            echo "Go is already v1.22.6."
+                # Check if the GVM configuration is already in the CONFIG_FILE
+                if ! grep -Fxq 'source ~/.gvm/scripts/gvm' "$CONFIG_FILE"; then
+
+                    # If the configuration is not found, add GVM to the current shell session
+                    {
+                        echo ''
+                        echo 'source ~/.gvm/scripts/gvm'
+                    } >> "$CONFIG_FILE"
+                fi
+
+                # Check if the GVM configuration is already in the PROFILE_FILE
+                if ! grep -Fxq 'source ~/.gvm/scripts/gvm' "$PROFILE_FILE"; then
+
+                    # If the configuration is not found, add GVM to the current shell session
+                    {
+                        echo ''
+                        echo 'source ~/.gvm/scripts/gvm'
+                    } >> "$PROFILE_FILE"
+                fi
+
+                source ~/.gvm/scripts/gvm
+                gvm use system --default
+            else
+                echo "gvm is already installed."
+            fi
+
+            # 4-3. Install Go v1.22.6 using GVM
+            echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
+            if ! gvm list | grep 'go1.22.6' &> /dev/null; then
+                echo "Go v1.22.6 not found, installing..."
+                gvm install go1.22.6
+            else
+                echo "Go v1.22.6 is already installed."
+            fi
+
+            # 4-4. Set Go v1.22.6 as the default version
+            echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
+            echo "Switching to Go v1.22.6..."
+            gvm use go1.22.6
+            echo "Go v1.22.6 is now set as the default version."
         fi
     else
         echo "Go 1.22.6 is already installed."
@@ -279,14 +274,14 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 6. Install Node.js (v20.16.0)
+    # 5. Install Node.js (v20.16.0)
     # Save the current Node.js version
     current_node_version=$(node -v 2>/dev/null)
 
     # Check if the current version is not v20.16.0
     if [[ "$current_node_version" != "v20.16.0" ]]; then
 
-        # 6-1. Install NVM
+        # 5-1. Install NVM
         echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
 
         # Create NVM directory if it doesn't exist
@@ -330,7 +325,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
             echo "NVM is already installed."
         fi
 
-        # 6-2. Install Node.js v20.16.0 using NVM
+        # 5-2. Install Node.js v20.16.0 using NVM
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
         if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
             echo "Node.js v20.16.0 not found, installing..."
@@ -339,7 +334,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
             echo "Node.js v20.16.0 is already installed."
         fi
 
-        # 6-3. Set Node.js v20.16.0 as the default version
+        # 5-3. Set Node.js v20.16.0 as the default version
         echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
         echo "Switching to Node.js v20.16.0..."
         nvm use v20.16.0
@@ -352,7 +347,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 7. Install Pnpm
+    # 6. Install Pnpm
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
     if ! command -v pnpm &> /dev/null; then
         echo "pnpm not found, installing..."
@@ -364,7 +359,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 8. Install Cargo (v1.78.0)
+    # 7. Install Cargo (v1.78.0)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
     source "$HOME/.cargo/env"
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
@@ -380,7 +375,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 9. Install Docker
+    # 8. Install Docker
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
@@ -392,7 +387,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 10. Install Foundry using Pnpm
+    # 9. Install Foundry using Pnpm
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
     if ! command -v jq &> /dev/null; then
         echo "jq not found, installing..."
@@ -407,7 +402,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Pnpm is not installed. Skipping Foundry installation."
     fi
 
-    STEP=$((STEP + 1))
+    SUCCESS="true"
     echo
 
 # Linux specific steps
@@ -442,19 +437,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 3. Install Make
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Make..."
-        if ! command -v make &> /dev/null; then
-            echo "make not found, installing..."
-            sudo apt-get install -y make
-        else
-            echo "make is already installed."
-        fi
-
-        STEP=$((STEP + 1))
-        echo
-
-        # 4. Install Build-essential
+        # 3. Install Build-essential
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Build-essential..."
         if ! dpkg -s build-essential &> /dev/null; then
             echo "Build-essential not found, installing..."
@@ -466,8 +449,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 5. Install Go (v1.22.6)
-        # 5-1. Install Go (v1.22.6)
+        # 4. Install Go (v1.22.6)
+        # 4-1. Install Go (v1.22.6)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
         export PATH="$PATH:/usr/local/go/bin"
 
@@ -475,8 +458,9 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         current_go_version=$(go version 2>/dev/null)
 
         # Check if the current version is not v1.22.6
-       if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
+        if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
 
+            # If Go is not installed, install Go 1.22.6 directly
             if ! command -v go &> /dev/null; then
                 echo "Go not found, installing..."
 
@@ -513,59 +497,65 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                 fi
 
                 export PATH="$PATH:/usr/local/go/bin"
+
+            # If Go is installed and the current version is Go 1.22.6, install GVM.
             else
-                echo "go is already installed."
-            fi
-
-            # 5-2. Install GVM
-            echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
-            source ~/.gvm/scripts/gvm
-            if ! command -v gvm &> /dev/null; then
-                echo "GVM not found, installing..."
-                bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-
-                # Check if the GVM configuration is already in the CONFIG_FILE
-                if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
-
-                    # If the configuration is not found, add GVM to the current shell session
-                    {
-                        echo ''
-                        echo 'source ~/.gvm/scripts/gvm'
-                    } >> "$CONFIG_FILE"
-                fi
-
-                # Check if the GVM configuration is already in the PROFILE_FILE
-                if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
-
-                    # If the configuration is not found, add GVM to the current shell session
-                    {
-                        echo ''
-                        echo 'source ~/.gvm/scripts/gvm'
-                    } >> "$PROFILE_FILE"
-                fi
-
+                # 4-2. Install GVM
+                echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
                 source ~/.gvm/scripts/gvm
-                gvm use system --default
-            else
-                echo "gvm is already installed."
-            fi
+                if ! command -v gvm &> /dev/null; then
+                    echo "GVM not found, installing..."
 
-            # 5-3. Install Go v1.22.6 using GVM
-            echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
-            if ! gvm list | grep 'go1.22.6' &> /dev/null; then
-                echo "Go v1.22.6 not found, installing..."
-                gvm install go1.22.6
-            else
-                echo "Go v1.22.6 is already installed."
-            fi
+                    # Install bison for running GVM
+                    if ! command -v bison &> /dev/null; then
+                        echo "bison not found, installing..."
+                        apt-get install bison -y
+                    else
+                        echo "bison is already installed."
+                    fi
 
-            # 5-4. Set Go v1.22.6 as the default version
-            echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
-            echo "Switching to Go v1.22.6..."
-            gvm use go1.22.6
-            echo "Go v1.22.6 is now set as the default version."
-            else
-                echo "Go is already v1.22.6."
+                    bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+
+                    # Check if the GVM configuration is already in the CONFIG_FILE
+                    if ! grep -Fxq 'source ~/.gvm/scripts/gvm' "$CONFIG_FILE"; then
+
+                        # If the configuration is not found, add GVM to the current shell session
+                        {
+                            echo ''
+                            echo 'source ~/.gvm/scripts/gvm'
+                        } >> "$CONFIG_FILE"
+                    fi
+
+                    # Check if the GVM configuration is already in the PROFILE_FILE
+                    if ! grep -Fxq 'source ~/.gvm/scripts/gvm' "$PROFILE_FILE"; then
+
+                        # If the configuration is not found, add GVM to the current shell session
+                        {
+                            echo ''
+                            echo 'source ~/.gvm/scripts/gvm'
+                        } >> "$PROFILE_FILE"
+                    fi
+
+                    source ~/.gvm/scripts/gvm
+                    gvm use system --default
+                else
+                    echo "gvm is already installed."
+                fi
+
+                # 4-3. Install Go v1.22.6 using GVM
+                echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
+                if ! gvm list | grep 'go1.22.6' &> /dev/null; then
+                    echo "Go v1.22.6 not found, installing..."
+                    gvm install go1.22.6
+                else
+                    echo "Go v1.22.6 is already installed."
+                fi
+
+                # 4-4. Set Go v1.22.6 as the default version
+                echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
+                echo "Switching to Go v1.22.6..."
+                gvm use go1.22.6
+                echo "Go v1.22.6 is now set as the default version."
             fi
         else
             echo "Go 1.22.6 is already installed."
@@ -574,14 +564,14 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 6. Install Node.js (v20.16.0)
+        # 5. Install Node.js (v20.16.0)
         # Save the current Node.js version
         current_node_version=$(node -v 2>/dev/null)
 
         # Check if the current version is not v20.16.0
         if [[ "$current_node_version" != "v20.16.0" ]]; then
 
-            # 6-1. Install NVM
+            # 5-1. Install NVM
             echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
 
             # Create NVM directory if it doesn't exist
@@ -624,7 +614,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                 echo "NVM is already installed."
             fi
 
-            # 6-2. Install Node.js v20.16.0 using NVM
+            # 5-2. Install Node.js v20.16.0 using NVM
             echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
             if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
                 echo "Node.js v20.16.0 not found, installing..."
@@ -633,7 +623,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                 echo "Node.js v20.16.0 is already installed."
             fi
 
-            # 6-3. Set Node.js v20.16.0 as the default version
+            # 5-3. Set Node.js v20.16.0 as the default version
             echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
             echo "Switching to Node.js v20.16.0..."
             nvm use v20.16.0
@@ -646,7 +636,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 7. Install Pnpm
+        # 6. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
         export PATH="/root/.local/share/pnpm:$PATH"
         if ! command -v pnpm &> /dev/null; then
@@ -681,7 +671,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 8. Install Cargo (v1.78.0)
+        # 7. Install Cargo (v1.78.0)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
         source "$HOME/.cargo/env"
         if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
@@ -697,7 +687,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 9. Install Docker
+        # 8. Install Docker
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
@@ -724,7 +714,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 10. Install Foundry using Pnpm
+        # 9. Install Foundry using Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Foundry using Pnpm..."
         if ! command -v jq &> /dev/null; then
             echo "jq not found, installing..."
@@ -737,11 +727,112 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             exit
         fi
 
-        STEP=$((STEP + 1))
+        SUCCESS="true"
         echo
 
     # If it is an operating system other than Ubuntu, execute the following commands.
     else
         echo "$OS_NAME is an unsupported operating system."
     fi
+fi
+
+# Function to check if a command exists and its version if necessary
+function check_command_version {
+    CMD=$1
+    EXPECTED_VERSION=$2
+    VERSION_CMD=$3
+
+    if command -v "$CMD" &> /dev/null; then
+        CURRENT_VERSION=$($VERSION_CMD 2>&1 | head -n 1)
+        if [[ -z "$EXPECTED_VERSION" ]]; then
+            if [[ "$CMD" == "forge" || "$CMD" == "cast" || "$CMD" == "anvil" ]]; then
+                echo "✅ foundry - $CMD is installed. Current version: $CURRENT_VERSION"
+            else
+                echo "✅ $CMD is installed. Current version: $CURRENT_VERSION"
+            fi
+        elif echo "$CURRENT_VERSION" | grep -q "$EXPECTED_VERSION"; then
+            echo "✅ $CMD is installed and matches version $EXPECTED_VERSION."
+        else
+            echo "❌ $CMD is installed but version does not match $EXPECTED_VERSION. Current version: $CURRENT_VERSION"
+        fi
+    else
+        if [[ "$CMD" == "forge" || "$CMD" == "cast" || "$CMD" == "anvil" ]]; then
+            echo "❌ foundry - $CMD is not installed."
+        else
+            echo "❌ $CMD is not installed."
+        fi
+    fi
+}
+
+# Final step: Check installation and versions
+echo "Verifying installation and versions..."
+
+# Check Homebrew (for MacOS) - Just check if installed
+if [[ "$OS_TYPE" == "darwin" ]]; then
+    # Check Homebrew
+    check_command_version brew "" "brew --version"
+
+    # Check Git
+    check_command_version git "" "git --version"
+
+    # Check Make
+    check_command_version make "" "make --version"
+
+    # Check Xcode
+    check_command_version xcode-select "" "xcode-select --version"
+
+    # Check Go (Expect version 1.22.6)
+    check_command_version go "go1.22.6" "go version"
+
+    # Check Node.js (Expect version 20.16.0)
+    check_command_version node "v20.16.0" "node -v"
+
+    # Check Pnpm
+    check_command_version pnpm "" "pnpm --version"
+
+    # Check Cargo (Expect version 1.78.0)
+    check_command_version cargo "1.78.0" "cargo --version"
+
+    # Check Docker
+    check_command_version docker "" "docker --version"
+
+    # Check Foundry
+    check_command_version forge "" "forge --version"
+    check_command_version cast "" "cast --version"
+    check_command_version anvil "" "anvil --version"
+
+    echo "🎉 All required tools are installed and ready to use!"
+
+
+elif [[ "$OS_TYPE" == "linux" ]]; then
+    # Check Git
+    check_command_version git "" "git --version"
+
+    # Check Make
+    check_command_version make "" "make --version"
+
+    # Check gcc (Instead build-essential)
+    check_command_version gcc "" "gcc --version"
+
+    # Check Go (Expect version 1.22.6)
+    check_command_version go "go1.22.6" "go version"
+
+    # Check Node.js (Expect version 20.16.0)
+    check_command_version node "v20.16.0" "node -v"
+
+    # Check Pnpm
+    check_command_version pnpm "" "pnpm --version"
+
+    # Check Cargo (Expect version 1.78.0)
+    check_command_version cargo "1.78.0" "cargo --version"
+
+    # Check Docker
+    check_command_version docker "" "docker --version"
+
+    # Check Foundry
+    check_command_version forge "" "forge --version"
+    check_command_version cast "" "cast --version"
+    check_command_version anvil "" "anvil --version"
+
+    echo "🎉 All required tools are installed and ready to use!"
 fi
