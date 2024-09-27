@@ -11,8 +11,10 @@ ARCH=$(uname -m)
 
 if [[ "$ARCH" == "x86_64" ]]; then
     ARCH="amd64"
+    export PATH="/usr/local/bin:$PATH"
 elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
     ARCH="arm64"
+    export PATH="/opt/homebrew/bin:$PATH"
 elif [[ "$ARCH" == "armv6l" ]]; then
     ARCH="armv6l"
 elif [[ "$ARCH" == "i386" ]]; then
@@ -105,6 +107,26 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     if ! command -v brew &> /dev/null; then
         echo "Homebrew not found, installing..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+            # Check if the Homebrew configuration is already in the CONFIG_FILE
+            if ! grep -Fxq 'export PATH="/usr/local/bin:$PATH"' "$CONFIG_FILE"; then
+                # If the configuration is not found, add Homebrew to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="/usr/local/bin:$PATH"'
+                } >> "$CONFIG_FILE"
+            fi
+
+            # Check if the Homebrew configuration is already in the PROFILE_FILE
+            if ! grep -Fxq 'export PATH="/usr/local/bin:$PATH"' "$PROFILE_FILE"; then
+                # If the configuration is not found, add Homebrew to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="/usr/local/bin:$PATH"'
+                } >> "$PROFILE_FILE"
+            fi
+        fi
     else
         echo "Homebrew is already installed."
     fi
@@ -151,47 +173,57 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # 5. Install Go (v1.22.6)
     # 5-1. Install Go (v1.22.6)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-    if ! command -v go &> /dev/null; then
-        echo "Go 1.22.6 not found, installing..."
+    export PATH="$PATH:/usr/local/go/bin"
 
-        if ! command -v curl &> /dev/null; then
-            echo "curl not found, installing..."
-            sudo apt-get install -y curl
+    # Save the current Go version
+    current_go_version=$(go version 2>/dev/null)
+
+    # Check if the current version is not v1.22.6
+    if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
+
+        if ! command -v go &> /dev/null; then
+            echo "Go not found, installing..."
+
+            if ! command -v curl &> /dev/null; then
+                echo "curl not found, installing..."
+                sudo apt-get install -y curl
+            else
+                echo "curl is already installed."
+            fi
+
+            GO_FILE_NAME="go1.22.6.darwin-${ARCH}.tar.gz"
+            GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
+
+            sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
+
+            sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
+
+            # Check if the Go configuration is already in the CONFIG_FILE
+            if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
+                # If the configuration is not found, add Go to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="$PATH:/usr/local/go/bin"'
+                } >> "$CONFIG_FILE"
+            fi
+
+            # Check if the NVM configuration is already in the PROFILE_FILE
+            if ! grep -Fxq 'export PATH=$PATH:/usr/local/go/bin' "$PROFILE_FILE"; then
+                # If the configuration is not found, add Go to the current shell session
+                {
+                    echo ''
+                    echo 'export PATH="$PATH:/usr/local/go/bin"'
+                } >> "$PROFILE_FILE"
+            fi
+
+            export PATH="$PATH:/usr/local/go/bin"
         else
-            echo "curl is already installed."
+            echo "go is already installed."
         fi
-
-        GO_FILE_NAME="go1.22.6.darwin-${ARCH}.tar.gz"
-        GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
-
-        sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
-
-        sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
-
-        # Check if the Go configuration is already in the CONFIG_FILE
-        if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
-            # If the configuration is not found, add Go to the current shell session
-            {
-                echo ''
-                echo 'export PATH="$PATH:/usr/local/go/bin"'
-            } >> "$CONFIG_FILE"
-        fi
-
-        # Check if the NVM configuration is already in the PROFILE_FILE
-        if ! grep -Fxq 'export PATH=$PATH:/usr/local/go/bin' "$PROFILE_FILE"; then
-            # If the configuration is not found, add Go to the current shell session
-            {
-                echo ''
-                echo 'export PATH="$PATH:/usr/local/go/bin"'
-            } >> "$PROFILE_FILE"
-        fi
-
-        export PATH="$PATH:/usr/local/go/bin"
-<<<<<<< HEAD
-=======
 
         # 5-2. Install GVM
         echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
+        source ~/.gvm/scripts/gvm
         if ! command -v gvm &> /dev/null; then
             echo "GVM not found, installing..."
             bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
@@ -226,7 +258,6 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
         if ! gvm list | grep 'go1.22.6' &> /dev/null; then
             echo "Go v1.22.6 not found, installing..."
-
             gvm install go1.22.6
         else
             echo "Go v1.22.6 is already installed."
@@ -234,20 +265,13 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
         # 5-4. Set Go v1.22.6 as the default version
         echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
+        echo "Switching to Go v1.22.6..."
+        gvm use go1.22.6
+        echo "Go v1.22.6 is now set as the default version."
 
-        # Save the current Go version
-        current_version=$(go version 2>/dev/null)
-
-        # Check if the current version is not v1.22.6
-        if ! go version | grep "go1.22.6"; then
-            echo "Current Go version: $current_version"
-            echo "Switching to Go v1.22.6..."
-            gvm use 1.22.6
-            echo "Go v1.22.6 is now set as the default version."
         else
             echo "Go is already v1.22.6."
         fi
->>>>>>> e9c57b1eb ([OR-1845] feat: Add gvm installation for Go version control)
     else
         echo "Go 1.22.6 is already installed."
     fi
@@ -256,68 +280,67 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     echo
 
     # 6. Install Node.js (v20.16.0)
-
-    # 6-1. Install NVM
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
-
-    # Create NVM directory if it doesn't exist
-    export NVM_DIR="$HOME/.nvm"
-    mkdir -p "$NVM_DIR"
-    HOMEBREW_PREFIX=$(brew --prefix)
-
-    if ! command -v nvm &> /dev/null; then
-        echo "NVM not found, installing..."
-        brew install nvm
-
-        # Check if the NVM configuration is already in the CONFIG_FILE
-        if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
-
-            # If the configuration is not found, add NVM to the current shell session
-            {
-                echo ''
-                echo 'export NVM_DIR="$HOME/.nvm"'
-                echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
-                echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
-            } >> "$CONFIG_FILE"
-        fi
-
-        # Check if the NVM configuration is already in the PROFILE_FILE
-        if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
-
-            # If the configuration is not found, add NVM to the current shell session
-            {
-                echo ''
-                echo 'export NVM_DIR="$HOME/.nvm"'
-                echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
-                echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
-            } >> "$PROFILE_FILE"
-        fi
-
-        [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"
-        [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
-        hash -r
-    else
-        echo "NVM is already installed."
-    fi
-
-    # 6-2. Install Node.js v20.16.0 using NVM
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
-    if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
-        echo "Node.js v20.16.0 not found, installing..."
-        nvm install v20.16.0
-    else
-        echo "Node.js v20.16.0 is already installed."
-    fi
-
-    # 6-3. Set Node.js v20.16.0 as the default version
-    echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
-
     # Save the current Node.js version
-    current_version=$(node -v 2>/dev/null)
+    current_node_version=$(node -v 2>/dev/null)
 
     # Check if the current version is not v20.16.0
-    if [[ "$current_version" != "v20.16.0" ]]; then
-        echo "Current Node.js version: $current_version"
+    if [[ "$current_node_version" != "v20.16.0" ]]; then
+
+        # 6-1. Install NVM
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
+
+        # Create NVM directory if it doesn't exist
+        export NVM_DIR="$HOME/.nvm"
+        mkdir -p "$NVM_DIR"
+        HOMEBREW_PREFIX=$(brew --prefix)
+        [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"
+        [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
+
+        if ! command -v nvm &> /dev/null; then
+            echo "NVM not found, installing..."
+            brew install nvm
+
+            # Check if the NVM configuration is already in the CONFIG_FILE
+            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
+
+                # If the configuration is not found, add NVM to the current shell session
+                {
+                    echo ''
+                    echo 'export NVM_DIR="$HOME/.nvm"'
+                    echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
+                    echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
+                } >> "$CONFIG_FILE"
+            fi
+
+            # Check if the NVM configuration is already in the PROFILE_FILE
+            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
+
+                # If the configuration is not found, add NVM to the current shell session
+                {
+                    echo ''
+                    echo 'export NVM_DIR="$HOME/.nvm"'
+                    echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/nvm.sh\""
+                    echo "[ -s \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\" ] && \. \"$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm\""
+                } >> "$PROFILE_FILE"
+            fi
+
+            [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"
+            [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
+        else
+            echo "NVM is already installed."
+        fi
+
+        # 6-2. Install Node.js v20.16.0 using NVM
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
+        if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
+            echo "Node.js v20.16.0 not found, installing..."
+            nvm install v20.16.0
+        else
+            echo "Node.js v20.16.0 is already installed."
+        fi
+
+        # 6-3. Set Node.js v20.16.0 as the default version
+        echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
         echo "Switching to Node.js v20.16.0..."
         nvm use v20.16.0
         nvm alias default v20.16.0
@@ -343,7 +366,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # 8. Install Cargo (v1.78.0)
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
-
+    source "$HOME/.cargo/env"
     if ! cargo --version | grep "1.78.0" &> /dev/null; then
         echo "Cargo 1.78.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -446,47 +469,57 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         # 5. Install Go (v1.22.6)
         # 5-1. Install Go (v1.22.6)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
-        if ! command -v go &> /dev/null; then
-            echo "Go 1.22.6 not found, installing..."
+        export PATH="$PATH:/usr/local/go/bin"
 
-            if ! command -v curl &> /dev/null; then
-                echo "curl not found, installing..."
-                sudo apt-get install -y curl
+        # Save the current Go version
+        current_go_version=$(go version 2>/dev/null)
+
+        # Check if the current version is not v1.22.6
+       if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
+
+            if ! command -v go &> /dev/null; then
+                echo "Go not found, installing..."
+
+                if ! command -v curl &> /dev/null; then
+                    echo "curl not found, installing..."
+                    sudo apt-get install -y curl
+                else
+                    echo "curl is already installed."
+                fi
+
+                GO_FILE_NAME="go1.22.6.linux-${ARCH}.tar.gz"
+                GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
+
+                sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
+
+                sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
+
+                # Check if the Go configuration is already in the CONFIG_FILE
+                if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
+                    # If the configuration is not found, add Go to the current shell session
+                    {
+                        echo ''
+                        echo 'export PATH="$PATH:/usr/local/go/bin"'
+                    } >> "$CONFIG_FILE"
+                fi
+
+                # Check if the NVM configuration is already in the PROFILE_FILE
+                if ! grep -Fxq 'export PATH=$PATH:/usr/local/go/bin' "$PROFILE_FILE"; then
+                    # If the configuration is not found, add Go to the current shell session
+                    {
+                        echo ''
+                        echo 'export PATH="$PATH:/usr/local/go/bin"'
+                    } >> "$PROFILE_FILE"
+                fi
+
+                export PATH="$PATH:/usr/local/go/bin"
             else
-                echo "curl is already installed."
+                echo "go is already installed."
             fi
-
-            GO_FILE_NAME="go1.22.6.darwin-${ARCH}.tar.gz"
-            GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
-
-            sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
-
-            sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf "${GO_FILE_NAME}"
-
-            # Check if the Go configuration is already in the CONFIG_FILE
-            if ! grep -Fxq 'export PATH="$PATH:/usr/local/go/bin"' "$CONFIG_FILE"; then
-                # If the configuration is not found, add Go to the current shell session
-                {
-                    echo ''
-                    echo 'export PATH="$PATH:/usr/local/go/bin"'
-                } >> "$CONFIG_FILE"
-            fi
-
-            # Check if the NVM configuration is already in the PROFILE_FILE
-            if ! grep -Fxq 'export PATH=$PATH:/usr/local/go/bin' "$PROFILE_FILE"; then
-                # If the configuration is not found, add Go to the current shell session
-                {
-                    echo ''
-                    echo 'export PATH="$PATH:/usr/local/go/bin"'
-                } >> "$PROFILE_FILE"
-            fi
-
-            export PATH="$PATH:/usr/local/go/bin"
-<<<<<<< HEAD
-=======
 
             # 5-2. Install GVM
             echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
+            source ~/.gvm/scripts/gvm
             if ! command -v gvm &> /dev/null; then
                 echo "GVM not found, installing..."
                 bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
@@ -521,7 +554,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
             if ! gvm list | grep 'go1.22.6' &> /dev/null; then
                 echo "Go v1.22.6 not found, installing..."
-
                 gvm install go1.22.6
             else
                 echo "Go v1.22.6 is already installed."
@@ -529,20 +561,12 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
             # 5-4. Set Go v1.22.6 as the default version
             echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
-
-            # Save the current Go version
-            current_version=$(go version 2>/dev/null)
-
-            # Check if the current version is not v1.22.6
-            if ! go version | grep "go1.22.6"; then
-                echo "Current Go version: $current_version"
-                echo "Switching to Go v1.22.6..."
-                gvm use 1.22.6
-                echo "Go v1.22.6 is now set as the default version."
+            echo "Switching to Go v1.22.6..."
+            gvm use go1.22.6
+            echo "Go v1.22.6 is now set as the default version."
             else
                 echo "Go is already v1.22.6."
             fi
->>>>>>> e9c57b1eb ([OR-1845] feat: Add gvm installation for Go version control)
         else
             echo "Go 1.22.6 is already installed."
         fi
@@ -551,65 +575,66 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         echo
 
         # 6. Install Node.js (v20.16.0)
-
-        # 6-1. Install NVM
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
-
-        # Create NVM directory if it doesn't exist
-        export NVM_DIR="$HOME/.nvm"
-        mkdir -p "$NVM_DIR"
-
-        if ! command -v nvm &> /dev/null; then
-            echo "NVM not found, installing..."
-            sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-            # Check if the NVM configuration is already in the CONFIG_FILE
-            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
-
-                # If the configuration is not found, add NVM to the current shell session
-                {
-                    echo ''
-                    echo 'export NVM_DIR="$HOME/.nvm"'
-                    echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
-                    echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
-                } >> "$CONFIG_FILE"
-            fi
-
-            # Check if the NVM configuration is already in the PROFILE_FILE
-            if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
-
-                # If the configuration is not found, add NVM to the current shell session
-                {
-                    echo ''
-                    echo 'export NVM_DIR="$HOME/.nvm"'
-                    echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
-                    echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
-                } >> "$PROFILE_FILE"
-            fi
-
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        else
-            echo "NVM is already installed."
-        fi
-
-        # 6-2. Install Node.js v20.16.0 using NVM
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
-        if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
-            echo "Node.js v20.16.0 not found, installing..."
-            nvm install v20.16.0
-        else
-            echo "Node.js v20.16.0 is already installed."
-        fi
-
-        # 6-3. Set Node.js v20.16.0 as the default version
-        echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
         # Save the current Node.js version
-        current_version=$(node -v 2>/dev/null)
+        current_node_version=$(node -v 2>/dev/null)
 
         # Check if the current version is not v20.16.0
-        if [[ "$current_version" != "v20.16.0" ]]; then
-            echo "Current Node.js version: $current_version"
+        if [[ "$current_node_version" != "v20.16.0" ]]; then
+
+            # 6-1. Install NVM
+            echo "[$STEP/$TOTAL_STEPS] ----- Installing NVM..."
+
+            # Create NVM directory if it doesn't exist
+            export NVM_DIR="$HOME/.nvm"
+            mkdir -p "$NVM_DIR"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+            if ! command -v nvm &> /dev/null; then
+                echo "NVM not found, installing..."
+                sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+                # Check if the NVM configuration is already in the CONFIG_FILE
+                if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$CONFIG_FILE"; then
+
+                    # If the configuration is not found, add NVM to the current shell session
+                    {
+                        echo ''
+                        echo 'export NVM_DIR="$HOME/.nvm"'
+                        echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
+                        echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
+                    } >> "$CONFIG_FILE"
+                fi
+
+                # Check if the NVM configuration is already in the PROFILE_FILE
+                if ! grep -Fxq 'export NVM_DIR="$HOME/.nvm"' "$PROFILE_FILE"; then
+
+                    # If the configuration is not found, add NVM to the current shell session
+                    {
+                        echo ''
+                        echo 'export NVM_DIR="$HOME/.nvm"'
+                        echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\""
+                        echo "[ -s \"$NVM_DIR/bash_completion\" ] && \. \"$NVM_DIR/bash_completion\""
+                    } >> "$PROFILE_FILE"
+                fi
+
+                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            else
+                echo "NVM is already installed."
+            fi
+
+            # 6-2. Install Node.js v20.16.0 using NVM
+            echo "[$STEP/$TOTAL_STEPS] ----- Installing Node.js v20.16.0 using NVM..."
+            if ! nvm ls | grep 'v20.16.0' | grep -v 'default' &> /dev/null; then
+                echo "Node.js v20.16.0 not found, installing..."
+                nvm install v20.16.0
+            else
+                echo "Node.js v20.16.0 is already installed."
+            fi
+
+            # 6-3. Set Node.js v20.16.0 as the default version
+            echo "[$STEP/$TOTAL_STEPS] ----- Setting Node.js v20.16.0 as the default version..."
             echo "Switching to Node.js v20.16.0..."
             nvm use v20.16.0
             nvm alias default v20.16.0
@@ -623,6 +648,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 7. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
+        export PATH="/root/.local/share/pnpm:$PATH"
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
             curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
@@ -657,6 +683,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 8. Install Cargo (v1.78.0)
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        source "$HOME/.cargo/env"
         if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
             echo "Cargo 1.78.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
