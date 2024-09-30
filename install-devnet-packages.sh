@@ -264,7 +264,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
             # 4-4. Set Go v1.22.6 as the default version
             echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
             echo "Switching to Go v1.22.6..."
-            gvm use go1.22.6
+            gvm use --default go1.22.6
             echo "Go v1.22.6 is now set as the default version."
         fi
     else
@@ -594,7 +594,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                 # 4-4. Set Go v1.22.6 as the default version
                 echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
                 echo "Switching to Go v1.22.6..."
-                gvm use go1.22.6
+                gvm use --default go1.22.6
                 echo "Go v1.22.6 is now set as the default version."
             fi
         else
