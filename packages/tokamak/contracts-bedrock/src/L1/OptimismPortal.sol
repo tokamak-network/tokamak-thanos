@@ -439,11 +439,7 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
         if (_tx.value != 0) {
-            if (_tx.data.length != 0) {
-                IERC20(_nativeTokenAddress).approve(_tx.target, _tx.value);
-            } else {
-                IERC20(_nativeTokenAddress).safeTransfer(_tx.target, _tx.value);
-            }
+            IERC20(_nativeTokenAddress).safeTransfer(_tx.target, _tx.value);
         }
 
         // Trigger the call to the target contract. We use a custom low level method
@@ -460,10 +456,6 @@ contract OptimismPortal is Initializable, ResourceMetering, OnApprove, ISemver {
             success = true;
         }
 
-        // Reset approval after a call
-        if (_tx.data.length != 0 && _tx.value != 0) {
-            IERC20(_nativeTokenAddress).approve(_tx.target, 0);
-        }
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;

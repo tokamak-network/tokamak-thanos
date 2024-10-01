@@ -254,9 +254,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
             assert(!failedMessages[versionedHash]);
-            if (_value > 0) {
-                IERC20(_nativeTokenAddress).safeTransferFrom(address(portal), address(this), _value);
-            }
         } else {
             require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
         }
