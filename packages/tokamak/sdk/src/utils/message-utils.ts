@@ -13,8 +13,8 @@ const RELAY_PER_BYTE_DATA_COST = BigNumber.from(16)
 const MIN_GAS_DYNAMIC_OVERHEAD_NUMERATOR = BigNumber.from(64)
 const MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR = BigNumber.from(63)
 const RELAY_CALL_OVERHEAD = BigNumber.from(40_000)
-const RELAY_RESERVED_GAS = BigNumber.from(40_000)
-const RELAY_GAS_CHECK_BUFFER = BigNumber.from(5_000)
+const RELAY_RESERVED_GAS = BigNumber.from(50_000)
+const RELAY_GAS_CHECK_BUFFER = BigNumber.from(40_000)
 
 /**
  * Utility for hashing a LowLevelMessage object.
