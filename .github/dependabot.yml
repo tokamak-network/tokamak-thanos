@@ -11,6 +11,5 @@ updates:
     commit-message:
       prefix: "dependabot(actions): "
     reviewers:
-      # - '@tokamak-network/layer2-core'
-      - '@xxeonge'
-    target-branch: "OR-1861-Automatic-update-of-action-version-using-dependabot" #"main"
+      - '@tokamak-network/layer2-core'
+    target-branch: "main"
