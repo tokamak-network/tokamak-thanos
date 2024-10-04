@@ -38,6 +38,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @custom:semver 2.4.0
     string public constant version = "2.4.0";
 
+    event GasLog(uint256 gasLeft);
+
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() CrossDomainMessenger() {
         initialize({
@@ -231,6 +233,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         payable
         override
     {
+        emit GasLog(gasleft());
+
         require(paused() == false, "L1 CrossDomainMessenger: paused");
         require(msg.value == 0, "CrossDomainMessenger: value must be zero");
 
@@ -268,6 +272,8 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
 
         require(successfulMessages[versionedHash] == false, "CrossDomainMessenger: message has already been relayed");
 
+        emit GasLog(gasleft());
+
         // If there is not enough gas left to perform the external call and finish the execution,
         // return early and assign the message to the failedMessages mapping.
         // We are asserting that we have enough gas to:
@@ -295,13 +301,21 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
             return;
         }
 
+        emit GasLog(gasleft());
+
+
         xDomainMsgSender = _sender;
         // _target must not be address(0). otherwise, this transaction could be reverted
         if (_value != 0 && _target != address(0)) {
             IERC20(_nativeTokenAddress).approve(_target, _value);
         }
+        emit GasLog(gasleft());
+
         // _target is expected to perform a transferFrom to collect token
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, 0, _message);
+
+        emit GasLog(gasleft());
+
         if (_value != 0 && _target != address(0)) {
             IERC20(_nativeTokenAddress).approve(_target, 0);
         }
@@ -326,5 +340,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
                 revert("CrossDomainMessenger: failed to relay message");
             }
         }
+        emit GasLog(gasleft());
     }
 }
