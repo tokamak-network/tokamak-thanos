@@ -29,7 +29,7 @@ jobs:
           go-version: '1.21'
 
       - name: Restore PNPM Package Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
@@ -38,7 +38,7 @@ jobs:
         run: pnpm fetch --frozen-lockfile --prefer-offline
 
       - name: Save PNPM Package Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
