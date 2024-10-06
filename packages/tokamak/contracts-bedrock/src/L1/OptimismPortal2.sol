@@ -466,7 +466,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     {
         (address to, uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == _nativeToken()) {
-            _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message, true);
+            _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message);
             return true;
         } else {
             return false;
@@ -495,7 +495,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     )
         external
     {
-        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data, false);
+        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
     }
 
     /// @notice Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
@@ -509,7 +509,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @param _gasLimit            Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation          Whether or not the transaction is a contract creation.
     /// @param _data                Data to trigger the recipient with.
-    /// @param _isOnApproveTrigger  Whether or not the transaction is trigger from approveAndCall.
     function _depositTransaction(
         address _sender,
         address _to,
@@ -517,8 +516,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
-        bytes calldata _data,
-        bool _isOnApproveTrigger
+        bytes calldata _data
     )
         internal
         metered(_gasLimit)
@@ -546,7 +544,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
 
         // Transform the from-address to its alias if the caller is a contract.
         address from =
-            ((_sender != tx.origin) && !_isOnApproveTrigger) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
+            ((_sender != tx.origin)) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
