@@ -184,6 +184,7 @@ contract DeployConfig is Script {
     function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
         nativeTokenAddress = _nativeTokenAddress;
         stdJson.write(vm.toString(_nativeTokenAddress), _path, "$.nativeTokenAddress");
+    }
 
     function fork() public view returns (Fork fork_) {
         // let env var take precedence
