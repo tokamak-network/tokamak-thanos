@@ -7,7 +7,7 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { Executables } from "scripts/Executables.sol";
 import { Process } from "scripts/libraries/Process.sol";
 import { Chains } from "scripts/Chains.sol";
-import { Config, Fork, ForkUtils } from "scripts/libraries/Config.sol";
+import { Config, Fork, ForkUtils } from "scripts/Config.sol";
 
 /// @title DeployConfig
 /// @notice Represents the configuration required to deploy the system. It is expected
