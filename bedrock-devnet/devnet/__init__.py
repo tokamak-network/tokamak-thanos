@@ -456,12 +456,10 @@ def devnet_test(paths):
     # And do not use devnet system addresses, to avoid breaking fee-estimation or nonce values.
     run_commands([
         CommandPreset('erc20-test',
-          ['npx', 'hardhat',  'deposit-erc20', '--network',  'devnetL1',
-           '--l1-contracts-json-path', paths.addresses_json_path, '--signer-index', '14'],
+          ['npx', 'hardhat',  'deposit-erc20', '--network',  'devnetL1'],
           cwd=paths.sdk_dir, timeout=8*60),
         CommandPreset('eth-test',
-          ['npx', 'hardhat',  'deposit-eth', '--network',  'devnetL1',
-           '--l1-contracts-json-path', paths.addresses_json_path, '--signer-index', '15'],
+          ['npx', 'hardhat',  'deposit-eth', '--network',  'devnetL1'],
           cwd=paths.sdk_dir, timeout=8*60)
     ], max_workers=1)
 
