@@ -4,9 +4,9 @@ pragma solidity 0.8.15;
 import { Script } from "forge-std/Script.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
-import { Executables } from "scripts/libraries/Executables.sol";
+import { Executables } from "scripts/Executables.sol";
 import { Process } from "scripts/libraries/Process.sol";
-import { Chains } from "scripts/libraries/Chains.sol";
+import { Chains } from "scripts/Chains.sol";
 import { Config, Fork, ForkUtils } from "scripts/libraries/Config.sol";
 
 /// @title DeployConfig
@@ -24,6 +24,7 @@ contract DeployConfig is Script {
 
     address public finalSystemOwner;
     address public superchainConfigGuardian;
+    address public nativeTokenAddress;
     uint256 public l1ChainID;
     uint256 public l2ChainID;
     uint256 public l2BlockTime;
@@ -76,6 +77,7 @@ contract DeployConfig is Script {
     uint256 public systemConfigStartBlock;
     uint256 public requiredProtocolVersion;
     uint256 public recommendedProtocolVersion;
+    address public l1UsdcAddr;
     uint256 public proofMaturityDelaySeconds;
     uint256 public disputeGameFinalityDelaySeconds;
     uint256 public respectedGameType;
@@ -102,6 +104,7 @@ contract DeployConfig is Script {
 
         finalSystemOwner = stdJson.readAddress(_json, "$.finalSystemOwner");
         superchainConfigGuardian = stdJson.readAddress(_json, "$.superchainConfigGuardian");
+        nativeTokenAddress = stdJson.readAddress(_json, "$.nativeTokenAddress");
         l1ChainID = stdJson.readUint(_json, "$.l1ChainID");
         l2ChainID = stdJson.readUint(_json, "$.l2ChainID");
         l2BlockTime = stdJson.readUint(_json, "$.l2BlockTime");
@@ -177,6 +180,10 @@ contract DeployConfig is Script {
 
         useInterop = _readOr(_json, "$.useInterop", false);
     }
+
+        function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
+        nativeTokenAddress = _nativeTokenAddress;
+        stdJson.write(vm.toString(_nativeTokenAddress), _path, "$.nativeTokenAddress");
 
     function fork() public view returns (Fork fork_) {
         // let env var take precedence
