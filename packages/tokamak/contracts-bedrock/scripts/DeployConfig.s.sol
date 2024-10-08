@@ -150,7 +150,7 @@ contract DeployConfig is Script {
         systemConfigStartBlock = stdJson.readUint(_json, "$.systemConfigStartBlock");
         requiredProtocolVersion = stdJson.readUint(_json, "$.requiredProtocolVersion");
         recommendedProtocolVersion = stdJson.readUint(_json, "$.recommendedProtocolVersion");
-
+        l1UsdcAddr = stdJson.readAddress(_json, "$.l1UsdcAddr");
         useFaultProofs = _readOr(_json, "$.useFaultProofs", false);
         proofMaturityDelaySeconds = _readOr(_json, "$.proofMaturityDelaySeconds", 0);
         disputeGameFinalityDelaySeconds = _readOr(_json, "$.disputeGameFinalityDelaySeconds", 0);
@@ -181,7 +181,7 @@ contract DeployConfig is Script {
         useInterop = _readOr(_json, "$.useInterop", false);
     }
 
-        function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
+    function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
         nativeTokenAddress = _nativeTokenAddress;
         stdJson.write(vm.toString(_nativeTokenAddress), _path, "$.nativeTokenAddress");
 
