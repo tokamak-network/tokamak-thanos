@@ -12,7 +12,7 @@ import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
 import { GnosisSafeProxyFactory as SafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
 import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 
-import { Deployer } from "scripts/Deployer.sol";
+import { Deployer } from "scripts/deploy/Deployer.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { AddressManager } from "src/legacy/AddressManager.sol";
@@ -44,23 +44,19 @@ import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
 import { ProtocolVersions, ProtocolVersion } from "src/L1/ProtocolVersions.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Chains } from "scripts/Chains.sol";
-import { Config } from "scripts/Config.sol";
+import { Chains } from "scripts/libraries/Chains.sol";
+import { Config } from "scripts/libraries/Config.sol";
 
 import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import "src/dispute/lib/Types.sol";
-import { ChainAssertions } from "scripts/ChainAssertions.sol";
-import { Types } from "scripts/Types.sol";
+import { ChainAssertions } from "scripts/deploy/ChainAssertions.sol";
+import { Types } from "scripts/libraries/Types.sol";
 import { LibStateDiff } from "scripts/libraries/LibStateDiff.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
-import { ForgeArtifacts } from "scripts/ForgeArtifacts.sol";
+import { ForgeArtifacts } from "scripts/libraries/ForgeArtifacts.sol";
 import { Process } from "scripts/libraries/Process.sol";
-
-import { L2NativeToken } from "src/L1/L2NativeToken.sol";
-import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
-import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
 
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.
@@ -345,11 +341,8 @@ contract Deploy is Deployer {
         mustGetAddress("AddressManager");
         mustGetAddress("ProxyAdmin");
 
-        deployL2NativeToken();
         deployProxies();
         deployImplementations();
-        deployL1UsdcBridgeProxy();
-        setL1UsdcBridge();
         initializeImplementations();
 
         setAlphabetFaultGameImplementation({ _allowUpgrade: false });
@@ -401,8 +394,6 @@ contract Deploy is Deployer {
         deployPreimageOracle();
         deployMips();
         deployAnchorStateRegistry();
-
-        deployL1UsdcBridge();
     }
 
     /// @notice Initialize all of the implementations
@@ -799,80 +790,6 @@ contract Deploy is Deployer {
         addr_ = address(versions);
     }
 
-    function getL2NativeToken() public returns (address) {
-        bool isForkPublicNetwork = vm.envOr("FORK_PUBLIC_NETWORK", false);
-        if (isForkPublicNetwork) {
-            address addr_ = vm.envAddress("L2_NATIVE_TOKEN");
-            return addr_;
-        } else {
-            L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
-            address addr_ = address(token);
-            return addr_;
-        }
-    }
-
-    /// @notice Deploy the Safe
-    function deployL2NativeToken() public broadcast {
-        string memory path = Config.deployConfigPath();
-        address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
-        // If L2NativeToken is already existing on the network, we don't deploy the new contract.
-        if (setupAddr_ != address(0)) {
-            cfg.setNativeTokenAddress(setupAddr_, path);
-            console.log("Native token deployed at", setupAddr_);
-            return;
-        }
-        address addr_ = getL2NativeToken();
-        cfg.setNativeTokenAddress(addr_, path);
-        console.log("Native token deployed at", addr_);
-        save("L2NativeToken", addr_);
-    }
-
-    /// @notice Deploy the L1UsdcBridge
-    function deployL1UsdcBridge() public broadcast returns (address addr_) {
-        L1UsdcBridge bridge = new L1UsdcBridge{ salt: _implSalt() }();
-
-        require(address(bridge.messenger()) == address(0));
-        require(address(bridge.otherBridge()) == address(0));
-        require(address(bridge.l1Usdc()) == address(0));
-        require(address(bridge.l2Usdc()) == address(0));
-
-        save("L1UsdcBridge", address(bridge));
-        console.log("L1UsdcBridge deployed at %s", address(bridge));
-
-        addr_ = address(bridge);
-    }
-
-    /// @notice Deploy the L1UsdcBridgeProxy
-    function deployL1UsdcBridgeProxy() public broadcast returns (address addr_) {
-        address l1UsdcBridge = mustGetAddress("L1UsdcBridge");
-        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        L1UsdcBridgeProxy proxy =
-            new L1UsdcBridgeProxy({ _logic: l1UsdcBridge, initialOwner: msg.sender, _data: abi.encode() });
-
-        require(EIP1967Helper.getAdmin(address(proxy)) == address(msg.sender));
-
-        proxy.setAddress(
-            l1CrossDomainMessengerProxy, Predeploys.L2_USDC_BRIDGE, cfg.l1UsdcAddr(), Predeploys.FIATTOKENV2_2
-        );
-        proxy.upgradeTo(l1UsdcBridge);
-
-        save("L1UsdcBridgeProxy", address(proxy));
-        console.log("L1UsdcBridgeProxy deployed at %s", address(proxy));
-        addr_ = address(proxy);
-    }
-
-    function setL1UsdcBridge() public broadcast {
-        address l1UsdcBridgeProxy = mustGetAddress("L1UsdcBridgeProxy");
-        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-
-        L1UsdcBridge bridge = L1UsdcBridge(l1UsdcBridgeProxy);
-
-        require(address(bridge.messenger()) == l1CrossDomainMessengerProxy);
-        require(address(bridge.otherBridge()) == Predeploys.L2_USDC_BRIDGE);
-        require(address(bridge.l1Usdc()) == cfg.l1UsdcAddr());
-        require(address(bridge.l2Usdc()) == Predeploys.FIATTOKENV2_2);
-    }
-
     /// @notice Deploy the PreimageOracle
     function deployPreimageOracle() public broadcast returns (address addr_) {
         console.log("Deploying PreimageOracle implementation");
@@ -1135,14 +1052,6 @@ contract Deploy is Deployer {
             customGasTokenAddress = cfg.customGasTokenAddress();
         }
 
-        // deployL2NativeToken();
-        address l2NativeTokenAddress = cfg.nativeTokenAddress();
-        if (l2NativeTokenAddress == address(0)) {
-            L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
-            l2NativeTokenAddress = address(token);
-        }
-        console.log(" [Check ]l2NativeTokenAddress", l2NativeTokenAddress);
-
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
             _implementation: systemConfig,
@@ -1164,8 +1073,7 @@ contract Deploy is Deployer {
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
-                        gasPayingToken: customGasTokenAddress,
-                        nativeTokenAddress: l2NativeTokenAddress
+                        gasPayingToken: customGasTokenAddress
                     })
                 )
             )
@@ -1492,7 +1400,7 @@ contract Deploy is Deployer {
     function loadMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
             // Fetch the absolute prestate dump
-            string memory filePath = string.concat(vm.projectRoot(), "/../../../op-program/bin/prestate-proof.json");
+            string memory filePath = string.concat(vm.projectRoot(), "/../../op-program/bin/prestate-proof.json");
             string[] memory commands = new string[](3);
             commands[0] = "bash";
             commands[1] = "-c";
