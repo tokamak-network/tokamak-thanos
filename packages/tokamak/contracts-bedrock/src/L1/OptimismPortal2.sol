@@ -51,6 +51,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @notice The L2 gas limit set when eth is deposited using the receive() function.
     uint64 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 100_000;
 
+    /// @notice The L2 gas limit for system deposit transactions that are initiated from L1.
+    uint32 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
+
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
     ///         If the of this variable is the default L2 sender address, then we are NOT inside of
     ///         a call to finalizeWithdrawalTransaction.
@@ -147,7 +150,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
 
     /// @notice Semantic version.
     /// @custom:semver 3.10.0
-    string public constant version = "3.10.0";
+    function version() public pure virtual returns (string memory) {
+        return "3.10.0";
+    }
 
     /// @notice Constructs the OptimismPortal contract.
     constructor(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) {
