@@ -295,11 +295,11 @@ contract Deploy is Deployer {
         console.log("deployed Safe!");
         setupSuperchain();
         console.log("set up superchain!");
-        if (cfg.useAltDA()) {
+        if (cfg.usePlasma()) {
             bytes32 typeHash = keccak256(bytes(cfg.daCommitmentType()));
             bytes32 keccakHash = keccak256(bytes("KeccakCommitment"));
             if (typeHash == keccakHash) {
-                setupOpAltDA();
+                setupOpPlasma();
             }
         }
         setupOpChain();
@@ -394,6 +394,7 @@ contract Deploy is Deployer {
         deployL1ERC721Bridge();
         deployOptimismPortal();
         deployL2OutputOracle();
+
         // Fault proofs
         deployOptimismPortal2();
         deployDisputeGameFactory();
@@ -429,9 +430,9 @@ contract Deploy is Deployer {
         initializeAnchorStateRegistry();
     }
 
-    /// @notice Add AltDA setup to the OP chain
-    function setupOpAltDA() public {
-        console.log("Deploying OP AltDA");
+    /// @notice Add Plasma setup to the OP chain
+    function setupOpPlasma() public {
+        console.log("Deploying OP Plasma");
         deployDataAvailabilityChallengeProxy();
         deployDataAvailabilityChallenge();
         initializeDataAvailabilityChallenge();
@@ -467,8 +468,8 @@ contract Deploy is Deployer {
         console.log("Deploying safe: %s with salt %s", _name, vm.toString(salt));
         (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
 
+        address[] memory expandedOwners = new address[](_owners.length + 1);
         if (_keepDeployer) {
-            address[] memory expandedOwners = new address[](_owners.length + 1);
             // By always adding msg.sender first we know that the previousOwner will be SENTINEL_OWNERS, which makes it
             // easier to call removeOwner later.
             expandedOwners[0] = msg.sender;
