@@ -17,9 +17,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 ///         L2 on the L2 side. Users are generally encouraged to use this contract instead of lower
 ///         level message passing contracts.
 contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
-    /// @notice Gas reserved for the execution between the `hasMinGas` check and the external
-    ///         call in `relayMessage` on L1 (include gas for the approve() function)
-    uint64 public constant RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL = 40_000;
 
     /// @custom:semver 2.1.0
     string public constant version = "2.1.0";
