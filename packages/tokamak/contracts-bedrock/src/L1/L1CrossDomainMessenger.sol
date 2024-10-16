@@ -139,7 +139,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         return systemConfig.nativeTokenAddress();
     }
 
-
     /// @inheritdoc CrossDomainMessenger
     function paused() public view override returns (bool) {
         return superchainConfig.paused();
