@@ -113,7 +113,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress()), "only accept native token approve callback");
+        require(msg.sender == address(_nativeToken()), "only accept native token approve callback");
         (address to, uint32 minGasLimit, bytes calldata message) = unpackOnApproveData(_data);
         _sendNativeTokenMessage(_owner, to, _amount, minGasLimit, message);
         return true;
@@ -132,8 +132,13 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @notice Getter function for address of native token on this network
     /// @return address The address of native token
     function nativeTokenAddress() public view returns (address) {
+        return _nativeToken();
+    }
+
+    function _nativeToken() internal view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
+
 
     /// @inheritdoc CrossDomainMessenger
     function paused() public view override returns (bool) {
@@ -184,7 +189,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     {
         // Collect native token
         if (_amount > 0) {
-            address _nativeTokenAddress = nativeTokenAddress();
+            address _nativeTokenAddress = _nativeToken();
             IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
             IERC20(_nativeTokenAddress).approve(address(portal), _amount);
         }
@@ -249,7 +254,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         bytes32 versionedHash =
             Hashing.hashCrossDomainMessageV1(_nonce, _sender, _target, _value, _minGasLimit, _message);
 
-        address _nativeTokenAddress = nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
         if (_isOtherMessenger()) {
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
