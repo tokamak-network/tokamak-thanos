@@ -62,7 +62,7 @@ contract L2ToL1MessagePasser is ISemver {
     ///         incentivized since this function is very cheap.
     function burn() external {
         uint256 balance = address(this).balance;
-        Burn.eth(balance);
+        Burn.nativeToken(balance);
         emit WithdrawerBalanceBurnt(balance);
     }
 
