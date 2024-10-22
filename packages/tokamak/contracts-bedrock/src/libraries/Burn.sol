@@ -4,9 +4,9 @@ pragma solidity 0.8.15;
 /// @title Burn
 /// @notice Utilities for burning stuff.
 library Burn {
-    /// @notice Burns a given amount of ETH.
-    /// @param _amount Amount of ETH to burn.
-    function eth(uint256 _amount) internal {
+    /// @notice Burns a given amount of the native token.
+    /// @param _amount Amount of the native token to burn.
+    function nativeToken(uint256 _amount) internal {
         new Burner{ value: _amount }();
     }
 
@@ -22,8 +22,8 @@ library Burn {
 }
 
 /// @title Burner
-/// @notice Burner self-destructs on creation and sends all ETH to itself, removing all ETH given to
-///         the contract from the circulating supply. Self-destructing is the only way to remove ETH
+/// @notice Burner self-destructs on creation and sends all native tokens to itself, removing all native tokens given to
+///         the contract from the circulating supply. Self-destructing is the only way to remove native tokens
 ///         from the circulating supply.
 contract Burner {
     constructor() payable {
