@@ -268,8 +268,6 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Client := sys.Clients["sequencer"]
 
-	var depositedAmount int64 = 2000000000000000000
-
 	opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L1ChainIDBig())
 	require.Nil(t, err)
 
@@ -277,7 +275,7 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 	require.NoError(t, err)
 
 	// faucet NativeToken
-	tx, err := nativeTokenContract.Faucet(opts, big.NewInt(depositedAmount))
+	tx, err := nativeTokenContract.Faucet(opts, big.NewInt(1e18))
 	require.NoError(t, err)
 	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
@@ -292,49 +290,23 @@ func TestDeployContractFailedOutOfGas(t *testing.T) {
 	optimismPortal, err := bindingspreview.NewOptimismPortal2(cfg.L1Deployments.OptimismPortalProxy, l1Client)
 	require.NoError(t, err)
 
-	// Deposit NativeToken
-	tx, err = optimismPortal.DepositTransaction(opts, opts.From, big.NewInt(depositedAmount), big.NewInt(depositedAmount), 200000, false, []byte{})
+	// // Deposit NativeToken
+	tx, err = optimismPortal.DepositTransaction(opts, common.Address{}, big.NewInt(0), big.NewInt(0), 200000, true, []byte(bindings.WNativeTokenMetaData.Bin))
 	require.NoError(t, err)
 
-	depositReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
 	require.NoError(t, err)
-	t.Log("Deposit through OptiismPortal", "gas used", depositReceipt.GasUsed)
 
-	depIt, err := optimismPortal.FilterTransactionDeposited(&bind.FilterOpts{Start: depositReceipt.BlockNumber.Uint64()}, nil, nil, nil)
+	depIt, err := optimismPortal.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
 	require.NoError(t, err)
 	var depositEvent *bindingspreview.OptimismPortal2TransactionDeposited
-	for depIt.Next() {
-		// depositEvent = depIt.Event
-	}
-	require.NotNil(t, depositEvent)
-
-	// Calculate relayed depositTx
-	depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
-	require.NoError(t, err)
-
-	_, err = wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
-	require.NoError(t, err)
-
-	// Estimate data
-	_, estimatedData, _, _ := bindings.DeployWNativeToken(opts, l1Client)
-
-	// Deploy contract
-	deployedTx, err := transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return optimismPortal.DepositTransaction(opts, common.Address{}, big.NewInt(0), big.NewInt(0), 200000, true, estimatedData.Data())
-	})
-	require.NoError(t, err)
-
-	depositDeployedReceipt, err := wait.ForReceiptOK(context.Background(), l1Client, deployedTx.Hash())
-	require.NoError(t, err)
-	depIt, err = optimismPortal.FilterTransactionDeposited(&bind.FilterOpts{Start: depositDeployedReceipt.BlockNumber.Uint64()}, nil, nil, nil)
-	require.NoError(t, err)
 	for depIt.Next() {
 		depositEvent = depIt.Event
 	}
 	require.NotNil(t, depositEvent)
 
 	// Calculate relayed depositTx
-	depositTx, err = derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
+	depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
 	require.NoError(t, err)
 	relayedTxReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, types.NewTx(depositTx).Hash())
 	require.NotNil(t, err)
