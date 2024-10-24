@@ -101,7 +101,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
         override
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
         require(msg.value == _amount, "StandardBridge: amount sent does not match amount required");
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
@@ -132,7 +131,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
         override
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
         OptimismMintableERC20(Predeploys.ETH).mint(_to, _amount);
         _emitETHBridgeFinalized(_from, _to, _amount, _extraData);
     }

@@ -113,7 +113,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         override
         returns (bool)
     {
-        require(msg.sender == address(nativeTokenAddress()), "only accept native token approve callback");
+        require(msg.sender == address(_nativeToken()), "only accept native token approve callback");
         (address to, uint32 minGasLimit, bytes calldata message) = unpackOnApproveData(_data);
         _sendNativeTokenMessage(_owner, to, _amount, minGasLimit, message);
         return true;
@@ -132,6 +132,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     /// @notice Getter function for address of native token on this network
     /// @return address The address of native token
     function nativeTokenAddress() public view returns (address) {
+        return _nativeToken();
+    }
+
+    function _nativeToken() internal view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
@@ -184,7 +188,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
     {
         // Collect native token
         if (_amount > 0) {
-            address _nativeTokenAddress = nativeTokenAddress();
+            address _nativeTokenAddress = _nativeToken();
             IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _amount);
             IERC20(_nativeTokenAddress).approve(address(portal), _amount);
         }
@@ -249,7 +253,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         bytes32 versionedHash =
             Hashing.hashCrossDomainMessageV1(_nonce, _sender, _target, _value, _minGasLimit, _message);
 
-        address _nativeTokenAddress = nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
         if (_isOtherMessenger()) {
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
@@ -271,14 +275,14 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         // If there is not enough gas left to perform the external call and finish the execution,
         // return early and assign the message to the failedMessages mapping.
         // We are asserting that we have enough gas to:
-        // 1. Call the target contract (_minGasLimit + RELAY_CALL_OVERHEAD + RELAY_GAS_CHECK_BUFFER)
+        // 1. Call the target contract (_minGasLimit + RELAY_CALL_OVERHEAD + RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL)
         //   1.a. The RELAY_CALL_OVERHEAD is included in `hasMinGas`.
         // 2. Finish the execution after the external call (RELAY_RESERVED_GAS).
         //
         // If `xDomainMsgSender` is not the default L2 sender, this function
         // is being re-entered. This marks the message as failed to allow it to be replayed.
         if (
-            !SafeCall.hasMinGas(_minGasLimit, RELAY_RESERVED_GAS + RELAY_GAS_CHECK_BUFFER)
+            !SafeCall.hasMinGas(_minGasLimit, RELAY_RESERVED_GAS + RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL)
                 || xDomainMsgSender != Constants.DEFAULT_L2_SENDER
         ) {
             failedMessages[versionedHash] = true;
