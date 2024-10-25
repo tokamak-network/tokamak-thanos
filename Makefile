@@ -164,6 +164,7 @@ mod-tidy: ## Cleans up unused dependencies in Go modules
 
 clean: ## Removes all generated files under bin/
 	rm -rf ./bin
+	cd packages/contracts-bedrock/ && forge clean
 .PHONY: clean
 
 nuke: clean devnet-clean ## Completely clean the project directory
