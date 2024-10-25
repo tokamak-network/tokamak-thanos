@@ -71,5 +71,5 @@ fuzz:
 	go test -run NOTAREALTEST -v -fuzztime 10s -fuzz FuzzFastLzCgo ./
 
 test-deposit-withdrawal:
-	$(go_test) $(go_test_flags) . ./e2e-dep-with/...
+	$(go_test) $(go_test_flags) ./e2e-dep-with/...
 .PHONY: test-deposit-withdrawal
