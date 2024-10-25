@@ -211,7 +211,10 @@ func TestETHBridge(t *testing.T) {
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
-	l2ETH.Approve(l2Opts, predeploys.L2StandardBridgeAddr, big.NewInt(params.Ether))
+	tx, err = l2ETH.Approve(l2Opts, predeploys.L2StandardBridgeAddr, big.NewInt(params.Ether))
+	require.NoError(t, err)
+	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	require.NoError(t, err)
 
 	withdrawalTx, err := l2StandardBridge.BridgeETH(l2Opts, big.NewInt(params.Ether), 200000, []byte{})
 	require.NoError(t, err)
