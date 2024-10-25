@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	contractMetrics "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
+	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
+
+	"github.com/stretchr/testify/require"
 	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 )
 
@@ -28,15 +29,23 @@ func TestMetadataCreator_CreateContract(t *testing.T) {
 	}{
 		{
 			name: "validCannonGameType",
-			game: types.GameMetadata{GameType: faultTypes.CannonGameType, Proxy: fdgAddr},
+			game: types.GameMetadata{GameType: uint32(faultTypes.CannonGameType), Proxy: fdgAddr},
+		},
+		{
+			name: "validPermissionedGameType",
+			game: types.GameMetadata{GameType: uint32(faultTypes.PermissionedGameType), Proxy: fdgAddr},
 		},
 		{
 			name: "validAsteriscGameType",
-			game: types.GameMetadata{GameType: faultTypes.AsteriscGameType, Proxy: fdgAddr},
+			game: types.GameMetadata{GameType: uint32(faultTypes.AsteriscGameType), Proxy: fdgAddr},
 		},
 		{
 			name: "validAlphabetGameType",
-			game: types.GameMetadata{GameType: faultTypes.AlphabetGameType, Proxy: fdgAddr},
+			game: types.GameMetadata{GameType: uint32(faultTypes.AlphabetGameType), Proxy: fdgAddr},
+		},
+		{
+			name: "validFastGameType",
+			game: types.GameMetadata{GameType: uint32(faultTypes.FastGameType), Proxy: fdgAddr},
 		},
 		{
 			name:        "InvalidGameType",
@@ -67,8 +76,7 @@ func TestMetadataCreator_CreateContract(t *testing.T) {
 }
 
 func setupMetadataLoaderTest(t *testing.T) (*batching.MultiCaller, *mockCacheMetrics) {
-	fdgAbi, err := bindings.FaultDisputeGameMetaData.GetAbi()
-	require.NoError(t, err)
+	fdgAbi := snapshots.LoadFaultDisputeGameABI()
 	stubRpc := batchingTest.NewAbiBasedRpc(t, fdgAddr, fdgAbi)
 	caller := batching.NewMultiCaller(stubRpc, batching.DefaultBatchSize)
 	stubRpc.SetResponse(fdgAddr, "version", rpcblock.Latest, nil, []interface{}{"0.18.0"})

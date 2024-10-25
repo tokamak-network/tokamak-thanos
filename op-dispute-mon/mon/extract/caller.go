@@ -22,7 +22,7 @@ type GameCallerMetrics interface {
 }
 
 type GameCaller interface {
-	GetWithdrawals(context.Context, rpcblock.Block, common.Address, ...common.Address) ([]*contracts.WithdrawalRequest, error)
+	GetWithdrawals(context.Context, rpcblock.Block, ...common.Address) ([]*contracts.WithdrawalRequest, error)
 	GetGameMetadata(context.Context, rpcblock.Block) (contracts.GameMetadata, error)
 	GetAllClaims(context.Context, rpcblock.Block) ([]faultTypes.Claim, error)
 	BondCaller
@@ -48,8 +48,12 @@ func (g *GameCallerCreator) CreateContract(ctx context.Context, game gameTypes.G
 	if fdg, ok := g.cache.Get(game.Proxy); ok {
 		return fdg, nil
 	}
-	switch game.GameType {
-	case faultTypes.CannonGameType, faultTypes.PermissionedGameType, faultTypes.AsteriscGameType, faultTypes.AlphabetGameType:
+	switch faultTypes.GameType(game.GameType) {
+	case faultTypes.CannonGameType,
+		faultTypes.PermissionedGameType,
+		faultTypes.AsteriscGameType,
+		faultTypes.AlphabetGameType,
+		faultTypes.FastGameType:
 		fdg, err := contracts.NewFaultDisputeGameContract(ctx, g.m, game.Proxy, g.caller)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create fault dispute game contract: %w", err)

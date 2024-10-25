@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/bonds"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 
 	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
 	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
@@ -28,9 +29,10 @@ import (
 )
 
 type Service struct {
-	logger  log.Logger
-	metrics metrics.Metricer
-	monitor *gameMonitor
+	logger       log.Logger
+	metrics      metrics.Metricer
+	monitor      *gameMonitor
+	honestActors types.HonestActors
 
 	factoryContract *contracts.DisputeGameFactoryContract
 
@@ -56,9 +58,10 @@ type Service struct {
 // NewService creates a new Service.
 func NewService(ctx context.Context, logger log.Logger, cfg *config.Config) (*Service, error) {
 	s := &Service{
-		cl:      clock.SystemClock,
-		logger:  logger,
-		metrics: metrics.NewMetrics(),
+		cl:           clock.SystemClock,
+		logger:       logger,
+		metrics:      metrics.NewMetrics(),
+		honestActors: types.NewHonestActors(cfg.HonestActors),
 	}
 
 	if err := s.initFromConfig(ctx, cfg); err != nil {
@@ -105,7 +108,7 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 }
 
 func (s *Service) initClaimMonitor(cfg *config.Config) {
-	s.claims = NewClaimMonitor(s.logger, s.cl, cfg.HonestActors, s.metrics)
+	s.claims = NewClaimMonitor(s.logger, s.cl, s.honestActors, s.metrics)
 }
 
 func (s *Service) initResolutionMonitor() {
@@ -113,7 +116,7 @@ func (s *Service) initResolutionMonitor() {
 }
 
 func (s *Service) initWithdrawalMonitor() {
-	s.withdrawals = NewWithdrawalMonitor(s.logger, s.metrics)
+	s.withdrawals = NewWithdrawalMonitor(s.logger, s.cl, s.metrics, s.honestActors)
 }
 
 func (s *Service) initGameCallerCreator() {
@@ -123,6 +126,7 @@ func (s *Service) initGameCallerCreator() {
 func (s *Service) initExtractor(cfg *config.Config) {
 	s.extractor = extract.NewExtractor(
 		s.logger,
+		s.cl,
 		s.game.CreateContract,
 		s.factoryContract.GetGamesAtOrAfter,
 		cfg.IgnoredGames,
@@ -214,23 +218,17 @@ func (s *Service) initMonitor(ctx context.Context, cfg *config.Config) {
 		return block.Hash(), nil
 	}
 	l2ChallengesMonitor := NewL2ChallengesMonitor(s.logger, s.metrics)
-	s.monitor = newGameMonitor(
-		ctx,
-		s.logger,
-		s.cl,
-		s.metrics,
-		cfg.MonitorInterval,
-		cfg.GameWindow,
+	updateTimeMonitor := NewUpdateTimeMonitor(s.cl, s.metrics)
+	s.monitor = newGameMonitor(ctx, s.logger, s.cl, s.metrics, cfg.MonitorInterval, cfg.GameWindow, blockHashFetcher,
+		s.l1Client.BlockNumber,
+		s.extractor.Extract,
 		s.forecast.Forecast,
 		s.bonds.CheckBonds,
 		s.resolutions.CheckResolutions,
 		s.claims.CheckClaims,
 		s.withdrawals.CheckWithdrawals,
 		l2ChallengesMonitor.CheckL2Challenges,
-		s.extractor.Extract,
-		s.l1Client.BlockNumber,
-		blockHashFetcher,
-	)
+		updateTimeMonitor.CheckUpdateTimes)
 }
 
 func (s *Service) Start(ctx context.Context) error {

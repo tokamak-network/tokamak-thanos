@@ -2,7 +2,10 @@ package types
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"math"
 	"math/big"
 	"time"
 
@@ -18,13 +21,100 @@ var (
 	ErrL2BlockNumberValid = errors.New("l2 block number is valid")
 )
 
+type GameType uint32
+
 const (
-	CannonGameType       uint32 = 0
-	PermissionedGameType uint32 = 1
-	AsteriscGameType     uint32 = 2
-	FastGameType         uint32 = 254
-	AlphabetGameType     uint32 = 255
+	CannonGameType       GameType = 0
+	PermissionedGameType GameType = 1
+	AsteriscGameType     GameType = 2
+	AsteriscKonaGameType GameType = 3
+	FastGameType         GameType = 254
+	AlphabetGameType     GameType = 255
+	UnknownGameType      GameType = math.MaxUint32
 )
+
+func (t GameType) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
+
+}
+
+func (t GameType) String() string {
+	switch t {
+	case CannonGameType:
+		return "cannon"
+	case PermissionedGameType:
+		return "permissioned"
+	case AsteriscGameType:
+		return "asterisc"
+	case AsteriscKonaGameType:
+		return "asterisc-kona"
+	case FastGameType:
+		return "fast"
+	case AlphabetGameType:
+		return "alphabet"
+	default:
+		return fmt.Sprintf("<invalid: %d>", t)
+	}
+}
+
+type TraceType string
+
+const (
+	TraceTypeAlphabet     TraceType = "alphabet"
+	TraceTypeFast         TraceType = "fast"
+	TraceTypeCannon       TraceType = "cannon"
+	TraceTypeAsterisc     TraceType = "asterisc"
+	TraceTypeAsteriscKona TraceType = "asterisc-kona"
+	TraceTypePermissioned TraceType = "permissioned"
+)
+
+var TraceTypes = []TraceType{TraceTypeAlphabet, TraceTypeCannon, TraceTypePermissioned, TraceTypeAsterisc, TraceTypeAsteriscKona, TraceTypeFast}
+
+func (t TraceType) String() string {
+	return string(t)
+}
+
+// Set implements the Set method required by the [cli.Generic] interface.
+func (t *TraceType) Set(value string) error {
+	if !ValidTraceType(TraceType(value)) {
+		return fmt.Errorf("unknown trace type: %q", value)
+	}
+	*t = TraceType(value)
+	return nil
+}
+
+func (t *TraceType) Clone() any {
+	cpy := *t
+	return &cpy
+}
+
+func ValidTraceType(value TraceType) bool {
+	for _, t := range TraceTypes {
+		if t == value {
+			return true
+		}
+	}
+	return false
+}
+
+func (t TraceType) GameType() GameType {
+	switch t {
+	case TraceTypeCannon:
+		return CannonGameType
+	case TraceTypePermissioned:
+		return PermissionedGameType
+	case TraceTypeAsterisc:
+		return AsteriscGameType
+	case TraceTypeAsteriscKona:
+		return AsteriscKonaGameType
+	case TraceTypeFast:
+		return FastGameType
+	case TraceTypeAlphabet:
+		return AlphabetGameType
+	default:
+		return UnknownGameType
+	}
+}
 
 type ClockReader interface {
 	Now() time.Time
@@ -63,8 +153,12 @@ func (p *PreimageOracleData) GetPrecompileAddress() common.Address {
 	return common.BytesToAddress(p.oracleData[8:28])
 }
 
+func (p *PreimageOracleData) GetPrecompileRequiredGas() uint64 {
+	return binary.BigEndian.Uint64(p.oracleData[28:36])
+}
+
 func (p *PreimageOracleData) GetPrecompileInput() []byte {
-	return p.oracleData[28:]
+	return p.oracleData[36:]
 }
 
 // NewPreimageOracleData creates a new [PreimageOracleData] instance.
