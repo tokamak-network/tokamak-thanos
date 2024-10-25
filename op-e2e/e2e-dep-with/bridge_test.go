@@ -213,7 +213,7 @@ func TestETHBridge(t *testing.T) {
 
 	tx, err = l2ETH.Approve(l2Opts, predeploys.L2StandardBridgeAddr, big.NewInt(params.Ether))
 	require.NoError(t, err)
-	_, err = wait.ForReceiptOK(context.Background(), l1Client, tx.Hash())
+	_, err = wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
 	require.NoError(t, err)
 
 	withdrawalTx, err := l2StandardBridge.BridgeETH(l2Opts, big.NewInt(params.Ether), 200000, []byte{})
