@@ -1242,9 +1242,25 @@ jobs:
         description: Goreleaser config file
         default: .goreleaser.yaml
         type: string
-    machine: true
-    resource_class: ethereum-optimism/latitude-1
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
+    resource_class: large
     steps:
+      - setup_remote_docker
+      - gcp-cli/install
+      - gcp-oidc-authenticate
+      - run:
+          name: Install goreleaser pro
+          command: |
+            mkdir goreleaser
+            curl -L -o goreleaser.tgz https://github.com/goreleaser/goreleaser-pro/releases/download/v2.3.2-pro/goreleaser-pro_Linux_x86_64.tar.gz
+            tar -xzvf goreleaser.tgz
+            mv goreleaser /usr/local/bin/goreleaser
+            rm -rf goreleaser
+      - run:
+          name: Configure Docker
+          command: |
+            gcloud auth configure-docker us-docker.pkg.dev
       - checkout
       - run:
           name: Run goreleaser
