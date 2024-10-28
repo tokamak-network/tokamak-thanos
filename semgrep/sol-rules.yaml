@@ -54,7 +54,8 @@ rules:
               version\(\) public pure virtual returns \(string memory\)
               \{\s+return
               "(?P<VERSION2>[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.]+)?)";
-          - pattern-regex: /// @custom:semver (?P<VERSION1>[a-zA-Z0-9.+-]+)\s+function
+          - pattern-regex:
+              /// @custom:semver (?P<VERSION1>[a-zA-Z0-9.+-]+)\s+function
               version\(\) public pure override returns \(string memory\)
               \{\s+return string\.concat\(super\.version\(\),
               "(?P<VERSION2>[a-zA-Z0-9.+-]+)"\);
@@ -152,11 +153,14 @@ rules:
     severity: ERROR
     message: Use abi.encodeCall instead of abi.encodeWithSelector
     patterns:
-      - pattern: |
-          abi.encodeWithSelector(...);
+      - pattern-either:
+          - pattern: |
+              abi.encodeWithSelector(...);
+          - pattern: |
+              abi.encodeWithSignature(...);
+      - pattern-not: vm.expectRevert(abi.encodeWithSelector(...));
     paths:
       exclude:
-        - packages/contracts-bedrock/test
         - packages/contracts-bedrock/src/L1/OPContractsManager.sol
         - packages/contracts-bedrock/src/L1/OPContractsManagerInterop.sol
         - packages/contracts-bedrock/src/legacy/L1ChugSplashProxy.sol
