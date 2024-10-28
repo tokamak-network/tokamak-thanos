@@ -3,7 +3,11 @@ import { BigNumber, utils, ethers } from 'ethers'
 import { Log, TransactionReceipt } from '@ethersproject/abstract-provider'
 import { hexDataSlice } from 'ethers/lib/utils'
 
-import { L1ChainID, LowLevelMessage, WithdrawalMessageInfo } from '../interfaces'
+import {
+  L1ChainID,
+  LowLevelMessage,
+  WithdrawalMessageInfo,
+} from '../interfaces'
 
 const { hexDataLength } = utils
 
@@ -65,7 +69,9 @@ export const migratedWithdrawalGasLimit = (
   if (chainID === 420) {
     overhead = BigNumber.from(200_000)
   } else {
-    const relayGasBuffer = Object.values(L1ChainID).includes(chainID) ? RELAY_GAS_CHECK_BUFFER : RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL
+    const relayGasBuffer = Object.values(L1ChainID).includes(chainID)
+      ? RELAY_GAS_CHECK_BUFFER
+      : RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL
 
     // Dynamic overhead (EIP-150)
     // We use a constant 1 million gas limit due to the overhead of simulating all migrated withdrawal

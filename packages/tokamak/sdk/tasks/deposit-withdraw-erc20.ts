@@ -214,7 +214,7 @@ const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
     OptimismMintableERC20.address,
     utils.parseEther('1')
   )
-  await depositTx.wait()
+  const depositReceipt = await depositTx.wait()
   console.log(`ERC20 deposited - ${depositTx.hash}`)
 
   const portals = new Portals({
@@ -227,9 +227,15 @@ const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  const relayedDepositTx =
-    await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
-  console.log('relayed tx:', relayedDepositTx)
+  await portals.waitForMessageStatus(depositReceipt, MessageStatus.RELAYED)
+
+  const relayedTxHash = await portals.calculateRelayedDepositTxID(
+    depositReceipt
+  )
+  console.log('relayed tx:', relayedTxHash)
+
+  const relayedTxReceipt = await l2Provider.getTransactionReceipt(relayedTxHash)
+  console.log('Relayed tx receipt:', relayedTxReceipt)
 
   console.log(`Balance WTON after depositing...`)
 

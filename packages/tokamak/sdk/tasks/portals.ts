@@ -124,7 +124,7 @@ const depositViaOP = async (amount: NumberLike) => {
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
 
-  const portals = new Portals({
+  const portal = new Portals({
     contracts: {
       l1: l1Contracts,
     },
@@ -154,21 +154,18 @@ const depositViaOP = async (amount: NumberLike) => {
     isCreation: false,
     data: '0x',
   }
-  const estimateGasDeposit = await portals.estimateGas.depositTransaction(
+  const estimateGasDeposit = await portal.estimateGas.depositTransaction(
     depositParams
   )
   console.log(`Estimate gas for depositing: ${estimateGasDeposit}`)
 
-  const depositTx = await portals.depositTransaction(depositParams)
+  const depositTx = await portal.depositTransaction(depositParams)
   const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositReceipt.transactionHash)
 
-  const relayedTxHash = await portals.waitingDepositTransactionRelayed(
-    depositReceipt,
-    {}
-  )
-  const status = await portals.getMessageStatus(depositReceipt)
-  console.log('deposit status relayed:', status === MessageStatus.RELAYED)
+  await portal.waitForMessageStatus(depositReceipt, MessageStatus.RELAYED)
+
+  const relayedTxHash = await portal.calculateRelayedDepositTxID(depositReceipt)
   console.log('relayedTxHash:', relayedTxHash)
   const depositedTxReceipt = await l2Provider.getTransactionReceipt(
     relayedTxHash
@@ -207,7 +204,7 @@ const depositViaOPV1 = async (mint: NumberLike, value: NumberLike) => {
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
 
-  const portals = new Portals({
+  const portal = new Portals({
     contracts: {
       l1: l1Contracts,
     },
@@ -239,21 +236,21 @@ const depositViaOPV1 = async (mint: NumberLike, value: NumberLike) => {
     isCreation: false,
     data: '0x',
   }
-  const estimateGasDeposit = await portals.estimateGas.depositTransaction(
+  const estimateGasDeposit = await portal.estimateGas.depositTransaction(
     depositParams
   )
   console.log(`Estimate gas for depositing: ${estimateGasDeposit}`)
 
-  const depositTx = await portals.depositTransaction(depositParams)
+  const depositTx = await portal.depositTransaction(depositParams)
   const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositReceipt.transactionHash)
 
-  const relayedTxHash = await portals.waitingDepositTransactionRelayed(
-    depositReceipt,
-    {}
-  )
-  const status = await portals.getMessageStatus(depositReceipt)
+  await portal.waitForMessageStatus(depositReceipt, MessageStatus.RELAYED)
+
+  const status = await portal.getMessageStatus(depositReceipt)
   console.log('deposit status relayed:', status === MessageStatus.RELAYED)
+
+  const relayedTxHash = await portal.calculateRelayedDepositTxID(depositReceipt)
   console.log('relayedTxHash:', relayedTxHash)
   const depositedTxReceipt = await l2Provider.getTransactionReceipt(
     relayedTxHash
@@ -285,7 +282,7 @@ const calculateRelayedTransactionOnL2 = async (txId: string) => {
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
 
-  const portals = new Portals({
+  const portal = new Portals({
     contracts: {
       l1: l1Contracts,
     },
@@ -297,11 +294,10 @@ const calculateRelayedTransactionOnL2 = async (txId: string) => {
   const depositReceipt = await l1Provider.getTransactionReceipt(txId)
   console.log('depositTx:', depositReceipt.transactionHash)
 
-  const relayedTxHash = await portals.waitingDepositTransactionRelayed(
-    depositReceipt,
-    {}
-  )
-  const status = await portals.getMessageStatus(depositReceipt)
+  await portal.waitForMessageStatus(depositReceipt, MessageStatus.RELAYED)
+
+  const relayedTxHash = await portal.calculateRelayedDepositTxID(depositReceipt)
+  const status = await portal.getMessageStatus(depositReceipt)
   console.log('deposit status relayed:', status === MessageStatus.RELAYED)
   console.log('relayedTxHash:', relayedTxHash)
 }
@@ -324,10 +320,12 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     OptimismPortal: optimismPortal,
     L2OutputOracle: l2OutputOracle,
   }
+  console.log('l1Contracts', l1Contracts)
+
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
 
-  const portals = new Portals({
+  const portal = new Portals({
     contracts: {
       l1: l1Contracts,
     },
@@ -335,6 +333,7 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     l2ChainId,
     l1SignerOrProvider: l1Wallet,
     l2SignerOrProvider: l2Wallet,
+    bedrock: true,
   })
 
   let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
@@ -349,155 +348,62 @@ const withdrawViaBedrockMessagePasser = async (amount: NumberLike) => {
     target: l1Wallet.address,
     value: BigNumber.from(amount),
     gasLimit: BigNumber.from('200000'),
-    data: '0x12345678',
+    data: '0x',
   }
 
-  const initiateWithdrawalGas = await portals.estimateGas.initiateWithdrawal(
+  const initiateWithdrawalGas = await portal.estimateGas.initiateWithdrawal(
     initiateWithdrawalParams
   )
   console.log(`Estimate gas for initiating withdraw: ${initiateWithdrawalGas}`)
-  const withdrawalTx = await portals.initiateWithdrawal(
-    initiateWithdrawalParams
-  )
+  const withdrawalTx = await portal.initiateWithdrawal(initiateWithdrawalParams)
+  console.log(`transaction receipt hash: ${withdrawalTx.hash}`)
   const withdrawalReceipt = await withdrawalTx.wait()
-  const withdrawalMessageInfo = await portals.calculateWithdrawalMessage(
+  const withdrawalMessageInfo = await portal.calculateWithdrawalMessage(
     withdrawalReceipt
   )
   console.log('withdrawalMessageInfo:', withdrawalMessageInfo)
 
-  let status = await portals.getMessageStatus(withdrawalReceipt)
+  let status = await portal.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check publish L2 root:', status)
 
-  await portals.waitForWithdrawalTxReadyForRelay(withdrawalReceipt)
+  await portal.waitForMessageStatus(
+    withdrawalReceipt,
+    MessageStatus.READY_TO_PROVE
+  )
 
-  status = await portals.getMessageStatus(withdrawalReceipt)
+  status = await portal.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check ready for proving:', status)
 
-  const proveTransaction = await portals.proveWithdrawalTransaction(
+  const proveTransaction = await portal.proveWithdrawalTransaction(
     withdrawalMessageInfo
   )
   await proveTransaction.wait()
 
-  status = await portals.getMessageStatus(withdrawalReceipt)
+  status = await portal.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check in challenging:', status)
 
-  await portals.waitForFinalization(withdrawalMessageInfo)
+  await portal.waitForMessageStatus(
+    withdrawalReceipt,
+    MessageStatus.READY_FOR_RELAY
+  )
 
   const estimateFinalizedTransaction =
-    await portals.estimateGas.finalizeWithdrawalTransaction(
+    await portal.estimateGas.finalizeWithdrawalTransaction(
       withdrawalMessageInfo
     )
   console.log(
     `Estimate gas for finalizing transaction: ${estimateFinalizedTransaction}`
   )
 
-  const finalizedTransaction = await portals.finalizeWithdrawalTransaction(
+  const finalizedTransaction = await portal.finalizeWithdrawalTransaction(
     withdrawalMessageInfo
   )
   const finalizedTransactionReceipt = await finalizedTransaction.wait()
   console.log('finalized transaction receipt:', finalizedTransactionReceipt)
 
-  status = await portals.getMessageStatus(withdrawalReceipt)
+  status = await portal.getMessageStatus(withdrawalReceipt)
   console.log('[Withdrawal Status] check relayed:', status)
 
-  const transferTx = await l2NativeTokenContract.transferFrom(
-    l1Contracts.OptimismPortal,
-    l1Wallet.address,
-    amount
-  )
-  await transferTx.wait()
-  l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
-  console.log(
-    'l2 native token balance after withdraw in L1: ',
-    l2NativeTokenBalance.toString()
-  )
-}
-
-const withdrawViaBedrockMessagePasserV2 = async (amount: NumberLike) => {
-  console.log('Withdraw Native token:', amount)
-  console.log('Native token address:', l2NativeToken)
-
-  const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-  const l2Wallet = new ethers.Wallet(privateKey, asL2Provider(l2Provider))
-
-  const l2NativeTokenContract = new ethers.Contract(
-    l2NativeToken,
-    erc20ABI,
-    l1Wallet
-  )
-
-  const l1Contracts = {
-    AddressManager: addressManager,
-    OptimismPortal: optimismPortal,
-    L2OutputOracle: l2OutputOracle,
-  }
-  const l1ChainId = (await l1Provider.getNetwork()).chainId
-  const l2ChainId = (await l2Provider.getNetwork()).chainId
-
-  const portals = new Portals({
-    contracts: {
-      l1: l1Contracts,
-    },
-    l1ChainId,
-    l2ChainId,
-    l1SignerOrProvider: l1Wallet,
-    l2SignerOrProvider: l2Wallet,
-  })
-
-  let l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(
-    l1Wallet.address
-  )
-  console.log(
-    'l2 native token balance before withdraw in L1: ',
-    l2NativeTokenBalance.toString()
-  )
-
-  const withdrawalTx = await portals.initiateWithdrawal({
-    target: l1Wallet.address,
-    value: BigNumber.from(amount),
-    gasLimit: BigNumber.from('200000'),
-    data: '0x12345678',
-  })
-  const withdrawalReceipt = await withdrawalTx.wait()
-
-  let status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check publish L2 root:', status)
-
-  await portals.waitForWithdrawalTxReadyForRelayUsingL2Tx(
-    withdrawalReceipt.transactionHash
-  )
-
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check ready for proving:', status)
-
-  const proveTransaction = await portals.proveWithdrawalTransactionUsingL2Tx(
-    withdrawalReceipt.transactionHash
-  )
-  await proveTransaction.wait()
-
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check in challenging:', status)
-
-  await portals.waitForFinalizationUsingL2Tx(withdrawalReceipt.transactionHash)
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check ready for relay:', status)
-
-  const finalizedTransaction =
-    await portals.finalizeWithdrawalTransactionUsingL2Tx(
-      withdrawalReceipt.transactionHash
-    )
-  const finalizedTransactionReceipt = await finalizedTransaction.wait()
-  console.log('finalized transaction receipt:', finalizedTransactionReceipt)
-
-  status = await portals.getL2ToL1MessageStatusByReceipt(withdrawalReceipt)
-  console.log('[Withdrawal Status] check relayed:', status)
-
-  const transferTx = await l2NativeTokenContract.transferFrom(
-    l1Contracts.OptimismPortal,
-    l1Wallet.address,
-    amount
-  )
-  await transferTx.wait()
   l2NativeTokenBalance = await l2NativeTokenContract.balanceOf(l1Wallet.address)
   console.log(
     'l2 native token balance after withdraw in L1: ',
@@ -528,16 +434,6 @@ task(
   .setAction(async (args, hre) => {
     await updateAddresses(hre)
     await withdrawViaBedrockMessagePasser(args.amount)
-  })
-
-task(
-  'withdraw-portal-v2',
-  'Withdraw L2NativeToken to L1 via BedrockMessagePasser.'
-)
-  .addParam('amount', 'Withdrawal amount', '1', types.string)
-  .setAction(async (args, hre) => {
-    await updateAddresses(hre)
-    await withdrawViaBedrockMessagePasserV2(args.amount)
   })
 
 task('calculate-hash', 'Calculate relayed deposit hash')
