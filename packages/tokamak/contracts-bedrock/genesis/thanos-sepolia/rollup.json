@@ -25,6 +25,7 @@
   "regolith_time": 0,
   "canyon_time": 0,
   "delta_time": 0,
+  "fjord_time": 1730160001,
   "ecotone_time": 0,
   "batch_inbox_address": "0xff00000000000000000000000000111551119090",
   "deposit_contract_address": "0x7b6db1316e22167b56211cddc33431098babc3c2",
@@ -33,4 +34,3 @@
   "da_challenge_address": "0x0000000000000000000000000000000000000000",
   "IsForkPublicNetwork": false
 }
-
