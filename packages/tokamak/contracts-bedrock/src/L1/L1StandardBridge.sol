@@ -179,7 +179,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         override
         returns (bool)
     {
-        address _nativeTokenAddress = nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
         require(msg.sender == _nativeTokenAddress, "only accept native token approve callback");
         (address to, uint32 minGasLimit, bytes memory message) = unpackOnApproveData(_data);
         _initiateBridgeNativeToken(_owner, to, _amount, minGasLimit, message);
@@ -189,6 +189,10 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     /// @notice Getter function for address of native token on this network
     /// @return address The address of native token
     function nativeTokenAddress() public view returns (address) {
+        return _nativeToken();
+    }
+
+    function _nativeToken() internal view returns (address) {
         return systemConfig.nativeTokenAddress();
     }
 
@@ -209,7 +213,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         internal
         override
     {
-        address _nativeTokenAddress = nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
         IERC20(_nativeTokenAddress).safeTransferFrom(_from, address(this), _amount);
         IERC20(_nativeTokenAddress).approve(address(messenger), _amount);
 
@@ -274,7 +278,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         internal
         override
     {
-        require(_localToken != nativeTokenAddress(), "Cannot use native token");
+        require(_localToken != _nativeToken(), "Cannot use native token");
         require(_localToken != address(0), "Must not be address(0)");
         super._initiateBridgeERC20(_localToken, _remoteToken, _from, _to, _amount, _minGasLimit, _extraData);
     }
@@ -446,7 +450,7 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         onlyOtherBridge
     {
         require(paused() == false, "L1 StandardBridge: paused");
-        address _nativeTokenAddress = nativeTokenAddress();
+        address _nativeTokenAddress = _nativeToken();
         require(_to != address(this), "StandardBridge: cannot send to self");
         require(_to != address(messenger), "StandardBridge: cannot send to messenger");
 

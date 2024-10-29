@@ -114,6 +114,10 @@ abstract contract CrossDomainMessenger is
     ///         call in `relayMessage`.
     uint64 public constant RELAY_GAS_CHECK_BUFFER = 5_000;
 
+    /// @notice Gas reserved for the execution between the `hasMinGas` check and the external
+    ///         call in `relayMessage` on L1 (include gas for the approve() function)
+    uint64 public constant RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL = 40_000;
+
     /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only
     ///         be present in this mapping if it has successfully been relayed on this chain, and
     ///         can therefore not be relayed again.
@@ -356,7 +360,7 @@ abstract contract CrossDomainMessenger is
         + RELAY_RESERVED_GAS
         // Gas reserved for the execution between the `hasMinGas` check and the `CALL`
         // opcode. (Conservative)
-        + RELAY_GAS_CHECK_BUFFER;
+        + _relayGasCheckBuffer();
     }
 
     /// @notice Initializer.
@@ -370,6 +374,12 @@ abstract contract CrossDomainMessenger is
             xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
         }
         otherMessenger = _otherMessenger;
+    }
+
+    // @notice This function is used for calculating Gas reserved for the execution between the `hasMinGas` check and
+    // the external call
+    function _relayGasCheckBuffer() internal pure virtual returns (uint64) {
+        return RELAY_GAS_CHECK_BUFFER;
     }
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child
