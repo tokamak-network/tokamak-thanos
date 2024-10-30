@@ -147,7 +147,7 @@ const depositETH = async (amount: NumberLike) => {
   console.log('l2 eth balance:', l2Balance.toString())
 
   const depositTx = await messenger.bridgeETH(amount)
-  await depositTx.wait()
+  const depositReceipt = await depositTx.wait()
   console.log('depositTx:', depositTx.hash)
 
   const portals = new Portals({
@@ -160,9 +160,15 @@ const depositETH = async (amount: NumberLike) => {
     l2SignerOrProvider: l2Wallet,
   })
 
-  const relayedDepositTx =
-    await portals.waitingDepositTransactionRelayedUsingL1Tx(depositTx.hash)
-  console.log('relayed tx:', relayedDepositTx)
+  await portals.waitForMessageStatus(depositReceipt, MessageStatus.RELAYED)
+
+  const relayedTxHash = await portals.calculateRelayedDepositTxID(
+    depositReceipt
+  )
+  console.log('relayed tx:', relayedTxHash)
+
+  const relayedTxReceipt = await l2Provider.getTransactionReceipt(relayedTxHash)
+  console.log('Relayed tx receipt:', relayedTxReceipt)
 
   l1Balance = await l1Wallet.getBalance()
   console.log('l1 eth balance: ', l1Balance.toString())

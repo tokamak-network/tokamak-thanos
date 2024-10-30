@@ -3,7 +3,11 @@ import { BigNumber, utils, ethers } from 'ethers'
 import { Log, TransactionReceipt } from '@ethersproject/abstract-provider'
 import { hexDataSlice } from 'ethers/lib/utils'
 
-import { LowLevelMessage, WithdrawalMessageInfo } from '../interfaces'
+import {
+  L1ChainID,
+  LowLevelMessage,
+  WithdrawalMessageInfo,
+} from '../interfaces'
 
 const { hexDataLength } = utils
 
@@ -15,6 +19,7 @@ const MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR = BigNumber.from(63)
 const RELAY_CALL_OVERHEAD = BigNumber.from(40_000)
 const RELAY_RESERVED_GAS = BigNumber.from(40_000)
 const RELAY_GAS_CHECK_BUFFER = BigNumber.from(5_000)
+const RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL = BigNumber.from(40_000)
 
 /**
  * Utility for hashing a LowLevelMessage object.
@@ -64,6 +69,10 @@ export const migratedWithdrawalGasLimit = (
   if (chainID === 420) {
     overhead = BigNumber.from(200_000)
   } else {
+    const relayGasBuffer = Object.values(L1ChainID).includes(chainID)
+      ? RELAY_GAS_CHECK_BUFFER
+      : RELAY_GAS_CHECK_BUFFER_INCLUDING_APPROVAL
+
     // Dynamic overhead (EIP-150)
     // We use a constant 1 million gas limit due to the overhead of simulating all migrated withdrawal
     // transactions during the migration. This is a conservative estimate, and if a withdrawal
@@ -83,7 +92,7 @@ export const migratedWithdrawalGasLimit = (
       .add(RELAY_RESERVED_GAS)
       // Gas reserved for the execution between the `hasMinGas` check and the `CALL`
       // opcode. (Conservative)
-      .add(RELAY_GAS_CHECK_BUFFER)
+      .add(relayGasBuffer)
   }
 
   let minGasLimit = dataCost.add(overhead)
