@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindingspreview"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 )
@@ -29,14 +29,14 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 	applyL2Opts(l2Opts)
 
 	// Find deposit contract
-	depositContract, err := bindings.NewOptimismPortal(cfg.L1Deployments.OptimismPortalProxy, l1Client)
+	depositContract, err := bindingspreview.NewOptimismPortal2(cfg.L1Deployments.OptimismPortalProxy, l1Client)
 	require.Nil(t, err)
 
 	// Finally send TX
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
 	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Value, l2Opts.Value, l2Opts.GasLimit, l2Opts.ToAddr == common.Address{}, l2Opts.Data)
+		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Mint, l2Opts.Value, l2Opts.GasLimit, l2Opts.ToAddr == common.Address{}, l2Opts.Data)
 	})
 	require.Nil(t, err, "with deposit tx")
 
@@ -48,7 +48,7 @@ func SendDepositTx(t *testing.T, cfg SystemConfig, l1Client *ethclient.Client, l
 
 	depIt, err := depositContract.FilterTransactionDeposited(&bind.FilterOpts{Start: 0}, nil, nil, nil)
 	require.NoError(t, err)
-	var depositEvent *bindings.OptimismPortalTransactionDeposited
+	var depositEvent *bindingspreview.OptimismPortal2TransactionDeposited
 	for depIt.Next() {
 		depositEvent = depIt.Event
 	}
