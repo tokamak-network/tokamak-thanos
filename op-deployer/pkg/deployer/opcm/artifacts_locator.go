@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 )
 
 type schemeUnmarshaler func(string) (*ArtifactsLocator, error)
@@ -12,6 +14,14 @@ var schemeUnmarshalerDispatch = map[string]schemeUnmarshaler{
 	"tag":   unmarshalTag,
 	"file":  unmarshalURL,
 	"https": unmarshalURL,
+}
+
+var DefaultL1ContractsLocator = &ArtifactsLocator{
+	Tag: standard.DefaultL1ContractsTag,
+}
+
+var DefaultL2ContractsLocator = &ArtifactsLocator{
+	Tag: standard.DefaultL2ContractsTag,
 }
 
 type ArtifactsLocator struct {
@@ -61,7 +71,7 @@ func unmarshalTag(tag string) (*ArtifactsLocator, error) {
 		return nil, fmt.Errorf("invalid tag: %s", tag)
 	}
 
-	if _, err := StandardArtifactsURLForTag(tag); err != nil {
+	if _, err := standard.ArtifactsURLForTag(tag); err != nil {
 		return nil, err
 	}
 

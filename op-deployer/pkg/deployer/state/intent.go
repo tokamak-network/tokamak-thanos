@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
+
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
@@ -37,6 +39,8 @@ type Intent struct {
 	SuperchainRoles *SuperchainRoles `json:"superchainRoles" toml:"superchainRoles,omitempty"`
 
 	FundDevAccounts bool `json:"fundDevAccounts" toml:"fundDevAccounts"`
+
+	UseInterop bool `json:"useInterop" toml:"useInterop"`
 
 	L1ContractsLocator *opcm.ArtifactsLocator `json:"l1ContractsLocator" toml:"l1ContractsLocator"`
 
@@ -102,7 +106,7 @@ func (c *Intent) WriteToFile(path string) error {
 }
 
 func (c *Intent) checkL1Prod() error {
-	versions, err := opcm.StandardL1VersionsFor(c.L1ChainID)
+	versions, err := standard.L1VersionsFor(c.L1ChainID)
 	if err != nil {
 		return err
 	}
@@ -131,7 +135,7 @@ func (c *Intent) checkL1Dev() error {
 }
 
 func (c *Intent) checkL2Prod() error {
-	_, err := opcm.StandardArtifactsURLForTag(c.L2ContractsLocator.Tag)
+	_, err := standard.ArtifactsURLForTag(c.L2ContractsLocator.Tag)
 	return err
 }
 

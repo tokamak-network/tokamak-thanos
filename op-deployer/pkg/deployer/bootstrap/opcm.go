@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
+
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
@@ -28,6 +30,8 @@ import (
 )
 
 type OPCMConfig struct {
+	pipeline.SuperchainProofParams
+
 	L1RPCUrl         string
 	PrivateKey       string
 	Logger           log.Logger
@@ -59,6 +63,30 @@ func (c *OPCMConfig) Check() error {
 		return fmt.Errorf("artifacts locator must be specified")
 	}
 
+	if c.WithdrawalDelaySeconds == 0 {
+		c.WithdrawalDelaySeconds = standard.WithdrawalDelaySeconds
+	}
+
+	if c.MinProposalSizeBytes == 0 {
+		c.MinProposalSizeBytes = standard.MinProposalSizeBytes
+	}
+
+	if c.ChallengePeriodSeconds == 0 {
+		c.ChallengePeriodSeconds = standard.ChallengePeriodSeconds
+	}
+
+	if c.ProofMaturityDelaySeconds == 0 {
+		c.ProofMaturityDelaySeconds = standard.ProofMaturityDelaySeconds
+	}
+
+	if c.DisputeGameFinalityDelaySeconds == 0 {
+		c.DisputeGameFinalityDelaySeconds = standard.DisputeGameFinalityDelaySeconds
+	}
+
+	if c.MIPSVersion == 0 {
+		c.MIPSVersion = standard.MIPSVersion
+	}
+
 	return nil
 }
 
@@ -82,6 +110,14 @@ func OPCMCLI(cliCtx *cli.Context) error {
 		PrivateKey:       privateKey,
 		Logger:           l,
 		ArtifactsLocator: artifactsLocator,
+		SuperchainProofParams: pipeline.SuperchainProofParams{
+			WithdrawalDelaySeconds:          cliCtx.Uint64(WithdrawalDelaySecondsFlagName),
+			MinProposalSizeBytes:            cliCtx.Uint64(MinProposalSizeBytesFlagName),
+			ChallengePeriodSeconds:          cliCtx.Uint64(ChallengePeriodSecondsFlagName),
+			ProofMaturityDelaySeconds:       cliCtx.Uint64(ProofMaturityDelaySecondsFlagName),
+			DisputeGameFinalityDelaySeconds: cliCtx.Uint64(DisputeGameFinalityDelaySecondsFlagName),
+			MIPSVersion:                     cliCtx.Uint64(MIPSVersionFlagName),
+		},
 	})
 }
 
@@ -116,15 +152,15 @@ func OPCM(ctx context.Context, cfg OPCMConfig) error {
 	}
 	chainIDU64 := chainID.Uint64()
 
-	superCfg, err := opcm.SuperchainFor(chainIDU64)
+	superCfg, err := standard.SuperchainFor(chainIDU64)
 	if err != nil {
 		return fmt.Errorf("error getting superchain config: %w", err)
 	}
-	standardVersionsTOML, err := opcm.StandardL1VersionsDataFor(chainIDU64)
+	standardVersionsTOML, err := standard.L1VersionsDataFor(chainIDU64)
 	if err != nil {
 		return fmt.Errorf("error getting standard versions TOML: %w", err)
 	}
-	opcmProxyOwnerAddr, err := opcm.ManagerOwnerAddrFor(chainIDU64)
+	opcmProxyOwnerAddr, err := standard.ManagerOwnerAddrFor(chainIDU64)
 	if err != nil {
 		return fmt.Errorf("error getting superchain proxy admin: %w", err)
 	}
@@ -192,11 +228,12 @@ func OPCM(ctx context.Context, cfg OPCMConfig) error {
 		host,
 		opcm.DeployImplementationsInput{
 			Salt:                            salt,
-			WithdrawalDelaySeconds:          big.NewInt(604800),
-			MinProposalSizeBytes:            big.NewInt(126000),
-			ChallengePeriodSeconds:          big.NewInt(86400),
-			ProofMaturityDelaySeconds:       big.NewInt(604800),
-			DisputeGameFinalityDelaySeconds: big.NewInt(302400),
+			WithdrawalDelaySeconds:          new(big.Int).SetUint64(cfg.WithdrawalDelaySeconds),
+			MinProposalSizeBytes:            new(big.Int).SetUint64(cfg.MinProposalSizeBytes),
+			ChallengePeriodSeconds:          new(big.Int).SetUint64(cfg.ChallengePeriodSeconds),
+			ProofMaturityDelaySeconds:       new(big.Int).SetUint64(cfg.ProofMaturityDelaySeconds),
+			DisputeGameFinalityDelaySeconds: new(big.Int).SetUint64(cfg.DisputeGameFinalityDelaySeconds),
+			MipsVersion:                     new(big.Int).SetUint64(cfg.MIPSVersion),
 			Release:                         release,
 			SuperchainConfigProxy:           superchainConfigAddr,
 			ProtocolVersionsProxy:           protocolVersionsAddr,
