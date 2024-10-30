@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
 	"github.com/stretchr/testify/require"
 )
 
@@ -138,6 +139,50 @@ func TestMemory64ReadWrite(t *testing.T) {
 		require.Equal(t, make([]byte, 10), res[:10], "empty start")
 		require.Equal(t, data, res[10:len(res)-10], "result")
 		require.Equal(t, make([]byte, 10), res[len(res)-10:], "empty end")
+	})
+
+	t.Run("empty range", func(t *testing.T) {
+		m := NewMemory()
+		addr := Word(0xAABBCC00)
+		r := bytes.NewReader(nil)
+		pre := m.MerkleRoot()
+		preJSON, err := m.MarshalJSON()
+		require.NoError(t, err)
+		var preSerialized bytes.Buffer
+		require.NoError(t, m.Serialize(&preSerialized))
+
+		require.NoError(t, m.SetMemoryRange(addr, r))
+		v := m.GetWord(0)
+		require.Equal(t, Word(0), v)
+		post := m.MerkleRoot()
+		require.Equal(t, pre, post)
+
+		// Assert that there are no extra zero pages in serialization
+		postJSON, err := m.MarshalJSON()
+		require.NoError(t, err)
+		require.Equal(t, preJSON, postJSON)
+
+		var postSerialized bytes.Buffer
+		require.NoError(t, m.Serialize(&postSerialized))
+		require.Equal(t, preSerialized.Bytes(), postSerialized.Bytes())
+	})
+
+	t.Run("range page overlap", func(t *testing.T) {
+		m := NewMemory()
+		data := bytes.Repeat([]byte{0xAA}, PageAddrSize)
+		require.NoError(t, m.SetMemoryRange(0, bytes.NewReader(data)))
+		for i := 0; i < PageAddrSize/arch.WordSizeBytes; i++ {
+			addr := Word(i * arch.WordSizeBytes)
+			require.Equal(t, Word(0xAAAAAAAA_AAAAAAAA), m.GetWord(addr))
+		}
+
+		data = []byte{0x11, 0x22, 0x33, 0x44}
+		require.NoError(t, m.SetMemoryRange(0, bytes.NewReader(data)))
+		require.Equal(t, Word(0x11223344_AAAAAAAA), m.GetWord(0))
+		for i := 1; i < PageAddrSize/arch.WordSizeBytes; i++ {
+			addr := Word(i * arch.WordSizeBytes)
+			require.Equal(t, Word(0xAAAAAAAA_AAAAAAAA), m.GetWord(addr))
+		}
 	})
 
 	t.Run("read-write", func(t *testing.T) {
