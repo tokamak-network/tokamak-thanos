@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/core-utils",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "[Thanos] Core typescript utilities",
   "main": "dist/index",
   "types": "dist/index",
