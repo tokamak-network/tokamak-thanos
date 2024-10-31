@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"fmt"
 	"math/big"
 	"strings"
@@ -18,24 +17,19 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/pipeline"
-
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 )
 
-type OPCMConfig struct {
-	pipeline.SuperchainProofParams
-
+type DelayedWETHConfig struct {
 	L1RPCUrl         string
 	PrivateKey       string
 	Logger           log.Logger
@@ -44,7 +38,7 @@ type OPCMConfig struct {
 	privateKeyECDSA *ecdsa.PrivateKey
 }
 
-func (c *OPCMConfig) Check() error {
+func (c *DelayedWETHConfig) Check() error {
 	if c.L1RPCUrl == "" {
 		return fmt.Errorf("l1RPCUrl must be specified")
 	}
@@ -67,34 +61,10 @@ func (c *OPCMConfig) Check() error {
 		return fmt.Errorf("artifacts locator must be specified")
 	}
 
-	if c.WithdrawalDelaySeconds == 0 {
-		c.WithdrawalDelaySeconds = standard.WithdrawalDelaySeconds
-	}
-
-	if c.MinProposalSizeBytes == 0 {
-		c.MinProposalSizeBytes = standard.MinProposalSizeBytes
-	}
-
-	if c.ChallengePeriodSeconds == 0 {
-		c.ChallengePeriodSeconds = standard.ChallengePeriodSeconds
-	}
-
-	if c.ProofMaturityDelaySeconds == 0 {
-		c.ProofMaturityDelaySeconds = standard.ProofMaturityDelaySeconds
-	}
-
-	if c.DisputeGameFinalityDelaySeconds == 0 {
-		c.DisputeGameFinalityDelaySeconds = standard.DisputeGameFinalityDelaySeconds
-	}
-
-	if c.MIPSVersion == 0 {
-		c.MIPSVersion = standard.MIPSVersion
-	}
-
 	return nil
 }
 
-func OPCMCLI(cliCtx *cli.Context) error {
+func DelayedWETHCLI(cliCtx *cli.Context) error {
 	logCfg := oplog.ReadCLIConfig(cliCtx)
 	l := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
 	oplog.SetGlobalLogHandler(l.Handler())
@@ -109,25 +79,17 @@ func OPCMCLI(cliCtx *cli.Context) error {
 
 	ctx := ctxinterrupt.WithCancelOnInterrupt(cliCtx.Context)
 
-	return OPCM(ctx, OPCMConfig{
+	return DelayedWETH(ctx, DelayedWETHConfig{
 		L1RPCUrl:         l1RPCUrl,
 		PrivateKey:       privateKey,
 		Logger:           l,
 		ArtifactsLocator: artifactsLocator,
-		SuperchainProofParams: pipeline.SuperchainProofParams{
-			WithdrawalDelaySeconds:          cliCtx.Uint64(WithdrawalDelaySecondsFlagName),
-			MinProposalSizeBytes:            cliCtx.Uint64(MinProposalSizeBytesFlagName),
-			ChallengePeriodSeconds:          cliCtx.Uint64(ChallengePeriodSecondsFlagName),
-			ProofMaturityDelaySeconds:       cliCtx.Uint64(ProofMaturityDelaySecondsFlagName),
-			DisputeGameFinalityDelaySeconds: cliCtx.Uint64(DisputeGameFinalityDelaySecondsFlagName),
-			MIPSVersion:                     cliCtx.Uint64(MIPSVersionFlagName),
-		},
 	})
 }
 
-func OPCM(ctx context.Context, cfg OPCMConfig) error {
+func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 	if err := cfg.Check(); err != nil {
-		return fmt.Errorf("invalid config for OPCM: %w", err)
+		return fmt.Errorf("invalid config for DelayedWETH: %w", err)
 	}
 
 	lgr := cfg.Logger
@@ -164,9 +126,13 @@ func OPCM(ctx context.Context, cfg OPCMConfig) error {
 	if err != nil {
 		return fmt.Errorf("error getting standard versions TOML: %w", err)
 	}
-	opcmProxyOwnerAddr, err := standard.ManagerOwnerAddrFor(chainIDU64)
+	proxyAdmin, err := standard.ManagerOwnerAddrFor(chainIDU64)
 	if err != nil {
 		return fmt.Errorf("error getting superchain proxy admin: %w", err)
+	}
+	delayedWethOwner, err := standard.SystemOwnerAddrFor(chainIDU64)
+	if err != nil {
+		return fmt.Errorf("error getting superchain system owner: %w", err)
 	}
 
 	signer := opcrypto.SignerFnFromBind(opcrypto.PrivateKeySignerFn(cfg.privateKeyECDSA, chainID))
@@ -206,44 +172,19 @@ func OPCM(ctx context.Context, cfg OPCMConfig) error {
 		release = "dev"
 	}
 
-	lgr.Info("deploying OPCM", "release", release)
+	lgr.Info("deploying DelayedWETH", "release", release)
 
-	// We need to etch the Superchain addresses so that they have nonzero code
-	// and the checks in the OPCM constructor pass.
 	superchainConfigAddr := common.Address(*superCfg.Config.SuperchainConfigAddr)
-	protocolVersionsAddr := common.Address(*superCfg.Config.ProtocolVersionsAddr)
-	addresses := []common.Address{
-		superchainConfigAddr,
-		protocolVersionsAddr,
-	}
-	for _, addr := range addresses {
-		host.ImportAccount(addr, types.Account{
-			Code: []byte{0x00},
-		})
-	}
 
-	var salt common.Hash
-	_, err = rand.Read(salt[:])
-	if err != nil {
-		return fmt.Errorf("failed to generate CREATE2 salt: %w", err)
-	}
-
-	dio, err := opcm.DeployImplementations(
+	dwo, err := opcm.DeployDelayedWETH(
 		host,
-		opcm.DeployImplementationsInput{
-			Salt:                            salt,
-			WithdrawalDelaySeconds:          new(big.Int).SetUint64(cfg.WithdrawalDelaySeconds),
-			MinProposalSizeBytes:            new(big.Int).SetUint64(cfg.MinProposalSizeBytes),
-			ChallengePeriodSeconds:          new(big.Int).SetUint64(cfg.ChallengePeriodSeconds),
-			ProofMaturityDelaySeconds:       new(big.Int).SetUint64(cfg.ProofMaturityDelaySeconds),
-			DisputeGameFinalityDelaySeconds: new(big.Int).SetUint64(cfg.DisputeGameFinalityDelaySeconds),
-			MipsVersion:                     new(big.Int).SetUint64(cfg.MIPSVersion),
-			Release:                         release,
-			SuperchainConfigProxy:           superchainConfigAddr,
-			ProtocolVersionsProxy:           protocolVersionsAddr,
-			OpcmProxyOwner:                  opcmProxyOwnerAddr,
-			StandardVersionsToml:            standardVersionsTOML,
-			UseInterop:                      false,
+		opcm.DeployDelayedWETHInput{
+			Release:               release,
+			StandardVersionsToml:  standardVersionsTOML,
+			ProxyAdmin:            proxyAdmin,
+			SuperchainConfigProxy: superchainConfigAddr,
+			DelayedWethOwner:      delayedWethOwner,
+			DelayedWethDelay:      big.NewInt(604800),
 		},
 	)
 	if err != nil {
@@ -254,9 +195,9 @@ func OPCM(ctx context.Context, cfg OPCMConfig) error {
 		return fmt.Errorf("failed to broadcast: %w", err)
 	}
 
-	lgr.Info("deployed implementations")
+	lgr.Info("deployed DelayedWETH")
 
-	if err := jsonutil.WriteJSON(dio, ioutil.ToStdOut()); err != nil {
+	if err := jsonutil.WriteJSON(dwo, ioutil.ToStdOut()); err != nil {
 		return fmt.Errorf("failed to write output: %w", err)
 	}
 	return nil
