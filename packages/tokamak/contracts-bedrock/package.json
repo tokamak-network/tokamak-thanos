@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-contracts",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Contracts for Optimism Specs",
   "license": "MIT",
   "files": [
