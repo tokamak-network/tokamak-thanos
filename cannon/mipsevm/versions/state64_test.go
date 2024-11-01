@@ -1,5 +1,5 @@
-//go:build !cannon64
-// +build !cannon64
+//go:build cannon64
+// +build cannon64
 
 package versions
 
@@ -11,38 +11,20 @@ import (
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/singlethreaded"
 	"github.com/ethereum-optimism/optimism/op-service/serialize"
 )
 
 func TestNewFromState(t *testing.T) {
-	t.Run("singlethreaded-2", func(t *testing.T) {
-		actual, err := NewFromState(singlethreaded.CreateEmptyState())
-		require.NoError(t, err)
-		require.IsType(t, &singlethreaded.State{}, actual.FPVMState)
-		require.Equal(t, VersionSingleThreaded2, actual.Version)
-	})
-
-	t.Run("multithreaded", func(t *testing.T) {
+	t.Run("multithreaded64", func(t *testing.T) {
 		actual, err := NewFromState(multithreaded.CreateEmptyState())
 		require.NoError(t, err)
 		require.IsType(t, &multithreaded.State{}, actual.FPVMState)
-		require.Equal(t, VersionMultiThreaded, actual.Version)
+		require.Equal(t, VersionMultiThreaded64, actual.Version)
 	})
 }
 
 func TestLoadStateFromFile(t *testing.T) {
-	t.Run("SinglethreadedFromBinary", func(t *testing.T) {
-		expected, err := NewFromState(singlethreaded.CreateEmptyState())
-		require.NoError(t, err)
-
-		path := writeToFile(t, "state.bin.gz", expected)
-		actual, err := LoadStateFromFile(path)
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-	})
-
-	t.Run("MultithreadedFromBinary", func(t *testing.T) {
+	t.Run("Multithreaded64FromBinary", func(t *testing.T) {
 		expected, err := NewFromState(multithreaded.CreateEmptyState())
 		require.NoError(t, err)
 
@@ -58,8 +40,7 @@ func TestVersionsOtherThanZeroDoNotSupportJSON(t *testing.T) {
 		version     StateVersion
 		createState func() mipsevm.FPVMState
 	}{
-		{VersionSingleThreaded2, func() mipsevm.FPVMState { return singlethreaded.CreateEmptyState() }},
-		{VersionMultiThreaded, func() mipsevm.FPVMState { return multithreaded.CreateEmptyState() }},
+		{VersionMultiThreaded64, func() mipsevm.FPVMState { return multithreaded.CreateEmptyState() }},
 	}
 	for _, test := range tests {
 		test := test

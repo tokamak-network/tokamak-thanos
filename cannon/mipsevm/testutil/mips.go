@@ -40,7 +40,7 @@ type MIPSEVM struct {
 	lastPreimageOracleInput []byte
 }
 
-func NewMIPSEVM(contracts *ContractMetadata, opts ...evmOption) *MIPSEVM {
+func newMIPSEVM(contracts *ContractMetadata, opts ...evmOption) *MIPSEVM {
 	env, evmState := NewEVMEnv(contracts)
 	sender := vm.AccountRef{0x13, 0x37}
 	startingGas := uint64(maxStepGas)
@@ -62,6 +62,12 @@ func WithSourceMapTracer(t *testing.T, ver MipsVersion) evmOption {
 func WithTracingHooks(tracer *tracing.Hooks) evmOption {
 	return func(evm *MIPSEVM) {
 		evm.SetTracer(tracer)
+	}
+}
+
+func WithLocalOracle(oracle mipsevm.PreimageOracle) evmOption {
+	return func(evm *MIPSEVM) {
+		evm.SetLocalOracle(oracle)
 	}
 }
 
@@ -192,15 +198,33 @@ func LogStepFailureAtCleanup(t *testing.T, mipsEvm *MIPSEVM) {
 	})
 }
 
-// ValidateEVM runs a single evm step and validates against an FPVM poststate
-func ValidateEVM(t *testing.T, stepWitness *mipsevm.StepWitness, step uint64, goVm mipsevm.FPVM, hashFn mipsevm.HashFn, contracts *ContractMetadata, opts ...evmOption) {
-	evm := NewMIPSEVM(contracts, opts...)
+type EvmValidator struct {
+	evm    *MIPSEVM
+	hashFn mipsevm.HashFn
+}
+
+// NewEvmValidator creates a validator that can be run repeatedly across multiple steps
+func NewEvmValidator(t *testing.T, hashFn mipsevm.HashFn, contracts *ContractMetadata, opts ...evmOption) *EvmValidator {
+	evm := newMIPSEVM(contracts, opts...)
 	LogStepFailureAtCleanup(t, evm)
 
-	evmPost := evm.Step(t, stepWitness, step, hashFn)
+	return &EvmValidator{
+		evm:    evm,
+		hashFn: hashFn,
+	}
+}
+
+func (v *EvmValidator) ValidateEVM(t *testing.T, stepWitness *mipsevm.StepWitness, step uint64, goVm mipsevm.FPVM) {
+	evmPost := v.evm.Step(t, stepWitness, step, v.hashFn)
 	goPost, _ := goVm.GetState().EncodeWitness()
 	require.Equal(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
 		"mipsevm produced different state than EVM")
+}
+
+// ValidateEVM runs a single evm step and validates against an FPVM poststate
+func ValidateEVM(t *testing.T, stepWitness *mipsevm.StepWitness, step uint64, goVm mipsevm.FPVM, hashFn mipsevm.HashFn, contracts *ContractMetadata, opts ...evmOption) {
+	validator := NewEvmValidator(t, hashFn, contracts)
+	validator.ValidateEVM(t, stepWitness, step, goVm)
 }
 
 type ErrMatcher func(*testing.T, []byte)
@@ -250,7 +274,7 @@ func AssertEVMReverts(t *testing.T, state mipsevm.FPVMState, contracts *Contract
 }
 
 func AssertPreimageOracleReverts(t *testing.T, preimageKey [32]byte, preimageValue []byte, preimageOffset arch.Word, contracts *ContractMetadata, opts ...evmOption) {
-	evm := NewMIPSEVM(contracts, opts...)
+	evm := newMIPSEVM(contracts, opts...)
 	LogStepFailureAtCleanup(t, evm)
 
 	evm.assertPreimageOracleReverts(t, preimageKey, preimageValue, preimageOffset)

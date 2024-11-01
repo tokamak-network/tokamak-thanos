@@ -19,11 +19,20 @@ import (
 
 const syscallInsn = uint32(0x00_00_00_0c)
 
-func FuzzStateSyscallBrk(f *testing.F) {
+func FuzzStateSyscallBrk32(f *testing.F) {
+	doFuzzStateSyscallBrk(f)
+}
+
+func FuzzStateSyscallBrk64(f *testing.F) {
+	doFuzzStateSyscallBrk(f)
+}
+
+func doFuzzStateSyscallBrk(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(seed))
 				state := goVm.GetState()
 				state.GetRegistersRef()[2] = arch.SysBrk
@@ -48,7 +57,15 @@ func FuzzStateSyscallBrk(f *testing.F) {
 	})
 }
 
-func FuzzStateSyscallMmap(f *testing.F) {
+func FuzzStateSyscallMmap32(f *testing.F) {
+	doFuzzStateSyscallMmap(f)
+}
+
+func FuzzStateSyscallMmap64(f *testing.F) {
+	doFuzzStateSyscallMmap(f)
+}
+
+func doFuzzStateSyscallMmap(f *testing.F) {
 	// Add special cases for large memory allocation
 	f.Add(Word(0), Word(0x1000), Word(program.HEAP_END), int64(1))
 	f.Add(Word(0), Word(1<<31), Word(program.HEAP_START), int64(2))
@@ -59,6 +76,7 @@ func FuzzStateSyscallMmap(f *testing.F) {
 	f.Fuzz(func(t *testing.T, addr Word, siz Word, heap Word, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(),
 					testutil.WithRandomization(seed), testutil.WithHeap(heap))
 				state := goVm.GetState()
@@ -103,11 +121,20 @@ func FuzzStateSyscallMmap(f *testing.F) {
 	})
 }
 
-func FuzzStateSyscallExitGroup(f *testing.F) {
+func FuzzStateSyscallExitGroup32(f *testing.F) {
+	doFuzzStateSyscallExitGroup(f)
+}
+
+func FuzzStateSyscallExitGroup64(f *testing.F) {
+	doFuzzStateSyscallExitGroup(f)
+}
+
+func doFuzzStateSyscallExitGroup(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, exitCode uint8, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(),
 					testutil.WithRandomization(seed))
 				state := goVm.GetState()
@@ -132,11 +159,20 @@ func FuzzStateSyscallExitGroup(f *testing.F) {
 	})
 }
 
-func FuzzStateSyscallFcntl(f *testing.F) {
+func FuzzStateSyscallFcntl32(f *testing.F) {
+	doFuzzStateSyscallFcntl(f)
+}
+
+func FuzzStateSyscallFcntl64(f *testing.F) {
+	doFuzzStateSyscallFcntl(f)
+}
+
+func doFuzzStateSyscallFcntl(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, fd Word, cmd Word, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(),
 					testutil.WithRandomization(seed))
 				state := goVm.GetState()
@@ -188,11 +224,20 @@ func FuzzStateSyscallFcntl(f *testing.F) {
 	})
 }
 
-func FuzzStateHintRead(f *testing.F) {
+func FuzzStateHintRead32(f *testing.F) {
+	doFuzzStateHintRead(f)
+}
+
+func FuzzStateHintRead64(f *testing.F) {
+	doFuzzStateHintRead(f)
+}
+
+func doFuzzStateHintRead(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, addr Word, count Word, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				preimageData := []byte("hello world")
 				preimageKey := preimage.Keccak256Key(crypto.Keccak256Hash(preimageData)).PreimageKey()
 				oracle := testutil.StaticOracle(t, preimageData) // only used for hinting
@@ -225,14 +270,22 @@ func FuzzStateHintRead(f *testing.F) {
 	})
 }
 
-func FuzzStatePreimageRead(f *testing.F) {
+func FuzzStatePreimageRead32(f *testing.F) {
+	doFuzzStatePreimageRead(f)
+}
+
+func FuzzStatePreimageRead64(f *testing.F) {
+	doFuzzStatePreimageRead(f)
+}
+
+func doFuzzStatePreimageRead(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, addr arch.Word, pc arch.Word, count arch.Word, preimageOffset arch.Word, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
 				effAddr := addr & arch.AddressMask
 				pc = pc & arch.AddressMask
-				preexistingMemoryVal := [4]byte{0xFF, 0xFF, 0xFF, 0xFF}
+				preexistingMemoryVal := ^arch.Word(0)
 				preimageValue := []byte("hello world")
 				preimageData := testutil.AddPreimageLengthPrefix(preimageValue)
 				if preimageOffset >= Word(len(preimageData)) || pc == effAddr {
@@ -249,11 +302,11 @@ func FuzzStatePreimageRead(f *testing.F) {
 				state.GetRegistersRef()[5] = addr
 				state.GetRegistersRef()[6] = count
 				testutil.StoreInstruction(state.GetMemory(), state.GetPC(), syscallInsn)
-				state.GetMemory().SetWord(effAddr, arch.ByteOrderWord.Word(preexistingMemoryVal[:]))
+				state.GetMemory().SetWord(effAddr, preexistingMemoryVal)
 				step := state.GetStep()
 
 				alignment := addr & arch.ExtMask
-				writeLen := 4 - alignment
+				writeLen := arch.WordSizeBytes - alignment
 				if count < writeLen {
 					writeLen = count
 				}
@@ -272,7 +325,8 @@ func FuzzStatePreimageRead(f *testing.F) {
 				expected.PreimageOffset += writeLen
 				if writeLen > 0 {
 					// Expect a memory write
-					expectedMemory := preexistingMemoryVal
+					var expectedMemory []byte
+					expectedMemory = arch.ByteOrderWord.AppendWord(expectedMemory, preexistingMemoryVal)
 					copy(expectedMemory[alignment:], preimageData[preimageOffset:preimageOffset+writeLen])
 					expected.ExpectMemoryWriteWord(effAddr, arch.ByteOrderWord.Word(expectedMemory[:]))
 				}
@@ -288,11 +342,20 @@ func FuzzStatePreimageRead(f *testing.F) {
 	})
 }
 
-func FuzzStateHintWrite(f *testing.F) {
+func FuzzStateHintWrite32(f *testing.F) {
+	doFuzzStateHintWrite(f)
+}
+
+func FuzzStateHintWrite64(f *testing.F) {
+	doFuzzStateHintWrite(f)
+}
+
+func doFuzzStateHintWrite(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, addr Word, count Word, hint1, hint2, hint3 []byte, randSeed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				// Make sure pc does not overlap with hint data in memory
 				pc := Word(0)
 				if addr <= 8 {
@@ -370,11 +433,20 @@ func FuzzStateHintWrite(f *testing.F) {
 	})
 }
 
-func FuzzStatePreimageWrite(f *testing.F) {
+func FuzzStatePreimageWrite32(f *testing.F) {
+	doFuzzStatePreimageWrite(f)
+}
+
+func FuzzStatePreimageWrite64(f *testing.F) {
+	doFuzzStatePreimageWrite(f)
+}
+
+func doFuzzStatePreimageWrite(f *testing.F) {
 	versions := GetMipsVersionTestCases(f)
 	f.Fuzz(func(t *testing.T, addr arch.Word, count arch.Word, seed int64) {
 		for _, v := range versions {
 			t.Run(v.Name, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				// Make sure pc does not overlap with preimage data in memory
 				pc := Word(0)
 				if addr <= 8 {

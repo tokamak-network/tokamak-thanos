@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/stretchr/testify/require"
 
@@ -37,6 +36,7 @@ func TestEVM(t *testing.T) {
 		for _, f := range testFiles {
 			testName := fmt.Sprintf("%v (%v)", f.Name(), c.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				for _, skipped := range skipped {
 					if f.Name() == skipped {
 						t.Skipf("Skipping explicitly excluded open_mips testcase: %v", f.Name())
@@ -47,10 +47,7 @@ func TestEVM(t *testing.T) {
 				// Short-circuit early for exit_group.bin
 				exitGroup := f.Name() == "exit_group.bin"
 				expectPanic := strings.HasSuffix(f.Name(), "panic.bin")
-
-				evm := testutil.NewMIPSEVM(c.Contracts)
-				evm.SetLocalOracle(oracle)
-				testutil.LogStepFailureAtCleanup(t, evm)
+				validator := testutil.NewEvmValidator(t, c.StateHashFn, c.Contracts, testutil.WithLocalOracle(oracle))
 
 				fn := path.Join("open_mips_tests/test/bin", f.Name())
 				programMem, err := os.ReadFile(fn)
@@ -88,12 +85,7 @@ func TestEVM(t *testing.T) {
 
 					stepWitness, err := goVm.Step(true)
 					require.NoError(t, err)
-					evmPost := evm.Step(t, stepWitness, curStep, c.StateHashFn)
-					// verify the post-state matches.
-					// TODO: maybe more readable to decode the evmPost state, and do attribute-wise comparison.
-					goPost, _ := goVm.GetState().EncodeWitness()
-					require.Equalf(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
-						"mipsevm produced different state than EVM at step %d", state.GetStep())
+					validator.ValidateEVM(t, stepWitness, curStep, goVm)
 				}
 				if exitGroup {
 					require.NotEqual(t, arch.Word(testutil.EndAddr), goVm.GetState().GetPC(), "must not reach end")
@@ -215,6 +207,7 @@ func TestEVMSingleStep_Operators(t *testing.T) {
 		for i, tt := range cases {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPC(0), testutil.WithNextPC(4))
 				state := goVm.GetState()
 				var insn uint32
@@ -316,6 +309,7 @@ func TestEVMSingleStep_LoadStore(t *testing.T) {
 		for _, v := range versions {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				addr := tt.base + Word(tt.imm)
 				effAddr := arch.AddressMask & addr
 
@@ -490,6 +484,7 @@ func TestEVMSingleStep_MulDiv(t *testing.T) {
 		for i, tt := range cases {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPC(0), testutil.WithNextPC(4))
 				state := goVm.GetState()
 				var insn uint32
@@ -864,6 +859,7 @@ func TestEVMFault(t *testing.T) {
 		for _, tt := range cases {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithPC(tt.pc), testutil.WithNextPC(tt.nextPC))
 				state := goVm.GetState()
 				testutil.StoreInstruction(state.GetMemory(), 0, tt.insn)
@@ -886,8 +882,7 @@ func TestHelloEVM(t *testing.T) {
 		v := v
 		t.Run(v.Name, func(t *testing.T) {
 			t.Parallel()
-			evm := testutil.NewMIPSEVM(v.Contracts)
-			testutil.LogStepFailureAtCleanup(t, evm)
+			validator := testutil.NewEvmValidator(t, v.StateHashFn, v.Contracts)
 
 			var stdOutBuf, stdErrBuf bytes.Buffer
 			elfFile := testutil.ProgramPath("hello")
@@ -907,12 +902,7 @@ func TestHelloEVM(t *testing.T) {
 
 				stepWitness, err := goVm.Step(true)
 				require.NoError(t, err)
-				evmPost := evm.Step(t, stepWitness, step, v.StateHashFn)
-				// verify the post-state matches.
-				// TODO: maybe more readable to decode the evmPost state, and do attribute-wise comparison.
-				goPost, _ := goVm.GetState().EncodeWitness()
-				require.Equalf(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
-					"mipsevm produced different state than EVM. insn: %x", insn)
+				validator.ValidateEVM(t, stepWitness, step, goVm)
 			}
 			end := time.Now()
 			delta := end.Sub(start)
@@ -935,9 +925,7 @@ func TestClaimEVM(t *testing.T) {
 		v := v
 		t.Run(v.Name, func(t *testing.T) {
 			t.Parallel()
-			evm := testutil.NewMIPSEVM(v.Contracts)
-			testutil.LogStepFailureAtCleanup(t, evm)
-
+			validator := testutil.NewEvmValidator(t, v.StateHashFn, v.Contracts)
 			oracle, expectedStdOut, expectedStdErr := testutil.ClaimTestOracle(t)
 
 			var stdOutBuf, stdErrBuf bytes.Buffer
@@ -958,12 +946,7 @@ func TestClaimEVM(t *testing.T) {
 
 				stepWitness, err := goVm.Step(true)
 				require.NoError(t, err)
-
-				evmPost := evm.Step(t, stepWitness, curStep, v.StateHashFn)
-
-				goPost, _ := goVm.GetState().EncodeWitness()
-				require.Equal(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
-					"mipsevm produced different state than EVM")
+				validator.ValidateEVM(t, stepWitness, curStep, goVm)
 			}
 
 			require.True(t, state.GetExited(), "must complete program")
@@ -983,8 +966,7 @@ func TestEntryEVM(t *testing.T) {
 		v := v
 		t.Run(v.Name, func(t *testing.T) {
 			t.Parallel()
-			evm := testutil.NewMIPSEVM(v.Contracts)
-			testutil.LogStepFailureAtCleanup(t, evm)
+			validator := testutil.NewEvmValidator(t, v.StateHashFn, v.Contracts)
 
 			var stdOutBuf, stdErrBuf bytes.Buffer
 			elfFile := testutil.ProgramPath("entry")
@@ -992,7 +974,7 @@ func TestEntryEVM(t *testing.T) {
 			state := goVm.GetState()
 
 			start := time.Now()
-			for i := 0; i < 400_000; i++ {
+			for i := 0; i < 500_000; i++ {
 				curStep := goVm.GetState().GetStep()
 				if goVm.GetState().GetExited() {
 					break
@@ -1004,11 +986,7 @@ func TestEntryEVM(t *testing.T) {
 
 				stepWitness, err := goVm.Step(true)
 				require.NoError(t, err)
-				evmPost := evm.Step(t, stepWitness, curStep, v.StateHashFn)
-				// verify the post-state matches.
-				goPost, _ := goVm.GetState().EncodeWitness()
-				require.Equal(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
-					"mipsevm produced different state than EVM")
+				validator.ValidateEVM(t, stepWitness, curStep, goVm)
 			}
 			end := time.Now()
 			delta := end.Sub(start)
@@ -1090,6 +1068,7 @@ func TestEVMSingleStepBranch(t *testing.T) {
 		for i, tt := range cases {
 			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
 			t.Run(testName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPCAndNextPC(tt.pc))
 				state := goVm.GetState()
 				const rsReg = 8 // t0

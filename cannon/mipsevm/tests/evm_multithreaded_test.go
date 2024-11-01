@@ -8,7 +8,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -243,6 +242,7 @@ func TestEVM_MT_SysRead_Preimage(t *testing.T) {
 		for _, v := range llVariations {
 			tName := fmt.Sprintf("%v (%v)", c.name, v.name)
 			t.Run(tName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				effAddr := arch.AddressMask & c.addr
 				preimageKey := preimage.Keccak256Key(crypto.Keccak256Hash(preimageValue)).PreimageKey()
 				oracle := testutil.StaticOracle(t, preimageValue)
@@ -339,6 +339,7 @@ func TestEVM_MT_StoreOpsClearMemReservation(t *testing.T) {
 		for _, v := range llVariations {
 			tName := fmt.Sprintf("%v (%v)", c.name, v.name)
 			t.Run(tName, func(t *testing.T) {
+				testutil.TemporarilySkip64BitTests(t)
 				insn := uint32((c.opcode << 26) | (baseReg & 0x1F << 21) | (rtReg & 0x1F << 16) | (0xFFFF & c.offset))
 				goVm, state, contracts := setup(t, i, nil, testutil.WithPCAndNextPC(0x08))
 				step := state.GetStep()
@@ -409,31 +410,25 @@ func TestEVM_SysClone_FlagHandling(t *testing.T) {
 
 			var err error
 			var stepWitness *mipsevm.StepWitness
-			us := multithreaded.NewInstrumentedState(state, nil, os.Stdout, os.Stderr, nil, nil)
+			goVm := multithreaded.NewInstrumentedState(state, nil, os.Stdout, os.Stderr, nil, nil)
 			if !c.valid {
 				// The VM should exit
-				stepWitness, err = us.Step(true)
+				stepWitness, err = goVm.Step(true)
 				require.NoError(t, err)
 				require.Equal(t, curStep+1, state.GetStep())
-				require.Equal(t, true, us.GetState().GetExited())
-				require.Equal(t, uint8(mipsevm.VMStatusPanic), us.GetState().GetExitCode())
+				require.Equal(t, true, goVm.GetState().GetExited())
+				require.Equal(t, uint8(mipsevm.VMStatusPanic), goVm.GetState().GetExitCode())
 				require.Equal(t, 1, state.ThreadCount())
 			} else {
-				stepWitness, err = us.Step(true)
+				stepWitness, err = goVm.Step(true)
 				require.NoError(t, err)
 				require.Equal(t, curStep+1, state.GetStep())
-				require.Equal(t, false, us.GetState().GetExited())
-				require.Equal(t, uint8(0), us.GetState().GetExitCode())
+				require.Equal(t, false, goVm.GetState().GetExited())
+				require.Equal(t, uint8(0), goVm.GetState().GetExitCode())
 				require.Equal(t, 2, state.ThreadCount())
 			}
 
-			evm := testutil.NewMIPSEVM(contracts)
-			testutil.LogStepFailureAtCleanup(t, evm)
-
-			evmPost := evm.Step(t, stepWitness, curStep, multithreaded.GetStateHashFn())
-			goPost, _ := us.GetState().EncodeWitness()
-			require.Equal(t, hexutil.Bytes(goPost).String(), hexutil.Bytes(evmPost).String(),
-				"mipsevm produced different state than EVM")
+			testutil.ValidateEVM(t, stepWitness, curStep, goVm, multithreaded.GetStateHashFn(), contracts)
 		})
 	}
 }
@@ -660,6 +655,7 @@ func TestEVM_SysFutex_WaitPrivate(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			testutil.TemporarilySkip64BitTests(t)
 			goVm, state, contracts := setup(t, i*1234, nil)
 			step := state.GetStep()
 
@@ -729,6 +725,7 @@ func TestEVM_SysFutex_WakePrivate(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			testutil.TemporarilySkip64BitTests(t)
 			goVm, state, contracts := setup(t, i*1122, nil)
 			mttestutil.SetupThreads(int64(i*2244), state, c.traverseRight, c.activeThreadCount, c.inactiveThreadCount)
 			step := state.Step
@@ -1109,6 +1106,7 @@ var NoopSyscalls = map[string]uint32{
 func TestEVM_NoopSyscall(t *testing.T) {
 	for noopName, noopVal := range NoopSyscalls {
 		t.Run(noopName, func(t *testing.T) {
+			testutil.TemporarilySkip64BitTests(t)
 			goVm, state, contracts := setup(t, int(noopVal), nil)
 
 			testutil.StoreInstruction(state.Memory, state.GetPC(), syscallInsn)
@@ -1155,6 +1153,7 @@ func TestEVM_UnsupportedSyscall(t *testing.T) {
 		i := i
 		syscallNum := syscallNum
 		t.Run(testName, func(t *testing.T) {
+			testutil.TemporarilySkip64BitTests(t)
 			t.Parallel()
 			goVm, state, contracts := setup(t, i*3434, nil)
 			// Setup basic getThreadId syscall instruction
@@ -1196,7 +1195,7 @@ func TestEVM_EmptyThreadStacks(t *testing.T) {
 
 				require.PanicsWithValue(t, "Active thread stack is empty", func() { _, _ = goVm.Step(false) })
 
-				errorMessage := "MIPS2: active thread stack is empty"
+				errorMessage := "active thread stack is empty"
 				testutil.AssertEVMReverts(t, state, contracts, tracer, proofCase.Proof, testutil.CreateErrorStringMatcher(errorMessage))
 			})
 		}
