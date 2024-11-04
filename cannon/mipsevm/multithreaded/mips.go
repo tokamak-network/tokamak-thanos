@@ -224,6 +224,23 @@ func (m *InstrumentedState) handleSyscall() error {
 }
 
 func (m *InstrumentedState) mipsStep() error {
+	err := m.doMipsStep()
+	if err != nil {
+		return err
+	}
+
+	m.assertPostStateChecks()
+	return err
+}
+
+func (m *InstrumentedState) assertPostStateChecks() {
+	activeStack := m.state.getActiveThreadStack()
+	if len(activeStack) == 0 {
+		panic("post-state active thread stack is empty")
+	}
+}
+
+func (m *InstrumentedState) doMipsStep() error {
 	if m.state.Exited {
 		return nil
 	}
