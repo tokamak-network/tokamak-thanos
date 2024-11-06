@@ -7,10 +7,9 @@ import (
 	"strings"
 
 	artifacts2 "github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
-
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 
@@ -21,14 +20,13 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 )
 
-type DisputeGameConfig struct {
+type MIPSConfig struct {
 	L1RPCUrl         string
 	PrivateKey       string
 	Logger           log.Logger
@@ -36,24 +34,11 @@ type DisputeGameConfig struct {
 
 	privateKeyECDSA *ecdsa.PrivateKey
 
-	MinProposalSizeBytes     uint64
-	ChallengePeriodSeconds   uint64
-	MipsVersion              uint64
-	GameKind                 string
-	GameType                 uint32
-	AbsolutePrestate         common.Hash
-	MaxGameDepth             uint64
-	SplitDepth               uint64
-	ClockExtension           uint64
-	MaxClockDuration         uint64
-	DelayedWethProxy         common.Address
-	AnchorStateRegistryProxy common.Address
-	L2ChainId                uint64
-	Proposer                 common.Address
-	Challenger               common.Address
+	PreimageOracle common.Address
+	MipsVersion    uint64
 }
 
-func (c *DisputeGameConfig) Check() error {
+func (c *MIPSConfig) Check() error {
 	if c.L1RPCUrl == "" {
 		return fmt.Errorf("l1RPCUrl must be specified")
 	}
@@ -76,10 +61,21 @@ func (c *DisputeGameConfig) Check() error {
 		return fmt.Errorf("artifacts locator must be specified")
 	}
 
+	if c.PreimageOracle == (common.Address{}) {
+		return fmt.Errorf("preimage oracle must be specified")
+	}
+
+	if c.MipsVersion == 0 {
+		return fmt.Errorf("mips version must be specified")
+	}
+	if c.MipsVersion != 1 && c.MipsVersion != 2 {
+		return fmt.Errorf("mips version must be either 1 or 2")
+	}
+
 	return nil
 }
 
-func DisputeGameCLI(cliCtx *cli.Context) error {
+func MIPSCLI(cliCtx *cli.Context) error {
 	logCfg := oplog.ReadCLIConfig(cliCtx)
 	l := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
 	oplog.SetGlobalLogHandler(l.Handler())
@@ -92,19 +88,24 @@ func DisputeGameCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to parse artifacts URL: %w", err)
 	}
 
+	mipsVersion := cliCtx.Uint64(MIPSVersionFlagName)
+	preimageOracle := common.HexToAddress(cliCtx.String(PreimageOracleFlagName))
+
 	ctx := ctxinterrupt.WithCancelOnInterrupt(cliCtx.Context)
 
-	return DisputeGame(ctx, DisputeGameConfig{
+	return MIPS(ctx, MIPSConfig{
 		L1RPCUrl:         l1RPCUrl,
 		PrivateKey:       privateKey,
 		Logger:           l,
 		ArtifactsLocator: artifactsLocator,
+		MipsVersion:      mipsVersion,
+		PreimageOracle:   preimageOracle,
 	})
 }
 
-func DisputeGame(ctx context.Context, cfg DisputeGameConfig) error {
+func MIPS(ctx context.Context, cfg MIPSConfig) error {
 	if err := cfg.Check(); err != nil {
-		return fmt.Errorf("invalid config for DisputeGame: %w", err)
+		return fmt.Errorf("invalid config for MIPS: %w", err)
 	}
 
 	lgr := cfg.Logger
@@ -130,12 +131,6 @@ func DisputeGame(ctx context.Context, cfg DisputeGameConfig) error {
 	chainID, err := l1Client.ChainID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get chain ID: %w", err)
-	}
-	chainIDU64 := chainID.Uint64()
-
-	standardVersionsTOML, err := standard.L1VersionsDataFor(chainIDU64)
-	if err != nil {
-		return fmt.Errorf("error getting standard versions TOML: %w", err)
 	}
 
 	signer := opcrypto.SignerFnFromBind(opcrypto.PrivateKeySignerFn(cfg.privateKeyECDSA, chainID))
@@ -177,26 +172,11 @@ func DisputeGame(ctx context.Context, cfg DisputeGameConfig) error {
 
 	lgr.Info("deploying dispute game", "release", release)
 
-	dgo, err := opcm.DeployDisputeGame(
+	dgo, err := opcm.DeployMIPS(
 		host,
-		opcm.DeployDisputeGameInput{
-			Release:                  release,
-			StandardVersionsToml:     standardVersionsTOML,
-			MipsVersion:              cfg.MipsVersion,
-			MinProposalSizeBytes:     cfg.MinProposalSizeBytes,
-			ChallengePeriodSeconds:   cfg.ChallengePeriodSeconds,
-			GameKind:                 cfg.GameKind,
-			GameType:                 cfg.GameType,
-			AbsolutePrestate:         cfg.AbsolutePrestate,
-			MaxGameDepth:             cfg.MaxGameDepth,
-			SplitDepth:               cfg.SplitDepth,
-			ClockExtension:           cfg.ClockExtension,
-			MaxClockDuration:         cfg.MaxClockDuration,
-			DelayedWethProxy:         cfg.DelayedWethProxy,
-			AnchorStateRegistryProxy: cfg.AnchorStateRegistryProxy,
-			L2ChainId:                cfg.L2ChainId,
-			Proposer:                 cfg.Proposer,
-			Challenger:               cfg.Challenger,
+		opcm.DeployMIPSInput{
+			MipsVersion:    cfg.MipsVersion,
+			PreimageOracle: cfg.PreimageOracle,
 		},
 	)
 	if err != nil {

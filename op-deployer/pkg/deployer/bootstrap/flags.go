@@ -28,6 +28,7 @@ const (
 	L2ChainIdFlagName                       = "l2-chain-id"
 	ProposerFlagName                        = "proposer"
 	ChallengerFlagName                      = "challenger"
+	PreimageOracleFlagName                  = "preimage-oracle"
 )
 
 var (
@@ -140,6 +141,12 @@ var (
 		EnvVars: deployer.PrefixEnvVar("CHALLENGER"),
 		Value:   common.Address{}.Hex(),
 	}
+	PreimageOracleFlag = &cli.StringFlag{
+		Name:    PreimageOracleFlagName,
+		Usage:   "Preimage oracle address.",
+		EnvVars: deployer.PrefixEnvVar("PREIMAGE_ORACLE"),
+		Value:   common.Address{}.Hex(),
+	}
 )
 
 var OPCMFlags = []cli.Flag{
@@ -181,6 +188,14 @@ var DisputeGameFlags = []cli.Flag{
 	ChallengerFlag,
 }
 
+var MIPSFlags = []cli.Flag{
+	deployer.L1RPCURLFlag,
+	deployer.PrivateKeyFlag,
+	ArtifactsLocatorFlag,
+	PreimageOracleFlag,
+	MIPSVersionFlag,
+}
+
 var Commands = []*cli.Command{
 	{
 		Name:   "opcm",
@@ -199,5 +214,11 @@ var Commands = []*cli.Command{
 		Usage:  "Bootstrap an instance of a FaultDisputeGame or PermissionedDisputeGame.",
 		Flags:  cliapp.ProtectFlags(DisputeGameFlags),
 		Action: DisputeGameCLI,
+	},
+	{
+		Name:   "mips",
+		Usage:  "Bootstrap an instance of MIPS.",
+		Flags:  cliapp.ProtectFlags(MIPSFlags),
+		Action: MIPSCLI,
 	},
 }
