@@ -176,6 +176,8 @@ type ChainRoles struct {
 
 	SystemConfigOwner common.Address `json:"systemConfigOwner" toml:"systemConfigOwner"`
 
+	SystemConfigFeeAdmin common.Address `json:"systemConfigFeeAdmin" toml:"systemConfigFeeAdmin"`
+
 	UnsafeBlockSigner common.Address `json:"unsafeBlockSigner" toml:"unsafeBlockSigner"`
 
 	Batcher common.Address `json:"batcher" toml:"batcher"`
@@ -197,6 +199,10 @@ func (c *ChainIntent) Check() error {
 
 	if c.Roles.SystemConfigOwner == emptyAddress {
 		c.Roles.SystemConfigOwner = c.Roles.L1ProxyAdminOwner
+	}
+
+	if c.Roles.SystemConfigFeeAdmin == emptyAddress {
+		return fmt.Errorf("systemConfigFeeAdmin must be set")
 	}
 
 	if c.Roles.L2ProxyAdminOwner == emptyAddress {
