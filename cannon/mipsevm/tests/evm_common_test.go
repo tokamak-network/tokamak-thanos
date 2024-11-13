@@ -413,6 +413,139 @@ func TestEVM_SingleStep_MthiMtlo(t *testing.T) {
 	}
 }
 
+func TestEVM_SingleStep_BeqBne(t *testing.T) {
+	versions := GetMipsVersionTestCases(t)
+	cases := []struct {
+		name   string
+		imm    uint32
+		opcode uint32
+		rs     Word
+		rt     Word
+	}{
+		{name: "bne", opcode: uint32(0x5), imm: uint32(0x10), rs: Word(0xaa), rt: Word(0xdeadbeef)},       // bne $t0, $t1, 16
+		{name: "beq", opcode: uint32(0x4), imm: uint32(0x10), rs: Word(0xdeadbeef), rt: Word(0xdeadbeef)}, // beq $t0, $t1, 16
+	}
+	for _, v := range versions {
+		for i, tt := range cases {
+			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
+			t.Run(testName, func(t *testing.T) {
+				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPC(0), testutil.WithNextPC(4))
+				state := goVm.GetState()
+				rsReg := uint32(9)
+				rtReg := uint32(8)
+				insn := tt.opcode<<26 | rsReg<<21 | rtReg<<16 | tt.imm
+				state.GetRegistersRef()[rtReg] = tt.rt
+				state.GetRegistersRef()[rsReg] = tt.rs
+				testutil.StoreInstruction(state.GetMemory(), 0, insn)
+				step := state.GetStep()
+				// Setup expectations
+				expected := testutil.NewExpectedState(state)
+				expected.Step = state.GetStep() + 1
+				expected.PC = state.GetCpu().NextPC
+				expected.NextPC = state.GetCpu().NextPC + Word(tt.imm<<2)
+
+				stepWitness, err := goVm.Step(true)
+				require.NoError(t, err)
+				// Check expectations
+				expected.Validate(t, state)
+				testutil.ValidateEVM(t, stepWitness, step, goVm, v.StateHashFn, v.Contracts)
+			})
+		}
+	}
+
+}
+
+func TestEVM_SingleStep_SlSr(t *testing.T) {
+	versions := GetMipsVersionTestCases(t)
+	cases := []struct {
+		name      string
+		rs        Word
+		rt        Word
+		rsReg     uint32
+		funct     uint16
+		expectVal Word
+	}{
+		{name: "sll", funct: uint16(4) << 6, rt: Word(0x20), rsReg: uint32(0x0), expectVal: Word(0x20) << uint8(4)},                         // sll t0, t1, 3
+		{name: "srl", funct: uint16(4)<<6 | 2, rt: Word(0x20), rsReg: uint32(0x0), expectVal: Word(0x20) >> uint8(4)},                       // srl t0, t1, 3
+		{name: "sra", funct: uint16(4)<<6 | 3, rt: Word(0x80_00_00_20), rsReg: uint32(0x0), expectVal: signExtend64(0xF8_00_00_02)},         // sra t0, t1, 3
+		{name: "sllv", funct: uint16(4), rt: Word(0x20), rs: Word(4), rsReg: uint32(0xa), expectVal: Word(0x20) << Word(4)},                 // sllv t0, t1, t2
+		{name: "srlv", funct: uint16(6), rt: Word(0x20_00), rs: Word(4), rsReg: uint32(0xa), expectVal: Word(0x20_00) >> Word(4)},           // srlv t0, t1, t2
+		{name: "srav", funct: uint16(7), rt: Word(0xdeafbeef), rs: Word(12), rsReg: uint32(0xa), expectVal: signExtend64(Word(0xfffdeafb))}, // srav t0, t1, t2
+	}
+
+	for _, v := range versions {
+		for i, tt := range cases {
+			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
+			t.Run(testName, func(t *testing.T) {
+				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPC(0), testutil.WithNextPC(4))
+				state := goVm.GetState()
+				var insn uint32
+				rtReg := uint32(0x9)
+				rdReg := uint32(0x8)
+				insn = tt.rsReg<<21 | rtReg<<16 | rdReg<<11 | uint32(tt.funct)
+				state.GetRegistersRef()[rtReg] = tt.rt
+				state.GetRegistersRef()[tt.rsReg] = tt.rs
+				testutil.StoreInstruction(state.GetMemory(), 0, insn)
+				step := state.GetStep()
+
+				// Setup expectations
+				expected := testutil.NewExpectedState(state)
+				expected.ExpectStep()
+
+				expected.Registers[rdReg] = tt.expectVal
+
+				stepWitness, err := goVm.Step(true)
+				require.NoError(t, err)
+
+				// Check expectations
+				expected.Validate(t, state)
+				testutil.ValidateEVM(t, stepWitness, step, goVm, v.StateHashFn, v.Contracts)
+			})
+		}
+	}
+}
+
+func TestEVM_SingleStep_JrJalr(t *testing.T) {
+	versions := GetMipsVersionTestCases(t)
+	cases := []struct {
+		name       string
+		funct      uint16
+		rdReg      uint32
+		expectLink bool
+	}{
+		{name: "jr", funct: uint16(0x8), rdReg: uint32(0)},                       // jr t0
+		{name: "jalr", funct: uint16(0x9), rdReg: uint32(0x9), expectLink: true}, // jalr t1, t0
+	}
+	for _, v := range versions {
+		for i, tt := range cases {
+			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
+			t.Run(testName, func(t *testing.T) {
+				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)), testutil.WithPC(0), testutil.WithNextPC(4))
+				state := goVm.GetState()
+				rsReg := uint32(8)
+				insn := rsReg<<21 | tt.rdReg<<11 | uint32(tt.funct)
+				state.GetRegistersRef()[rsReg] = Word(0x34)
+				testutil.StoreInstruction(state.GetMemory(), 0, insn)
+				step := state.GetStep()
+				// Setup expectations
+				expected := testutil.NewExpectedState(state)
+				expected.Step = state.GetStep() + 1
+				expected.PC = state.GetCpu().NextPC
+				expected.NextPC = state.GetRegistersRef()[rsReg]
+				if tt.expectLink {
+					expected.Registers[tt.rdReg] = state.GetPC() + 8
+				}
+
+				stepWitness, err := goVm.Step(true)
+				require.NoError(t, err)
+				// Check expectations
+				expected.Validate(t, state)
+				testutil.ValidateEVM(t, stepWitness, step, goVm, v.StateHashFn, v.Contracts)
+			})
+		}
+	}
+}
+
 func TestEVM_MMap(t *testing.T) {
 	versions := GetMipsVersionTestCases(t)
 	cases := []struct {
