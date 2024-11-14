@@ -30,13 +30,5 @@ jobs:
         working-directory: op-e2e
 
       - name: Run test actions e2e tests
-        run: make test-actions
-        working-directory: op-e2e
-
-      - name: Run test cannon e2e tests
-        run: make test-cannon
-        working-directory: op-e2e
-
-      - name: Run test FP e2e tests
-        run: make test-fault-proof
+        run: make test-e2e
         working-directory: op-e2e
