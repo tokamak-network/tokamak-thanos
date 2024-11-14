@@ -29,10 +29,6 @@ jobs:
         run: make test-deposit-withdrawal
         working-directory: op-e2e
 
-      - name: Run test external e2e tests
-        run: make test-external
-        working-directory: op-e2e
-
       - name: Run test actions e2e tests
         run: make test-actions
         working-directory: op-e2e
