@@ -248,6 +248,93 @@ func TestEVM_SingleStep_LoadStore32(t *testing.T) {
 	testLoadStore(t, cases)
 }
 
+func TestEVM_SingleStep_Lui(t *testing.T) {
+	versions := GetMipsVersionTestCases(t)
+
+	cases := []struct {
+		name     string
+		rtReg    uint32
+		imm      uint32
+		expectRt Word
+	}{
+		{name: "lui unsigned", rtReg: 5, imm: 0x1234, expectRt: 0x1234_0000},
+		{name: "lui signed", rtReg: 7, imm: 0x8765, expectRt: signExtend64(0x8765_0000)},
+	}
+
+	for _, v := range versions {
+		for i, tt := range cases {
+			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
+			t.Run(testName, func(t *testing.T) {
+				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)))
+				state := goVm.GetState()
+				insn := 0b1111<<26 | uint32(tt.rtReg)<<16 | (tt.imm & 0xFFFF)
+				testutil.StoreInstruction(state.GetMemory(), state.GetPC(), insn)
+				step := state.GetStep()
+
+				// Setup expectations
+				expected := testutil.NewExpectedState(state)
+				expected.ExpectStep()
+				expected.Registers[tt.rtReg] = tt.expectRt
+				stepWitness, err := goVm.Step(true)
+				require.NoError(t, err)
+
+				// Check expectations
+				expected.Validate(t, state)
+				testutil.ValidateEVM(t, stepWitness, step, goVm, v.StateHashFn, v.Contracts)
+			})
+		}
+	}
+}
+
+func TestEVM_SingleStep_CloClz(t *testing.T) {
+	versions := GetMipsVersionTestCases(t)
+
+	rsReg := uint32(5)
+	rdReg := uint32(6)
+	cases := []struct {
+		name           string
+		rs             Word
+		expectedResult Word
+		funct          uint32
+	}{
+		{name: "clo", rs: 0xFFFF_FFFE, expectedResult: 31, funct: 0b10_0001},
+		{name: "clo", rs: 0xE000_0000, expectedResult: 3, funct: 0b10_0001},
+		{name: "clo", rs: 0x8000_0000, expectedResult: 1, funct: 0b10_0001},
+		{name: "clo, sign-extended", rs: signExtend64(0x8000_0000), expectedResult: 1, funct: 0b10_0001},
+		{name: "clo, sign-extended", rs: signExtend64(0xF800_0000), expectedResult: 5, funct: 0b10_0001},
+		{name: "clz", rs: 0x1, expectedResult: 31, funct: 0b10_0000},
+		{name: "clz", rs: 0x1000_0000, expectedResult: 3, funct: 0b10_0000},
+		{name: "clz", rs: 0x8000_0000, expectedResult: 0, funct: 0b10_0000},
+		{name: "clz, sign-extended", rs: signExtend64(0x8000_0000), expectedResult: 0, funct: 0b10_0000},
+	}
+
+	for _, v := range versions {
+		for i, tt := range cases {
+			testName := fmt.Sprintf("%v (%v)", tt.name, v.Name)
+			t.Run(testName, func(t *testing.T) {
+				// Set up state
+				goVm := v.VMFactory(nil, os.Stdout, os.Stderr, testutil.CreateLogger(), testutil.WithRandomization(int64(i)))
+				state := goVm.GetState()
+				insn := 0b01_1100<<26 | rsReg<<21 | rdReg<<11 | tt.funct
+				testutil.StoreInstruction(state.GetMemory(), state.GetPC(), insn)
+				state.GetRegistersRef()[rsReg] = tt.rs
+				step := state.GetStep()
+
+				// Setup expectations
+				expected := testutil.NewExpectedState(state)
+				expected.ExpectStep()
+				expected.Registers[rdReg] = tt.expectedResult
+				stepWitness, err := goVm.Step(true)
+				require.NoError(t, err)
+
+				// Check expectations
+				expected.Validate(t, state)
+				testutil.ValidateEVM(t, stepWitness, step, goVm, v.StateHashFn, v.Contracts)
+			})
+		}
+	}
+}
+
 func TestEVM_SingleStep_MovzMovn(t *testing.T) {
 	versions := GetMipsVersionTestCases(t)
 	cases := []struct {
