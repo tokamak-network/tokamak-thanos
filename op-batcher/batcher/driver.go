@@ -471,17 +471,20 @@ func (l *BatchSubmitter) mainLoop(ctx context.Context, receiptsCh chan txmgr.TxR
 
 			l.state.pruneSafeBlocks(syncStatus.SafeL2)
 			l.state.pruneChannels(syncStatus.SafeL2)
-			if err := l.loadBlocksIntoState(*syncStatus, l.shutdownCtx); errors.Is(err, ErrReorg) {
-				// Wait for any in flight transactions
-				// to be ingested by the node before
-				// we start loading blocks again.
-				err := l.waitNodeSync()
-				if err != nil {
-					l.Log.Warn("error waiting for node sync", "err", err)
-				}
-				l.clearState(l.shutdownCtx)
+
+			err = l.state.CheckExpectedProgress(*syncStatus)
+			if err != nil {
+				l.Log.Warn("error checking expected progress, clearing state and waiting for node sync", "err", err)
+				l.waitNodeSyncAndClearState()
 				continue
 			}
+
+			if err := l.loadBlocksIntoState(*syncStatus, l.shutdownCtx); errors.Is(err, ErrReorg) {
+				l.Log.Warn("error loading blocks, clearing state and waiting for node sync", "err", err)
+				l.waitNodeSyncAndClearState()
+				continue
+			}
+
 			l.publishStateToL1(queue, receiptsCh, daGroup, l.Config.PollInterval)
 		case <-ctx.Done():
 			l.Log.Warn("main loop returning")
@@ -577,6 +580,17 @@ func (l *BatchSubmitter) throttlingLoop(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (l *BatchSubmitter) waitNodeSyncAndClearState() {
+	// Wait for any in flight transactions
+	// to be ingested by the node before
+	// we start loading blocks again.
+	err := l.waitNodeSync()
+	if err != nil {
+		l.Log.Warn("error waiting for node sync", "err", err)
+	}
+	l.clearState(l.shutdownCtx)
 }
 
 // waitNodeSync Check to see if there was a batcher tx sent recently that
