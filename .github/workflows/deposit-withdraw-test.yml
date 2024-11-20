@@ -28,3 +28,7 @@ jobs:
       - name: Run deposit withdrawal e2e tests
         run: make test-deposit-withdrawal
         working-directory: op-e2e
+
+      - name: Run test actions e2e tests
+        run: make test-e2e
+        working-directory: op-e2e
