@@ -134,10 +134,14 @@ func ManagerImplementationAddrFor(chainID uint64) (common.Address, error) {
 	switch chainID {
 	case 1:
 		// Generated using the bootstrap command on 11/18/2024.
-		return common.HexToAddress("0x9bc0a1ed534bfb31a6be69e5b767cba332f14347"), nil
+		// Verified against compiled bytecode at:
+		// https://github.com/ethereum-optimism/optimism/releases/tag/op-contracts-v160-artifacts-opcm-redesign-backport
+		return common.HexToAddress("0x9BC0A1eD534BFb31a6Be69e5b767Cba332f14347"), nil
 	case 11155111:
-		// Generated using the bootstrap command on 11/15/2024.
-		return common.HexToAddress("0xde9eacb994a6eb12997445f8a63a22772c5c4313"), nil
+		// Generated using the bootstrap command on 11/18/2024.
+		// Verified against compiled bytecode at:
+		// https://github.com/ethereum-optimism/optimism/releases/tag/op-contracts-v160-artifacts-opcm-redesign-backport
+		return common.HexToAddress("0x760B1d2Dc68DC51fb6E8B2b8722B8ed08903540c"), nil
 	default:
 		return common.Address{}, fmt.Errorf("unsupported chain ID: %d", chainID)
 	}
