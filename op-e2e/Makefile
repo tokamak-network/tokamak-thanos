@@ -72,4 +72,7 @@ fuzz:
 
 test-deposit-withdrawal:
 	$(go_test) $(go_test_flags) ./e2e-dep-with/...
+
+test-e2e:
+	$(go_test) $(go_test_flags) .
 .PHONY: test-deposit-withdrawal
