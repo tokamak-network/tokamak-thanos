@@ -38,6 +38,10 @@ config=$(cat << EOL
   "l2BlockTime": $L2_BLOCK_TIME,
   "l1BlockTime": $L1_BLOCK_TIME,
 
+  "nativeTokenName": "CHANGE_ME",
+  "nativeTokenSymbol": "CHANGE_ME",
+  "nativeTokenAddress": "CHANGE_ME",
+
   "maxSequencerDrift": 600,
   "sequencerWindowSize": 3600,
   "channelTimeout": 300,
