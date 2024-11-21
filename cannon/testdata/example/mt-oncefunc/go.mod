@@ -1,4 +1,4 @@
-module pool
+module oncefunc
 
 go 1.22
 

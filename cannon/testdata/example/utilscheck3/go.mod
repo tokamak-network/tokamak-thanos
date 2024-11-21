@@ -1,4 +1,4 @@
-module pool
+module utilscheck3
 
 go 1.22
 

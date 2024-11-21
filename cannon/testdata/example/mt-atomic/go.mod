@@ -1,4 +1,4 @@
-module pool
+module atomic
 
 go 1.22
 
