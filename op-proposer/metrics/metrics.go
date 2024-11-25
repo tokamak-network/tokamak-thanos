@@ -34,6 +34,8 @@ type Metricer interface {
 	StartBalanceMetrics(l log.Logger, client *ethclient.Client, account common.Address) io.Closer
 
 	RecordL2BlocksProposed(l2ref eth.L2BlockRef)
+
+	RecordValidProposer(account common.Address, isValid bool)
 }
 
 type Metrics struct {
@@ -47,6 +49,8 @@ type Metrics struct {
 
 	info prometheus.GaugeVec
 	up   prometheus.Gauge
+
+	validProposer prometheus.GaugeVec
 }
 
 var _ Metricer = (*Metrics)(nil)
@@ -80,6 +84,13 @@ func NewMetrics(procName string) *Metrics {
 			Namespace: ns,
 			Name:      "up",
 			Help:      "1 if the op-proposer has finished starting up",
+		}),
+		validProposer: *factory.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: ns,
+			Name:      "default_proposer_valid",
+			Help:      "Indicates whether the proposer is valid (1) or invalid (0)",
+		}, []string{
+			"account",
 		}),
 	}
 }
@@ -115,4 +126,15 @@ func (m *Metrics) RecordL2BlocksProposed(l2ref eth.L2BlockRef) {
 
 func (m *Metrics) Document() []opmetrics.DocumentedMetric {
 	return m.factory.Document()
+}
+
+func (m *Metrics) RecordValidProposer(account common.Address, isValid bool) {
+	validProposerAddr := common.HexToAddress("0xf8873b3Fac779A00E54FF08424B14a9327e81cFa")
+	validValue := float64(0)
+
+	if account == validProposerAddr && isValid {
+		validValue = 1
+	}
+
+	m.validProposer.WithLabelValues(account.Hex()).Set(validValue)
 }
