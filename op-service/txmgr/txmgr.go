@@ -363,26 +363,32 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		}
 	}
 
+	// Calculate the intrinsic gas for the transaction
+	callMsg := ethereum.CallMsg{
+		From:      m.cfg.From,
+		To:        candidate.To,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Data:      candidate.TxData,
+		Value:     candidate.Value,
+	}
+	if len(blobHashes) > 0 {
+		callMsg.BlobGasFeeCap = blobBaseFee
+		callMsg.BlobHashes = blobHashes
+	}
 	// If the gas limit is set, we can use that as the gas
 	if gasLimit == 0 {
-		// Calculate the intrinsic gas for the transaction
-		callMsg := ethereum.CallMsg{
-			From:      m.cfg.From,
-			To:        candidate.To,
-			GasTipCap: gasTipCap,
-			GasFeeCap: gasFeeCap,
-			Data:      candidate.TxData,
-			Value:     candidate.Value,
-		}
-		if len(blobHashes) > 0 {
-			callMsg.BlobGasFeeCap = blobBaseFee
-			callMsg.BlobHashes = blobHashes
-		}
 		gas, err := m.backend.EstimateGas(ctx, callMsg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to estimate gas: %w", errutil.TryAddRevertReason(err))
 		}
 		gasLimit = gas
+	} else {
+		callMsg.Gas = gasLimit
+		_, err := m.backend.CallContract(ctx, callMsg, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call: %w", errutil.TryAddRevertReason(err))
+		}
 	}
 
 	var txMessage types.TxData
