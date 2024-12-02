@@ -57,11 +57,10 @@ installGo() {
     cd /root
     wget https://go.dev/dl/go1.21.13.linux-amd64.tar.gz
     tar xvzf go1.21.13.linux-amd64.tar.gz
-    cp go/bin/go /usr/bin/go
+    # cp go/bin/go /usr/bin/go
     mv go /usr/local
-    mkdir /goroot
-    echo export GOROOT=/goroot >> ~/.bashrc
-    export GOROOT=/goroot
+    export PATH=$PATH:/usr/local/go/bin
+    echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc
     echo "   Installed $(go version)"
   else
     echo "   Found $(go version)"
@@ -96,6 +95,7 @@ installFoundry() {
 }
 
 buildSource() {
+  source ~/.bashrc
   cd $projectRoot
   pnpm install
   make build
