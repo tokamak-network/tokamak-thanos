@@ -803,14 +803,30 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 	}
 
 	// Re-estimate gaslimit in case things have changed or a previous gaslimit estimate was wrong
-	gas, err := m.backend.EstimateGas(ctx, ethereum.CallMsg{
+	callMsg := ethereum.CallMsg{
 		From:      m.cfg.From,
 		To:        tx.To(),
 		GasTipCap: bumpedTip,
 		GasFeeCap: bumpedFee,
 		Data:      tx.Data(),
 		Value:     tx.Value(),
-	})
+	}
+	var bumpedBlobFee *big.Int
+	if tx.Type() == types.BlobTxType {
+		// Blob transactions have an additional blob gas price we must specify, so we must make sure it is
+		// getting bumped appropriately.
+		bumpedBlobFee = calcThresholdValue(tx.BlobGasFeeCap(), true)
+		if bumpedBlobFee.Cmp(blobBaseFee) < 0 {
+			bumpedBlobFee = blobBaseFee
+		}
+		if err := m.checkBlobFeeLimits(blobBaseFee, bumpedBlobFee); err != nil {
+			return nil, err
+		}
+
+		callMsg.BlobGasFeeCap = bumpedBlobFee
+		callMsg.BlobHashes = tx.BlobHashes()
+	}
+	gas, err := m.backend.EstimateGas(ctx, callMsg)
 	if err != nil {
 		// If this is a transaction resubmission, we sometimes see this outcome because the
 		// original tx can get included in a block just before the above call. In this case the
@@ -836,15 +852,6 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 
 	var newTx *types.Transaction
 	if tx.Type() == types.BlobTxType {
-		// Blob transactions have an additional blob gas price we must specify, so we must make sure it is
-		// getting bumped appropriately.
-		bumpedBlobFee := calcThresholdValue(tx.BlobGasFeeCap(), true)
-		if bumpedBlobFee.Cmp(blobBaseFee) < 0 {
-			bumpedBlobFee = blobBaseFee
-		}
-		if err := m.checkBlobFeeLimits(blobBaseFee, bumpedBlobFee); err != nil {
-			return nil, err
-		}
 		message := &types.BlobTx{
 			Nonce:      tx.Nonce(),
 			To:         *tx.To(),
