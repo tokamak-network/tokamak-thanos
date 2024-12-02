@@ -606,7 +606,7 @@ func (m *SimpleTxManager) sendTx(ctx context.Context, tx *types.Transaction) (*t
 func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, sendState *SendState) (*types.Transaction, bool) {
 	l := m.txLogger(tx, true)
 
-	l.Info("Publishing transaction", "tx", tx.Hash())
+	l.Info("Publishing transaction")
 
 	for {
 		if sendState.bumpFees {
