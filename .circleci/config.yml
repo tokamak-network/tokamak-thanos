@@ -47,6 +47,9 @@ parameters:
   stale_check_dispatch:
     type: boolean
     default: false
+  contracts_coverage_dispatch:
+    type: boolean
+    default: false
 
 orbs:
   go: circleci/go@1.8.0
@@ -290,10 +293,14 @@ jobs:
     machine: true
     resource_class: ethereum-optimism/latitude-1
     parameters:
-      skip_pattern:
-        description: Glob pattern of tests to skip
+      build_args:
+        description: Forge build arguments
         type: string
         default: ""
+      profile:
+        description: Profile to use for building
+        type: string
+        default: ci
     steps:
       - checkout
       - install-contracts-dependencies
@@ -306,9 +313,9 @@ jobs:
           working_directory: packages/contracts-bedrock
       - run:
           name: Build contracts
-          command: forge build --deny-warnings --skip <<parameters.skip_pattern>>
+          command: forge build <<parameters.build_args>>
           environment:
-            FOUNDRY_PROFILE: ci
+            FOUNDRY_PROFILE: <<parameters.profile>>
           working_directory: packages/contracts-bedrock
       - run:
           name: Generate allocs
@@ -608,11 +615,11 @@ jobs:
           command: just coverage-lcov
           no_output_timeout: 18m
           environment:
-            FOUNDRY_PROFILE: ci
+            FOUNDRY_PROFILE: cicoverage
           working_directory: packages/contracts-bedrock
       - codecov/upload:
           disable_search: true
-          files: ./packages/contracts-bedrock/coverage/lcov.info
+          files: ./packages/contracts-bedrock/lcov.info
           flags: contracts-bedrock-tests
 
   contracts-bedrock-tests:
@@ -1301,8 +1308,12 @@ workflows:
     jobs:
       - go-mod-download
       - contracts-bedrock-build:
+          name: contracts-bedrock-build
           # Build with just core + script contracts.
-          skip_pattern: test
+          build_args: --deny-warnings --skip test
+      - contracts-bedrock-build:
+          name: contracts-bedrock-build-coverage
+          profile: cicoverage
       - check-kontrol-build:
           requires:
             - contracts-bedrock-build
@@ -1323,10 +1334,6 @@ workflows:
           test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 1h
           test_profile: ciheavy
-      - contracts-bedrock-coverage:
-          filters:
-            branches:
-              ignore: /.*/
       - contracts-bedrock-checks:
           requires:
             - contracts-bedrock-build
@@ -1599,7 +1606,7 @@ workflows:
           context:
             - slack
       - contracts-bedrock-build:
-          skip_pattern: test
+          build_args: --deny-warnings --skip test
           context:
             - slack
       - go-tests:
@@ -1637,7 +1644,7 @@ workflows:
         - equal: [true, << pipeline.parameters.cannon_full_test_dispatch >>]
     jobs:
       - contracts-bedrock-build:
-          skip_pattern: test
+          build_args: --deny-warnings --skip test
       - cannon-go-lint-and-test:
           name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
           requires:
@@ -1647,6 +1654,17 @@ workflows:
           matrix:
             parameters:
               mips_word_size: [32, 64]
+
+  scheduled-forge-coverage:
+    when:
+      or:
+        - equal: [build_four_hours, <<pipeline.schedule.name>>]
+        - equal: [true, << pipeline.parameters.contracts_coverage_dispatch >>]
+    jobs:
+      - contracts-bedrock-build:
+          name: contracts-bedrock-build-coverage
+          profile: cicoverage
+      - contracts-bedrock-coverage
 
   scheduled-docker-publish:
     when:
