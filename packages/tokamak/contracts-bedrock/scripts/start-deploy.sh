@@ -16,6 +16,7 @@ handleScriptInput() {
         configFilePath=$OPTARG
         ;;
       e)
+        echo "Has env file"
         environement=$OPTARG
         ;;
       :)
@@ -29,12 +30,13 @@ handleScriptInput() {
     esac
   done
 
+  export DEPLOY_CONFIG_PATH=$configFilePath
+  source $environement
+
   echo "Project root: $projectRoot"
   echo "Current dir: $currentPWD"
   echo "Config file path: $configFilePath"
   echo "Env file: $environment"
-
-  source $environement
 
   checkScriptInput
   checkAccount
@@ -48,8 +50,6 @@ updateSystem() {
 
 checkScriptInput() {
   echo "Checking input"
-  echo $A
-  echo $B
 }
 
 checkAccount() {
@@ -64,7 +64,8 @@ installDependency() {
 
 installGo() {
   echo "Install Go"
-  if ! go version &> /dev/null; then
+  export PATH=$PATH:/usr/local/go/bin
+  if !go version &> /dev/null; then
     echo "Installing Go..."
     cd /root
     wget https://go.dev/dl/go1.21.13.linux-amd64.tar.gz
@@ -106,6 +107,7 @@ installFoundry() {
 }
 
 buildSource() {
+  echo "Start buiding source code"
   source ~/.bashrc
   cd $projectRoot
   pnpm install
@@ -115,11 +117,14 @@ buildSource() {
 }
 
 deployContracts() {
+  echo "Start deploying smart contracts"
+  echo $DEPLOY_CONFIG_PATH
+  cd $projectRoot/packages/tokamak/contracts-bedrock
   forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy
 }
 
-updateSystem
+# updateSystem
 handleScriptInput "$@"
-installDependency
-buildSource
+# installDependency
+# buildSource
 deployContracts
