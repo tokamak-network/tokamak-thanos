@@ -6,6 +6,10 @@ variable "REPOSITORY" {
   default = "oplabs-tools-artifacts/images"
 }
 
+variable "KONA_VERSION" {
+  default = "kona-client-v0.1.0-beta.4"
+}
+
 variable "GIT_COMMIT" {
   default = "dev"
 }
@@ -119,6 +123,7 @@ target "op-challenger" {
     GIT_COMMIT = "${GIT_COMMIT}"
     GIT_DATE = "${GIT_DATE}"
     OP_CHALLENGER_VERSION = "${OP_CHALLENGER_VERSION}"
+    KONA_VERSION="${KONA_VERSION}"
   }
   target = "op-challenger-target"
   platforms = split(",", PLATFORMS)
@@ -207,7 +212,7 @@ target "proofs-tools" {
   context = "."
   args = {
     CHALLENGER_VERSION="b46bffed42db3442d7484f089278d59f51503049"
-    KONA_VERSION="kona-client-v0.1.0-beta.4"
+    KONA_VERSION="${KONA_VERSION}"
   }
   target="proofs-tools"
   platforms = split(",", PLATFORMS)
