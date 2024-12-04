@@ -1,1 +1,1 @@
-docker build -t thanos-ubuntu .
+docker build --no-cache -t thanos-ubuntu .

@@ -3,41 +3,53 @@
 configFilePath=
 environement=
 
+OPTSTRING=":c:e:"
+
 projectRoot=`pwd | sed 's%\(.*/tokamak-thanos\)/.*%\1%'`
 currentPWD=$(pwd)
 
 handleScriptInput() {
   echo "Check script input"
-  while getopts "c:e" opt;
-  do
+  while getopts ${OPTSTRING} opt; do
     case ${opt} in
       c)
         configFilePath=$OPTARG
         ;;
       e)
-        blockNum=$OPTARG
+        environement=$OPTARG
+        ;;
+      :)
+        echo "Error: Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+      *)
+        echo "Error: Invalid option -$OPTARG" >&2
+        exit 1
         ;;
     esac
   done
-
-  checkScriptInput
-  checkAccount
 
   echo "Project root: $projectRoot"
   echo "Current dir: $currentPWD"
   echo "Config file path: $configFilePath"
   echo "Env file: $environment"
+
+  source $environement
+
+  checkScriptInput
+  checkAccount
 }
 
 updateSystem() {
-  source $environement
   echo "Update system"
   apt update
-  DEBIAN_FRONTEND=noninteractive apt install git curl wget cmake jq -y
+  DEBIAN_FRONTEND=noninteractive apt install git curl wget cmake jq build-essential -y
 }
 
 checkScriptInput() {
   echo "Checking input"
+  echo $A
+  echo $B
 }
 
 checkAccount() {
@@ -98,10 +110,16 @@ buildSource() {
   cd $projectRoot
   pnpm install
   make submodules
+  make op-node
   cd $projectRoot/packages/tokamak/contracts-bedrock && pnpm build
 }
 
+deployContracts() {
+  forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy
+}
+
 updateSystem
-handleScriptInput
+handleScriptInput "$@"
 installDependency
 buildSource
+deployContracts
