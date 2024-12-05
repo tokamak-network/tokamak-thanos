@@ -102,7 +102,7 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
      *                     execute any code on L2 and is only emitted as extra data for the
      *                     convenience of off-chain tooling.
      */
-    function depositERC20(
+    function bridgeERC20(
         address _l1Token,
         address _l2Token,
         uint256 _amount,
@@ -129,7 +129,7 @@ contract L1UsdcBridge is L1UsdcBridgeStorage {
      *                     execute any code on L2 and is only emitted as extra data for the
      *                     convenience of off-chain tooling.
      */
-    function depositERC20To(
+    function bridgeERC20To(
         address _l1Token,
         address _l2Token,
         address _to,
