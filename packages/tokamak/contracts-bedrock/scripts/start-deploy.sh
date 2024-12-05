@@ -156,8 +156,6 @@ generateL2Genesis() {
 }
 
 main() {
-  handleScriptInput "$@"
-
   case $1 in
     install)
       echo "Install softwares..."
@@ -167,15 +165,21 @@ main() {
       ;;
     deploy)
       echo "Deploying smart contracts..."
+      shift
+      handleScriptInput "$@"
       deployContracts
       ;;
     generate)
       echo "Generate rollup and genesis config for L2..."
+      shift
+      handleScriptInput "$@"
       generateL2Genesis
       ;;
     all)
       echo "Setup from scratch"
       updateSystem
+      shift
+      handleScriptInput "$@"
       installDependency
       buildSource
       deployContracts
