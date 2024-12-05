@@ -66,5 +66,6 @@
   "nativeTokenName": "Tokamak Network Token",
   "nativeTokenSymbol": "TON",
   "nativeTokenAddress": "0xC7844340d14deAedfDD2f2dD9360c336661b2F0A",
-  "l1UsdcAddr": "0x2910E325cf29dd912E3476B61ef12F49cb931096"
+  "l1UsdcAddr": "0x2910E325cf29dd912E3476B61ef12F49cb931096",
+  "devnet": true
 }
