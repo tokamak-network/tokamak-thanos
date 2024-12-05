@@ -70,7 +70,7 @@ installDependency() {
 installGo() {
   echo "Install Go"
   export PATH=$PATH:/usr/local/go/bin
-  if !go version &> /dev/null; then
+  if ! go version &> /dev/null; then
     echo "Installing Go..."
     cd /root
     wget https://go.dev/dl/go1.21.13.linux-amd64.tar.gz
