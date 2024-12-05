@@ -353,6 +353,9 @@ type DeployConfig struct {
 
 	// UseInterop is a flag that indicates if the system is using interop
 	UseInterop bool `json:"useInterop,omitempty"`
+
+	// Devnet is a flag that indicates if the network is devnet on your local
+	Devnet bool `json:"devnet,omitempty"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
