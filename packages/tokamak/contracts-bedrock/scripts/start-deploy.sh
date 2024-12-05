@@ -2,6 +2,8 @@
 
 configFilePath=
 environement=
+chainID=
+deployResultFile=
 
 OPTSTRING=":c:e:"
 
@@ -32,6 +34,9 @@ handleScriptInput() {
 
   export DEPLOY_CONFIG_PATH=$configFilePath
   source $environement
+
+  export chainID=$(jq '.l1ChainID' $configFilePath)
+  echo "ChainID: $chainID"
 
   echo "Project root: $projectRoot"
   echo "Current dir: $currentPWD"
@@ -123,8 +128,32 @@ deployContracts() {
   forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy
 }
 
-# updateSystem
+generateL2Genesis() {
+  echo "Generate L2 genesis"
+  deployResultFile=$projectRoot/packages/tokamak/contracts-bedrock/deployments/$(printf "%d-deploy.json" "$chainID")
+  cat $deployResultFile
+
+  export outdir=$projectRoot/build
+
+  if [ ! -d "$outdir" ]; then
+    mkdir -p "$outdir"
+    echo "Directory '$outdir' created."
+  else
+    echo "Directory '$outdir' already exists."
+  fi
+
+  cd $projectRoot/op-node
+  ./bin/op-node genesis l2 \
+  --deploy-config $DEPLOY_CONFIG_PATH \
+  --l1-deployments $deployResultFile \
+  --outfile.l2 $outdir/genesis.json \
+  --outfile.rollup $outdir/rollup.json \
+  --l1-rpc $L1_RPC_URL
+}
+
+updateSystem
 handleScriptInput "$@"
-# installDependency
-# buildSource
+installDependency
+buildSource
 deployContracts
+generateL2Genesis
