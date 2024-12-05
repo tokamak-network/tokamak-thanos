@@ -116,7 +116,7 @@ func TestUsdcDepositsAndWithdrawal(t *testing.T) {
 
 	// Deposit FiatToken
 	tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return l1UsdcBridge.DepositERC20(opts, FiatTokenProxyAddr, predeploys.FiatTokenV2_2Addr, big.NewInt(depositedAmount), 200000, []byte{})
+		return l1UsdcBridge.BridgeERC20(opts, FiatTokenProxyAddr, predeploys.FiatTokenV2_2Addr, big.NewInt(depositedAmount), 200000, []byte{})
 	})
 	require.NoError(t, err)
 
