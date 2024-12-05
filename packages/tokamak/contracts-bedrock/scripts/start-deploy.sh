@@ -43,8 +43,8 @@ handleScriptInput() {
   echo "Config file path: $configFilePath"
   echo "Env file: $environment"
 
-  checkScriptInput
-  checkAccount
+  # checkScriptInput
+  # checkAccount
 }
 
 updateSystem() {
@@ -53,13 +53,13 @@ updateSystem() {
   DEBIAN_FRONTEND=noninteractive apt install git curl wget cmake jq build-essential -y
 }
 
-checkScriptInput() {
-  echo "Checking input"
-}
+# checkScriptInput() {
+#   echo "Checking input"
+# }
 
-checkAccount() {
-  echo "Verifying accounts"
-}
+# checkAccount() {
+#   echo "Verifying accounts"
+# }
 
 installDependency() {
   installGo
@@ -141,6 +141,7 @@ generateL2Genesis() {
     echo "Directory '$outdir' created."
   else
     echo "Directory '$outdir' already exists."
+    rm -rf $outdir/*
   fi
 
   cd $projectRoot/op-node
@@ -153,9 +154,40 @@ generateL2Genesis() {
   --l1-rpc $L1_RPC_URL
 }
 
-updateSystem
-handleScriptInput "$@"
-installDependency
-buildSource
-deployContracts
-generateL2Genesis
+main() {
+  handleScriptInput "$@"
+
+  case $1 in
+    install)
+      echo "Install softwares..."
+      updateSystem
+      installDependency
+      buildSource
+      ;;
+    deploy)
+      echo "Deploying smart contracts..."
+      deployContracts
+      ;;
+    generate)
+      echo "Generate rollup and genesis config for L2..."
+      generateL2Genesis
+      ;;
+    all)
+      echo "Setup from scratch"
+      updateSystem
+      installDependency
+      buildSource
+      deployContracts
+      generateL2Genesis
+      ;;
+    *)
+      echo "Usage: $0 {install|deploy|generate|all}"
+      exit 1
+      ;;
+esac
+}
+
+main "$@"
+exit 0
+
+
