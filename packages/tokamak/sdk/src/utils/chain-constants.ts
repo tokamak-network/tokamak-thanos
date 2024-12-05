@@ -370,18 +370,20 @@ export const CONTRACT_ADDRESSES: {
   // internal testnet
   [L2ChainID.THANOS_SEPOLIA]: {
     l1: {
-      AddressManager: '0xd9Ada4AE23bFA230351D1D14a561525D77Eb15Eb' as const,
+      AddressManager: '0xca074de2a95EE6ea37003585E8679f8f215Ea04c' as const,
       L1CrossDomainMessenger:
-        '0x9D28a920206281B4a56AEf8bC1c515Cc4C656d3f' as const,
-      L1StandardBridge: '0x385076516318551d566CAaE5EC59c23fe09cbF65' as const,
+        '0xd054Bc768aAC07Dd0BaA2856a2fFb68F495E4CC2' as const,
+      L1StandardBridge: '0x757EC5b8F81eDdfC31F305F3325Ac6Abf4A63a5D' as const,
       StateCommitmentChain:
         '0x0000000000000000000000000000000000000000' as const,
       CanonicalTransactionChain:
         '0x0000000000000000000000000000000000000000' as const,
       BondManager: '0x0000000000000000000000000000000000000000' as const,
-      OptimismPortal: '0x7b6db1316e22167b56211cDDC33431098BaBC3c2' as const,
-      L2OutputOracle: '0xaB8A5Ac696675D65D09E24C2876Aa8a7e1Af5640' as const,
-      L1UsdcBridge: '0xE390EE020Afb7F8e4A2Dc44a71088db2acd72CF3' as const,
+      OptimismPortal: '0x2fbD30Fcd1c4573b0288E706Be56B5c0d2DfcAF6' as const,
+      OptimismPortal2: '0x2fbD30Fcd1c4573b0288E706Be56B5c0d2DfcAF6' as const,
+      L2OutputOracle: '0xC0885eEc313e31a917DFd5d6Bf33565826B93A3F' as const,
+      L1UsdcBridge: '0x7dD2196722FBe83197820BF30e1c152e4FBa0a6A' as const,
+      DisputeGameFactory: '0x524c885A976c13497900A04257605cd231Ab0026' as const,
     },
     // TODO: change predeploys in L2
     l2: DEFAULT_L2_CONTRACT_ADDRESSES,
