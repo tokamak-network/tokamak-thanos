@@ -127,7 +127,7 @@ deployContracts() {
   echo $DEPLOY_CONFIG_PATH
   export IMPL_SALT=$(openssl rand -hex 32)
   cd $projectRoot/packages/tokamak/contracts-bedrock
-  forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy
+  forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
 }
 
 generateL2Genesis() {
@@ -153,6 +153,9 @@ generateL2Genesis() {
   --outfile.l2 $outdir/genesis.json \
   --outfile.rollup $outdir/rollup.json \
   --l1-rpc $L1_RPC_URL
+
+  echo "Genesis file: $outdir/genesis.json"
+  echo "Rollup file: $outdir/rollup.json"
 }
 
 main() {
