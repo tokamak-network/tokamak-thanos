@@ -117,6 +117,7 @@ buildSource() {
   cd $projectRoot
   pnpm install
   make submodules
+  make cannon-prestate
   make op-node
   cd $projectRoot/packages/tokamak/contracts-bedrock && pnpm build
 }
@@ -143,6 +144,7 @@ generateL2Genesis() {
   fi
 
   cd $projectRoot/op-node
+
   ./bin/op-node genesis l2 \
   --deploy-config $DEPLOY_CONFIG_PATH \
   --l1-deployments $deployResultFile \
