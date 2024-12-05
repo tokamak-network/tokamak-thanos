@@ -345,7 +345,9 @@ contract Deploy is Deployer {
         mustGetAddress("AddressManager");
         mustGetAddress("ProxyAdmin");
 
-        deployL2NativeToken();
+        if (cfg.devnet()) {
+            deployL2NativeToken();
+        }
         deployProxies();
         deployImplementations();
         deployL1UsdcBridgeProxy();
@@ -797,24 +799,15 @@ contract Deploy is Deployer {
         if (isForkPublicNetwork) {
             address addr_ = vm.envAddress("L2_NATIVE_TOKEN");
             return addr_;
-        } else {
-            L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
-            address addr_ = address(token);
-            return addr_;
         }
+        return cfg.nativeTokenAddress();
     }
 
     /// @notice Deploy the Safe
     function deployL2NativeToken() public broadcast {
         string memory path = Config.deployConfigPath();
-        address setupAddr_ = vm.envOr("L2_NATIVE_TOKEN", address(0));
-        // If L2NativeToken is already existing on the network, we don't deploy the new contract.
-        if (setupAddr_ != address(0)) {
-            cfg.setNativeTokenAddress(setupAddr_, path);
-            console.log("Native token deployed at", setupAddr_);
-            return;
-        }
-        address addr_ = getL2NativeToken();
+        L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
+        address addr_ = address(token);
         cfg.setNativeTokenAddress(addr_, path);
         console.log("Native token deployed at", addr_);
         save("L2NativeToken", addr_);
@@ -1128,7 +1121,6 @@ contract Deploy is Deployer {
             customGasTokenAddress = cfg.customGasTokenAddress();
         }
 
-        // deployL2NativeToken();
         address l2NativeTokenAddress = cfg.nativeTokenAddress();
         if (l2NativeTokenAddress == address(0)) {
             L2NativeToken token = new L2NativeToken{ salt: _implSalt() }();
