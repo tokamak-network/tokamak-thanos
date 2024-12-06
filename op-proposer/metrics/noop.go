@@ -29,4 +29,4 @@ func (*noopMetrics) StartBalanceMetrics(log.Logger, *ethclient.Client, common.Ad
 	return nil
 }
 
-func (*noopMetrics) RecordValidProposer(account common.Address, isValid bool) {}
+func (*noopMetrics) RecordThanosProposer(account common.Address, isThanos bool) {}
