@@ -245,8 +245,8 @@ func (l *BatchSubmitter) StopBatchSubmitting(ctx context.Context) error {
 // loadBlocksIntoState loads the blocks between start and end (inclusive).
 // If there is a reorg, it will return an error.
 func (l *BatchSubmitter) loadBlocksIntoState(ctx context.Context, start, end uint64) error {
-	if end <= start {
-		return fmt.Errorf("start number is >= end number %d,%d", start, end)
+	if end < start {
+		return fmt.Errorf("start number is > end number %d,%d", start, end)
 	}
 	var latestBlock *types.Block
 	// Add all blocks to "state"
