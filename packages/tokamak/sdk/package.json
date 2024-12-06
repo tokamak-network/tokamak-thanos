@@ -1,6 +1,6 @@
 {
   "name": "@tokamak-network/thanos-sdk",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Tools for working with Thanos",
   "main": "dist/index",
   "types": "dist/index",
