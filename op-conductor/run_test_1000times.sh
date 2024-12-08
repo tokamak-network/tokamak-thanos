@@ -2,10 +2,11 @@
 
 set -e
 
-for i in {1..100}; do
+for i in {1..1000}; do
   echo "======================="
   echo "Running iteration $i"
-  if ! gotestsum -- -run 'TestControlLoop' ./... --count=1 --timeout=5s -race; then
+
+  if ! go test -v ./conductor/... -race -count=1; then
     echo "Test failed"
     exit 1
   fi
