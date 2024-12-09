@@ -290,7 +290,7 @@ such that a chain which does not take on new interop dependencies, can continue 
 
 I.e. safety must be guaranteed at all times,
 but a minimal level of liveness can be maintained by holding off on cross-chain message acceptance
-while allowing regular single-chain functionaltiy to proceed.
+while allowing regular single-chain functionality to proceed.
 
 ## Testing
 
