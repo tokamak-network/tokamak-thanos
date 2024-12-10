@@ -123,6 +123,33 @@ contract L2UsdcBridge is L2UsdcBridgeStorage {
         _initiateWithdrawal(_l2Token, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
+
+    /**
+     * @custom:legacy
+     * @notice Initiates a withdrawal from L2 to L1 to a target account on L1.
+     *
+     * @param _l2Token     Address of the L2 token to withdraw.
+     * @param _to          Recipient account on L1.
+     * @param _amount      Amount of the L2 token to withdraw.
+     * @param _minGasLimit Minimum gas limit to use for the transaction.
+     * @param _extraData   Extra data attached to the withdrawal.
+     */
+    function withdrawTo(
+        address _l2Token,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        external
+        payable
+        virtual
+        onlyEOA
+    {
+        _initiateWithdrawal(_l2Token, msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+
     /**
      * @custom:legacy
      * @notice Finalizes a deposit from L1 to L2.
