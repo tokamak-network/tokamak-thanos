@@ -328,7 +328,7 @@ func (s *channelManager) ensureChannelWithSpace(l1Head eth.BlockID) error {
 		"max_frame_size", cfg.MaxFrameSize,
 		"use_blobs", cfg.UseBlobs,
 	)
-	s.metr.RecordChannelOpened(pc.ID(), s.blocks.Len())
+	s.metr.RecordChannelOpened(pc.ID(), s.pendingBlocks())
 
 	return nil
 }
@@ -380,7 +380,7 @@ func (s *channelManager) processBlocks() error {
 
 	s.metr.RecordL2BlocksAdded(latestL2ref,
 		blocksAdded,
-		s.blocks.Len(),
+		s.pendingBlocks(),
 		s.currentChannel.InputBytes(),
 		s.currentChannel.ReadyBytes())
 	s.log.Debug("Added blocks to channel",
