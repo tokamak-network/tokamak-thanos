@@ -150,12 +150,12 @@ generateL2Genesis() {
   ./bin/op-node genesis l2 \
   --deploy-config $DEPLOY_CONFIG_PATH \
   --l1-deployments $deployResultFile \
-  --outfile.l2 $outdir/genesis.json \
-  --outfile.rollup $outdir/rollup.json \
+  --outfile.l2 $outdir/genesis-$chainID.json \
+  --outfile.rollup $outdir/rollup-$chainID.json \
   --l1-rpc $L1_RPC_URL
 
-  echo "Genesis file: $outdir/genesis.json"
-  echo "Rollup file: $outdir/rollup.json"
+  echo "Genesis file: $outdir/genesis-$chainID.json"
+  echo "Rollup file: $outdir/rollup-$chainID.json"
 }
 
 main() {
@@ -164,6 +164,10 @@ main() {
       echo "Install softwares..."
       updateSystem
       installDependency
+      buildSource
+      ;;
+    build)
+      echo "Build..."
       buildSource
       ;;
     deploy)
