@@ -148,7 +148,7 @@ generateL2Genesis() {
     echo "Directory '$outdir' already exists."
     rm -rf $outdir/*
   fi
-
+  cd $projectRoot
   $projectRoot/op-node/bin/op-node genesis l2 \
   --deploy-config $DEPLOY_CONFIG_PATH \
   --l1-deployments $deployResultFile \
@@ -158,6 +158,7 @@ generateL2Genesis() {
 
   echo "Genesis file: $outdir/genesis-$chainID.json"
   echo "Rollup file: $outdir/rollup-$chainID.json"
+  cd $currentPWD
 }
 
 main() {
