@@ -28,3 +28,5 @@ func (*noopMetrics) RecordL2BlocksProposed(l2ref eth.L2BlockRef) {}
 func (*noopMetrics) StartBalanceMetrics(log.Logger, *ethclient.Client, common.Address) io.Closer {
 	return nil
 }
+
+func (*noopMetrics) RecordThanosProposer(account common.Address, isThanos bool) {}
