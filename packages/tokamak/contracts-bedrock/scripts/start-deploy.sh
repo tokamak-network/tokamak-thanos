@@ -79,6 +79,7 @@ installGo() {
     export PATH=$PATH:/usr/local/go/bin
     echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc
     echo "   Installed $(go version)"
+    cd $currentPWD
   else
     echo "   Found $(go version)"
   fi
@@ -121,6 +122,7 @@ buildSource() {
   make cannon-prestate
   make op-node
   cd $projectRoot/packages/tokamak/contracts-bedrock && pnpm build
+  cd $currentPWD
 }
 
 deployContracts() {
@@ -129,6 +131,7 @@ deployContracts() {
   export IMPL_SALT=$(openssl rand -hex 32)
   cd $projectRoot/packages/tokamak/contracts-bedrock
   forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
+  cd $currentPWD
 }
 
 generateL2Genesis() {
@@ -146,9 +149,7 @@ generateL2Genesis() {
     rm -rf $outdir/*
   fi
 
-  cd $projectRoot/op-node
-
-  ./bin/op-node genesis l2 \
+  $projectRoot/op-node/bin/op-node genesis l2 \
   --deploy-config $DEPLOY_CONFIG_PATH \
   --l1-deployments $deployResultFile \
   --outfile.l2 $outdir/genesis-$chainID.json \
