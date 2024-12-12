@@ -114,6 +114,7 @@ installFoundry() {
 buildSource() {
   echo "Start buiding source code"
   source ~/.bashrc
+  export PATH=$PATH:/usr/local/go/bin
   cd $projectRoot
   pnpm install
   make submodules
