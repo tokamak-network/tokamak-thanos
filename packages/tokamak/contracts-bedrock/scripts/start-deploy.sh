@@ -5,10 +5,12 @@ environement=
 chainID=
 deployResultFile=
 
+
 OPTSTRING=":c:e:"
 
 projectRoot=`pwd | sed 's%\(.*/tokamak-thanos\)/.*%\1%'`
 currentPWD=$(pwd)
+configDir=$projectRoot/packages/tomamak/contracts-bedrock/temp-deploy-config
 
 handleScriptInput() {
   echo "Check script input"
@@ -32,7 +34,14 @@ handleScriptInput() {
     esac
   done
 
-  export DEPLOY_CONFIG_PATH=$configFilePath
+  if [ ! -d "$configDir" ]; then
+    mkdir -p "$configDir"
+    echo " Temp config directory '$configDir' created."
+  fi
+
+  cp $configFilePath $configDir/config.json
+  export DEPLOY_CONFIG_PATH=${configDir}/config.json
+
   source $environement
 
   export chainID=$(jq '.l1ChainID' $configFilePath)
@@ -40,7 +49,7 @@ handleScriptInput() {
 
   echo "Project root: $projectRoot"
   echo "Current dir: $currentPWD"
-  echo "Config file path: $configFilePath"
+  echo "Config file path: $DEPLOY_CONFIG_PATH"
   echo "Env file: $environment"
 
   # checkScriptInput
