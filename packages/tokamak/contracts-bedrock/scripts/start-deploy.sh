@@ -10,7 +10,7 @@ OPTSTRING=":c:e:"
 
 projectRoot=`pwd | sed 's%\(.*/tokamak-thanos\)/.*%\1%'`
 currentPWD=$(pwd)
-configDir=$projectRoot/packages/tomamak/contracts-bedrock/temp-deploy-config
+configDir=$projectRoot/packages/tokamak/contracts-bedrock/deploy-config/tmp
 
 handleScriptInput() {
   echo "Check script input"
