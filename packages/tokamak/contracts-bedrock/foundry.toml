@@ -42,11 +42,12 @@ fs_permissions = [
   { access='read-write', path='./snapshots/' },
   { access='read-write', path='./deployments/' },
   { access='read-write', path='./deploy-config/' },
+  { access='read-write', path='./temp-deploy-config/' },
+  { access='read-write', path='./.testdata/' },
   { access='read', path='./periphery-deploy-config/' },
   { access='read', path='./broadcast/' },
   { access='read', path = './forge-artifacts/' },
   { access='write', path='./semver-lock.json' },
-  { access='read-write', path='./.testdata/' },
   { access='read', path='./kout-deployment' }
 ]
 libs = ["node_modules", "lib"]
