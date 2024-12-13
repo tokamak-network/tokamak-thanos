@@ -205,7 +205,7 @@ main() {
       generateL2Genesis
       ;;
     *)
-      echo "Usage: $0 {install|deploy|generate|all}"
+      echo "Usage: $0 {install|build|deploy|generate|all}"
       exit 1
       ;;
 esac
