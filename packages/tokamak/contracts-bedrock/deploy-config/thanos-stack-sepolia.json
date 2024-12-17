@@ -52,7 +52,7 @@
   "faultGameAbsolutePrestate": "0x03ab262ce124af0d5d328e09bf886a2b272fe960138115ad8b94fdc3034e3155",
   "faultGameMaxDepth": 50,
   "faultGameClockExtension": 0,
-  "faultGameMaxClockDuration": 1200,
+  "faultGameMaxClockDuration": 120,
   "faultGameGenesisBlock": 0,
   "faultGameGenesisOutputRoot": "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF",
   "faultGameSplitDepth": 14,
