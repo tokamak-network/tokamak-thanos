@@ -139,6 +139,7 @@ deployContracts() {
   echo $DEPLOY_CONFIG_PATH
   export IMPL_SALT=$(openssl rand -hex 32)
   cd $projectRoot/packages/tokamak/contracts-bedrock
+  unset DEPLOYMENT_OUTFILE
   forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
   cd $currentPWD
 }
