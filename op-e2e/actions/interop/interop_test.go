@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-program/client/claim"
 	"github.com/ethereum-optimism/optimism/op-program/client/interop/types"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/actions/helpers"
@@ -239,8 +239,8 @@ func TestInteropFaultProofs(gt *testing.T) {
 	chainBClient := actors.ChainB.Sequencer.RollupClient()
 
 	ctx := context.Background()
-	startTimestamp := actors.ChainA.RollupCfg.Genesis.L2Time
-	endTimestamp := startTimestamp + actors.ChainA.RollupCfg.BlockTime
+	endTimestamp := actors.ChainA.RollupCfg.Genesis.L2Time + actors.ChainA.RollupCfg.BlockTime
+	startTimestamp := endTimestamp - 1
 	source, err := NewSuperRootSource(ctx, chainAClient, chainBClient)
 	require.NoError(t, err)
 	start, err := source.CreateSuperRoot(ctx, startTimestamp)
@@ -249,19 +249,19 @@ func TestInteropFaultProofs(gt *testing.T) {
 	require.NoError(t, err)
 
 	serializeIntermediateRoot := func(root *types.TransitionState) []byte {
-		data, err := rlp.EncodeToBytes(root)
+		data, err := root.Marshal()
 		require.NoError(t, err)
 		return data
 	}
 
-	num, err := actors.ChainA.RollupCfg.TargetBlockNumber(endTimestamp)
+	endBlockNumA, err := actors.ChainA.RollupCfg.TargetBlockNumber(endTimestamp)
 	require.NoError(t, err)
-	chain1End, err := chainAClient.OutputAtBlock(ctx, num)
+	chain1End, err := chainAClient.OutputAtBlock(ctx, endBlockNumA)
 	require.NoError(t, err)
 
-	num, err = actors.ChainB.RollupCfg.TargetBlockNumber(endTimestamp)
+	endBlockNumB, err := actors.ChainB.RollupCfg.TargetBlockNumber(endTimestamp)
 	require.NoError(t, err)
-	chain2End, err := chainBClient.OutputAtBlock(ctx, num)
+	chain2End, err := chainBClient.OutputAtBlock(ctx, endBlockNumB)
 	require.NoError(t, err)
 
 	step1Expected := serializeIntermediateRoot(&types.TransitionState{
@@ -297,7 +297,6 @@ func TestInteropFaultProofs(gt *testing.T) {
 			agreedClaim:    start.Marshal(),
 			disputedClaim:  start.Marshal(),
 			expectValid:    false,
-			skip:           true,
 		},
 		{
 			name:           "ClaimDirectToNextTimestamp",
@@ -305,7 +304,6 @@ func TestInteropFaultProofs(gt *testing.T) {
 			agreedClaim:    start.Marshal(),
 			disputedClaim:  end.Marshal(),
 			expectValid:    false,
-			skip:           true,
 		},
 		{
 			name:           "FirstChainOptimisticBlock",
@@ -313,7 +311,6 @@ func TestInteropFaultProofs(gt *testing.T) {
 			agreedClaim:    start.Marshal(),
 			disputedClaim:  step1Expected,
 			expectValid:    true,
-			skip:           true,
 		},
 		{
 			name:           "SecondChainOptimisticBlock",
@@ -364,6 +361,9 @@ func TestInteropFaultProofs(gt *testing.T) {
 				chain1End.BlockRef.Number,
 				checkResult,
 				fpHelpers.WithInteropEnabled(),
+				fpHelpers.WithAgreedPrestate(test.agreedClaim),
+				fpHelpers.WithL2Claim(crypto.Keccak256Hash(test.disputedClaim)),
+				fpHelpers.WithL2BlockNumber(endBlockNumA),
 			)
 		})
 	}

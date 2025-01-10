@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-program/client/boot"
 	"github.com/ethereum-optimism/optimism/op-program/host/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 )
@@ -174,7 +175,45 @@ func TestCustomL2ChainID(t *testing.T) {
 		cfg := NewConfig(validRollupConfig, customChainConfig, validL1Head, validL2Head, validL2OutputRoot, validL2Claim, validL2ClaimBlockNum)
 		require.Equal(t, cfg.L2ChainID, boot.CustomChainIDIndicator)
 	})
+}
 
+func TestAgreedPrestate(t *testing.T) {
+	t.Run("requiredWithInterop-nil", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.InteropEnabled = true
+		cfg.AgreedPrestate = nil
+		err := cfg.Check()
+		require.ErrorIs(t, err, ErrMissingAgreedPrestate)
+	})
+	t.Run("requiredWithInterop-empty", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.InteropEnabled = true
+		cfg.AgreedPrestate = []byte{}
+		err := cfg.Check()
+		require.ErrorIs(t, err, ErrMissingAgreedPrestate)
+	})
+
+	t.Run("notRequiredWithoutInterop", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.AgreedPrestate = nil
+		require.NoError(t, cfg.Check())
+	})
+
+	t.Run("valid", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.InteropEnabled = true
+		cfg.AgreedPrestate = []byte{1}
+		cfg.L2OutputRoot = crypto.Keccak256Hash(cfg.AgreedPrestate)
+		require.NoError(t, cfg.Check())
+	})
+
+	t.Run("mustMatchL2OutputRoot", func(t *testing.T) {
+		cfg := validConfig()
+		cfg.InteropEnabled = true
+		cfg.AgreedPrestate = []byte{1}
+		cfg.L2OutputRoot = common.Hash{0xaa}
+		require.ErrorIs(t, cfg.Check(), ErrInvalidAgreedPrestate)
+	})
 }
 
 func TestDBFormat(t *testing.T) {
