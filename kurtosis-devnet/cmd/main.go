@@ -96,13 +96,8 @@ func (m *Main) localContractArtifactsOption(dir string) tmpl.TemplateContextOpti
 
 	return tmpl.WithFunction("localContractArtifacts", func(layer string) (string, error) {
 		bundlePath := contractsBundlePath(layer)
-		// we're in a temp dir, so we can skip the build if the file already
-		// exists: it'll be the same file! In particular, since we're ignoring
-		// layer for now, skip the 2nd build.
-		if _, err := os.Stat(bundlePath); err != nil {
-			if err := contractBuilder.Build(layer, bundlePath); err != nil {
-				return "", err
-			}
+		if err := contractBuilder.Build(layer, bundlePath); err != nil {
+			return "", err
 		}
 
 		log.Printf("%s: contract artifacts available at: %s\n", layer, contractsURL)
