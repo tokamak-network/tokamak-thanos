@@ -26,6 +26,10 @@ var (
 	InvalidTransitionHash = crypto.Keccak256Hash(InvalidTransition)
 )
 
+const (
+	ConsolidateStep = 1023
+)
+
 type taskExecutor interface {
 	RunDerivation(
 		logger log.Logger,
@@ -82,7 +86,22 @@ func stateTransition(logger log.Logger, bootInfo *boot.BootInfoInterop, l1Preima
 			return common.Hash{}, err
 		}
 		expectedPendingProgress = append(expectedPendingProgress, block)
+	} else if transitionState.Step == ConsolidateStep {
+		// sanity check
+		if len(transitionState.PendingProgress) >= ConsolidateStep {
+			return common.Hash{}, fmt.Errorf("pending progress length does not match the expected step")
+		}
+		deps, err := newConsolidateCheckDeps(superRoot.Chains, l2PreimageOracle)
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("failed to create consolidate check deps: %w", err)
+		}
+		expectedSuperRoot, err := RunConsolidation(deps, l2PreimageOracle, transitionState, superRoot)
+		if err != nil {
+			return common.Hash{}, err
+		}
+		return common.Hash(expectedSuperRoot), nil
 	}
+
 	finalState := &types.TransitionState{
 		SuperRoot:       transitionState.SuperRoot,
 		PendingProgress: expectedPendingProgress,

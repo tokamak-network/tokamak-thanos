@@ -408,7 +408,6 @@ func TestInteropFaultProofs(gt *testing.T) {
 			agreedClaim:    paddingStep(1023),
 			disputedClaim:  end.Marshal(),
 			expectValid:    true,
-			skip:           true,
 		},
 
 		{
