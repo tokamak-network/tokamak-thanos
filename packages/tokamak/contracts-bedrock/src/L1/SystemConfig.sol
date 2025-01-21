@@ -40,6 +40,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         address optimismMintableERC20Factory;
         address gasPayingToken;
         address nativeTokenAddress;
+        address seigniorageReceiver;
     }
 
     /// @notice Version identifier, used for upgrades.
@@ -81,6 +82,9 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @notice Storage slot that the native token address is stored at.
     bytes32 public constant NATIVE_TOKEN_ADDRESS_SLOT =
         bytes32(uint256(keccak256("systemconfig.nativetokenaddress")) - 1);
+
+    // @notice Storage slot that the seigniorage receiver address is stored at.
+    bytes32 public constant SEIGNIORAGE_RECEIVER_SLOT = bytes32(uint256(keccak256("systemconfig.seignioragereceiver")) - 1);
 
     /// @notice Storage slot for the DisputeGameFactory address.
     bytes32 public constant DISPUTE_GAME_FACTORY_SLOT =
@@ -165,7 +169,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0),
                 gasPayingToken: address(0),
-                nativeTokenAddress: address(0)
+                nativeTokenAddress: address(0),
+                seigniorageReceiver: address(0)
             })
         });
     }
@@ -213,6 +218,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
         Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
         Storage.setAddress(NATIVE_TOKEN_ADDRESS_SLOT, _addresses.nativeTokenAddress);
+        Storage.setAddress(SEIGNIORAGE_RECEIVER_SLOT, _addresses.seigniorageReceiver);
 
         _setStartBlock();
         // _setGasPayingToken(_addresses.gasPayingToken);
@@ -290,6 +296,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @notice Getter for the native token address.
     function nativeTokenAddress() external view returns (address addr_) {
         addr_ = Storage.getAddress(NATIVE_TOKEN_ADDRESS_SLOT);
+    }
+
+    /// @notice Getter for the seigniorage receiver address.
+    function seigniorageReceiver() external view returns (address addr_) {
+        addr_ = Storage.getAddress(SEIGNIORAGE_RECEIVER_SLOT);
     }
 
     /// @notice Getter for the gas paying asset address.
