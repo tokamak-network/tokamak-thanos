@@ -42,6 +42,8 @@ config=$(cat << EOL
   "nativeTokenSymbol": "CHANGE_ME",
   "nativeTokenAddress": "CHANGE_ME",
 
+  "seigniorageReceiver": "$GS_ADMIN_ADDRESS",
+
   "maxSequencerDrift": 600,
   "sequencerWindowSize": 3600,
   "channelTimeout": 300,

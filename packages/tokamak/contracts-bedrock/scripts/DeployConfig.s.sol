@@ -25,6 +25,7 @@ contract DeployConfig is Script {
     address public finalSystemOwner;
     address public superchainConfigGuardian;
     address public nativeTokenAddress;
+    address public seigniorageReceiver;
     uint256 public l1ChainID;
     uint256 public l2ChainID;
     uint256 public l2BlockTime;
@@ -106,6 +107,7 @@ contract DeployConfig is Script {
         finalSystemOwner = stdJson.readAddress(_json, "$.finalSystemOwner");
         superchainConfigGuardian = stdJson.readAddress(_json, "$.superchainConfigGuardian");
         nativeTokenAddress = stdJson.readAddress(_json, "$.nativeTokenAddress");
+        seigniorageReceiver = stdJson.readAddress(_json, "$.seigniorageReceiver");
         l1ChainID = stdJson.readUint(_json, "$.l1ChainID");
         l2ChainID = stdJson.readUint(_json, "$.l2ChainID");
         l2BlockTime = stdJson.readUint(_json, "$.l2BlockTime");

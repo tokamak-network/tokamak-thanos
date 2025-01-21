@@ -1127,6 +1127,9 @@ contract Deploy is Deployer {
             l2NativeTokenAddress = address(token);
         }
         console.log(" [Check ]l2NativeTokenAddress", l2NativeTokenAddress);
+        address seigniorageReceiver = cfg.seigniorageReceiver();
+        console.log(" [Check ]seigniorageReceiver", seigniorageReceiver);
+
 
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
@@ -1150,7 +1153,8 @@ contract Deploy is Deployer {
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress,
-                        nativeTokenAddress: l2NativeTokenAddress
+                        nativeTokenAddress: l2NativeTokenAddress,
+                        seigniorageReceiver: seigniorageReceiver
                     })
                 )
             )

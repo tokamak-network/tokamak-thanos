@@ -65,6 +65,8 @@ type DeployConfig struct {
 	NativeTokenSymbol string `json:"nativeTokenSymbol"`
 	// L1Token is the L1's address of the L2 chain's native token.
 	NativeTokenAddress common.Address `json:"nativeTokenAddress"`
+	// SeigniorageReceiver is the receiver of seigniorage.
+	SeigniorageReceiver common.Address `json:"seigniorageReceiver"`
 	// L1ChainID is the chain ID of the L1 chain.
 	L1ChainID uint64 `json:"l1ChainID"`
 	// L2ChainID is the chain ID of the L2 chain.
@@ -383,6 +385,9 @@ func (d *DeployConfig) Check() error {
 	}
 	if d.L2ChainID == 0 {
 		return fmt.Errorf("%w: L2ChainID cannot be 0", ErrInvalidDeployConfig)
+	}
+	if d.SeigniorageReceiver == (common.Address{}) {
+		return fmt.Errorf("%w: SeigniorageReceiver cannot be address(0)", ErrInvalidDeployConfig)
 	}
 	if d.L2BlockTime == 0 {
 		return fmt.Errorf("%w: L2BlockTime cannot be 0", ErrInvalidDeployConfig)
