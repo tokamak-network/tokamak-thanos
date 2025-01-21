@@ -88,6 +88,7 @@ contract SystemConfigInterop_Test is CommonTest {
                 optimismPortal: address(optimismPortal),
                 optimismMintableERC20Factory: address(0),
                 nativeTokenAddress: address(0),
+                seigniorageReceiver: address(0),
                 gasPayingToken: _token
             })
         });

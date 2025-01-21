@@ -74,6 +74,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(address(impl.disputeGameFactory()), address(0));
         assertEq(address(impl.optimismPortal()), address(0));
         assertEq(address(impl.optimismMintableERC20Factory()), address(0));
+        assertEq(address(impl.seigniorageReceiver()), address(0));
         // Check gas paying token
         (address token, uint8 decimals) = impl.gasPayingToken();
         assertEq(token, Constants.ETHER);
@@ -110,6 +111,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(address(systemConfig.disputeGameFactory()), address(disputeGameFactory));
         assertEq(address(systemConfig.optimismPortal()), address(optimismPortal));
         assertEq(address(systemConfig.optimismMintableERC20Factory()), address(optimismMintableERC20Factory));
+        assertEq(address(systemConfig.seigniorageReceiver()), deploy.cfg().seigniorageReceiver());
         // Check gas paying token
         (address token, uint8 decimals) = systemConfig.gasPayingToken();
         assertEq(token, Constants.ETHER);
@@ -146,7 +148,8 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0),
                 nativeTokenAddress: address(0),
-                gasPayingToken: Constants.ETHER
+                gasPayingToken: Constants.ETHER,
+                seigniorageReceiver: address(0)
             })
         });
     }
@@ -177,6 +180,7 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0),
                 nativeTokenAddress: address(0),
+                seigniorageReceiver: address(0),
                 gasPayingToken: Constants.ETHER
             })
         });
@@ -209,6 +213,7 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0),
                 nativeTokenAddress: address(0),
+                seigniorageReceiver: address(0),
                 gasPayingToken: Constants.ETHER
             })
         });
@@ -305,6 +310,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0),
                 nativeTokenAddress: address(0),
+                seigniorageReceiver: address(0),
                 gasPayingToken: address(0)
             })
         });

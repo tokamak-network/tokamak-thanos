@@ -187,6 +187,7 @@ contract Initializer_Test is Bridge_Initializer {
                             optimismPortal: address(0),
                             optimismMintableERC20Factory: address(0),
                             nativeTokenAddress: address(0),
+                            seigniorageReceiver: address(0),
                             gasPayingToken: Constants.ETHER
                         })
                     )
@@ -224,6 +225,7 @@ contract Initializer_Test is Bridge_Initializer {
                             optimismPortal: address(0),
                             optimismMintableERC20Factory: address(0),
                             nativeTokenAddress: address(0),
+                            seigniorageReceiver: address(0),
                             gasPayingToken: Constants.ETHER
                         })
                     )
