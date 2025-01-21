@@ -1130,7 +1130,6 @@ contract Deploy is Deployer {
         address seigniorageReceiver = cfg.seigniorageReceiver();
         console.log(" [Check ]seigniorageReceiver", seigniorageReceiver);
 
-
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
             _implementation: systemConfig,

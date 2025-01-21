@@ -84,7 +84,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         bytes32(uint256(keccak256("systemconfig.nativetokenaddress")) - 1);
 
     // @notice Storage slot that the seigniorage receiver address is stored at.
-    bytes32 public constant SEIGNIORAGE_RECEIVER_SLOT = bytes32(uint256(keccak256("systemconfig.seignioragereceiver")) - 1);
+    bytes32 public constant SEIGNIORAGE_RECEIVER_SLOT =
+        bytes32(uint256(keccak256("systemconfig.seignioragereceiver")) - 1);
 
     /// @notice Storage slot for the DisputeGameFactory address.
     bytes32 public constant DISPUTE_GAME_FACTORY_SLOT =
