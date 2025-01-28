@@ -946,9 +946,9 @@ jobs:
             - notify-failures-on-develop:
                 mentions: "<<parameters.mentions>>"
 
-  cannon-prestate:
-    machine: true
-    resource_class: ethereum-optimism/latitude-1
+  sanitize-op-program:
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
     steps:
       - checkout
       - run:
@@ -957,14 +957,20 @@ jobs:
       - run:
           name: Build op-program
           command: make op-program
+      - run:
+          name: Sanitize op-program client
+          command: make -f cannon/Makefile sanitize-program GUEST_PROGRAM=op-program/bin/op-program-client.elf
+
+  cannon-prestate-quick:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout
       - restore_cache:
           name: Restore cannon prestate cache
           key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
       - run:
-          name: Sanitize op-program guest
-          command: make -f cannon/Makefile sanitize-program GUEST_PROGRAM=op-program/bin/op-program-client.elf
-      - run:
-          name: generate cannon prestate
+          name: Build prestates
           command: make cannon-prestates
       - save_cache:
           key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
@@ -976,8 +982,24 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - "op-program/bin"
+            - "op-program/bin/prestate*"
+            - "op-program/bin/meta*"
             - "cannon/bin"
+
+  cannon-prestate:
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build prestates
+          command: make reproducible-prestate
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "op-program/bin/prestate*"
+            - "op-program/bin/meta*"
 
   publish-cannon-prestates:
     docker:
@@ -993,12 +1015,28 @@ jobs:
       - run:
           name: Upload cannon prestates
           command: |
+            # Use the actual hash for tags (hash can be found by reading releases.json)
+            PRESTATE_HASH=$(jq -r .pre ./op-program/bin/prestate-proof.json)
+            PRESTATE_MT_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-mt.json)
+            PRESTATE_INTEROP_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-interop.json)
+
+            BRANCH_NAME=$(echo "<< pipeline.git.branch >>" | tr '/' '-')
+            echo "Publishing ${PRESTATE_HASH}, ${PRESTATE_MT_HASH}, ${PRESTATE_INTEROP_HASH} as ${BRANCH_NAME}"
+            if [[ "" != "<< pipeline.git.branch >>" ]]
+            then
+              # Use the branch name for branches to provide a consistent URL
+              PRESTATE_HASH="${BRANCH_NAME}"
+              PRESTATE_MT_HASH="${BRANCH_NAME}"
+              PRESTATE_INTEROP_HASH="${BRANCH_NAME}"
+            fi
             gsutil cp ./op-program/bin/prestate.bin.gz \
-              gs://oplabs-network-data/proofs/op-program/cannon/${CIRCLE_BRANCH}.bin.gz
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_HASH}.bin.gz"
             gsutil cp ./op-program/bin/prestate-mt.bin.gz \
-              gs://oplabs-network-data/proofs/op-program/cannon/${CIRCLE_BRANCH}-mt.bin.gz
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT_HASH}-mt.bin.gz"
+            gsutil cp ./op-program/bin/prestate-mt64.bin.gz \
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT_HASH}-mt64.bin.gz"
             gsutil cp ./op-program/bin/prestate-interop.bin.gz \
-              gs://oplabs-network-data/proofs/op-program/cannon/${CIRCLE_BRANCH}-interop.bin.gz
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_INTEROP_HASH}-interop.bin.gz"
       - notify-failures-on-develop:
           mentions: "@proofs-team"
 
@@ -1346,7 +1384,7 @@ workflows:
             packages/contracts-bedrock/scripts/checks
           requires:
             - contracts-bedrock-build
-            - cannon-prestate
+            - cannon-prestate-quick
       - op-program-compat
       - bedrock-go-tests:
           requires:
@@ -1364,6 +1402,7 @@ workflows:
             - op-supervisor-docker-build
             - proofs-tools-docker-build
             - go-tests
+            - sanitize-op-program
       - docker-build:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
@@ -1382,7 +1421,10 @@ workflows:
                 - da-server
                 - op-supervisor
                 - cannon
-      - cannon-prestate
+      - cannon-prestate-quick
+      - sanitize-op-program:
+          requires:
+            - cannon-prestate-quick
       - check-generated-mocks-op-node
       - check-generated-mocks-op-service
       - cannon-go-lint-and-test:
@@ -1520,6 +1562,7 @@ workflows:
             - slack
             - oplabs-network-optimism-io-bucket
           requires:
+            - hold
             - cannon-prestate
           filters:
             tags:
