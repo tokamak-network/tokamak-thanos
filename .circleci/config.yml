@@ -1436,6 +1436,7 @@ workflows:
           requires: ["contracts-bedrock-build"]
       - go-tests:
           packages: |
+            op-alt-da
             op-batcher
             op-chain-ops
             op-node
