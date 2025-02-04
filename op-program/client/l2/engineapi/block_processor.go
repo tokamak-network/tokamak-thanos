@@ -112,6 +112,9 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 		// set the header withdrawals root for Isthmus blocks
 		mpHash := statedb.GetStorageRoot(predeploys.L2ToL1MessagePasserAddr)
 		header.WithdrawalsHash = &mpHash
+
+		// set the header requests root to empty hash for Isthmus blocks
+		header.RequestsHash = &types.EmptyRequestsHash
 	}
 
 	return &BlockProcessor{
