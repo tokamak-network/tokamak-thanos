@@ -426,11 +426,10 @@ func (l *BatchSubmitter) syncAndPrune(syncStatus *eth.SyncStatus) *inclusiveBloc
 // -  drives the creation of channels and frames
 // -  sends transactions to the DA layer
 func (l *BatchSubmitter) mainLoop(ctx context.Context, receiptsCh chan txmgr.TxReceipt[txRef], receiptsLoopCancel, throttlingLoopCancel context.CancelFunc) {
-	defer l.wg.Done()
-	defer receiptsLoopCancel()
-	defer throttlingLoopCancel()
 
-	queue := txmgr.NewQueue[txRef](l.killCtx, l.Txmgr, l.Config.MaxPendingTransactions)
+	queueCtx, queueCancel := context.WithCancel(l.killCtx)
+
+	queue := txmgr.NewQueue[txRef](queueCtx, l.Txmgr, l.Config.MaxPendingTransactions)
 	daGroup := &errgroup.Group{}
 	// errgroup with limit of 0 means no goroutine is able to run concurrently,
 	// so we only set the limit if it is greater than 0.
@@ -476,9 +475,15 @@ func (l *BatchSubmitter) mainLoop(ctx context.Context, receiptsCh chan txmgr.TxR
 			l.publishStateToL1(queue, receiptsCh, daGroup, l.Config.PollInterval)
 
 		case <-ctx.Done():
+			queueCancel()
 			if err := queue.Wait(); err != nil {
-				l.Log.Error("error waiting for transactions to complete", "err", err)
+				if !errors.Is(err, context.Canceled) {
+					l.Log.Error("error waiting for transactions to complete", "err", err)
+				}
 			}
+			throttlingLoopCancel()
+			receiptsLoopCancel()
+			l.wg.Done()
 			l.Log.Warn("main loop returning")
 			return
 		}
@@ -521,7 +526,7 @@ func (l *BatchSubmitter) throttlingLoop(ctx context.Context) {
 	defer ticker.Stop()
 
 	updateParams := func(pendingBytes int64) {
-		ctx, cancel := context.WithTimeout(l.shutdownCtx, l.Config.NetworkTimeout)
+		ctx, cancel := context.WithTimeout(ctx, l.Config.NetworkTimeout)
 		defer cancel()
 		cl, err := l.EndpointProvider.EthClient(ctx)
 		if err != nil {
@@ -542,9 +547,16 @@ func (l *BatchSubmitter) throttlingLoop(ctx context.Context) {
 			success bool
 			rpcErr  rpc.Error
 		)
-		if err := cl.Client().CallContext(
+		err = cl.Client().CallContext(
 			ctx, &success, SetMaxDASizeMethod, hexutil.Uint64(maxTxSize), hexutil.Uint64(maxBlockSize),
-		); errors.As(err, &rpcErr) && eth.ErrorCode(rpcErr.ErrorCode()).IsGenericRPCError() {
+		)
+		if errors.Is(ctx.Err(), context.Canceled) {
+			// If the context was cancelled, our work is done and we expect an error here:
+			// So log it quietly and exit.
+			l.Log.Debug("DA throttling context cancelled")
+			return
+		}
+		if errors.As(err, &rpcErr) && eth.ErrorCode(rpcErr.ErrorCode()).IsGenericRPCError() {
 			l.Log.Error("SetMaxDASize rpc unavailable or broken, shutting down. Either enable it or disable throttling.", "err", err)
 			// We'd probably hit this error right after startup, so a short shutdown duration should suffice.
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
