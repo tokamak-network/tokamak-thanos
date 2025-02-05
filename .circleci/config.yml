@@ -780,11 +780,6 @@ jobs:
         type: string
         default: ci
     steps:
-      - run:
-          name: Skip (temporary)
-          command: |
-            echo "Skipping coverage tests"
-            circleci-agent step halt
       - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
@@ -807,6 +802,15 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -y lcov
+      - run:
+          name: Write pinned block number for cache key
+          command: |
+            just print-pinned-block-number > ./pinnedBlockNumber.txt
+            cat pinnedBlockNumber.txt
+          working_directory: packages/contracts-bedrock
+      - restore_cache:
+          name: Restore forked state
+          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "packages/contracts-bedrock/pinnedBlockNumber.txt" }}
       - run:
           name: Run coverage tests
           command: just coverage-lcov-all <<parameters.test_flags>>
@@ -855,7 +859,6 @@ jobs:
           command: |
             just print-pinned-block-number > ./pinnedBlockNumber.txt
             cat pinnedBlockNumber.txt
-            pwd
           working_directory: packages/contracts-bedrock
       - restore_cache:
           name: Restore forked state
