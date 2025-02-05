@@ -74,6 +74,10 @@ func TestFullInterop(gt *testing.T) {
 	require.Equal(t, uint64(0), status.LocalSafeL2.Number)
 	require.Equal(t, uint64(0), status.SafeL2.Number)
 	require.Equal(t, uint64(0), status.FinalizedL2.Number)
+	supervisorStatus, err := actors.Supervisor.SyncStatus()
+	require.NoError(t, err)
+	require.Equal(t, head, supervisorStatus.Chains[actors.ChainA.ChainID].LocalUnsafe.ID())
+	require.Equal(t, uint64(0), supervisorStatus.MinSyncedL1.Number)
 
 	// Submit the L2 block, sync the local-safe data
 	actors.ChainA.Batcher.ActSubmitAll(t)
@@ -97,6 +101,10 @@ func TestFullInterop(gt *testing.T) {
 	require.Equal(t, head, status.LocalSafeL2.ID())
 	require.Equal(t, uint64(0), status.SafeL2.Number)
 	require.Equal(t, uint64(0), status.FinalizedL2.Number)
+	supervisorStatus, err = actors.Supervisor.SyncStatus()
+	require.NoError(t, err)
+	require.Equal(t, head, supervisorStatus.Chains[actors.ChainA.ChainID].LocalUnsafe.ID())
+	require.Equal(t, uint64(0), supervisorStatus.MinSyncedL1.Number)
 	// Local-safe does not count as "safe" in RPC
 	n := actors.ChainA.SequencerEngine.L2Chain().CurrentSafeBlock().Number.Uint64()
 	require.Equal(t, uint64(0), n)
@@ -116,6 +124,10 @@ func TestFullInterop(gt *testing.T) {
 	require.Equal(t, head, status.LocalSafeL2.ID())
 	require.Equal(t, head, status.SafeL2.ID())
 	require.Equal(t, uint64(0), status.FinalizedL2.Number)
+	supervisorStatus, err = actors.Supervisor.SyncStatus()
+	require.NoError(t, err)
+	require.Equal(t, head, supervisorStatus.Chains[actors.ChainA.ChainID].LocalUnsafe.ID())
+	require.Equal(t, uint64(1), supervisorStatus.MinSyncedL1.Number)
 	h := actors.ChainA.SequencerEngine.L2Chain().CurrentSafeBlock().Hash()
 	require.Equal(t, head.Hash, h)
 
@@ -141,6 +153,10 @@ func TestFullInterop(gt *testing.T) {
 	require.Equal(t, head, status.LocalSafeL2.ID())
 	require.Equal(t, head, status.SafeL2.ID())
 	require.Equal(t, head, status.FinalizedL2.ID())
+	supervisorStatus, err = actors.Supervisor.SyncStatus()
+	require.NoError(t, err)
+	require.Equal(t, head, supervisorStatus.Chains[actors.ChainA.ChainID].LocalUnsafe.ID())
+	require.Equal(t, uint64(1), supervisorStatus.MinSyncedL1.Number)
 }
 
 // TestFinality confirms that when L1 finality is updated on the supervisor,
