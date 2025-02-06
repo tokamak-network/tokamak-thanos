@@ -1108,13 +1108,15 @@ jobs:
                 mentions: "<<parameters.mentions>>"
 
   sanitize-op-program:
-    machine: true
-    resource_class: ethereum-optimism/latitude-1
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: large
     steps:
       - checkout-with-mise
       - run:
           name: Install tools
           command: |
+            sudo apt-get update
             sudo apt-get install -y binutils-mips-linux-gnu
       - run:
           name: Build cannon
