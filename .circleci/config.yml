@@ -1522,6 +1522,7 @@ workflows:
             op-e2e/actions
             op-e2e/faultproofs
             packages/contracts-bedrock/scripts/checks
+            op-dripper
           requires:
             - contracts-bedrock-build
             - cannon-prestate-quick
@@ -1561,6 +1562,7 @@ workflows:
                 - da-server
                 - op-supervisor
                 - cannon
+                - op-dripper
       - cannon-prestate-quick
       - sanitize-op-program:
           requires:
@@ -1627,6 +1629,7 @@ workflows:
                 - op-supervisor
                 - op-deployer
                 - cannon
+                - op-dripper
           name: <<matrix.docker_name>>-docker-release
           docker_tags: <<pipeline.git.revision>>
           platforms: "linux/amd64,linux/arm64"
@@ -1657,6 +1660,7 @@ workflows:
                 - op-supervisor
                 - op-deployer
                 - cannon
+                - op-dripper
           name: <<matrix.op_component>>-cross-platform
           requires:
             - op-node-docker-release
@@ -1669,6 +1673,7 @@ workflows:
             - op-ufm-docker-release
             - op-supervisor-docker-release
             - cannon-docker-release
+            - op-dripper-docker-release
       # Standard (xlarge) AMD-only docker images go here
       - docker-build:
           matrix:
@@ -1835,6 +1840,7 @@ workflows:
                 - op-conductor
                 - op-supervisor
                 - cannon
+                - op-dripper
           name: <<matrix.docker_name>>-docker-publish
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
           platforms: "linux/amd64,linux/arm64"
@@ -1855,6 +1861,7 @@ workflows:
                 - op-conductor
                 - op-supervisor
                 - cannon
+                - op-dripper
           name: <<matrix.op_component>>-cross-platform
           requires:
             - <<matrix.op_component>>-docker-publish
