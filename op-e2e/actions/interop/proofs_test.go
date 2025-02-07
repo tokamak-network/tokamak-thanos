@@ -343,7 +343,6 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      step1Expected,
 			disputedTraceIndex: 0,
 			expectValid:        true,
-			skipChallenger:     true,
 		},
 		{
 			name:               "SecondChainOptimisticBlock",
@@ -351,7 +350,8 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      step2Expected,
 			disputedTraceIndex: 1,
 			expectValid:        true,
-			skipChallenger:     true,
+			// skipChallenger because the challenger's reorg view won't match the pre-reorg disputed claim
+			skipChallenger: true,
 		},
 		{
 			name:               "FirstPaddingStep",
@@ -359,7 +359,8 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      paddingStep(3),
 			disputedTraceIndex: 2,
 			expectValid:        true,
-			skipChallenger:     true,
+			// skipChallenger because the challenger's reorg view won't match the pre-reorg disputed claim
+			skipChallenger: true,
 		},
 		{
 			name:               "SecondPaddingStep",
@@ -367,7 +368,8 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      paddingStep(4),
 			disputedTraceIndex: 3,
 			expectValid:        true,
-			skipChallenger:     true,
+			// skipChallenger because the challenger's reorg view won't match the pre-reorg disputed claim
+			skipChallenger: true,
 		},
 		{
 			name:               "LastPaddingStep",
@@ -375,7 +377,8 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      paddingStep(1023),
 			disputedTraceIndex: 1022,
 			expectValid:        true,
-			skipChallenger:     true,
+			// skipChallenger because the challenger's reorg view won't match the pre-reorg disputed claim
+			skipChallenger: true,
 		},
 		{
 			name:               "Consolidate-ExpectInvalidPendingBlock",
@@ -417,29 +420,17 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      interop.InvalidTransition,
 			disputedTraceIndex: 0,
 			// The derivation reaches the L1 head before the next block can be created
-			l1Head:         actors.L1Miner.L1Chain().Genesis().Hash(),
-			expectValid:    true,
-			skipChallenger: true, // Challenger doesn't yet check if blocks were safe
-		},
-		{
-			name:               "SecondChainReachesL1Head",
-			agreedClaim:        step1Expected,
-			disputedClaim:      interop.InvalidTransition,
-			disputedTraceIndex: 1,
-			// The derivation reaches the L1 head before the next block can be created
-			l1Head:         actors.L1Miner.L1Chain().Genesis().Hash(),
-			expectValid:    true,
-			skipChallenger: true, // Challenger doesn't yet check if blocks were safe
+			l1Head:      actors.L1Miner.L1Chain().Genesis().Hash(),
+			expectValid: true,
 		},
 		{
 			name:               "SuperRootInvalidIfUnsupportedByL1Data",
-			agreedClaim:        step1Expected,
-			disputedClaim:      step2Expected,
-			disputedTraceIndex: 1,
+			agreedClaim:        start.Marshal(),
+			disputedClaim:      step1Expected,
+			disputedTraceIndex: 0,
 			// The derivation reaches the L1 head before the next block can be created
-			l1Head:         actors.L1Miner.L1Chain().Genesis().Hash(),
-			expectValid:    false,
-			skipChallenger: true, // Challenger doesn't yet check if blocks were safe
+			l1Head:      actors.L1Miner.L1Chain().Genesis().Hash(),
+			expectValid: false,
 		},
 		{
 			name:               "FromInvalidTransitionHash",
@@ -447,9 +438,8 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 			disputedClaim:      interop.InvalidTransition,
 			disputedTraceIndex: 2,
 			// The derivation reaches the L1 head before the next block can be created
-			l1Head:         actors.L1Miner.L1Chain().Genesis().Hash(),
-			expectValid:    true,
-			skipChallenger: true, // Challenger doesn't yet check if blocks were safe
+			l1Head:      actors.L1Miner.L1Chain().Genesis().Hash(),
+			expectValid: true,
 		},
 	}
 
@@ -507,7 +497,7 @@ func TestInteropFaultProofsInvalidBlock(gt *testing.T) {
 				require.NoError(t, err)
 				agreedPrestate = superRoot.Marshal()
 			}
-			require.Equal(t, test.agreedClaim, agreedPrestate)
+			require.Equal(t, test.agreedClaim, agreedPrestate, "agreed prestate mismatch")
 
 			disputedClaim, err := provider.GetPreimageBytes(t.Ctx(), challengerTypes.NewPosition(gameDepth, big.NewInt(test.disputedTraceIndex)))
 			require.NoError(t, err)
