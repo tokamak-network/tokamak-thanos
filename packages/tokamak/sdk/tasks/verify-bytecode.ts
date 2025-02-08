@@ -38,9 +38,7 @@ task('verify-bytecode', 'verify l1 bytecodes')
     const standardbridgeCode = normalize(
       await l1Provider.getCode(args.standardbridge)
     )
-    const xdmCode = normalize(
-      await l1Provider.getCode(args.xdm)
-    )
+    const xdmCode = normalize(await l1Provider.getCode(args.xdm))
     const optimismportalCode = normalize(
       await l1Provider.getCode(args.optimismportal)
     )
@@ -76,9 +74,8 @@ task('verify-bytecode', 'verify l1 bytecodes')
     if (result === args.expectedhash) {
       console.log('Verified successfully')
       process.exit(0)
-    }else {
+    } else {
       console.log('Verified failed')
       process.exit(1)
     }
-  }
-)
+  })
