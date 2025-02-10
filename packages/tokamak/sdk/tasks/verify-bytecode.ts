@@ -66,7 +66,8 @@ task('verify-bytecode', 'verify l1 bytecodes')
       console.log('[Bytecode]\n', bytecode)
       console.log('\n\n\n')
       console.log('Total contract bytecodes size:', totalSize)
-      console.log('Concat bytecode size:', bytecode.length)
+      // We decrease by 2 bytes because the concat bytecode starts with '0x'
+      console.log('Concat bytecode size:', bytecode.length - 2)
       console.log('Real hash:', result)
       console.log('Expected hash:', args.expectedhash)
     }
