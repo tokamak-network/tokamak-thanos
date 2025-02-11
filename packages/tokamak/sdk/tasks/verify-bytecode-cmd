@@ -1,0 +1,1 @@
+npx hardhat verify-bytecode --standardbridge 0xAA8eEbce81D9f60698dC197D3e4366A351738ae7 --xdm 0xC5e87c9acf2C183D415Ac42b5ceC38401f15198C --optimismportal 0xaA4D3a0E3358E839e06e4a8370b0fed4F4143534 --systemconfig 0x0Bce7e78a21ef71B3Ce2130Ce5255d031aCA588E --expectedhash 0x6c36358a52dd5aa507cd00e6377b775495c6c6e8853ff9dc2d5d06c032f380b8 --rpc http://localhost:8545 --debug
