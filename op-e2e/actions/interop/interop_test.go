@@ -1,7 +1,6 @@
 package interop
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -66,7 +65,7 @@ func TestFullInterop(gt *testing.T) {
 		require.Equal(t, uint64(0), status.LocalSafeL2.Number)
 		require.Equal(t, uint64(0), status.SafeL2.Number)
 		require.Equal(t, uint64(0), status.FinalizedL2.Number)
-		supervisorStatus, err := actors.Supervisor.SyncStatus()
+		supervisorStatus, err := actors.Supervisor.SyncStatus(t.Ctx())
 		require.NoError(t, err)
 		require.Equal(t, head, supervisorStatus.Chains[chain.ChainID].LocalUnsafe.ID())
 
@@ -94,7 +93,7 @@ func TestFullInterop(gt *testing.T) {
 		require.Equal(t, head, status.LocalSafeL2.ID())
 		require.Equal(t, uint64(0), status.SafeL2.Number)
 		require.Equal(t, uint64(0), status.FinalizedL2.Number)
-		supervisorStatus, err = actors.Supervisor.SyncStatus()
+		supervisorStatus, err = actors.Supervisor.SyncStatus(t.Ctx())
 		require.NoError(t, err)
 		require.Equal(t, head, supervisorStatus.Chains[chain.ChainID].LocalUnsafe.ID())
 		// Local-safe does not count as "safe" in RPC
@@ -116,7 +115,7 @@ func TestFullInterop(gt *testing.T) {
 		require.Equal(t, head, status.LocalSafeL2.ID())
 		require.Equal(t, head, status.SafeL2.ID())
 		require.Equal(t, uint64(0), status.FinalizedL2.Number)
-		supervisorStatus, err = actors.Supervisor.SyncStatus()
+		supervisorStatus, err = actors.Supervisor.SyncStatus(t.Ctx())
 		require.NoError(t, err)
 		require.Equal(t, head, supervisorStatus.Chains[chain.ChainID].LocalUnsafe.ID())
 		h := chain.SequencerEngine.L2Chain().CurrentSafeBlock().Hash()
@@ -144,19 +143,19 @@ func TestFullInterop(gt *testing.T) {
 		require.Equal(t, head, status.LocalSafeL2.ID())
 		require.Equal(t, head, status.SafeL2.ID())
 		require.Equal(t, head, status.FinalizedL2.ID())
-		supervisorStatus, err = actors.Supervisor.SyncStatus()
+		supervisorStatus, err = actors.Supervisor.SyncStatus(t.Ctx())
 		require.NoError(t, err)
 		require.Equal(t, head, supervisorStatus.Chains[chain.ChainID].LocalUnsafe.ID())
 	}
 	// first run Chain A, processing 1 L1 block
 	full(actors.ChainA, 1)
-	supervisorStatus, err := actors.Supervisor.SyncStatus()
+	supervisorStatus, err := actors.Supervisor.SyncStatus(t.Ctx())
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), supervisorStatus.MinSyncedL1.Number)
 
 	// then run Chain B, processing 2 L1 blocks (because L1 is further ahead now)
 	full(actors.ChainB, 2)
-	supervisorStatus, err = actors.Supervisor.SyncStatus()
+	supervisorStatus, err = actors.Supervisor.SyncStatus(t.Ctx())
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), supervisorStatus.MinSyncedL1.Number)
 }
@@ -224,8 +223,9 @@ func TestFinality(gt *testing.T) {
 
 		// Process the supervisor to update the finality, and pull L1, L2 finality
 		actors.Supervisor.ProcessFull(t)
-		l1Finalized := actors.Supervisor.FinalizedL1()
-		l2Finalized, err := actors.Supervisor.Finalized(context.Background(), actors.ChainA.ChainID)
+		l1Finalized, err := actors.Supervisor.FinalizedL1(t.Ctx())
+		require.NoError(t, err)
+		l2Finalized, err := actors.Supervisor.Finalized(t.Ctx(), actors.ChainA.ChainID)
 		require.NoError(t, err)
 		require.Equal(t, uint64(tip), l1Finalized.Number)
 		// the L2 finality is the latest L2 block, because L1 finality is beyond anything the L2 used to derive
