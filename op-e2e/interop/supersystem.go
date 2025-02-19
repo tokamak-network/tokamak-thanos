@@ -61,6 +61,8 @@ import (
 // for example, interopE2ESystem is the default implementation, but a shim to
 // kurtosis or another testing framework could be implemented
 type SuperSystem interface {
+	L1() *geth.GethInstance
+
 	// Superchain level
 	L2IDs() []string
 	Supervisor() *supervisor.SupervisorService
@@ -124,6 +126,10 @@ type interopE2ESystem struct {
 	superClient  *sources.SupervisorClient
 	supervisor   *supervisor.SupervisorService
 	config       *SuperSystemConfig
+}
+
+func (s *interopE2ESystem) L1() *geth.GethInstance {
+	return s.l1
 }
 
 // prepareHDWallet creates a new HD wallet to derive keys from

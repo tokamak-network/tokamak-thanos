@@ -7,9 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum/go-ethereum"
@@ -54,6 +59,7 @@ func setupAndRun(t *testing.T, config SuperSystemConfig, fn func(*testing.T, Sup
 // a transaction is sent from Alice to Bob on Chain A,
 // and only Chain A is affected.
 func TestInterop_IsolatedChains(t *testing.T) {
+	t.Parallel()
 	test := func(t *testing.T, s2 SuperSystem) {
 		ids := s2.L2IDs()
 		chainA := ids[0]
@@ -109,6 +115,7 @@ func TestInterop_IsolatedChains(t *testing.T) {
 // TestInterop_SupervisorFinality tests that the supervisor updates its finality
 // It waits for the finalized block to advance past the genesis block.
 func TestInterop_SupervisorFinality(t *testing.T) {
+	t.Parallel()
 	test := func(t *testing.T, s2 SuperSystem) {
 		supervisor := s2.SupervisorClient()
 		require.Eventually(t, func() bool {
@@ -128,6 +135,7 @@ func TestInterop_SupervisorFinality(t *testing.T) {
 // Chains A and B exist, but no messages are sent between them.
 // A contract is deployed on each chain, and logs are emitted repeatedly.
 func TestInterop_EmitLogs(t *testing.T) {
+	t.Parallel()
 	test := func(t *testing.T, s2 SuperSystem) {
 		ids := s2.L2IDs()
 		chainA := ids[0]
@@ -238,6 +246,7 @@ func TestInterop_EmitLogs(t *testing.T) {
 }
 
 func TestInteropBlockBuilding(t *testing.T) {
+	t.Parallel()
 	logger := testlog.Logger(t, log.LevelInfo)
 	oplog.SetGlobalLogHandler(logger.Handler())
 
@@ -338,6 +347,7 @@ func TestInteropBlockBuilding(t *testing.T) {
 	}
 
 	t.Run("without mempool filtering", func(t *testing.T) {
+		t.Parallel()
 		config := SuperSystemConfig{
 			mempoolFiltering: false,
 		}
@@ -345,6 +355,7 @@ func TestInteropBlockBuilding(t *testing.T) {
 	})
 
 	t.Run("with mempool filtering", func(t *testing.T) {
+		t.Parallel()
 		config := SuperSystemConfig{
 			mempoolFiltering: true,
 		}
@@ -354,6 +365,7 @@ func TestInteropBlockBuilding(t *testing.T) {
 }
 
 func TestMultiNode(t *testing.T) {
+	t.Parallel()
 	test := func(t *testing.T, s2 SuperSystem) {
 		supervisor := s2.SupervisorClient()
 		require.Eventually(t, func() bool {
@@ -395,4 +407,34 @@ func TestMultiNode(t *testing.T) {
 		mempoolFiltering: false,
 	}
 	setupAndRun(t, config, test)
+}
+
+func TestProposals(t *testing.T) {
+	t.Parallel()
+	test := func(t *testing.T, s2 SuperSystem) {
+		logger := testlog.Logger(t, log.LvlInfo)
+		ids := s2.L2IDs()
+		chainA := ids[0]
+		proposer := s2.Proposer(chainA)
+		// Start the proposer as it isn't started by default.
+		err := proposer.Start(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, proposer.DisputeGameFactoryAddr)
+		gameFactoryAddr := *proposer.DisputeGameFactoryAddr
+
+		rpcClient, err := dial.DialRPCClientWithTimeout(context.Background(), time.Minute, logger, s2.L1().UserRPC().RPC())
+		require.NoError(t, err)
+		caller := batching.NewMultiCaller(rpcClient, batching.DefaultBatchSize)
+		factory := contracts.NewDisputeGameFactoryContract(metrics.NoopContractMetrics, gameFactoryAddr, caller)
+		ethClient := ethclient.NewClient(rpcClient)
+		require.Eventually(t, func() bool {
+			head, err := ethClient.BlockByNumber(context.Background(), nil)
+			require.NoError(t, err)
+			count, err := factory.GetGameCount(context.Background(), head.Hash())
+			require.NoError(t, err)
+			t.Logf("Current game count: %v", count)
+			return count > 0
+		}, 5*time.Minute, time.Second)
+	}
+	setupAndRun(t, SuperSystemConfig{}, test)
 }
