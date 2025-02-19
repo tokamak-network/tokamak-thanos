@@ -1,7 +1,7 @@
 export enum Chains {
   Mainnet = 1,
   Sepolia = 11155111,
-  LocalDevnet = 900
+  LocalDevnet = 900,
 }
 
 /**
@@ -30,7 +30,7 @@ export const getDAOMembers = (chainid: number): [string, string] => {
     // LocalDevnet (for testing)
     return [
       '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', // devAccount-4
-      '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc' // devAccount-5
+      '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc', // devAccount-5
     ]
   } else {
     throw new Error('It is not a supported chain')
