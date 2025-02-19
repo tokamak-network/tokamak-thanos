@@ -4,6 +4,42 @@ import { executeContractCallWithSigners } from '@tokamak-network/thanos-contract
 
 import { getDAOMembers } from '../src/utils/owners'
 
+/**
+ * Adds the specified owner to the Gnosis Safe and verifies that the owner has been added.
+ *
+ * @param safeContract - The Gnosis Safe contract instance (with signer connected)
+ * @param owner - The owner address to add
+ * @param threshold - The threshold value to apply
+ * @param signers - An array of signers (typically a single signer)
+ */
+export const addOwnerAndVerify = async (
+  safeContract: ethers.Contract,
+  owner: string,
+  threshold: number,
+  signers: ethers.Signer[]
+): Promise<void> => {
+  // Execute addOwnerWithThreshold
+  const tx = await executeContractCallWithSigners(
+    safeContract,
+    safeContract,
+    'addOwnerWithThreshold',
+    [owner, threshold],
+    signers
+  )
+  console.log(`Tx Hash for adding owner ${owner}:`, tx.hash)
+  await tx.wait()
+
+  // Get Safe owner
+  const safeOwners = await safeContract.getOwners()
+  console.log(`Safe owners after adding owner ${owner}:`, safeOwners)
+  if (safeOwners.includes(owner)) {
+    console.log(`Successfully added owner: ${owner}`)
+  } else {
+    console.log(`Failed to add owner: ${owner}`)
+  }
+}
+
+// Task
 task('set-safe-wallet', 'Set Safe Wallet for the TokamakDAO')
   .addParam('rpc', 'L1 RPC endpoint', '', types.string)
   .addParam('chainid', 'L1 chain id', '', types.int)
@@ -27,6 +63,7 @@ task('set-safe-wallet', 'Set Safe Wallet for the TokamakDAO')
       'function changeThreshold(uint256 _threshold) external',
       'function execTransaction(address to, uint256 value, bytes calldata data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes calldata signatures) external returns (bool success)',
       'function nonce() view returns (uint256)',
+      'function getOwners() view returns (address[])',
     ]
 
     // Create contract instance
@@ -39,29 +76,11 @@ task('set-safe-wallet', 'Set Safe Wallet for the TokamakDAO')
 
     // Execute
     try {
-      // (1) add owners[0]
-      const tx1 = await executeContractCallWithSigners(
-        gnosisSafeContract,
-        gnosisSafeContract,
-        'addOwnerWithThreshold',
-        [owners[0], 1],
-        [signer]
-      )
-      console.log('Tx 1 Hash:', tx1.hash)
-      await tx1.wait()
+      // Add 2 owners to Safe
+      await addOwnerAndVerify(gnosisSafeContract, owners[0], 1, [signer])
+      await addOwnerAndVerify(gnosisSafeContract, owners[1], 1, [signer])
 
-      // add owners[1]
-      const tx2 = await executeContractCallWithSigners(
-        gnosisSafeContract,
-        gnosisSafeContract,
-        'addOwnerWithThreshold',
-        [owners[1], 1],
-        [signer]
-      )
-      console.log('Tx 2 Hash:', tx2.hash)
-      await tx2.wait()
-
-      // (3) Change threshold to 3
+      // Change threshold to 3
       const tx3 = await executeContractCallWithSigners(
         gnosisSafeContract,
         gnosisSafeContract,
@@ -69,12 +88,11 @@ task('set-safe-wallet', 'Set Safe Wallet for the TokamakDAO')
         [3],
         [signer]
       )
-      console.log('Tx 3 Hash: ', tx3.hash)
+      console.log('Tx 3 Hash:', tx3.hash)
       await tx3.wait()
+      const newSafeThreshold = await gnosisSafeContract.getThreshold()
+      console.log('New threshold:', String(newSafeThreshold))
     } catch (error) {
       console.error('Got the error running Safe contract:', error)
     }
-
-    const newSafeThreshold = await gnosisSafeContract.getThreshold()
-    console.log('New threshold: ', String(newSafeThreshold))
   })
