@@ -14,7 +14,7 @@ task('set-safe-wallet', 'Set Safe Wallet for the TokamakDAO')
 
     // Create the signer
     // TODO: Get the Admin's private key from the seed phrase (user's input)
-    const ownerAPrivateKey = args.privatekey;
+    const ownerAPrivateKey = args.privatekey
     const signer = new ethers.Wallet(ownerAPrivateKey, l1Provider)
 
     // Get predefined owners
