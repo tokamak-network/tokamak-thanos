@@ -418,28 +418,32 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "jq is already installed."
     fi
 
-    if pnpm install:foundry; then
-        # Check if the foundry configuration is already in the CONFIG_FILE
-        if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
-
-            # If the configuration is not found, add foundry to the current shell session
-            {
-                echo ''
-                echo 'export PATH="$PATH:/root/.foundry/bin"'
-            } >> "$CONFIG_FILE"
-        fi
-
-        # Check if the foundry configuration is already in the PROFILE_FILE
-        if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
-            # If the configuration is not found, add foundry to the current shell session
-            {
-                echo ''
-                echo 'export PATH="$PATH:/root/.foundry/bin"'
-            } >> "$PROFILE_FILE"
-        fi
-        export PATH="$PATH:/root/.foundry/bin"
+    if pnpm check:foundry | grep -q "Foundry version matches the expected version."; then
+        echo "Foundry is already installed with the expected version. Skipping installation."
     else
-        exit
+      if pnpm install:foundry; then
+          # Check if the foundry configuration is already in the CONFIG_FILE
+          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+
+              # If the configuration is not found, add foundry to the current shell session
+              {
+                  echo ''
+                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+              } >> "$CONFIG_FILE"
+          fi
+
+          # Check if the foundry configuration is already in the PROFILE_FILE
+          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+              # If the configuration is not found, add foundry to the current shell session
+              {
+                  echo ''
+                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+              } >> "$PROFILE_FILE"
+          fi
+          export PATH="$PATH:/root/.foundry/bin"
+      else
+          exit
+      fi
     fi
 
     SUCCESS="true"
@@ -785,28 +789,32 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "jq is already installed."
         fi
 
-        if pnpm install:foundry; then
-            # Check if the foundry configuration is already in the CONFIG_FILE
-            if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
-
-                # If the configuration is not found, add foundry to the current shell session
-                {
-                    echo ''
-                    echo 'export PATH="$PATH:/root/.foundry/bin"'
-                } >> "$CONFIG_FILE"
-            fi
-
-            # Check if the foundry configuration is already in the PROFILE_FILE
-            if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
-                # If the configuration is not found, add foundry to the current shell session
-                {
-                    echo ''
-                    echo 'export PATH="$PATH:/root/.foundry/bin"'
-                } >> "$PROFILE_FILE"
-            fi
-            export PATH="$PATH:/root/.foundry/bin"
+        if pnpm check:foundry | grep -q "Foundry version matches the expected version."; then
+            echo "Foundry is already installed with the expected version. Skipping installation."
         else
-            exit
+          if pnpm install:foundry; then
+              # Check if the foundry configuration is already in the CONFIG_FILE
+              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+
+                  # If the configuration is not found, add foundry to the current shell session
+                  {
+                      echo ''
+                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  } >> "$CONFIG_FILE"
+              fi
+
+              # Check if the foundry configuration is already in the PROFILE_FILE
+              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+                  # If the configuration is not found, add foundry to the current shell session
+                  {
+                      echo ''
+                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  } >> "$PROFILE_FILE"
+              fi
+              export PATH="$PATH:/root/.foundry/bin"
+          else
+              exit
+          fi
         fi
 
         SUCCESS="true"
