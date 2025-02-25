@@ -140,7 +140,11 @@ deployContracts() {
   export IMPL_SALT=$(openssl rand -hex 32)
   cd $projectRoot/packages/tokamak/contracts-bedrock
   unset DEPLOYMENT_OUTFILE
-  forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
+  if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
+    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE
+  else
+    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
+  fi
   cd $currentPWD
 }
 
