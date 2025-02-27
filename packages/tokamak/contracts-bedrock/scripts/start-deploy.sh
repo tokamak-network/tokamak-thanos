@@ -131,6 +131,8 @@ buildSource() {
   make cannon-prestate
   make op-node
   cd $projectRoot/packages/tokamak/contracts-bedrock && pnpm build
+  cd $projectRoot/packages/tokamak/core-utils && pnpm build
+  cd $projectRoot/packages/tokamak/sdk && pnpm build
   cd $currentPWD
 }
 
