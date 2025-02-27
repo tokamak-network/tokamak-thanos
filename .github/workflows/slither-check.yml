@@ -43,7 +43,7 @@ jobs:
       # Install pnpm and dependencies
       - name: Install pnpm and dependencies and check the pnpm version on CI env
         run: |
-          npm install --global pnpm
+          npm install --global pnpm@9.7.1
           pnpm --version
 
       - name: Restore PNPM Package Cache
