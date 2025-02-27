@@ -34,6 +34,9 @@ jobs:
           path: node_modules
           key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
 
+      - name: Print pnpm version
+        run: pnpm --version
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --offline
 
