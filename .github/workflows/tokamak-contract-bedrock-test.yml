@@ -1,9 +1,8 @@
 name: 'Tokamak Contract Bedrock Test'
 on:
-  pull_request:
-    paths:
-      - 'op-node/**'
-      - 'packages/tokamak/contracts-bedrock/**'
+  push:
+    branches:
+      - hotfix/pnpm-dependencies
 
 jobs:
   contracts-bedrock-tests:
