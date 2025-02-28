@@ -20,22 +20,23 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-func ReceiptsToExecutingMessages(depset depset.ChainIndexFromID, receipts ethtypes.Receipts) ([]*supervisortypes.ExecutingMessage, uint32, error) {
-	var execMsgs []*supervisortypes.ExecutingMessage
-	var logCount uint32
+// ReceiptsToExecutingMessages returns the executing messages in the receipts indexed by their position in the log.
+func ReceiptsToExecutingMessages(depset depset.ChainIndexFromID, receipts ethtypes.Receipts) (map[uint32]*supervisortypes.ExecutingMessage, uint32, error) {
+	execMsgs := make(map[uint32]*supervisortypes.ExecutingMessage)
+	var curr uint32
 	for _, rcpt := range receipts {
-		logCount += uint32(len(rcpt.Logs))
 		for _, l := range rcpt.Logs {
 			execMsg, err := processors.DecodeExecutingMessageLog(l, depset)
 			if err != nil {
 				return nil, 0, err
 			}
 			if execMsg != nil {
-				execMsgs = append(execMsgs, execMsg)
+				execMsgs[curr] = execMsg
 			}
+			curr++
 		}
 	}
-	return execMsgs, logCount, nil
+	return execMsgs, curr, nil
 }
 
 func fetchAgreedBlockHashes(oracle l2.Oracle, superRoot *eth.SuperV1) ([]common.Hash, error) {
@@ -101,7 +102,7 @@ func RunConsolidation(
 			Number:    optimisticBlock.NumberU64(),
 			Timestamp: optimisticBlock.Time(),
 		}
-		if err := checkHazards(deps, candidate, chain.ChainID, execMsgs); err != nil {
+		if err := checkHazards(logger, deps, candidate, chain.ChainID, execMsgs); err != nil {
 			if !isInvalidMessageError(err) {
 				return eth.Bytes32{}, err
 			}
@@ -157,13 +158,8 @@ type ConsolidateCheckDeps interface {
 	cross.UnsafeStartDeps
 }
 
-func checkHazards(
-	deps ConsolidateCheckDeps,
-	candidate supervisortypes.BlockSeal,
-	chainID eth.ChainID,
-	execMsgs []*supervisortypes.ExecutingMessage,
-) error {
-	hazards, err := cross.CrossUnsafeHazards(deps, chainID, candidate, execMsgs)
+func checkHazards(logger log.Logger, deps ConsolidateCheckDeps, candidate supervisortypes.BlockSeal, chainID eth.ChainID, execMsgs map[uint32]*supervisortypes.ExecutingMessage) error {
+	hazards, err := cross.CrossUnsafeHazards(deps, logger, chainID, candidate)
 	if err != nil {
 		return err
 	}
@@ -284,15 +280,11 @@ func (d *consolidateCheckDeps) OpenBlock(
 		Number: block.NumberU64(),
 	}
 	_, receipts := d.oracle.ReceiptsByBlockHash(block.Hash(), chainID)
-	execs, logCount, err := ReceiptsToExecutingMessages(d.depset, receipts)
+	execMsgs, logCount, err = ReceiptsToExecutingMessages(d.depset, receipts)
 	if err != nil {
 		return eth.BlockRef{}, 0, nil, err
 	}
-	execMsgs = make(map[uint32]*supervisortypes.ExecutingMessage, len(execs))
-	for _, exec := range execs {
-		execMsgs[exec.LogIdx] = exec
-	}
-	return ref, uint32(logCount), execMsgs, nil
+	return ref, logCount, execMsgs, nil
 }
 
 func (d *consolidateCheckDeps) DependencySet() depset.DependencySet {
