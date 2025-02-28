@@ -148,12 +148,8 @@ func (b *Handler) AddRPC(route string) error {
 
 	// default to 404 not-found
 	handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		b.log.Info("oh no!")
 		http.NotFound(writer, request)
 	})
-
-	// Health endpoint is lowest priority.
-	handler = b.newHealthMiddleware(handler)
 
 	// serve RPC on configured RPC path (but not on arbitrary paths)
 	handler = b.newHttpRPCMiddleware(srv, handler)
@@ -167,6 +163,10 @@ func (b *Handler) AddRPC(route string) error {
 	for _, middleware := range b.middlewares {
 		handler = middleware(handler)
 	}
+
+	// Health endpoint applies before user middleware
+	handler = b.newHealthMiddleware(handler)
+
 	b.rpcRoutes[route] = srv
 
 	b.mux.Handle(route+"/", http.StripPrefix(route+"/", handler))
