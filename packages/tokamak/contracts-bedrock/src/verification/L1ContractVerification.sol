@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
-import './IL1ContractVerification.sol';
+import './interface/IL1ContractVerification.sol';
 
 contract L1ContractVerification is IL1ContractVerification, Ownable {
   // State variables
