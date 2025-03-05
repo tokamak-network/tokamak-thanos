@@ -6,11 +6,8 @@ import '../L1ContractVerification.sol';
 
 contract DeployL1ContractVerification is Script {
   function run() external {
-    // Retrieve private key from environment variable
-    uint256 deployerPrivateKey = vm.envUint('PRIVATE_KEY');
-
     // Start broadcasting transactions
-    vm.startBroadcast(deployerPrivateKey);
+    vm.startBroadcast();
 
     // Deploy the contract
     L1ContractVerification verificationContract = new L1ContractVerification();
