@@ -122,6 +122,15 @@ commands:
     description: "Install the dependencies for the smart contracts"
     steps:
       - run:
+          name: Install SVM compilers
+          command: |
+            # Have to wipe out the SVM directory to avoid issues with the SVM version
+            rm -rf ~/.svm/*
+            svm install 0.8.15
+            svm install 0.8.19
+            svm install 0.8.25
+            svm install 0.8.28
+      - run:
           name: Install dependencies
           command: |
             # Manually craft the submodule update command in order to take advantage
