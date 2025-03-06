@@ -62,7 +62,7 @@ var (
 	L1RPCURLFlag = &cli.StringFlag{
 		Name: L1RPCURLFlagName,
 		Usage: "RPC URL for the L1 chain. Must be set for live chains. " +
-			"Can be blank for chains deploying to local allocs files.",
+			"Must be blank for chains deploying to local allocs files.",
 		EnvVars: []string{
 			"L1_RPC_URL",
 		},
