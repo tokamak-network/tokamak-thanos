@@ -9,6 +9,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   // State variables
   mapping(uint256 => mapping(bytes32 => ContractConfig)) public contractConfigs;
   mapping(uint256 => SafeConfig) public safeConfigs;
+  mapping(uint256 => address) public expectedNativeToken;
 
   //Bridge registry address
   address public L1BridgeRegistryV1_1Address;
@@ -47,6 +48,15 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     _setSafeConfig(chainId, tokamakDAO, foundation, threshold);
   }
 
+  // Setter of native token according to network
+  function setExpectedNativeToken(
+    uint256 chainId,
+    address tokenAddress
+  ) external onlyOwner {
+    require(tokenAddress != address(0), "Invalid token address");
+    expectedNativeToken[chainId] = tokenAddress;
+  }
+
   function verifyL1Contracts(
     uint256 chainId,
     address systemConfigProxy,
@@ -75,6 +85,13 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     require(
       _verifyL1Contracts(chainId, systemConfigProxy, safeWallet),
       'Contracts verification failed'
+    );
+
+    // Check whether L2 operator use TON as a native token
+    ISystemConfig systemConfig = ISystemConfig(systemConfigProxy);
+    require(
+      systemConfig.nativeTokenAddress() == expectedNativeToken[chainId],
+      'The native token you are using is not TON.'
     );
 
     // Then register the rollup configuration
