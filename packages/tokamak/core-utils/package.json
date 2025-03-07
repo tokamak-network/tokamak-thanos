@@ -20,14 +20,14 @@
     "test:coverage": "nyc ts-mocha test/**/*.spec.ts && nyc merge .nyc_output coverage.json"
   },
   "keywords": [
-    "optimism",
+    "thanos",
     "ethereum",
     "core",
     "utils"
   ],
   "homepage": "https://github.com/tokamak-network/tokamak-thanos/tree/main/packages/tokamak/core-utils#readme",
   "license": "MIT",
-  "author": "Optimism PBC",
+  "author": "Tokamak Network (The origin by Optimism PBC)",
   "repository": {
     "type": "git",
     "url": "https://github.com/tokamak-network/tokamak-thanos.git"
