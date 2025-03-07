@@ -10,6 +10,7 @@ interface ISystemConfig {
   function l1CrossDomainMessenger() external view returns (address);
   function l1StandardBridge() external view returns (address);
   function optimismPortal() external view returns (address);
+  function nativeTokenAddress() external view returns (address);
 }
 
 interface IL1BridgeRegistryV1_1 {
