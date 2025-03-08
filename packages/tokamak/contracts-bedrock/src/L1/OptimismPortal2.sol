@@ -543,8 +543,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         require(_data.length <= 120_000, "OptimismPortal: data too large");
 
         // Transform the from-address to its alias if the caller is a contract.
-        address from =
-            ((_sender != tx.origin)) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
+        address from = ((_sender != tx.origin)) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
