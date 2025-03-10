@@ -48,8 +48,8 @@ do
     else
       cp "${BIN_DIR}/prestate.json" "${STATES_DIR}/${HASH}.json"
     fi
-    VERSIONS_JSON=$(echo "${VERSIONS_JSON}" | jq ". += [{\"version\": \"${SHORT_VERSION}\", \"hash\": \"${HASH}\"}]")
-    echo "Built ${VERSION}: ${HASH}"
+    VERSIONS_JSON=$(echo "${VERSIONS_JSON}" | jq ". += [{\"version\": \"${SHORT_VERSION}\", \"hash\": \"${HASH}\", \"type\": \"cannon32\"}]")
+    echo "Built cannon32 ${VERSION}: ${HASH}"
 
     if [ -f "${BIN_DIR}/prestate-proof-mt64.json" ]; then
       HASH=$(cat "${BIN_DIR}/prestate-proof-mt64.json" | jq -r .pre)
