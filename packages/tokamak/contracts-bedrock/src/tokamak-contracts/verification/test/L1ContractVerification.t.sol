@@ -169,16 +169,14 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             SYSTEM_CONFIG_ID,
             address(systemConfigImpl).codehash,
-            address(systemConfigProxy).codehash,
-            address(proxyAdmin)
+            address(systemConfigProxy).codehash
         );
 
         // Verify the config was set correctly
-        (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin) = verifier.contractConfigs(CHAIN_ID, SYSTEM_CONFIG_ID);
+        (bytes32 implementationHash, bytes32 proxyHash) = verifier.getContractConfig(CHAIN_ID, SYSTEM_CONFIG_ID);
 
         assertEq(implementationHash, address(systemConfigImpl).codehash);
         assertEq(proxyHash, address(systemConfigProxy).codehash);
-        assertEq(expectedProxyAdmin, address(proxyAdmin));
 
         vm.stopPrank();
     }
@@ -190,7 +188,7 @@ contract L1ContractVerificationTest is Test {
         verifier.setSafeConfig(CHAIN_ID, tokamakDAO, foundation, 2);
 
         // Verify the config was set correctly
-        (address configTokamakDAO, address configFoundation, uint256 configThreshold) = verifier.safeConfigs(CHAIN_ID);
+        (address configTokamakDAO, address configFoundation, uint256 configThreshold) = verifier.getSafeConfig(CHAIN_ID);
 
         assertEq(configTokamakDAO, tokamakDAO);
         assertEq(configFoundation, foundation);
@@ -354,8 +352,7 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             SYSTEM_CONFIG_ID,
             bytes32(0),
-            bytes32(0),
-            address(0)
+            bytes32(0)
         );
 
         vm.expectRevert("Ownable: caller is not the owner");
@@ -399,8 +396,7 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             SYSTEM_CONFIG_ID,
             address(systemConfigImpl).codehash,
-            address(systemConfigProxy).codehash,
-            address(proxyAdmin)
+            address(systemConfigProxy).codehash
         );
 
         // Set contract config for L1StandardBridge
@@ -408,8 +404,7 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             L1_STANDARD_BRIDGE_ID,
             address(l1StandardBridgeImpl).codehash,
-            address(l1StandardBridgeProxy).codehash,
-            address(proxyAdmin)
+            address(l1StandardBridgeProxy).codehash
         );
 
         // Set contract config for L1CrossDomainMessenger
@@ -417,8 +412,7 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             L1_CROSS_DOMAIN_MESSENGER_ID,
             address(l1CrossDomainMessengerImpl).codehash,
-            address(l1CrossDomainMessengerProxy).codehash,
-            address(proxyAdmin)
+            address(l1CrossDomainMessengerProxy).codehash
         );
 
         // Set contract config for OptimismPortal
@@ -426,8 +420,7 @@ contract L1ContractVerificationTest is Test {
             CHAIN_ID,
             OPTIMISM_PORTAL_ID,
             address(optimismPortalImpl).codehash,
-            address(optimismPortalProxy).codehash,
-            address(proxyAdmin)
+            address(optimismPortalProxy).codehash
         );
 
         // Set safe config
