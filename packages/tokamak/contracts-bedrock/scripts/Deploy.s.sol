@@ -73,6 +73,9 @@ import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBri
 contract Deploy is Deployer {
     using stdJson for string;
 
+    // A state variable to store the contents of the JSON file
+    string jsonDeployment;
+
     /// @notice FaultDisputeGameParams is a struct that contains the parameters necessary to call
     ///         the function _setFaultGameImplementation. This struct exists because the EVM needs
     ///         to finally adopt PUSHN and get rid of stack too deep once and for all.
@@ -288,9 +291,25 @@ contract Deploy is Deployer {
         _run();
     }
 
+    /// @notice Read the JSON file once and store it in jsonCache to get the deployed implementation contract address
+    function setUp() public {
+        uint256 chainid = block.chainid;
+        /// After deployment to mainnet we will add path of deployment file
+        // if (chainid == Chains.Mainnet) {
+        //     jsonCache = vm.readFile("./")
+        // }
+        if (chainid == Chains.Sepolia) {
+            jsonDeployment = vm.readFile("./deployments/thanos-stack-sepolia/address.json");
+        }
+    }
+
     /// @notice Internal function containing the deploy logic.
     function _run() internal virtual {
         console.log("start of L1 Deploy!");
+        // Get the deployment following the deploying network
+        if (cfg.isFirstDeploy() == false) {
+            setUp();
+        }
         deploySafe("SystemOwnerSafe");
         console.log("deployed Safe!");
         setupSuperchain();
@@ -389,13 +408,17 @@ contract Deploy is Deployer {
     /// @notice Deploy all of the implementations
     function deployImplementations() public {
         console.log("Deploying implementations");
-        deployL1CrossDomainMessenger();
+
+        // 첫 번째 배포인 경우에만 실행
+        if (cfg.isFirstDeploy()) {
+            deployL1CrossDomainMessenger();
+            deploySystemConfig();
+            deployL1StandardBridge();
+            deployOptimismPortal();
+            deployL2OutputOracle();
+        }
         deployOptimismMintableERC20Factory();
-        deploySystemConfig();
-        deployL1StandardBridge();
         deployL1ERC721Bridge();
-        deployOptimismPortal();
-        deployL2OutputOracle();
 
         // Fault proofs
         deployOptimismPortal2();
@@ -1112,7 +1135,15 @@ contract Deploy is Deployer {
     function initializeSystemConfig() public broadcast {
         console.log("Upgrading and initializing SystemConfig proxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
-        address systemConfig = mustGetAddress("SystemConfig");
+        address systemConfig;
+        if (cfg.isFirstDeploy()) {
+        // If it's the first deployment, it's taken from the present deployment history
+            systemConfig = mustGetAddress("OptimismPortal");
+        } else {
+        // For duplicate deployments, the jsonDeployment variable is used to read the address.
+          address systemConfig = jsonDeployment.readAddress(".SystemConfig");
+          console.log("SystemConfig address from JSON: %s", systemConfig);
+        }
 
         bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
 
@@ -1168,7 +1199,15 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing L1StandardBridge proxy");
         ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
-        address l1StandardBridge = mustGetAddress("L1StandardBridge");
+        address l1StandardBridge;
+        if (cfg.isFirstDeploy()) {
+        // If it's the first deployment, it's taken from the present deployment history
+            l1StandardBridge = mustGetAddress("L1StandardBridge");
+        } else {
+        // For duplicate deployments, the jsonDeployment variable is used to read the address.
+          address l1StandardBridge = jsonDeployment.readAddress(".L1StandardBridge");
+          console.log("L1StandardBridge address from JSON: %s", l1StandardBridge);
+        }
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
@@ -1252,7 +1291,15 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing L1CrossDomainMessenger proxy");
         ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
+        address l1CrossDomainMessenger;
+        if (cfg.isFirstDeploy()) {
+        // If it's the first deployment, it's taken from the present deployment history
+            l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
+        } else {
+        // For duplicate deployments, the jsonDeployment variable is used to read the address.
+          address l1CrossDomainMessenger = jsonDeployment.readAddress(".L1CrossDomainMessenger");
+          console.log("L1CrossDomainMessenger address from JSON: %s", l1CrossDomainMessenger);
+        }
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
@@ -1306,7 +1353,15 @@ contract Deploy is Deployer {
     function initializeL2OutputOracle() public broadcast {
         console.log("Upgrading and initializing L2OutputOracle proxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
-        address l2OutputOracle = mustGetAddress("L2OutputOracle");
+        address l2OutputOracle;
+        if (cfg.isFirstDeploy()) {
+        // If it's the first deployment, it's taken from the present deployment history
+            l2OutputOracle = mustGetAddress("L2OutputOracle");
+        } else {
+        // For duplicate deployments, the jsonDeployment variable is used to read the address.
+          address l2OutputOracle = jsonDeployment.readAddress(".L2OutputOracle");
+          console.log("L2OutputOracle address from JSON: %s", l2OutputOracle);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l2OutputOracleProxy),
@@ -1341,7 +1396,16 @@ contract Deploy is Deployer {
     function initializeOptimismPortal() public broadcast {
         console.log("Upgrading and initializing OptimismPortal proxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
-        address optimismPortal = mustGetAddress("OptimismPortal");
+        address optimismPortal;
+        if (cfg.isFirstDeploy()) {
+        // If it's the first deployment, it's taken from the present deployment history
+            optimismPortal = mustGetAddress("OptimismPortal");
+        } else {
+        // For duplicate deployments, the jsonDeployment variable is used to read the address.
+          address optimismPortal = jsonDeployment.readAddress(".OptimismPortal");
+          console.log("OptimismPortal address from JSON: %s", optimismPortal);
+        }
+
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
