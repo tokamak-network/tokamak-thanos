@@ -292,7 +292,7 @@ contract Deploy is Deployer {
     }
 
     /// @notice Read the JSON file once and store it in jsonCache to get the deployed implementation contract address
-    function setUp() public {
+    function getDeployment() public {
         uint256 chainid = block.chainid;
         /// After deployment to mainnet we will add path of deployment file
         // if (chainid == Chains.Mainnet) {
@@ -308,7 +308,7 @@ contract Deploy is Deployer {
         console.log("start of L1 Deploy!");
         // Get the deployment following the deploying network
         if (cfg.isFirstDeploy() == false) {
-            setUp();
+            getDeployment();
         }
         deploySafe("SystemOwnerSafe");
         console.log("deployed Safe!");
