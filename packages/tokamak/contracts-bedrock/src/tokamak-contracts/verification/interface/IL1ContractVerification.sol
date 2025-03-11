@@ -32,16 +32,15 @@ interface IL1ContractVerification {
 
   struct SafeConfig {
     address tokamakDAO;
+    address foundation;
+    address thirdOwner;
     uint256 requiredThreshold;
   }
 
   // Events
   event ConfigurationSet(bytes32 indexed contractId);
   event VerificationSuccess(address indexed verifier);
-  event VerificationFailure(
-    address indexed operator,
-    string reason
-  );
+  event VerificationFailure(address indexed operator, string reason);
   event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
 
@@ -55,18 +54,15 @@ interface IL1ContractVerification {
 
   function setSafeConfig(
     address tokamakDAO,
+    address foundation,
+    address thirdOwner,
     uint256 threshold
   ) external;
 
-  function verifyL1Contracts(
-    address systemConfigProxy,
-    address safeWallet
-  ) external returns (bool);
+  function verifyL1Contracts(address systemConfigProxy) external returns (bool);
 
   function verifyAndRegisterRollupConfig(
     address systemConfigProxy,
-    address safeWallet,
-    address rollupConfig,
     uint8 _type,
     address _l2TON,
     string calldata _name
@@ -76,13 +72,20 @@ interface IL1ContractVerification {
 
   /**
    * @notice Get the safe configuration for a specific chain
-   * @return tokamakDAO The address of the TokamakDAO owner
+   * @return tokamakDAO The address of the safe owner
+   * @return foundation The address of the safe owner
+   * @return thirdOwner The address of the safe owner
    * @return requiredThreshold The required threshold for the safe
    */
   function getSafeConfig()
     external
     view
-    returns (address tokamakDAO, uint256 requiredThreshold);
+    returns (
+      address tokamakDAO,
+      address foundation,
+      address thirdOwner,
+      uint256 requiredThreshold
+    );
 
   /**
    * @notice Get the contract configuration for a specific chain and contract ID
@@ -91,24 +94,28 @@ interface IL1ContractVerification {
    * @return proxyHash The hash of the proxy contract code
    * @return expectedProxyAdmin The expected admin address for the proxy
    */
-  function getContractConfig(bytes32 contractId)
+  function getContractConfig(
+    bytes32 contractId
+  )
     external
     view
-    returns (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin);
+    returns (
+      bytes32 implementationHash,
+      bytes32 proxyHash,
+      address expectedProxyAdmin
+    );
 
   /**
    * @notice Set whether safe verification is required for a specific chain
-   * @param chainId The chain ID to set the requirement for
    * @param required Whether safe verification is required
    */
-  function setSafeVerificationRequired(uint256 chainId, bool required) external;
+  function setSafeVerificationRequired(bool required) external;
 
   /**
    * @notice Set the expected native token for a specific chain
-   * @param chainId The chain ID to set the token for
    * @param tokenAddress The address of the expected native token
    */
-  function setExpectedNativeToken(uint256 chainId, address tokenAddress) external;
+  function setExpectedNativeToken(address tokenAddress) external;
 
   /**
    * @notice Get the ProxyAdmin contract address
