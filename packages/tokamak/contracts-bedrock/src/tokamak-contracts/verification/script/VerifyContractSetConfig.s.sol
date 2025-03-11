@@ -9,7 +9,8 @@ contract VerifyContractSetConfig is Script {
   // Contract IDs
   bytes32 constant SYSTEM_CONFIG_ID = keccak256('SYSTEM_CONFIG');
   bytes32 constant L1_STANDARD_BRIDGE_ID = keccak256('L1_STANDARD_BRIDGE');
-  bytes32 constant L1_CROSS_DOMAIN_MESSENGER_ID = keccak256('L1_CROSS_DOMAIN_MESSENGER');
+  bytes32 constant L1_CROSS_DOMAIN_MESSENGER_ID =
+    keccak256('L1_CROSS_DOMAIN_MESSENGER');
   bytes32 constant OPTIMISM_PORTAL_ID = keccak256('OPTIMISM_PORTAL');
 
   // Environment variables
@@ -27,30 +28,35 @@ contract VerifyContractSetConfig is Script {
   address proxyAdmin;
   address verifierAddress;
   address tokamakDAO;
+  address foundation;
+  address thirdOwner;
+  address bridgeAddress;
 
   function setUp() public {
     // Load environment variables
-    chainId = vm.envUint("CHAIN_ID");
-    systemConfigProxy = vm.envAddress("SYSTEM_CONFIG_PROXY");
-    l1StandardBridge = vm.envAddress("L1_STANDARD_BRIDGE");
-    l1CrossDomainMessenger = vm.envAddress("L1_CROSS_DOMAIN_MESSENGER");
-    optimismPortal = vm.envAddress("OPTIMISM_PORTAL");
-    safeWallet = vm.envAddress("SAFE_WALLET");
-    systemConfigImpl = vm.envAddress("SYSTEM_CONFIG_IMPL");
-    l1StandardBridgeImpl = vm.envAddress("L1_STANDARD_BRIDGE_IMPL");
-    l1CrossDomainMessengerImpl = vm.envAddress("L1_CROSS_DOMAIN_MESSENGER_IMPL");
-    optimismPortalImpl = vm.envAddress("OPTIMISM_PORTAL_IMPL");
-    nativeTokenAddress = vm.envAddress("NATIVE_TOKEN_ADDRESS");
-    proxyAdmin = vm.envAddress("PROXY_ADMIN_CONTRACT_ADDRESS");
-    verifierAddress = vm.envAddress("VERIFIER_ADDRESS");
-    tokamakDAO = vm.envAddress("TOKAMAK_DAO_ADDRESS");
+    chainId = vm.envUint('CHAIN_ID');
+    systemConfigProxy = vm.envAddress('SYSTEM_CONFIG_PROXY');
+    l1StandardBridge = vm.envAddress('L1_STANDARD_BRIDGE');
+    l1CrossDomainMessenger = vm.envAddress('L1_CROSS_DOMAIN_MESSENGER');
+    optimismPortal = vm.envAddress('OPTIMISM_PORTAL');
+    safeWallet = vm.envAddress('SAFE_WALLET');
+    systemConfigImpl = vm.envAddress('SYSTEM_CONFIG_IMPL');
+    l1StandardBridgeImpl = vm.envAddress('L1_STANDARD_BRIDGE_IMPL');
+    l1CrossDomainMessengerImpl = vm.envAddress(
+      'L1_CROSS_DOMAIN_MESSENGER_IMPL'
+    );
+    optimismPortalImpl = vm.envAddress('OPTIMISM_PORTAL_IMPL');
+    nativeTokenAddress = vm.envAddress('NATIVE_TOKEN_ADDRESS');
+    proxyAdmin = vm.envAddress('PROXY_ADMIN_CONTRACT_ADDRESS');
+    verifierAddress = vm.envAddress('VERIFIER_ADDRESS');
+    tokamakDAO = vm.envAddress('TOKAMAK_DAO_ADDRESS');
+    foundation = vm.envAddress('FOUNDATION_ADDRESS');
+    thirdOwner = vm.envAddress('THIRD_OWNER_ADDRESS');
+    bridgeAddress = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
   }
 
   function setSafeConfig(L1ContractVerification verifier) internal {
-    verifier.setSafeConfig(
-      tokamakDAO,  // TokamakDAO address (using Safe address for now)
-      1            // Threshold (matches the actual threshold)
-    );
+    verifier.setSafeConfig(tokamakDAO, foundation, thirdOwner, 3);
   }
 
   function verifyAndSetContractConfig(
@@ -70,11 +76,10 @@ contract VerifyContractSetConfig is Script {
     );
   }
 
-  function verifyL1Contracts(L1ContractVerification verifier) internal returns (bool) {
-    return verifier.verifyL1Contracts(
-      systemConfigProxy,
-      safeWallet
-    );
+  function verifyL1Contracts(
+    L1ContractVerification verifier
+  ) internal returns (bool) {
+    return verifier.verifyL1Contracts(systemConfigProxy);
   }
 
   function run() external {
@@ -85,8 +90,8 @@ contract VerifyContractSetConfig is Script {
 
     // Configure the verifier
     setSafeConfig(verifier);
-    verifier.setSafeVerificationRequired(chainId, true);
-    verifier.setExpectedNativeToken(chainId, nativeTokenAddress);
+    verifier.setSafeVerificationRequired(true);
+    verifier.setExpectedNativeToken(nativeTokenAddress);
 
     // Set contract configurations
     verifyAndSetContractConfig(
@@ -120,6 +125,21 @@ contract VerifyContractSetConfig is Script {
     // Verify L1 contracts
     bool success = verifyL1Contracts(verifier);
     console.log('Verification result:', success);
+
+    verifier.setBridgeRegistryAddress(bridgeAddress);
+
+    // Verify and setup config
+    bool verifyAndRegisterRollupConfigResult = verifier
+      .verifyAndRegisterRollupConfig(
+        systemConfigProxy,
+        2,
+        nativeTokenAddress,
+        'TestRollup'
+      );
+    console.log(
+      'Verify and register rollup config result:',
+      verifyAndRegisterRollupConfigResult
+    );
 
     vm.stopBroadcast();
   }
