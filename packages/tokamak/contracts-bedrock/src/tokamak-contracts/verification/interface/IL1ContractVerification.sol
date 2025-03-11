@@ -36,39 +36,34 @@ interface IL1ContractVerification {
   }
 
   // Events
-  event ConfigurationSet(uint256 indexed chainId, bytes32 indexed contractId);
-  event VerificationSuccess(address indexed verifier, uint256 indexed chainId);
+  event ConfigurationSet(bytes32 indexed contractId);
+  event VerificationSuccess(address indexed verifier);
   event VerificationFailure(
     address indexed operator,
-    uint256 chainId,
     string reason
   );
-  event RegistrationSuccess(address indexed verifier, uint256 indexed chainId);
+  event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
 
   // Functions
   function setContractConfig(
-    uint256 chainId,
     bytes32 contractId,
     bytes32 implementationHash,
     bytes32 proxyHash
   ) external;
 
   function setSafeConfig(
-    uint256 chainId,
     address tokamakDAO,
     address foundation,
     uint256 threshold
   ) external;
 
   function verifyL1Contracts(
-    uint256 chainId,
     address systemConfigProxy,
     address safeWallet
   ) external returns (bool);
 
   function verifyAndRegisterRollupConfig(
-    uint256 chainId,
     address systemConfigProxy,
     address safeWallet,
     address rollupConfig,
@@ -81,24 +76,22 @@ interface IL1ContractVerification {
 
   /**
    * @notice Get the safe configuration for a specific chain
-   * @param chainId The chain ID to get the safe config for
    * @return tokamakDAO The address of the TokamakDAO owner
    * @return foundation The address of the Foundation owner
    * @return requiredThreshold The required threshold for the safe
    */
-  function getSafeConfig(uint256 chainId)
+  function getSafeConfig()
     external
     view
     returns (address tokamakDAO, address foundation, uint256 requiredThreshold);
 
   /**
    * @notice Get the contract configuration for a specific chain and contract ID
-   * @param chainId The chain ID to get the contract config for
    * @param contractId The contract ID to get the config for
    * @return implementationHash The hash of the implementation contract code
    * @return proxyHash The hash of the proxy contract code
    */
-  function getContractConfig(uint256 chainId, bytes32 contractId)
+  function getContractConfig(bytes32 contractId)
     external
     view
     returns (bytes32 implementationHash, bytes32 proxyHash);
