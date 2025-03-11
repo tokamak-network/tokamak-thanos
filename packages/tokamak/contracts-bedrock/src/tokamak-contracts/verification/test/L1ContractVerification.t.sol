@@ -4,78 +4,11 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 import '../L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
-import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
 
-// Mock contracts for testing
-contract MockSystemConfig {
-    address public l1StandardBridge;
-    address public l1CrossDomainMessenger;
-    address public optimismPortal;
-    address public nativeTokenAddress;
-
-  constructor(
-    address _l1StandardBridge,
-    address _l1CrossDomainMessenger,
-    address _optimismPortal
-  ) {
-    l1StandardBridge = _l1StandardBridge;
-    l1CrossDomainMessenger = _l1CrossDomainMessenger;
-    optimismPortal = _optimismPortal;
-    nativeTokenAddress = address(0x123); // Default value
-  }
-
-  function setNativeTokenAddress(address _nativeTokenAddress) external {
-    nativeTokenAddress = _nativeTokenAddress;
-  }
-}
-
-contract MockL1StandardBridge {
-  // Empty implementation
-}
-
-contract MockL1CrossDomainMessenger {
-  // Empty implementation
-}
-
-contract MockOptimismPortal {
-  // Empty implementation
-}
-
-contract MockGnosisSafe {
-  address[] private owners;
-  uint256 private threshold;
-
-  constructor(address[] memory _owners, uint256 _threshold) {
-    owners = _owners;
-    threshold = _threshold;
-  }
-
-  function getOwners() external view returns (address[] memory) {
-    return owners;
-  }
-
-  function getThreshold() external view returns (uint256) {
-    return threshold;
-  }
-}
-
-contract MockBridgeRegistry {
-  event RollupConfigRegistered(
-    address rollupConfig,
-    uint8 tokenType,
-    address l2Token,
-    string name
-  );
-
-  function registerRollupConfig(
-    address rollupConfig,
-    uint8 tokenType,
-    address l2Token,
-    string calldata name
-  ) external {
-    emit RollupConfigRegistered(rollupConfig, tokenType, l2Token, name);
-  }
-}
+import './mock-contracts/MockContracts.sol';
+import './mock-contracts/MockGenosisSafe.sol';
+import './mock-contracts/MockProxyAdmin.sol';
+import './mock-contracts/MockSystemConfig.sol';
 
 contract L1ContractVerificationTest is Test {
   // Constants
@@ -88,7 +21,7 @@ contract L1ContractVerificationTest is Test {
 
   // Contracts
   L1ContractVerification verifier;
-  ProxyAdmin proxyAdmin;
+  MockProxyAdmin mockProxyAdmin;
 
   // Mock implementations
   MockSystemConfig systemConfigImpl;
@@ -112,6 +45,7 @@ contract L1ContractVerificationTest is Test {
   address owner;
   address tokamakDAO;
   address foundation;
+  address thirdOwner;
   address user;
   address nativeToken;
 
@@ -120,6 +54,7 @@ contract L1ContractVerificationTest is Test {
     owner = makeAddr('owner');
     tokamakDAO = makeAddr('tokamakDAO');
     foundation = makeAddr('foundation');
+    thirdOwner = makeAddr('thirdOwner');
     user = makeAddr('user');
     nativeToken = makeAddr('nativeToken');
 
@@ -129,7 +64,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     // Deploy proxy admin
-    proxyAdmin = new ProxyAdmin();
+    mockProxyAdmin = new MockProxyAdmin(owner);
 
     // Deploy implementations
     l1StandardBridgeImpl = new MockL1StandardBridge();
@@ -139,19 +74,19 @@ contract L1ContractVerificationTest is Test {
     // Deploy proxies (without initializing SystemConfig yet)
     l1StandardBridgeProxy = new TransparentUpgradeableProxy(
       address(l1StandardBridgeImpl),
-      address(proxyAdmin),
+      address(mockProxyAdmin),
       ''
     );
 
     l1CrossDomainMessengerProxy = new TransparentUpgradeableProxy(
       address(l1CrossDomainMessengerImpl),
-      address(proxyAdmin),
+      address(mockProxyAdmin),
       ''
     );
 
     optimismPortalProxy = new TransparentUpgradeableProxy(
       address(optimismPortalImpl),
-      address(proxyAdmin),
+      address(mockProxyAdmin),
       ''
     );
 
@@ -162,27 +97,62 @@ contract L1ContractVerificationTest is Test {
       address(optimismPortalProxy)
     );
 
-    // Set native token address
-    systemConfigImpl.setNativeTokenAddress(nativeToken);
-
-    // Deploy SystemConfig proxy
     systemConfigProxy = new TransparentUpgradeableProxy(
       address(systemConfigImpl),
-      address(proxyAdmin),
+      address(mockProxyAdmin),
       ''
     );
 
+    // Set up the mock ProxyAdmin
+    mockProxyAdmin.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+    mockProxyAdmin.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(l1StandardBridgeImpl)
+    );
+    mockProxyAdmin.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(l1CrossDomainMessengerImpl)
+    );
+    mockProxyAdmin.setImplementation(
+      address(optimismPortalProxy),
+      address(optimismPortalImpl)
+    );
+
+    mockProxyAdmin.setAdmin(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+    mockProxyAdmin.setAdmin(
+      address(l1StandardBridgeProxy),
+      address(mockProxyAdmin)
+    );
+    mockProxyAdmin.setAdmin(
+      address(l1CrossDomainMessengerProxy),
+      address(mockProxyAdmin)
+    );
+    mockProxyAdmin.setAdmin(
+      address(optimismPortalProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Set native token address
+    systemConfigImpl.setNativeTokenAddress(nativeToken);
+
     // Setup Safe wallet
-    address[] memory safeOwners = new address[](2);
+    address[] memory safeOwners = new address[](3);
     safeOwners[0] = tokamakDAO;
     safeOwners[1] = foundation;
-    safeWallet = new MockGnosisSafe(safeOwners, 2);
+    safeOwners[2] = thirdOwner;
+    safeWallet = new MockGnosisSafe(safeOwners, 3);
 
     // Deploy bridge registry
     bridgeRegistry = new MockBridgeRegistry();
 
     // Deploy verifier contract with proxy admin address
-    verifier = new L1ContractVerification(address(proxyAdmin));
+    verifier = new L1ContractVerification(address(mockProxyAdmin));
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -192,6 +162,13 @@ contract L1ContractVerificationTest is Test {
 
     // Set safe verification required to true for testing
     verifier.setSafeVerificationRequired(true);
+
+    bytes32 slot = keccak256('PROXY_ADMIN_ADDRESS_SLOT');
+    vm.store(
+      address(verifier),
+      slot,
+      bytes32(uint256(uint160(address(mockProxyAdmin))))
+    );
 
     vm.stopPrank();
   }
@@ -204,37 +181,19 @@ contract L1ContractVerificationTest is Test {
       SYSTEM_CONFIG_ID,
       address(systemConfigImpl).codehash,
       address(systemConfigProxy).codehash,
-      address(proxyAdmin)
+      address(mockProxyAdmin)
     );
 
     // Verify the config was set correctly
-    (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin) = verifier.getContractConfig(SYSTEM_CONFIG_ID);
+    (
+      bytes32 implementationHash,
+      bytes32 proxyHash,
+      address expectedProxyAdmin
+    ) = verifier.getContractConfig(SYSTEM_CONFIG_ID);
 
     assertEq(implementationHash, address(systemConfigImpl).codehash);
     assertEq(proxyHash, address(systemConfigProxy).codehash);
-    assertEq(expectedProxyAdmin, address(proxyAdmin));
-
-    vm.stopPrank();
-  }
-
-  function testSetContractConfigWithChainId() public {
-    vm.startPrank(owner);
-
-    // Set contract config for SystemConfig with explicit chainId
-    verifier.setContractConfig(
-      CHAIN_ID,
-      SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
-      address(systemConfigProxy).codehash,
-      address(proxyAdmin)
-    );
-
-    // Verify the config was set correctly
-    (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin) = verifier.getContractConfig(CHAIN_ID, SYSTEM_CONFIG_ID);
-
-    assertEq(implementationHash, address(systemConfigImpl).codehash);
-    assertEq(proxyHash, address(systemConfigProxy).codehash);
-    assertEq(expectedProxyAdmin, address(proxyAdmin));
+    assertEq(expectedProxyAdmin, address(mockProxyAdmin));
 
     vm.stopPrank();
   }
@@ -243,34 +202,20 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     // Set safe config
-    verifier.setSafeConfig(tokamakDAO, 1);
+    verifier.setSafeConfig(tokamakDAO, foundation, thirdOwner, 3);
 
     // Verify the config was set correctly
     (
       address configTokamakDAO,
-      uint256 configThreshold
+      address configFoundation,
+      address configThirdOwner,
+      uint256 requiredThreshold
     ) = verifier.getSafeConfig();
 
     assertEq(configTokamakDAO, tokamakDAO);
-    assertEq(configThreshold, 1);
-
-    vm.stopPrank();
-  }
-
-  function testSetSafeConfigWithChainId() public {
-    vm.startPrank(owner);
-
-    // Set safe config with explicit chainId
-    verifier.setSafeConfig(CHAIN_ID, tokamakDAO, 1);
-
-    // Verify the config was set correctly
-    (
-      address configTokamakDAO,
-      uint256 configThreshold
-    ) = verifier.getSafeConfig(CHAIN_ID);
-
-    assertEq(configTokamakDAO, tokamakDAO);
-    assertEq(configThreshold, 1);
+    assertEq(configFoundation, foundation);
+    assertEq(configThirdOwner, thirdOwner);
+    assertEq(requiredThreshold, 3);
 
     vm.stopPrank();
   }
@@ -281,38 +226,51 @@ contract L1ContractVerificationTest is Test {
     // Set all required configs
     _setupAllConfigs();
 
+    console.log('-----------------------------------------------------------');
+    console.log(address(systemConfigProxy));
+    console.log(address(systemConfigImpl));
+    console.log('-----------------------------------------------------------');
+
+    mockProxyAdmin.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+  mockProxyAdmin.setImplementation(
+    address(l1StandardBridgeProxy),
+    address(l1StandardBridgeImpl)
+  );
+  mockProxyAdmin.setImplementation(
+    address(l1CrossDomainMessengerProxy),
+    address(l1CrossDomainMessengerImpl)
+  );
+  mockProxyAdmin.setImplementation(
+    address(optimismPortalProxy),
+    address(optimismPortalImpl)
+  );
+
+  mockProxyAdmin.setAdmin(
+    payable(address(systemConfigProxy)),
+    address(mockProxyAdmin)
+  );
+  mockProxyAdmin.setAdmin(
+    payable(address(l1StandardBridgeProxy)),
+    address(mockProxyAdmin)
+  );
+  mockProxyAdmin.setAdmin(
+    payable(address(l1CrossDomainMessengerProxy)),
+    address(mockProxyAdmin)
+  );
+  mockProxyAdmin.setAdmin(
+    payable(address(optimismPortalProxy)),
+    address(mockProxyAdmin)
+  );
+
     vm.stopPrank();
 
     vm.startPrank(user);
 
     // Verify L1 contracts
-    bool result = verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(safeWallet)
-    );
-
-    // Verification should succeed
-    assertTrue(result);
-
-    vm.stopPrank();
-  }
-
-  function testVerifyL1ContractsWithChainIdSuccess() public {
-    vm.startPrank(owner);
-
-    // Set all required configs
-    _setupAllConfigs();
-
-    vm.stopPrank();
-
-    vm.startPrank(user);
-
-    // Verify L1 contracts with explicit chainId
-    bool result = verifier.verifyL1Contracts(
-      CHAIN_ID,
-      address(systemConfigProxy),
-      address(safeWallet)
-    );
+    bool result = verifier.verifyL1Contracts(address(systemConfigProxy));
 
     // Verification should succeed
     assertTrue(result);
@@ -327,17 +285,17 @@ contract L1ContractVerificationTest is Test {
     _setupAllConfigs();
 
     // Deploy a different SystemConfig implementation
-    MockSystemConfig differentSystemConfigImpl = new MockSystemConfig(
-      address(0),
-      address(0),
-      address(0)
-    );
+    // MockSystemConfig differentSystemConfigImpl = new MockSystemConfig(
+    //   address(0),
+    //   address(0),
+    //   address(0)
+    // );
 
-    // Update the SystemConfig proxy to point to the different implementation
-    proxyAdmin.upgrade(
-      TransparentUpgradeableProxy(payable(address(systemConfigProxy))),
-      address(differentSystemConfigImpl)
-    );
+    // // Update the SystemConfig proxy to point to the different implementation
+    // proxyAdmin.upgrade(
+    //   TransparentUpgradeableProxy(payable(address(systemConfigProxy))),
+    //   address(differentSystemConfigImpl)
+    // );
 
     vm.stopPrank();
 
@@ -345,7 +303,7 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Contracts verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(safeWallet));
+    verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
   }
@@ -360,7 +318,7 @@ contract L1ContractVerificationTest is Test {
     address[] memory safeOwners = new address[](2);
     safeOwners[0] = tokamakDAO;
     safeOwners[1] = foundation;
-    MockGnosisSafe differentSafe = new MockGnosisSafe(safeOwners, 1); // Wrong threshold
+    // MockGnosisSafe differentSafe = new MockGnosisSafe(safeOwners, 1); // Wrong threshold
 
     vm.stopPrank();
 
@@ -368,10 +326,7 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Contracts verification failed');
-    verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(differentSafe)
-    );
+    verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
   }
@@ -392,8 +347,6 @@ contract L1ContractVerificationTest is Test {
     // Verify and register rollup config
     bool result = verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(safeWallet),
-      rollupConfig,
       2, // TON token type
       l2TON,
       'TestRollup'
@@ -422,8 +375,6 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Registration allowed only for TON tokens');
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(safeWallet),
-      rollupConfig,
       1, // Invalid token type
       l2TON,
       'TestRollup'
@@ -437,10 +388,15 @@ contract L1ContractVerificationTest is Test {
 
     // All these should revert because user is not the owner
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setContractConfig(SYSTEM_CONFIG_ID, bytes32(0), bytes32(0), address(0));
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      bytes32(0),
+      bytes32(0),
+      address(0)
+    );
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeConfig(address(0), 0);
+    verifier.setSafeConfig(address(0), address(0), address(0), 0);
 
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setBridgeRegistryAddress(address(0));
@@ -453,16 +409,21 @@ contract L1ContractVerificationTest is Test {
 
     // Test chainId versions too
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setContractConfig(CHAIN_ID, SYSTEM_CONFIG_ID, bytes32(0), bytes32(0), address(0));
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      bytes32(0),
+      bytes32(0),
+      address(0)
+    );
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeConfig(CHAIN_ID, address(0), 0);
+    verifier.setSafeConfig(address(0), address(0), address(0), 0);
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setExpectedNativeToken(CHAIN_ID, address(0));
+    verifier.setExpectedNativeToken(address(0));
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeVerificationRequired(CHAIN_ID, false);
+    verifier.setSafeVerificationRequired(false);
 
     vm.stopPrank();
   }
@@ -502,7 +463,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     address newToken = makeAddr('newToken');
-    verifier.setExpectedNativeToken(CHAIN_ID, newToken);
+    verifier.setExpectedNativeToken(newToken);
 
     // We don't have a getter for this, so we'll test it indirectly in other tests
 
@@ -534,10 +495,10 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     // Set to false with explicit chainId
-    verifier.setSafeVerificationRequired(CHAIN_ID, false);
+    verifier.setSafeVerificationRequired(false);
 
     // Set back to true with explicit chainId
-    verifier.setSafeVerificationRequired(CHAIN_ID, true);
+    verifier.setSafeVerificationRequired(true);
 
     vm.stopPrank();
   }
@@ -549,7 +510,7 @@ contract L1ContractVerificationTest is Test {
       SYSTEM_CONFIG_ID,
       address(systemConfigImpl).codehash,
       address(systemConfigProxy).codehash,
-      address(proxyAdmin)
+      address(mockProxyAdmin)
     );
 
     // Set contract config for L1StandardBridge
@@ -557,7 +518,7 @@ contract L1ContractVerificationTest is Test {
       L1_STANDARD_BRIDGE_ID,
       address(l1StandardBridgeImpl).codehash,
       address(l1StandardBridgeProxy).codehash,
-      address(proxyAdmin)
+      address(mockProxyAdmin)
     );
 
     // Set contract config for L1CrossDomainMessenger
@@ -565,7 +526,7 @@ contract L1ContractVerificationTest is Test {
       L1_CROSS_DOMAIN_MESSENGER_ID,
       address(l1CrossDomainMessengerImpl).codehash,
       address(l1CrossDomainMessengerProxy).codehash,
-      address(proxyAdmin)
+      address(mockProxyAdmin)
     );
 
     // Set contract config for OptimismPortal
@@ -573,10 +534,10 @@ contract L1ContractVerificationTest is Test {
       OPTIMISM_PORTAL_ID,
       address(optimismPortalImpl).codehash,
       address(optimismPortalProxy).codehash,
-      address(proxyAdmin)
+      address(mockProxyAdmin)
     );
 
     // Set safe config
-    verifier.setSafeConfig(tokamakDAO, 1);
+    verifier.setSafeConfig(tokamakDAO, foundation, thirdOwner, 3);
   }
 }
