@@ -243,18 +243,16 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     // Set safe config
-    verifier.setSafeConfig(tokamakDAO, foundation, 2);
+    verifier.setSafeConfig(tokamakDAO, 1);
 
     // Verify the config was set correctly
     (
       address configTokamakDAO,
-      address configFoundation,
       uint256 configThreshold
     ) = verifier.getSafeConfig();
 
     assertEq(configTokamakDAO, tokamakDAO);
-    assertEq(configFoundation, foundation);
-    assertEq(configThreshold, 2);
+    assertEq(configThreshold, 1);
 
     vm.stopPrank();
   }
@@ -263,18 +261,16 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(owner);
 
     // Set safe config with explicit chainId
-    verifier.setSafeConfig(CHAIN_ID, tokamakDAO, foundation, 2);
+    verifier.setSafeConfig(CHAIN_ID, tokamakDAO, 1);
 
     // Verify the config was set correctly
     (
       address configTokamakDAO,
-      address configFoundation,
       uint256 configThreshold
     ) = verifier.getSafeConfig(CHAIN_ID);
 
     assertEq(configTokamakDAO, tokamakDAO);
-    assertEq(configFoundation, foundation);
-    assertEq(configThreshold, 2);
+    assertEq(configThreshold, 1);
 
     vm.stopPrank();
   }
@@ -444,7 +440,7 @@ contract L1ContractVerificationTest is Test {
     verifier.setContractConfig(SYSTEM_CONFIG_ID, bytes32(0), bytes32(0), address(0));
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeConfig(address(0), address(0), 0);
+    verifier.setSafeConfig(address(0), 0);
 
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setBridgeRegistryAddress(address(0));
@@ -460,7 +456,7 @@ contract L1ContractVerificationTest is Test {
     verifier.setContractConfig(CHAIN_ID, SYSTEM_CONFIG_ID, bytes32(0), bytes32(0), address(0));
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeConfig(CHAIN_ID, address(0), address(0), 0);
+    verifier.setSafeConfig(CHAIN_ID, address(0), 0);
 
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setExpectedNativeToken(CHAIN_ID, address(0));
@@ -581,6 +577,6 @@ contract L1ContractVerificationTest is Test {
     );
 
     // Set safe config
-    verifier.setSafeConfig(tokamakDAO, foundation, 2);
+    verifier.setSafeConfig(tokamakDAO, 1);
   }
 }
