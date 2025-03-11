@@ -55,10 +55,9 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
 
   function setSafeConfig(
     address tokamakDAO,
-    address foundation,
     uint256 threshold
   ) external onlyOwner {
-    _setSafeConfig(block.chainid, tokamakDAO, foundation, threshold);
+    _setSafeConfig(block.chainid, tokamakDAO, threshold);
   }
 
   function setExpectedNativeToken(address tokenAddress) external onlyOwner {
@@ -71,7 +70,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address safeWallet
   ) external returns (bool) {
     require(
-      _verifyL1Contracts(block.chainid, systemConfigProxy, safeWallet),
+      _verifyL1Contracts(block.chainid, systemConfigProxy),
       'Contracts verification failed'
     );
     emit VerificationSuccess(msg.sender);
@@ -88,7 +87,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   ) external returns (bool) {
     require(_type == 2, 'Registration allowed only for TON tokens');
     require(
-      _verifyL1Contracts(block.chainid, systemConfigProxy, safeWallet),
+      _verifyL1Contracts(block.chainid, systemConfigProxy),
       'Contracts verification failed'
     );
 
@@ -141,10 +140,10 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function setSafeConfig(
     uint256 chainId,
     address tokamakDAO,
-    address foundation,
+    // address foundation,
     uint256 threshold
   ) external onlyOwner {
-    _setSafeConfig(chainId, tokamakDAO, foundation, threshold);
+    _setSafeConfig(chainId, tokamakDAO, threshold);
   }
 
   function setExpectedNativeToken(
@@ -169,7 +168,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address safeWallet
   ) external returns (bool) {
     require(
-      _verifyL1Contracts(chainId, systemConfigProxy, safeWallet),
+      _verifyL1Contracts(chainId, systemConfigProxy),
       'Contracts verification failed'
     );
     emit VerificationSuccess(msg.sender);
@@ -195,16 +194,15 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   /**
    * @notice Get the safe configuration for the current chain
    * @return tokamakDAO The address of the TokamakDAO owner
-   * @return foundation The address of the Foundation owner
    * @return requiredThreshold The required threshold for the safe
    */
   function getSafeConfig()
     external
     view
-    returns (address tokamakDAO, address foundation, uint256 requiredThreshold)
+    returns (address tokamakDAO, uint256 requiredThreshold)
   {
     SafeConfig storage config = chainConfigs[block.chainid].safeConfig;
-    return (config.tokamakDAO, config.foundation, config.requiredThreshold);
+    return (config.tokamakDAO, config.requiredThreshold);
   }
 
   // Internal functions
@@ -227,12 +225,10 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function _setSafeConfig(
     uint256 chainId,
     address tokamakDAO,
-    address foundation,
     uint256 threshold
   ) internal {
     chainConfigs[chainId].safeConfig = SafeConfig({
       tokamakDAO: tokamakDAO,
-      foundation: foundation,
       requiredThreshold: threshold
     });
   }
@@ -286,19 +282,16 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   ) internal view returns (bool) {
     IGnosisSafe safe = IGnosisSafe(safeWallet);
     SafeConfig storage safeConfig = chainConfigs[chainId].safeConfig;
-
     if (safe.getThreshold() != safeConfig.requiredThreshold) {
       return false;
     }
 
     address[] memory owners = safe.getOwners();
     bool foundTokamakDAO = false;
-    bool foundFoundation = false;
 
     for (uint i = 0; i < owners.length; i++) {
       if (owners[i] == safeConfig.tokamakDAO) foundTokamakDAO = true;
-      if (owners[i] == safeConfig.foundation) foundFoundation = true;
-      if (foundTokamakDAO && foundFoundation) break; // Exit early if both found
+      if (foundTokamakDAO) break; // Exit early if both found
     }
 
     return foundTokamakDAO && foundFoundation;
@@ -326,8 +319,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
 
   function _verifyL1Contracts(
     uint256 chainId,
-    address systemConfigProxy,
-    address safeWallet
+    address systemConfigProxy
   ) internal view returns (bool) {
     // Verify SystemConfig
     if (!_verifyContract(systemConfigProxy, SYSTEM_CONFIG, chainId)) {
@@ -353,6 +345,9 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
       return false;
     }
 
+    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
+
+    address safeWallet = proxyAdmin.owner();
     // Verify Safe configuration if required
     if (
       chainConfigs[chainId].safeVerificationRequired &&
@@ -385,15 +380,14 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    * @notice Get the safe configuration for a specific chain
    * @param chainId The chain ID to get the safe config for
    * @return tokamakDAO The address of the TokamakDAO owner
-   * @return foundation The address of the Foundation owner
    * @return requiredThreshold The required threshold for the safe
    */
   function getSafeConfig(uint256 chainId)
     external
     view
-    returns (address tokamakDAO, address foundation, uint256 requiredThreshold)
+    returns (address tokamakDAO, uint256 requiredThreshold)
   {
     SafeConfig storage config = chainConfigs[chainId].safeConfig;
-    return (config.tokamakDAO, config.foundation, config.requiredThreshold);
+    return (config.tokamakDAO, config.requiredThreshold);
   }
 }

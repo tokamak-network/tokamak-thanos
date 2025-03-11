@@ -26,6 +26,7 @@ contract VerifyContractSetConfig is Script {
   address nativeTokenAddress;
   address proxyAdmin;
   address verifierAddress;
+  address tokamakDAO;
 
   function setUp() public {
     // Load environment variables
@@ -42,12 +43,12 @@ contract VerifyContractSetConfig is Script {
     nativeTokenAddress = vm.envAddress("NATIVE_TOKEN_ADDRESS");
     proxyAdmin = vm.envAddress("PROXY_ADMIN_CONTRACT_ADDRESS");
     verifierAddress = vm.envAddress("VERIFIER_ADDRESS");
+    tokamakDAO = vm.envAddress("TOKAMAK_DAO_ADDRESS");
   }
 
   function setSafeConfig(L1ContractVerification verifier) internal {
     verifier.setSafeConfig(
-      safeWallet,  // TokamakDAO address (using Safe address for now)
-      safeWallet,  // Foundation address (using Safe address for now)
+      tokamakDAO,  // TokamakDAO address (using Safe address for now)
       1            // Threshold (matches the actual threshold)
     );
   }
@@ -84,7 +85,7 @@ contract VerifyContractSetConfig is Script {
 
     // Configure the verifier
     setSafeConfig(verifier);
-    verifier.setSafeVerificationRequired(chainId, false);
+    verifier.setSafeVerificationRequired(chainId, true);
     verifier.setExpectedNativeToken(chainId, nativeTokenAddress);
 
     // Set contract configurations
