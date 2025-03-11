@@ -32,7 +32,6 @@ interface IL1ContractVerification {
 
   struct SafeConfig {
     address tokamakDAO;
-    address foundation;
     uint256 requiredThreshold;
   }
 
@@ -56,7 +55,6 @@ interface IL1ContractVerification {
 
   function setSafeConfig(
     address tokamakDAO,
-    address foundation,
     uint256 threshold
   ) external;
 
@@ -79,13 +77,12 @@ interface IL1ContractVerification {
   /**
    * @notice Get the safe configuration for a specific chain
    * @return tokamakDAO The address of the TokamakDAO owner
-   * @return foundation The address of the Foundation owner
    * @return requiredThreshold The required threshold for the safe
    */
   function getSafeConfig()
     external
     view
-    returns (address tokamakDAO, address foundation, uint256 requiredThreshold);
+    returns (address tokamakDAO, uint256 requiredThreshold);
 
   /**
    * @notice Get the contract configuration for a specific chain and contract ID
