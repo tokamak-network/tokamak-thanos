@@ -51,7 +51,6 @@ contract VerifyContractSetConfig is Script {
 
   function setSafeConfig(L1ContractVerification verifier) internal {
     verifier.setSafeConfig(
-      chainId,
       safeWallet,  // TokamakDAO address (using Safe address for now)
       safeWallet,  // Foundation address (using Safe address for now)
       1            // Threshold (matches the actual threshold)
@@ -75,7 +74,6 @@ contract VerifyContractSetConfig is Script {
     bytes32 proxyHash = proxyAddress.codehash;
 
     verifier.setContractConfig(
-      chainId,
       contractId,
       implementationHash,
       proxyHash
@@ -84,7 +82,6 @@ contract VerifyContractSetConfig is Script {
 
   function verifyL1Contracts(L1ContractVerification verifier) internal returns (bool) {
     return verifier.verifyL1Contracts(
-      chainId,
       systemConfigProxy,
       safeWallet
     );
@@ -100,7 +97,7 @@ contract VerifyContractSetConfig is Script {
     setImplementationAddresses(verifier);
     setProxyAdmins(verifier);
     setSafeConfig(verifier);
-    verifier.setSafeVerificationRequired(chainId, false);
+    verifier.setSafeVerificationRequired(false);
 
     // Set contract configurations
     verifyAndSetContractConfig(
