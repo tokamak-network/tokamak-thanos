@@ -23,6 +23,7 @@ contract VerifyContractSetConfig is Script {
   address l1StandardBridgeImpl;
   address l1CrossDomainMessengerImpl;
   address optimismPortalImpl;
+  address nativeTokenAddress;
   address proxyAdmin;
   address verifierAddress;
 
@@ -38,15 +39,9 @@ contract VerifyContractSetConfig is Script {
     l1StandardBridgeImpl = vm.envAddress("L1_STANDARD_BRIDGE_IMPL");
     l1CrossDomainMessengerImpl = vm.envAddress("L1_CROSS_DOMAIN_MESSENGER_IMPL");
     optimismPortalImpl = vm.envAddress("OPTIMISM_PORTAL_IMPL");
-    proxyAdmin = vm.envAddress("PROXY_ADMIN");
+    nativeTokenAddress = vm.envAddress("NATIVE_TOKEN_ADDRESS");
+    proxyAdmin = vm.envAddress("PROXY_ADMIN_CONTRACT_ADDRESS");
     verifierAddress = vm.envAddress("VERIFIER_ADDRESS");
-  }
-
-  function setImplementationAddresses(L1ContractVerification verifier) internal {
-    verifier.setImplementationAddress(systemConfigProxy, systemConfigImpl);
-    verifier.setImplementationAddress(l1StandardBridge, l1StandardBridgeImpl);
-    verifier.setImplementationAddress(l1CrossDomainMessenger, l1CrossDomainMessengerImpl);
-    verifier.setImplementationAddress(optimismPortal, optimismPortalImpl);
   }
 
   function setSafeConfig(L1ContractVerification verifier) internal {
@@ -55,13 +50,6 @@ contract VerifyContractSetConfig is Script {
       safeWallet,  // Foundation address (using Safe address for now)
       1            // Threshold (matches the actual threshold)
     );
-  }
-
-  function setProxyAdmins(L1ContractVerification verifier) internal {
-    verifier.setProxyAdmin(systemConfigProxy, proxyAdmin);
-    verifier.setProxyAdmin(l1StandardBridge, proxyAdmin);
-    verifier.setProxyAdmin(l1CrossDomainMessenger, proxyAdmin);
-    verifier.setProxyAdmin(optimismPortal, proxyAdmin);
   }
 
   function verifyAndSetContractConfig(
@@ -76,7 +64,8 @@ contract VerifyContractSetConfig is Script {
     verifier.setContractConfig(
       contractId,
       implementationHash,
-      proxyHash
+      proxyHash,
+      proxyAdmin
     );
   }
 
@@ -94,10 +83,9 @@ contract VerifyContractSetConfig is Script {
     L1ContractVerification verifier = L1ContractVerification(verifierAddress);
 
     // Configure the verifier
-    setImplementationAddresses(verifier);
-    setProxyAdmins(verifier);
     setSafeConfig(verifier);
-    verifier.setSafeVerificationRequired(false);
+    verifier.setSafeVerificationRequired(chainId, false);
+    verifier.setExpectedNativeToken(chainId, nativeTokenAddress);
 
     // Set contract configurations
     verifyAndSetContractConfig(
