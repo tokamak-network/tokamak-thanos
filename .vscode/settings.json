@@ -12,5 +12,6 @@
   "eslint.nodePath": "./node_modules/eslint/bin/",
   "eslint.format.enable": true,
   "editorconfig.generateAuto": false,
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "solidity.compileUsingRemoteVersion": "v0.8.0+commit.c7dfd78e"
 }

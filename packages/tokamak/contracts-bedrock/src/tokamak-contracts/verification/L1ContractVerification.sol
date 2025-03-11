@@ -2,15 +2,12 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
 import './interface/IL1ContractVerification.sol';
+import './interface/IProxyAdmin.sol';
 
 contract L1ContractVerification is IL1ContractVerification, Ownable {
-  // Additional structs not in the interface
-  struct ProxyData {
-    address implementation;
-    address admin;
-  }
+  // ProxyAdmin contract address
+  address public immutable PROXY_ADMIN_ADDRESS;
 
   struct ChainConfig {
     mapping(bytes32 => ContractConfig) contractConfigs;
@@ -21,7 +18,6 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
 
   // Consolidated mappings
   mapping(uint256 => ChainConfig) public chainConfigs;
-  mapping(address => ProxyData) private proxyData;
 
   // Bridge registry address
   address public L1BridgeRegistryV1_1Address;
@@ -34,49 +30,27 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   bytes32 public constant SYSTEM_CONFIG = keccak256('SYSTEM_CONFIG');
 
   // Events
-  event ImplementationAddressSet(
-    address indexed proxyAddress,
-    address indexed implementationAddress
-  );
-  event ProxyAdminSet(
-    address indexed proxyAddress,
-    address indexed adminAddress
-  );
   event SafeVerificationRequiredSet(uint256 indexed chainId, bool required);
 
-  constructor() Ownable() {}
+  constructor(address _proxyAdminAddress) Ownable() {
+    require(_proxyAdminAddress != address(0), "Invalid proxy admin address");
+    PROXY_ADMIN_ADDRESS = _proxyAdminAddress;
+  }
 
   // External functions
   function setContractConfig(
     bytes32 contractId,
     bytes32 implementationHash,
-    bytes32 proxyHash
+    bytes32 proxyHash,
+    address expectedProxyAdmin
   ) external onlyOwner {
     _setContractConfig(
       block.chainid,
       contractId,
       implementationHash,
-      proxyHash
+      proxyHash,
+      expectedProxyAdmin
     );
-  }
-
-  function setImplementationAddress(
-    address proxyAddress,
-    address implementationAddress
-  ) external onlyOwner {
-    require(proxyAddress != address(0), 'Invalid proxy address');
-    require(
-      implementationAddress != address(0),
-      'Invalid implementation address'
-    );
-    proxyData[proxyAddress].implementation = implementationAddress;
-    emit ImplementationAddressSet(proxyAddress, implementationAddress);
-  }
-
-  function getImplementationAddress(
-    address proxyAddress
-  ) external view returns (address) {
-    return proxyData[proxyAddress].implementation;
   }
 
   function setSafeConfig(
@@ -142,38 +116,84 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     emit BridgeRegistryUpdated(_bridgeRegistry);
   }
 
-  function setProxyAdmin(
-    address proxyAddress,
-    address adminAddress
-  ) external onlyOwner {
-    require(proxyAddress != address(0), 'Invalid proxy address');
-    require(adminAddress != address(0), 'Invalid admin address');
-    proxyData[proxyAddress].admin = adminAddress;
-    emit ProxyAdminSet(proxyAddress, adminAddress);
-  }
-
-  function getProxyAdmin(address proxyAddress) external view returns (address) {
-    return proxyData[proxyAddress].admin;
-  }
-
   function setSafeVerificationRequired(bool required) external onlyOwner {
     chainConfigs[block.chainid].safeVerificationRequired = required;
     emit SafeVerificationRequiredSet(block.chainid, required);
   }
 
+  // Implementation of interface functions with chainId parameter
+  function setContractConfig(
+    uint256 chainId,
+    bytes32 contractId,
+    bytes32 implementationHash,
+    bytes32 proxyHash,
+    address expectedProxyAdmin
+  ) external onlyOwner {
+    _setContractConfig(
+      chainId,
+      contractId,
+      implementationHash,
+      proxyHash,
+      expectedProxyAdmin
+    );
+  }
 
-  // Add this function to L1ContractVerification.sol
-  function getContractConfig(
-    bytes32 contractId
-  ) external view returns (bytes32 implementationHash, bytes32 proxyHash) {
-    ContractConfig storage config = chainConfigs[block.chainid].contractConfigs[
-      contractId
-    ];
-    return (config.implementationHash, config.proxyHash);
+  function setSafeConfig(
+    uint256 chainId,
+    address tokamakDAO,
+    address foundation,
+    uint256 threshold
+  ) external onlyOwner {
+    _setSafeConfig(chainId, tokamakDAO, foundation, threshold);
+  }
+
+  function setExpectedNativeToken(
+    uint256 chainId,
+    address tokenAddress
+  ) external onlyOwner {
+    require(tokenAddress != address(0), 'Invalid token address');
+    chainConfigs[chainId].expectedNativeToken = tokenAddress;
+  }
+
+  function setSafeVerificationRequired(
+    uint256 chainId,
+    bool required
+  ) external onlyOwner {
+    chainConfigs[chainId].safeVerificationRequired = required;
+    emit SafeVerificationRequiredSet(chainId, required);
+  }
+
+  function verifyL1Contracts(
+    uint256 chainId,
+    address systemConfigProxy,
+    address safeWallet
+  ) external returns (bool) {
+    require(
+      _verifyL1Contracts(chainId, systemConfigProxy, safeWallet),
+      'Contracts verification failed'
+    );
+    emit VerificationSuccess(msg.sender);
+    return true;
   }
 
   /**
-   * @notice Get the safe configuration for a specific chain
+   * @notice Get the contract configuration for the current chain and contract ID
+   * @param contractId The contract ID to get the config for
+   * @return implementationHash The hash of the implementation contract code
+   * @return proxyHash The hash of the proxy contract code
+   * @return expectedProxyAdmin The expected admin address for the proxy
+   */
+  function getContractConfig(bytes32 contractId)
+    external
+    view
+    returns (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin)
+  {
+    ContractConfig storage config = chainConfigs[block.chainid].contractConfigs[contractId];
+    return (config.implementationHash, config.proxyHash, config.expectedProxyAdmin);
+  }
+
+  /**
+   * @notice Get the safe configuration for the current chain
    * @return tokamakDAO The address of the TokamakDAO owner
    * @return foundation The address of the Foundation owner
    * @return requiredThreshold The required threshold for the safe
@@ -192,11 +212,13 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     uint256 chainId,
     bytes32 contractId,
     bytes32 implementationHash,
-    bytes32 proxyHash
+    bytes32 proxyHash,
+    address expectedProxyAdmin
   ) internal {
     chainConfigs[chainId].contractConfigs[contractId] = ContractConfig({
       implementationHash: implementationHash,
-      proxyHash: proxyHash
+      proxyHash: proxyHash,
+      expectedProxyAdmin: expectedProxyAdmin
     });
 
     emit ConfigurationSet(contractId);
@@ -219,10 +241,22 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address proxyAddress,
     address expectedAdmin
   ) internal view returns (bool) {
-    address admin = proxyData[proxyAddress].admin;
+    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
+    address admin;
+
+    // Convert to payable address for compatibility with IProxyAdmin interface
+    address payable payableProxyAddress = payable(proxyAddress);
+
+    try proxyAdmin.getProxyAdmin(payableProxyAddress) returns (address fetchedAdmin) {
+      admin = fetchedAdmin;
+    } catch {
+      return false;
+    }
+
     if (admin == address(0)) {
       return false;
     }
+
     return admin == expectedAdmin;
   }
 
@@ -230,10 +264,19 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address proxyAddress,
     bytes32 expectedHash
   ) internal view returns (bool) {
-    address implementation = proxyData[proxyAddress].implementation;
+    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
+    address implementation;
+
+    try proxyAdmin.getProxyImplementation(proxyAddress) returns (address fetchedImpl) {
+      implementation = fetchedImpl;
+    } catch {
+      return false;
+    }
+
     if (implementation == address(0)) {
       return false;
     }
+
     return implementation.codehash == expectedHash;
   }
 
@@ -274,13 +317,11 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     bytes32 contractId,
     uint256 chainId
   ) internal view returns (bool) {
-    ContractConfig storage config = chainConfigs[chainId].contractConfigs[
-      contractId
-    ];
-    return
-      _verifyImplementation(proxyAddress, config.implementationHash) &&
-      _verifyProxyAdmin(proxyAddress, proxyData[proxyAddress].admin) &&
-      _verifyProxyHash(proxyAddress, config.proxyHash);
+    ContractConfig storage config = chainConfigs[chainId].contractConfigs[contractId];
+
+    return _verifyImplementation(proxyAddress, config.implementationHash) &&
+           _verifyProxyAdmin(proxyAddress, config.expectedProxyAdmin) &&
+           _verifyProxyHash(proxyAddress, config.proxyHash);
   }
 
   function _verifyL1Contracts(
@@ -321,5 +362,38 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     }
 
     return true;
+  }
+
+  /**
+   * @notice Get the contract configuration for a specific chain and contract ID
+   * @param chainId The chain ID to get the contract config for
+   * @param contractId The contract ID to get the config for
+   * @return implementationHash The hash of the implementation contract code
+   * @return proxyHash The hash of the proxy contract code
+   * @return expectedProxyAdmin The expected admin address for the proxy
+   */
+  function getContractConfig(uint256 chainId, bytes32 contractId)
+    external
+    view
+    returns (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin)
+  {
+    ContractConfig storage config = chainConfigs[chainId].contractConfigs[contractId];
+    return (config.implementationHash, config.proxyHash, config.expectedProxyAdmin);
+  }
+
+  /**
+   * @notice Get the safe configuration for a specific chain
+   * @param chainId The chain ID to get the safe config for
+   * @return tokamakDAO The address of the TokamakDAO owner
+   * @return foundation The address of the Foundation owner
+   * @return requiredThreshold The required threshold for the safe
+   */
+  function getSafeConfig(uint256 chainId)
+    external
+    view
+    returns (address tokamakDAO, address foundation, uint256 requiredThreshold)
+  {
+    SafeConfig storage config = chainConfigs[chainId].safeConfig;
+    return (config.tokamakDAO, config.foundation, config.requiredThreshold);
   }
 }

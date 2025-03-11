@@ -27,6 +27,7 @@ interface IL1ContractVerification {
   struct ContractConfig {
     bytes32 implementationHash;
     bytes32 proxyHash;
+    address expectedProxyAdmin;
   }
 
   struct SafeConfig {
@@ -49,7 +50,8 @@ interface IL1ContractVerification {
   function setContractConfig(
     bytes32 contractId,
     bytes32 implementationHash,
-    bytes32 proxyHash
+    bytes32 proxyHash,
+    address expectedProxyAdmin
   ) external;
 
   function setSafeConfig(
@@ -90,9 +92,30 @@ interface IL1ContractVerification {
    * @param contractId The contract ID to get the config for
    * @return implementationHash The hash of the implementation contract code
    * @return proxyHash The hash of the proxy contract code
+   * @return expectedProxyAdmin The expected admin address for the proxy
    */
   function getContractConfig(bytes32 contractId)
     external
     view
-    returns (bytes32 implementationHash, bytes32 proxyHash);
+    returns (bytes32 implementationHash, bytes32 proxyHash, address expectedProxyAdmin);
+
+  /**
+   * @notice Set whether safe verification is required for a specific chain
+   * @param chainId The chain ID to set the requirement for
+   * @param required Whether safe verification is required
+   */
+  function setSafeVerificationRequired(uint256 chainId, bool required) external;
+
+  /**
+   * @notice Set the expected native token for a specific chain
+   * @param chainId The chain ID to set the token for
+   * @param tokenAddress The address of the expected native token
+   */
+  function setExpectedNativeToken(uint256 chainId, address tokenAddress) external;
+
+  /**
+   * @notice Get the ProxyAdmin contract address
+   * @return The address of the ProxyAdmin contract
+   */
+  function PROXY_ADMIN_ADDRESS() external view returns (address);
 }
