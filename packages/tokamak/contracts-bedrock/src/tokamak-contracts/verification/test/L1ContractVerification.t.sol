@@ -493,6 +493,353 @@ contract L1ContractVerificationTest is Test {
     vm.stopPrank();
   }
 
+  function testVerifyL1ContractsFailInvalidL1StandardBridge() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Deploy a different L1StandardBridge implementation
+    MockL1StandardBridge differentL1StandardBridgeImpl = new MockL1StandardBridge();
+
+    // Update the L1StandardBridge proxy to point to the different implementation
+    mockProxyAdmin.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(differentL1StandardBridgeImpl)
+    );
+
+    // Set an incorrect implementation hash in the contract config
+    verifier.setContractConfig(
+      L1_STANDARD_BRIDGE_ID,
+      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(l1StandardBridgeProxy).codehash,
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail
+    vm.expectRevert('Contracts verification failed');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailInvalidL1CrossDomainMessenger() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Deploy a different L1CrossDomainMessenger implementation
+    MockL1CrossDomainMessenger differentL1CrossDomainMessengerImpl = new MockL1CrossDomainMessenger();
+
+    // Update the L1CrossDomainMessenger proxy to point to the different implementation
+    mockProxyAdmin.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(differentL1CrossDomainMessengerImpl)
+    );
+
+    // Set an incorrect implementation hash in the contract config
+    verifier.setContractConfig(
+      L1_CROSS_DOMAIN_MESSENGER_ID,
+      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(l1CrossDomainMessengerProxy).codehash,
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail
+    vm.expectRevert('Contracts verification failed');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailInvalidOptimismPortal() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Deploy a different OptimismPortal implementation
+    MockOptimismPortal differentOptimismPortalImpl = new MockOptimismPortal();
+
+    // Update the OptimismPortal proxy to point to the different implementation
+    mockProxyAdmin.setImplementation(
+      address(optimismPortalProxy),
+      address(differentOptimismPortalImpl)
+    );
+
+    // Set an incorrect implementation hash in the contract config
+    verifier.setContractConfig(
+      OPTIMISM_PORTAL_ID,
+      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(optimismPortalProxy).codehash,
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail
+    vm.expectRevert('Contracts verification failed');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailInvalidProxyAdmin() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Set an incorrect proxy admin in the contract config
+    address differentProxyAdmin = makeAddr('differentProxyAdmin');
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      address(systemConfigProxy).codehash,
+      differentProxyAdmin
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail
+    vm.expectRevert('Contracts verification failed');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailInvalidProxyHash() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Set an incorrect proxy hash in the contract config
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      bytes32(uint256(0x123456)), // Incorrect proxy hash
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail
+    vm.expectRevert('Contracts verification failed');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyAndRegisterRollupConfigFailInvalidNativeToken() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Set a different native token in the system config
+    address differentNativeToken = makeAddr('differentNativeToken');
+
+    // Re-initialize the SystemConfig proxy with a different native token
+    bytes memory initData = abi.encodeWithSelector(
+      MockSystemConfig.initialize.selector,
+      address(l1StandardBridgeProxy),
+      address(l1CrossDomainMessengerProxy),
+      address(optimismPortalProxy),
+      differentNativeToken
+    );
+
+    // Call initialize through the proxy
+    (bool success, ) = address(systemConfigProxy).call(initData);
+    require(success, "SystemConfig initialization failed");
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    address l2TON = makeAddr('l2TON');
+
+    // Verification should fail due to native token mismatch
+    vm.expectRevert('The native token you are using is not TON.');
+    verifier.verifyAndRegisterRollupConfig(
+      address(systemConfigProxy),
+      2, // TON token type
+      l2TON,
+      'TestRollup'
+    );
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsWithSafeVerificationDisabled() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Create a different safe with wrong threshold and owners
+    address[] memory safeOwners = new address[](2);
+    safeOwners[0] = tokamakDAO;
+    safeOwners[1] = foundation;
+    // Missing thirdOwner and wrong threshold
+    MockGnosisSafe differentSafe = new MockGnosisSafe(safeOwners, 1);
+
+    // Set the owner of the proxy admin to the different safe wallet
+    mockProxyAdmin.setOwner(address(differentSafe));
+
+    // Disable safe verification
+    verifier.setSafeVerificationRequired(false);
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should succeed because safe verification is disabled
+    bool result = verifier.verifyL1Contracts(address(systemConfigProxy));
+    assertTrue(result);
+
+    vm.stopPrank();
+  }
+
+  function testConstructorFailZeroAddress() public {
+    vm.expectRevert('Invalid proxy admin address');
+    new L1ContractVerification(address(0));
+  }
+
+  function testSetContractConfigWithChainId() public {
+    vm.startPrank(owner);
+
+    uint256 testChainId = 1; // Ethereum mainnet
+    vm.chainId(testChainId);
+
+    // Set contract config for SystemConfig on a different chain
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      address(systemConfigProxy).codehash,
+      address(mockProxyAdmin)
+    );
+
+    // Verify the config was set correctly
+    (
+      bytes32 implementationHash,
+      bytes32 proxyHash,
+      address expectedProxyAdmin
+    ) = verifier.getContractConfig(SYSTEM_CONFIG_ID);
+
+    assertEq(implementationHash, address(systemConfigImpl).codehash);
+    assertEq(proxyHash, address(systemConfigProxy).codehash);
+    assertEq(expectedProxyAdmin, address(mockProxyAdmin));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailZeroImplementation() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Mock the proxy admin to return zero address for implementation
+    MockProxyAdmin mockProxyAdminZeroImpl = new MockProxyAdmin(owner);
+
+    // Deploy a new verifier with the mock proxy admin
+    L1ContractVerification newVerifier = new L1ContractVerification(address(mockProxyAdminZeroImpl));
+
+    // Set up the new verifier with the same configs
+    newVerifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      address(systemConfigProxy).codehash,
+      address(mockProxyAdminZeroImpl)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail because implementation is zero
+    vm.expectRevert('Contracts verification failed');
+    newVerifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
+  function testVerifyL1ContractsFailZeroAdmin() public {
+    vm.startPrank(owner);
+
+    // Set all required configs
+    _setupAllConfigs();
+
+    // Create a custom MockProxyAdmin that returns zero address for admin
+    MockProxyAdmin mockProxyAdminZeroAdmin = new MockProxyAdmin(owner);
+
+    // Deploy a new verifier with the mock proxy admin
+    L1ContractVerification newVerifier = new L1ContractVerification(address(mockProxyAdminZeroAdmin));
+
+    // Set up the new verifier with the same configs
+    newVerifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      address(systemConfigProxy).codehash,
+      address(mockProxyAdminZeroAdmin)
+    );
+
+    // Create a custom proxy that will be used for testing
+    address customProxy = makeAddr('customProxy');
+
+    // Set implementation for the custom proxy but don't set admin
+    // This will cause getProxyAdmin to revert with 'Admin not set for proxy'
+    mockProxyAdminZeroAdmin.setImplementation(customProxy, address(systemConfigImpl));
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail because admin check will fail
+    vm.expectRevert('Contracts verification failed');
+    newVerifier.verifyL1Contracts(customProxy);
+
+    vm.stopPrank();
+  }
+
+  function testVerifyProxyHashFailZeroHash() public {
+    vm.startPrank(owner);
+
+    // Set all required configs but with zero proxy hash
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      address(systemConfigImpl).codehash,
+      bytes32(0), // Zero proxy hash
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should fail because proxy hash is zero
+    vm.expectRevert('Expected hash cannot be zero');
+    verifier.verifyL1Contracts(address(systemConfigProxy));
+
+    vm.stopPrank();
+  }
+
   // Helper function to set up all required configurations
   function _setupAllConfigs() internal {
     // Set contract config for SystemConfig
