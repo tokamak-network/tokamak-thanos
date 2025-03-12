@@ -331,7 +331,6 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    address rollupConfig = makeAddr('rollupConfig');
     address l2TON = makeAddr('l2TON');
 
     // Verify and register rollup config
@@ -358,7 +357,6 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    address rollupConfig = makeAddr('rollupConfig');
     address l2TON = makeAddr('l2TON');
 
     // Verification should fail due to invalid token type
@@ -449,17 +447,6 @@ contract L1ContractVerificationTest is Test {
     vm.stopPrank();
   }
 
-  function testSetExpectedNativeTokenWithChainId() public {
-    vm.startPrank(owner);
-
-    address newToken = makeAddr('newToken');
-    verifier.setExpectedNativeToken(newToken);
-
-    // We don't have a getter for this, so we'll test it indirectly in other tests
-
-    vm.stopPrank();
-  }
-
   function testSetExpectedNativeTokenFailZeroAddress() public {
     vm.startPrank(owner);
 
@@ -476,18 +463,6 @@ contract L1ContractVerificationTest is Test {
     verifier.setSafeVerificationRequired(false);
 
     // Set back to true
-    verifier.setSafeVerificationRequired(true);
-
-    vm.stopPrank();
-  }
-
-  function testSetSafeVerificationRequiredWithChainId() public {
-    vm.startPrank(owner);
-
-    // Set to false with explicit chainId
-    verifier.setSafeVerificationRequired(false);
-
-    // Set back to true with explicit chainId
     verifier.setSafeVerificationRequired(true);
 
     vm.stopPrank();
@@ -719,34 +694,6 @@ contract L1ContractVerificationTest is Test {
   function testConstructorFailZeroAddress() public {
     vm.expectRevert('Invalid proxy admin address');
     new L1ContractVerification(address(0));
-  }
-
-  function testSetContractConfigWithChainId() public {
-    vm.startPrank(owner);
-
-    uint256 testChainId = 1; // Ethereum mainnet
-    vm.chainId(testChainId);
-
-    // Set contract config for SystemConfig on a different chain
-    verifier.setContractConfig(
-      SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
-      address(systemConfigProxy).codehash,
-      address(mockProxyAdmin)
-    );
-
-    // Verify the config was set correctly
-    (
-      bytes32 implementationHash,
-      bytes32 proxyHash,
-      address expectedProxyAdmin
-    ) = verifier.getContractConfig(SYSTEM_CONFIG_ID);
-
-    assertEq(implementationHash, address(systemConfigImpl).codehash);
-    assertEq(proxyHash, address(systemConfigProxy).codehash);
-    assertEq(expectedProxyAdmin, address(mockProxyAdmin));
-
-    vm.stopPrank();
   }
 
   function testVerifyL1ContractsFailZeroImplementation() public {
