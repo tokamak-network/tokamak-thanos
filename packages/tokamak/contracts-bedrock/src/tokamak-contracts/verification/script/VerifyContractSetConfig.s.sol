@@ -14,12 +14,10 @@ contract VerifyContractSetConfig is Script {
   bytes32 constant OPTIMISM_PORTAL_ID = keccak256('OPTIMISM_PORTAL');
 
   // Environment variables
-  uint256 chainId;
   address systemConfigProxy;
   address l1StandardBridge;
   address l1CrossDomainMessenger;
   address optimismPortal;
-  address safeWallet;
   address systemConfigImpl;
   address l1StandardBridgeImpl;
   address l1CrossDomainMessengerImpl;
@@ -31,15 +29,14 @@ contract VerifyContractSetConfig is Script {
   address foundation;
   address thirdOwner;
   address bridgeAddress;
+  uint256 threshold;
 
   function setUp() public {
     // Load environment variables
-    chainId = vm.envUint('CHAIN_ID');
     systemConfigProxy = vm.envAddress('SYSTEM_CONFIG_PROXY');
     l1StandardBridge = vm.envAddress('L1_STANDARD_BRIDGE');
     l1CrossDomainMessenger = vm.envAddress('L1_CROSS_DOMAIN_MESSENGER');
     optimismPortal = vm.envAddress('OPTIMISM_PORTAL');
-    safeWallet = vm.envAddress('SAFE_WALLET');
     systemConfigImpl = vm.envAddress('SYSTEM_CONFIG_IMPL');
     l1StandardBridgeImpl = vm.envAddress('L1_STANDARD_BRIDGE_IMPL');
     l1CrossDomainMessengerImpl = vm.envAddress(
@@ -53,13 +50,14 @@ contract VerifyContractSetConfig is Script {
     foundation = vm.envAddress('FOUNDATION_ADDRESS');
     thirdOwner = vm.envAddress('THIRD_OWNER_ADDRESS');
     bridgeAddress = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
+    threshold = vm.envUint('THRESHOLD');
   }
 
   function setSafeConfig(L1ContractVerification verifier) internal {
-    verifier.setSafeConfig(tokamakDAO, foundation, thirdOwner, 3);
+    verifier.setSafeConfig(tokamakDAO, foundation, thirdOwner, threshold);
   }
 
-  function verifyAndSetContractConfig(
+  function setContractConfig(
     address proxyAddress,
     address implAddress,
     bytes32 contractId,
@@ -94,28 +92,28 @@ contract VerifyContractSetConfig is Script {
     verifier.setExpectedNativeToken(nativeTokenAddress);
 
     // Set contract configurations
-    verifyAndSetContractConfig(
+    setContractConfig(
       systemConfigProxy,
       systemConfigImpl,
       SYSTEM_CONFIG_ID,
       verifier
     );
 
-    verifyAndSetContractConfig(
+    setContractConfig(
       l1StandardBridge,
       l1StandardBridgeImpl,
       L1_STANDARD_BRIDGE_ID,
       verifier
     );
 
-    verifyAndSetContractConfig(
+    setContractConfig(
       l1CrossDomainMessenger,
       l1CrossDomainMessengerImpl,
       L1_CROSS_DOMAIN_MESSENGER_ID,
       verifier
     );
 
-    verifyAndSetContractConfig(
+    setContractConfig(
       optimismPortal,
       optimismPortalImpl,
       OPTIMISM_PORTAL_ID,
