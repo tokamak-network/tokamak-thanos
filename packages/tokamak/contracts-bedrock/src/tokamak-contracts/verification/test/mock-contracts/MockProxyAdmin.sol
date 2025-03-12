@@ -43,6 +43,11 @@ contract MockProxyAdmin is IProxyAdmin {
     return _owner;
   }
 
+  function setOwner(address newOwner) external {
+    require(newOwner != address(0), 'Owner cannot be zero address');
+    _owner = newOwner;
+  }
+
   function setProxyType(address _address, ProxyType _type) external {
     proxyTypes[_address] = _type;
   }
