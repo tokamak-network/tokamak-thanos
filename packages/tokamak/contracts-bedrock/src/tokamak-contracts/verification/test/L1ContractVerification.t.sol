@@ -91,11 +91,7 @@ contract L1ContractVerificationTest is Test {
     );
 
     // Now deploy SystemConfig implementation with the proxy addresses
-    systemConfigImpl = new MockSystemConfig(
-      address(l1StandardBridgeProxy),
-      address(l1CrossDomainMessengerProxy),
-      address(optimismPortalProxy)
-    );
+    systemConfigImpl = new MockSystemConfig();
 
     systemConfigProxy = new TransparentUpgradeableProxy(
       address(systemConfigImpl),
@@ -138,8 +134,25 @@ contract L1ContractVerificationTest is Test {
       address(mockProxyAdmin)
     );
 
-    // Set native token address
-    systemConfigImpl.setNativeTokenAddress(nativeToken);
+    // Initialize the SystemConfig proxy with the correct addresses
+    bytes memory initData = abi.encodeWithSelector(
+      MockSystemConfig.initialize.selector,
+      address(l1StandardBridgeProxy),
+      address(l1CrossDomainMessengerProxy),
+      address(optimismPortalProxy),
+      nativeToken
+    );
+
+    // Call initialize through the proxy
+    (bool success, ) = address(systemConfigProxy).call(initData);
+    require(success, "SystemConfig initialization failed");
+
+    // Verify the addresses were set correctly
+    MockSystemConfig config = MockSystemConfig(address(systemConfigProxy));
+    require(config.l1StandardBridge() == address(l1StandardBridgeProxy), "L1StandardBridge not set correctly");
+    require(config.l1CrossDomainMessenger() == address(l1CrossDomainMessengerProxy), "L1CrossDomainMessenger not set correctly");
+    require(config.optimismPortal() == address(optimismPortalProxy), "OptimismPortal not set correctly");
+    require(config.nativeTokenAddress() == nativeToken, "NativeToken not set correctly");
 
     // Setup Safe wallet
     address[] memory safeOwners = new address[](3);
@@ -163,12 +176,8 @@ contract L1ContractVerificationTest is Test {
     // Set safe verification required to true for testing
     verifier.setSafeVerificationRequired(true);
 
-    bytes32 slot = keccak256('PROXY_ADMIN_ADDRESS_SLOT');
-    vm.store(
-      address(verifier),
-      slot,
-      bytes32(uint256(uint160(address(mockProxyAdmin))))
-    );
+    // Set the owner of the proxy admin to the safe wallet for verification
+    mockProxyAdmin.setOwner(address(safeWallet));
 
     vm.stopPrank();
   }
@@ -227,43 +236,14 @@ contract L1ContractVerificationTest is Test {
     _setupAllConfigs();
 
     console.log('-----------------------------------------------------------');
-    console.log(address(systemConfigProxy));
-    console.log(address(systemConfigImpl));
+    console.log("SystemConfig Proxy:", address(systemConfigProxy));
+    console.log("SystemConfig Implementation:", address(systemConfigImpl));
+    console.log("L1StandardBridge from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).l1StandardBridge());
+    console.log("L1CrossDomainMessenger from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger());
+    console.log("OptimismPortal from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).optimismPortal());
+    console.log("NativeToken from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress());
+    console.log("ProxyAdmin Owner:", mockProxyAdmin.owner());
     console.log('-----------------------------------------------------------');
-
-    mockProxyAdmin.setImplementation(
-      address(systemConfigProxy),
-      address(systemConfigImpl)
-    );
-  mockProxyAdmin.setImplementation(
-    address(l1StandardBridgeProxy),
-    address(l1StandardBridgeImpl)
-  );
-  mockProxyAdmin.setImplementation(
-    address(l1CrossDomainMessengerProxy),
-    address(l1CrossDomainMessengerImpl)
-  );
-  mockProxyAdmin.setImplementation(
-    address(optimismPortalProxy),
-    address(optimismPortalImpl)
-  );
-
-  mockProxyAdmin.setAdmin(
-    payable(address(systemConfigProxy)),
-    address(mockProxyAdmin)
-  );
-  mockProxyAdmin.setAdmin(
-    payable(address(l1StandardBridgeProxy)),
-    address(mockProxyAdmin)
-  );
-  mockProxyAdmin.setAdmin(
-    payable(address(l1CrossDomainMessengerProxy)),
-    address(mockProxyAdmin)
-  );
-  mockProxyAdmin.setAdmin(
-    payable(address(optimismPortalProxy)),
-    address(mockProxyAdmin)
-  );
 
     vm.stopPrank();
 
@@ -284,18 +264,24 @@ contract L1ContractVerificationTest is Test {
     // Set all required configs
     _setupAllConfigs();
 
-    // Deploy a different SystemConfig implementation
-    // MockSystemConfig differentSystemConfigImpl = new MockSystemConfig(
-    //   address(0),
-    //   address(0),
-    //   address(0)
-    // );
+    // Deploy a different SystemConfig implementation with different addresses
+    MockSystemConfig differentSystemConfigImpl = new MockSystemConfig();
 
-    // // Update the SystemConfig proxy to point to the different implementation
-    // proxyAdmin.upgrade(
-    //   TransparentUpgradeableProxy(payable(address(systemConfigProxy))),
-    //   address(differentSystemConfigImpl)
-    // );
+    // Update the SystemConfig proxy to point to the different implementation
+    mockProxyAdmin.setImplementation(
+      address(systemConfigProxy),
+      address(differentSystemConfigImpl)
+    );
+
+    // Set an incorrect implementation hash in the contract config
+    // This will cause the verification to fail because the actual implementation hash
+    // won't match what's expected in the config
+    verifier.setContractConfig(
+      SYSTEM_CONFIG_ID,
+      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(systemConfigProxy).codehash,
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
 
@@ -314,11 +300,15 @@ contract L1ContractVerificationTest is Test {
     // Set all required configs
     _setupAllConfigs();
 
-    // Create a different safe with wrong threshold
+    // Create a different safe with wrong threshold and owners
     address[] memory safeOwners = new address[](2);
     safeOwners[0] = tokamakDAO;
     safeOwners[1] = foundation;
-    // MockGnosisSafe differentSafe = new MockGnosisSafe(safeOwners, 1); // Wrong threshold
+    // Missing thirdOwner and wrong threshold
+    MockGnosisSafe differentSafe = new MockGnosisSafe(safeOwners, 1);
+
+    // Set the owner of the proxy admin to the different safe wallet
+    mockProxyAdmin.setOwner(address(differentSafe));
 
     vm.stopPrank();
 

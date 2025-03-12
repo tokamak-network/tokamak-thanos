@@ -7,18 +7,20 @@ contract MockSystemConfig {
   address public optimismPortal;
   address public nativeTokenAddress;
 
-  constructor(
+  function setNativeTokenAddress(address _nativeTokenAddress) external {
+    nativeTokenAddress = _nativeTokenAddress;
+  }
+
+  // Add an initialize function to set all values through the proxy
+  function initialize(
     address _l1StandardBridge,
     address _l1CrossDomainMessenger,
-    address _optimismPortal
-  ) {
+    address _optimismPortal,
+    address _nativeTokenAddress
+  ) external {
     l1StandardBridge = _l1StandardBridge;
     l1CrossDomainMessenger = _l1CrossDomainMessenger;
     optimismPortal = _optimismPortal;
-    nativeTokenAddress = address(0x123); // Default value
-  }
-
-  function setNativeTokenAddress(address _nativeTokenAddress) external {
     nativeTokenAddress = _nativeTokenAddress;
   }
 }
