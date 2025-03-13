@@ -298,12 +298,14 @@ contract Deploy is Deployer {
         // if (chainid == Chains.Mainnet) {
         //     jsonCache = vm.readFile("./")
         // }
-        if (chainid == Chains.Sepolia) {
+        if (cfg.isFirstDeploy() == false) {
+            if (chainid == Chains.Sepolia) {
             jsonDeployment = vm.readFile("./deployments/thanos-stack-sepolia/address.json");
-        }
-        // for test
-        else if (chainid == Chains.LocalDevnet) {
-            jsonDeployment = vm.readFile("./deployments/devnetL1/addresses.json");
+            }
+            // for test
+            else if (chainid == Chains.LocalDevnet) {
+                jsonDeployment = vm.readFile("./deployments/devnetL1/addresses.json");
+            }
         }
     }
 
@@ -413,25 +415,24 @@ contract Deploy is Deployer {
     function deployImplementations() public {
         console.log("Deploying implementations");
 
-        // 첫 번째 배포인 경우에만 실행
         if (cfg.isFirstDeploy()) {
-            deployL1CrossDomainMessenger();
             deploySystemConfig();
             deployL1StandardBridge();
-            deployOptimismPortal();
+            deployL1ERC721Bridge();
+            deployOptimismMintableERC20Factory();
+            deployL1CrossDomainMessenger();
             deployL2OutputOracle();
+            deployOptimismPortal();
+            // Fault proofs
+            deployOptimismPortal2();
+            deployDisputeGameFactory();
+            deployDelayedWETH();
+            deployAnchorStateRegistry();
         }
-        deployOptimismMintableERC20Factory();
-        deployL1ERC721Bridge();
 
-        // Fault proofs
-        deployOptimismPortal2();
-        deployDisputeGameFactory();
-        deployDelayedWETH();
         deployPreimageOracle();
         deployMips();
-        deployAnchorStateRegistry();
-
+        // USDC bridge
         deployL1UsdcBridge();
     }
 
@@ -1022,7 +1023,16 @@ contract Deploy is Deployer {
     function initializeDisputeGameFactory() public broadcast {
         console.log("Upgrading and initializing DisputeGameFactory proxy");
         address disputeGameFactoryProxy = mustGetAddress("DisputeGameFactoryProxy");
-        address disputeGameFactory = mustGetAddress("DisputeGameFactory");
+        // Check if this is the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
+        address disputeGameFactory = isFirst
+            ? mustGetAddress("DisputeGameFactory")
+            : jsonDeployment.readAddress(".DisputeGameFactory");
+        if (!isFirst) {
+            console.log("DisputeGameFactory address from JSON: %s", disputeGameFactory);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(disputeGameFactoryProxy),
@@ -1039,8 +1049,18 @@ contract Deploy is Deployer {
     function initializeDelayedWETH() public broadcast {
         console.log("Upgrading and initializing DelayedWETH proxy");
         address delayedWETHProxy = mustGetAddress("DelayedWETHProxy");
-        address delayedWETH = mustGetAddress("DelayedWETH");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+
+        // Check if this is the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
+        address delayedWETH = isFirst
+            ? mustGetAddress("DelayedWETH")
+            : jsonDeployment.readAddress(".DelayedWETH");
+        if (!isFirst) {
+            console.log("DelayedWETH address from JSON: %s", delayedWETH);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(delayedWETHProxy),
@@ -1062,8 +1082,18 @@ contract Deploy is Deployer {
     function initializePermissionedDelayedWETH() public broadcast {
         console.log("Upgrading and initializing permissioned DelayedWETH proxy");
         address delayedWETHProxy = mustGetAddress("PermissionedDelayedWETHProxy");
-        address delayedWETH = mustGetAddress("DelayedWETH");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+
+        // Check if this is the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
+        address delayedWETH = isFirst
+            ? mustGetAddress("DelayedWETH")
+            : jsonDeployment.readAddress(".DelayedWETH");
+        if (!isFirst) {
+            console.log("DelayedWETH address from JSON: %s", delayedWETH);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(delayedWETHProxy),
@@ -1085,7 +1115,6 @@ contract Deploy is Deployer {
     function initializeAnchorStateRegistry() public broadcast {
         console.log("Upgrading and initializing AnchorStateRegistry proxy");
         address anchorStateRegistryProxy = mustGetAddress("AnchorStateRegistryProxy");
-        address anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
         SuperchainConfig superchainConfig = SuperchainConfig(mustGetAddress("SuperchainConfigProxy"));
 
         AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](5);
@@ -1125,6 +1154,17 @@ contract Deploy is Deployer {
             })
         });
 
+        // Check if this is the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
+        address anchorStateRegistry = isFirst
+            ? mustGetAddress("AnchorStateRegistry")
+            : jsonDeployment.readAddress(".AnchorStateRegistry");
+        if (!isFirst) {
+            console.log("AnchorStateRegistry address from JSON: %s", anchorStateRegistry);
+        }
+
         _upgradeAndCallViaSafe({
             _proxy: payable(anchorStateRegistryProxy),
             _implementation: anchorStateRegistry,
@@ -1154,13 +1194,20 @@ contract Deploy is Deployer {
         }
         console.log("Address of l2NativeToken: ", l2NativeTokenAddress);
 
-        address systemConfig;
-        bytes memory innerCallData;
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
 
-        if (cfg.isFirstDeploy()) {
-            // If it's the first deployment, it's taken from the present deployment history
-            systemConfig = mustGetAddress("SystemConfig");
-            innerCallData = abi.encodeCall(
+        address systemConfig = isFirst
+            ? mustGetAddress("SystemConfig")
+            : jsonDeployment.readAddress(".SystemConfig");
+        if (!isFirst) {
+            console.log("SystemConfig address from JSON: %s", systemConfig);
+        }
+
+        _upgradeAndCallViaSafe({
+            _proxy: payable(systemConfigProxy),
+            _implementation: systemConfig,
+            _innerCallData: abi.encodeCall(
                 SystemConfig.initialize,
                 (
                     cfg.finalSystemOwner(),
@@ -1182,19 +1229,8 @@ contract Deploy is Deployer {
                         nativeTokenAddress: l2NativeTokenAddress
                     })
                 )
-            );
-        } else {
-            systemConfig = jsonDeployment.readAddress(".SystemConfig");
-            console.log("SystemConfig address from JSON: %s", systemConfig);
-            innerCallData = new bytes(0);
-        }
-
-        _upgradeAndCallViaSafe({
-            _proxy: payable(systemConfigProxy),
-            _implementation: systemConfig,
-            _innerCallData: innerCallData
+            )
         });
-
         SystemConfig config = SystemConfig(systemConfigProxy);
         string memory version = config.version();
         console.log("SystemConfig version: %s", version);
@@ -1202,7 +1238,7 @@ contract Deploy is Deployer {
         ChainAssertions.checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
-    /// @notice Initialize the L1StandardBridge
+    /// @notice Initialize L1StandardBridge
     function initializeL1StandardBridge() public broadcast {
         console.log("Upgrading and initializing L1StandardBridge proxy");
 
@@ -1215,16 +1251,12 @@ contract Deploy is Deployer {
         bool isFirst = cfg.isFirstDeploy();
 
         // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address l1StandardBridge =
-            isFirst ? mustGetAddress("L1StandardBridge") : jsonDeployment.readAddress(".L1StandardBridge");
+        address l1StandardBridge = isFirst
+            ? mustGetAddress("L1StandardBridge")
+            : jsonDeployment.readAddress(".L1StandardBridge");
         if (!isFirst) {
             console.log("L1StandardBridge address from JSON: %s", l1StandardBridge);
         }
-
-        // Retrieve dependent contract addresses.
-        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         // Set the proxy type.
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
@@ -1238,25 +1270,23 @@ contract Deploy is Deployer {
         }
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
 
-        // If it is the first deployment, encode initialization data; otherwise, set innerCallData to empty bytes.
-        bytes memory innerCallData = isFirst
-            ? abi.encodeCall(
-                L1StandardBridge.initialize,
-                (
-                    L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    SuperchainConfig(superchainConfigProxy),
-                    SystemConfig(systemConfigProxy)
-                )
-            )
-            : new bytes(0);
+        // Retrieve dependent contract addresses.
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
-        // Upgrade the proxy with the new implementation and call initialization if applicable.
         _upgradeAndCallViaSafe({
             _proxy: payable(l1StandardBridgeProxy),
             _implementation: l1StandardBridge,
-            _innerCallData: innerCallData
-        });
-
+            _innerCallData: abi.encodeCall(
+                L1StandardBridge.initialize,
+                    (
+                        L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
+                        SuperchainConfig(superchainConfigProxy),
+                        SystemConfig(systemConfigProxy)
+                    )
+                )
+            });
         // Retrieve and log the version of the upgraded L1StandardBridge.
         string memory version = L1StandardBridge(payable(l1StandardBridgeProxy)).version();
         console.log("L1StandardBridge version: %s", version);
@@ -1269,9 +1299,18 @@ contract Deploy is Deployer {
     function initializeL1ERC721Bridge() public broadcast {
         console.log("Upgrading and initializing L1ERC721Bridge proxy");
         address l1ERC721BridgeProxy = mustGetAddress("L1ERC721BridgeProxy");
-        address l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        address l1ERC721Bridge = isFirst
+            ? mustGetAddress("L1ERC721Bridge")
+            : jsonDeployment.readAddress(".L1ERC721Bridge");
+        if (!isFirst) {
+            console.log("L1ERC721Bridge address from JSON: %s", l1ERC721Bridge);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l1ERC721BridgeProxy),
@@ -1293,8 +1332,18 @@ contract Deploy is Deployer {
     function initializeOptimismMintableERC20Factory() public broadcast {
         console.log("Upgrading and initializing OptimismMintableERC20Factory proxy");
         address optimismMintableERC20FactoryProxy = mustGetAddress("OptimismMintableERC20FactoryProxy");
-        address optimismMintableERC20Factory = mustGetAddress("OptimismMintableERC20Factory");
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
+
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        address optimismMintableERC20Factory = isFirst
+            ? mustGetAddress("OptimismMintableERC20Factory")
+            : jsonDeployment.readAddress(".OptimismMintableERC20Factory");
+
+        if (!isFirst) {
+            console.log("OptimismMintableERC20Factory address from JSON: %s", optimismMintableERC20Factory);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(optimismMintableERC20FactoryProxy),
@@ -1321,16 +1370,12 @@ contract Deploy is Deployer {
         bool isFirst = cfg.isFirstDeploy();
 
         // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address l1CrossDomainMessenger =
-            isFirst ? mustGetAddress("L1CrossDomainMessenger") : jsonDeployment.readAddress(".L1CrossDomainMessenger");
+        address l1CrossDomainMessenger = isFirst
+            ? mustGetAddress("L1CrossDomainMessenger")
+            : jsonDeployment.readAddress(".L1CrossDomainMessenger");
         if (!isFirst) {
             console.log("L1CrossDomainMessenger address from JSON: %s", l1CrossDomainMessenger);
         }
-
-        // Retrieve dependent contract addresses.
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
-        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         // Set the proxy type to RESOLVED if not already set.
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
@@ -1355,13 +1400,18 @@ contract Deploy is Deployer {
             });
         }
         require(
-            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy)))
-                == keccak256(bytes(contractName))
+            keccak256(bytes(proxyAdmin.implementationName(l1CrossDomainMessengerProxy))) ==
+            keccak256(bytes(contractName))
         );
 
-        // If first deployment, encode initialization data; otherwise, set innerCallData to empty bytes.
-        bytes memory innerCallData = isFirst
-            ? abi.encodeCall(
+        // Retrieve dependent contract addresses.
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+        _upgradeAndCallViaSafe({
+            _proxy: payable(l1CrossDomainMessengerProxy),
+            _implementation: l1CrossDomainMessenger,
+            _innerCallData: abi.encodeCall(
                 L1CrossDomainMessenger.initialize,
                 (
                     SuperchainConfig(superchainConfigProxy),
@@ -1369,15 +1419,7 @@ contract Deploy is Deployer {
                     SystemConfig(systemConfigProxy)
                 )
             )
-            : new bytes(0);
-
-        // Upgrade the proxy with the new implementation and call initialization if applicable.
-        _upgradeAndCallViaSafe({
-            _proxy: payable(l1CrossDomainMessengerProxy),
-            _implementation: l1CrossDomainMessenger,
-            _innerCallData: innerCallData
         });
-
         // Retrieve and log the version of the upgraded L1CrossDomainMessenger.
         L1CrossDomainMessenger messenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxy);
         string memory version = messenger.version();
@@ -1392,13 +1434,20 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing L2OutputOracle proxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
 
-        address l2OutputOracle;
-        bytes memory innerCallData;
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
 
-        if (cfg.isFirstDeploy()) {
-            // If it's the first deployment, it's taken from the present deployment history
-            l2OutputOracle = mustGetAddress("L2OutputOracle");
-            innerCallData = abi.encodeCall(
+        address l2OutputOracle = isFirst
+            ? mustGetAddress("L2OutputOracle")
+            : jsonDeployment.readAddress(".L2OutputOracle");
+        if (!isFirst) {
+            console.log("L2OutputOracle address from JSON: %s", l2OutputOracle);
+        }
+
+        _upgradeAndCallViaSafe({
+            _proxy: payable(l2OutputOracleProxy),
+            _implementation: l2OutputOracle,
+            _innerCallData: abi.encodeCall(
                 L2OutputOracle.initialize,
                 (
                     cfg.l2OutputOracleSubmissionInterval(),
@@ -1409,18 +1458,7 @@ contract Deploy is Deployer {
                     cfg.l2OutputOracleChallenger(),
                     cfg.finalizationPeriodSeconds()
                 )
-            );
-        } else {
-            // For duplicate deployments, the jsonDeployment variable is used to read the address.
-            l2OutputOracle = jsonDeployment.readAddress(".L2OutputOracle");
-            console.log("L2OutputOracle address from JSON: %s", l2OutputOracle);
-            innerCallData = new bytes(0);
-        }
-
-        _upgradeAndCallViaSafe({
-            _proxy: payable(l2OutputOracleProxy),
-            _implementation: l2OutputOracle,
-            _innerCallData: innerCallData
+            )
         });
 
         L2OutputOracle oracle = L2OutputOracle(l2OutputOracleProxy);
@@ -1438,42 +1476,45 @@ contract Deploy is Deployer {
     /// @notice Initialize the OptimismPortal
     function initializeOptimismPortal() public broadcast {
         console.log("Upgrading and initializing OptimismPortal proxy");
+
+        // Retrieve common contract addresses.
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        address optimismPortal;
-        bytes memory innerCallData;
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
 
-        if (cfg.isFirstDeploy()) {
-            // If it's the first deployment, it's taken from the present deployment history
-            optimismPortal = mustGetAddress("OptimismPortal");
-            innerCallData = abi.encodeCall(
+        // Get the OptimismPortal implementation address based on deployment type.
+        // For first deployment, use current deployment history.
+        // For duplicate deployments, read from JSON.
+        address optimismPortal = isFirst
+            ? mustGetAddress("OptimismPortal")
+            : jsonDeployment.readAddress(".OptimismPortal");
+        if (!isFirst) {
+            console.log("OptimismPortal address from JSON: %s", optimismPortal);
+        }
+        // Upgrade the proxy with the new implementation and initialization data.
+        _upgradeAndCallViaSafe({
+            _proxy: payable(optimismPortalProxy),
+            _implementation: optimismPortal,
+            _innerCallData: abi.encodeCall(
                 OptimismPortal.initialize,
                 (
                     L2OutputOracle(l2OutputOracleProxy),
                     SystemConfig(systemConfigProxy),
                     SuperchainConfig(superchainConfigProxy)
                 )
-            );
-        } else {
-            // For duplicate deployments, the jsonDeployment variable is used to read the address.
-            optimismPortal = jsonDeployment.readAddress(".OptimismPortal");
-            console.log("OptimismPortal address from JSON: %s", optimismPortal);
-            innerCallData = new bytes(0);
-        }
-
-        _upgradeAndCallViaSafe({
-            _proxy: payable(optimismPortalProxy),
-            _implementation: optimismPortal,
-            _innerCallData: innerCallData
+            )
         });
 
+        // Retrieve and log the version of the upgraded OptimismPortal.
         OptimismPortal portal = OptimismPortal(payable(optimismPortalProxy));
         string memory version = portal.version();
         console.log("OptimismPortal version: %s", version);
 
+        // Verify the deployment using chain assertions.
         ChainAssertions.checkOptimismPortal({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
@@ -1481,10 +1522,19 @@ contract Deploy is Deployer {
     function initializeOptimismPortal2() public broadcast {
         console.log("Upgrading and initializing OptimismPortal2 proxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
-        address optimismPortal2 = mustGetAddress("OptimismPortal2");
         address disputeGameFactoryProxy = mustGetAddress("DisputeGameFactoryProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+
+        // Determine if it's the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        address optimismPortal2 = isFirst
+            ? mustGetAddress("OptimismPortal2")
+            : jsonDeployment.readAddress(".OptimismPortal2");
+        if (!isFirst) {
+            console.log("OptimismPortal2 address from JSON: %s", optimismPortal2);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(optimismPortalProxy),
@@ -1776,13 +1826,23 @@ contract Deploy is Deployer {
     function initializeDataAvailabilityChallenge() public broadcast {
         console.log("Upgrading and initializing DataAvailabilityChallenge proxy");
         address dataAvailabilityChallengeProxy = mustGetAddress("DataAvailabilityChallengeProxy");
-        address dataAvailabilityChallenge = mustGetAddress("DataAvailabilityChallenge");
 
         address finalSystemOwner = cfg.finalSystemOwner();
         uint256 daChallengeWindow = cfg.daChallengeWindow();
         uint256 daResolveWindow = cfg.daResolveWindow();
         uint256 daBondSize = cfg.daBondSize();
         uint256 daResolverRefundPercentage = cfg.daResolverRefundPercentage();
+
+        // Check if this is the first deployment.
+        bool isFirst = cfg.isFirstDeploy();
+
+        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
+        address dataAvailabilityChallenge = isFirst
+            ? mustGetAddress("DataAvailabilityChallenge")
+            : jsonDeployment.readAddress(".DataAvailabilityChallenge");
+        if (!isFirst) {
+            console.log("DataAvailabilityChallenge address from JSON: %s", dataAvailabilityChallenge);
+        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(dataAvailabilityChallengeProxy),
