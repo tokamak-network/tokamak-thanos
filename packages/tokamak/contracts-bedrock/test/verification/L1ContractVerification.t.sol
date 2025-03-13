@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
-import '../L1ContractVerification.sol';
+import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
 
 import './mock-contracts/MockContracts.sol';
