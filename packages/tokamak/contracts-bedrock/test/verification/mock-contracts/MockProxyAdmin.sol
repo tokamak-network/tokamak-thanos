@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../../interface/IProxyAdmin.sol';
+import 'src/tokamak-contracts/verification/interface/IProxyAdmin.sol';
 
 contract MockProxyAdmin is IProxyAdmin {
   mapping(address => address) private implementations;
