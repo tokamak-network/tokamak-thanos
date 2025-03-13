@@ -62,8 +62,5 @@
     "@typescript-eslint/parser": "^6.21.0",
     "tsx": "^4.7.0",
     "typescript": "^5.4.5"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts": "^5.2.0"
   }
 }
