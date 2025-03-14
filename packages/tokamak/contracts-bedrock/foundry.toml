@@ -80,6 +80,19 @@ depth = 32
 [profile.lite]
 optimizer = false
 
+
+# IMPORTANT:
+# See the info in the "DEFAULT" profile to understand this section.
+additional_compiler_profiles = [
+  { name = "dispute", optimizer_runs = 0 },
+]
+compilation_restrictions = [
+  { paths = "src/dispute/FaultDisputeGame.sol", optimizer_runs = 0 },
+  { paths = "src/dispute/PermissionedDisputeGame.sol", optimizer_runs = 0 },
+  { paths = "src/L1/OPContractsManager.sol", optimizer_runs = 0 },
+  { paths = "src/L1/StandardValidator.sol", optimizer_runs = 0 },
+]
+
 ################################################################
 #                         PROFILE: KONTROL                     #
 ################################################################

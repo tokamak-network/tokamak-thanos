@@ -17,7 +17,7 @@ build-go: submodules op-node op-proposer op-batcher ## Builds op-node, op-propos
 .PHONY: build-go
 
 build-contracts:
-	(cd packages/contracts-bedrock && just build)
+	(cd packages/tokamak/contracts-bedrock && just build)
 .PHONY: build-contracts
 
 lint-go: ## Lints Go code with specific linters
