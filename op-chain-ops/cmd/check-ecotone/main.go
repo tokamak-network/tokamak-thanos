@@ -17,7 +17,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -26,16 +25,16 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
-	nbindings "github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/cmd/check-ecotone/bindings"
+	nbindings "github.com/tokamak-network/tokamak-thanos/op-node/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	op_service "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
 	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
@@ -168,7 +167,7 @@ func makeCommandAction(fn CheckAction) func(c *cli.Context) error {
 		logCfg := oplog.ReadCLIConfig(c)
 		logger := oplog.NewLogger(c.App.Writer, logCfg)
 
-		c.Context = opio.CancelOnInterrupt(c.Context)
+		c.Context = ctxinterrupt.WithCancelOnInterrupt(c.Context)
 		l1Cl, err := ethclient.DialContext(c.Context, c.String(EndpointL1.Name))
 		if err != nil {
 			return fmt.Errorf("failed to dial L1 RPC: %w", err)
@@ -271,7 +270,8 @@ func check4844Precompile(ctx context.Context, env *actionEnv) error {
 		return fmt.Errorf("failed to compute commitment: %w", err)
 	}
 	point := kzg4844.Point{}
-	proof, claim, err := kzg4844.ComputeProof(kzg4844.Blob(x), point)
+	blob := kzg4844.Blob(x)
+	proof, claim, err := kzg4844.ComputeProof(&blob, point)
 	if err != nil {
 		return fmt.Errorf("failed to compute proof: %w", err)
 	}
@@ -511,7 +511,8 @@ func checkBlobTxDenial(ctx context.Context, env *actionEnv) error {
 	if latestHeader.ExcessBlobGas == nil {
 		return fmt.Errorf("the L1 block %s (time %d) is not ecotone yet", latestHeader.Hash(), latestHeader.Time)
 	}
-	blobBaseFee := eip4844.CalcBlobFee(*latestHeader.ExcessBlobGas)
+
+	blobBaseFee := eth.CalcBlobFeeDefault(latestHeader)
 	blobFeeCap := new(uint256.Int).Mul(uint256.NewInt(2), uint256.MustFromBig(blobBaseFee))
 	if blobFeeCap.Lt(uint256.NewInt(params.GWei)) { // ensure we meet 1 gwei geth tx-pool minimum
 		blobFeeCap = uint256.NewInt(params.GWei)
@@ -667,7 +668,7 @@ func checkUpgradeTxs(ctx context.Context, env *actionEnv) error {
 	if err != nil {
 		return fmt.Errorf("failed to create eth client")
 	}
-	activBlock, txs, err := l2EthCl.InfoAndTxsByNumber(ctx, activationBlockNum)
+	activeBlock, txs, err := l2EthCl.InfoAndTxsByNumber(ctx, activationBlockNum)
 	if err != nil {
 		return fmt.Errorf("failed to get activation block: %w", err)
 	}
@@ -679,7 +680,7 @@ func checkUpgradeTxs(ctx context.Context, env *actionEnv) error {
 			return fmt.Errorf("unexpected non-deposit tx in activation block, index %d, hash %s", i, tx.Hash())
 		}
 	}
-	_, receipts, err := l2EthCl.FetchReceipts(ctx, activBlock.Hash())
+	_, receipts, err := l2EthCl.FetchReceipts(ctx, activeBlock.Hash())
 	if err != nil {
 		return fmt.Errorf("failed to fetch receipts of activation block: %w", err)
 	}
@@ -725,11 +726,11 @@ func checkGPO(ctx context.Context, env *actionEnv) error {
 	}
 	_, err = cl.Overhead(nil)
 	if err == nil || !strings.Contains(err.Error(), "revert") {
-		return fmt.Errorf("expected revert on legacy overhead attribute acccess, but got %w", err)
+		return fmt.Errorf("expected revert on legacy overhead attribute access, but got %w", err)
 	}
 	_, err = cl.Scalar(nil)
 	if err == nil || !strings.Contains(err.Error(), "revert") {
-		return fmt.Errorf("expected revert on legacy scalar attribute acccess, but got %w", err)
+		return fmt.Errorf("expected revert on legacy scalar attribute access, but got %w", err)
 	}
 	isEcotone, err := cl.IsEcotone(nil)
 	if err != nil {

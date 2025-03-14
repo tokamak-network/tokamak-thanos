@@ -12,13 +12,13 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/metrics"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 	"github.com/tokamak-network/tokamak-thanos/op-service/metrics/doc"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (
-	Version   = "v0.10.14"
+	Version   = "v0.0.0"
 	GitCommit = ""
 	GitDate   = ""
 )
@@ -40,7 +40,7 @@ func main() {
 		},
 	}
 
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	err := app.RunContext(ctx, os.Args)
 	if err != nil {
 		log.Crit("Application failed", "message", err)

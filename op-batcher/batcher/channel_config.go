@@ -29,6 +29,9 @@ type ChannelConfig struct {
 	SubSafetyMargin uint64
 	// The maximum byte-size a frame can have.
 	MaxFrameSize uint64
+	// MaxBlocksPerSpanBatch is the maximum number of blocks to add to a span batch.
+	// A value of 0 disables a maximum.
+	MaxBlocksPerSpanBatch int
 
 	// Target number of frames to create per channel.
 	// For blob transactions, this controls the number of blobs to target adding
@@ -43,9 +46,15 @@ type ChannelConfig struct {
 	// BatchType indicates whether the channel uses SingularBatch or SpanBatch.
 	BatchType uint
 
-	// Whether to put all frames of a channel inside a single tx.
-	// Should only be used for blob transactions.
-	MultiFrameTxs bool
+	// UseBlobs indicates that this channel should be sent as a multi-blob
+	// transaction with one blob per frame.
+	UseBlobs bool
+}
+
+// ChannelConfig returns a copy of the receiver.
+// This allows the receiver to be a static ChannelConfigProvider of itself.
+func (cc ChannelConfig) ChannelConfig(isPectra bool) ChannelConfig {
+	return cc
 }
 
 // InitCompressorConfig (re)initializes the channel configuration's compressor
@@ -75,8 +84,16 @@ func (cc *ChannelConfig) InitNoneCompressor() {
 	cc.InitCompressorConfig(0, compressor.NoneKind, derive.Zlib)
 }
 
+func (cc *ChannelConfig) ReinitCompressorConfig() {
+	cc.InitCompressorConfig(
+		cc.CompressorConfig.ApproxComprRatio,
+		cc.CompressorConfig.Kind,
+		cc.CompressorConfig.CompressionAlgo,
+	)
+}
+
 func (cc *ChannelConfig) MaxFramesPerTx() int {
-	if !cc.MultiFrameTxs {
+	if !cc.UseBlobs {
 		return 1
 	}
 	return cc.TargetNumFrames
@@ -87,7 +104,7 @@ func (cc *ChannelConfig) Check() error {
 	// The [ChannelTimeout] must be larger than the [SubSafetyMargin].
 	// Otherwise, new blocks would always be considered timed out.
 	if cc.ChannelTimeout < cc.SubSafetyMargin {
-		return ErrInvalidChannelTimeout
+		return fmt.Errorf("%w: %d < %d", ErrInvalidChannelTimeout, cc.ChannelTimeout, cc.SubSafetyMargin)
 	}
 
 	// The max frame size must at least be able to accommodate the constant

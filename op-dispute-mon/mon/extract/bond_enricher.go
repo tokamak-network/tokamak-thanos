@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"golang.org/x/exp/maps"
@@ -18,6 +19,7 @@ var ErrIncorrectCreditCount = errors.New("incorrect credit count")
 
 type BondCaller interface {
 	GetCredits(context.Context, rpcblock.Block, ...common.Address) ([]*big.Int, error)
+	GetBondDistributionMode(context.Context, rpcblock.Block) (types.BondDistributionMode, error)
 }
 
 type BondEnricher struct{}
@@ -38,6 +40,10 @@ func (b *BondEnricher) Enrich(ctx context.Context, block rpcblock.Block, caller 
 	game.Credits = make(map[common.Address]*big.Int)
 	for i, credit := range credits {
 		game.Credits[recipientAddrs[i]] = credit
+	}
+	game.BondDistributionMode, err = caller.GetBondDistributionMode(ctx, block)
+	if err != nil {
+		return err
 	}
 	return nil
 }

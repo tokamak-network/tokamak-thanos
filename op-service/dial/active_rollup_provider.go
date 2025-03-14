@@ -29,6 +29,14 @@ type ActiveL2RollupProvider struct {
 	currentRollupClient RollupClientInterface
 	rollupIndex         int
 	clientLock          *sync.Mutex
+
+	// callback function to be called when the active provider changes
+	onActiveProviderChanged func()
+}
+
+// SetOnActiveProviderChanged sets the callback function to be called when the active provider changes
+func (a *ActiveL2RollupProvider) SetOnActiveProviderChanged(onActiveProviderChanged func()) {
+	a.onActiveProviderChanged = onActiveProviderChanged
 }
 
 // NewActiveL2RollupProvider creates a new ActiveL2RollupProvider
@@ -78,6 +86,7 @@ func newActiveL2RollupProvider(
 	if _, err := p.RollupClient(cctx); err != nil {
 		return nil, fmt.Errorf("setting provider rollup client: %w", err)
 	}
+
 	return p, nil
 }
 
@@ -114,7 +123,7 @@ func (p *ActiveL2RollupProvider) findActiveEndpoints(ctx context.Context) error 
 		if offset != 0 || p.currentRollupClient == nil {
 			if err := p.dialSequencer(ctx, idx); err != nil {
 				errs = errors.Join(errs, err)
-				p.log.Warn("Error dialing next sequencer.", "err", err, "index", p.rollupIndex)
+				p.log.Warn("Error dialing next sequencer.", "err", err, "index", idx)
 				continue
 			}
 		}
@@ -128,6 +137,9 @@ func (p *ActiveL2RollupProvider) findActiveEndpoints(ctx context.Context) error 
 				p.log.Debug("Current sequencer active.", "index", idx, "url", ep)
 			} else {
 				p.log.Info("Found new active sequencer.", "index", idx, "url", ep)
+				if p.onActiveProviderChanged != nil {
+					p.onActiveProviderChanged()
+				}
 			}
 			return nil
 		} else {

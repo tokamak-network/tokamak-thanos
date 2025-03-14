@@ -57,7 +57,7 @@ const (
 	// If the client hits a request error, it counts as a lot of rate-limit tokens for syncing from that peer:
 	// we rather sync from other servers. We'll try again later,
 	// and eventually kick the peer based on degraded scoring if it's really not serving us well.
-	// TODO(CLI-4009): Use a backoff rather than this mechanism.
+	// TODO: Use a backoff rather than this mechanism.
 	clientErrRateCost = peerServerBlocksBurst
 )
 
@@ -276,9 +276,12 @@ type SyncClient struct {
 	// Don't allow anything to be added to the wait-group while, or after, we are shutting down.
 	// This is protected by peersLock.
 	closingPeers bool
+
+	extra               ExtraHostFeatures
+	syncOnlyReqToStatic bool
 }
 
-func NewSyncClient(log log.Logger, cfg *rollup.Config, newStream newStreamFn, rcv receivePayloadFn, metrics SyncClientMetrics, appScorer SyncPeerScorer) *SyncClient {
+func NewSyncClient(log log.Logger, cfg *rollup.Config, host HostNewStream, rcv receivePayloadFn, metrics SyncClientMetrics, appScorer SyncPeerScorer) *SyncClient {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	c := &SyncClient{
@@ -286,7 +289,7 @@ func NewSyncClient(log log.Logger, cfg *rollup.Config, newStream newStreamFn, rc
 		cfg:                 cfg,
 		metrics:             metrics,
 		appScorer:           appScorer,
-		newStreamFn:         newStream,
+		newStreamFn:         host.NewStream,
 		payloadByNumber:     PayloadByNumberProtocolID(cfg.L2ChainID),
 		peers:               make(map[peer.ID]context.CancelFunc),
 		quarantineByNum:     make(map[uint64]common.Hash),
@@ -301,9 +304,13 @@ func NewSyncClient(log log.Logger, cfg *rollup.Config, newStream newStreamFn, rc
 		resCancel:           cancel,
 		receivePayload:      rcv,
 	}
+	if extra, ok := host.(ExtraHostFeatures); ok && extra.SyncOnlyReqToStatic() {
+		c.extra = extra
+		c.syncOnlyReqToStatic = true
+	}
 
 	// never errors with positive LRU cache size
-	// TODO(CLI-3733): if we had an LRU based on on total payloads size, instead of payload count,
+	// TODO: if we had an LRU based on on total payloads size, instead of payload count,
 	//  we can safely buffer more data in the happy case.
 	q, _ := simplelru.NewLRU[common.Hash, syncResult](100, c.onQuarantineEvict)
 	c.quarantine = q
@@ -339,6 +346,9 @@ func (s *SyncClient) AddPeer(id peer.ID) {
 func (s *SyncClient) RemovePeer(id peer.ID) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
+	if s.closingPeers {
+		return
+	}
 	cancel, ok := s.peers[id]
 	if !ok {
 		s.log.Warn("cannot remove peer from sync duties, peer was not registered", "peer", id)
@@ -556,6 +566,15 @@ func (s *SyncClient) peerLoop(ctx context.Context, id peer.ID) {
 	// so we don't be too aggressive to the server.
 	rl := rate.NewLimiter(peerServerBlocksRateLimit, peerServerBlocksBurst)
 
+	// if onlyReqToStatic is on, ensure that only static peers are dealing with the request
+	peerRequests := s.peerRequests
+	if s.syncOnlyReqToStatic && !s.extra.IsStatic(id) {
+		// for non-static peers, set peerRequests to nil
+		// this will effectively make the peer loop not perform outgoing sync-requests.
+		// while sync-requests will block, the loop may still process other events (if added in the future).
+		peerRequests = nil
+	}
+
 	for {
 		// wait for a global allocation to be available
 		if err := s.globalRL.Wait(ctx); err != nil {
@@ -568,7 +587,7 @@ func (s *SyncClient) peerLoop(ctx context.Context, id peer.ID) {
 
 		// once the peer is available, wait for a sync request.
 		select {
-		case pr := <-s.peerRequests:
+		case pr := <-peerRequests:
 			if !s.activeRangeRequests.get(pr.rangeReqId) {
 				log.Debug("dropping cancelled p2p sync request", "num", pr.num)
 				s.inFlight.delete(pr.num)
@@ -684,7 +703,8 @@ func (s *SyncClient) doRequest(ctx context.Context, id peer.ID, expectedBlockNum
 
 	version := binary.LittleEndian.Uint32(versionData[:])
 	isCanyon := s.cfg.IsCanyon(s.cfg.TimestampForBlock(expectedBlockNum))
-	envelope, err := readExecutionPayload(version, data, isCanyon)
+	isIsthmus := s.cfg.IsIsthmus(s.cfg.TimestampForBlock(expectedBlockNum))
+	envelope, err := readExecutionPayload(version, data, isCanyon, isIsthmus)
 	if err != nil {
 		return err
 	}
@@ -716,7 +736,7 @@ func panicGuard[T, S, U any](fn func(T, S, U) error) func(T, S, U) error {
 }
 
 // readExecutionPayload will unmarshal the supplied data into an ExecutionPayloadEnvelope.
-func readExecutionPayload(version uint32, data []byte, isCanyon bool) (*eth.ExecutionPayloadEnvelope, error) {
+func readExecutionPayload(version uint32, data []byte, isCanyon, isIsthmus bool) (*eth.ExecutionPayloadEnvelope, error) {
 	switch version {
 	case 0:
 		blockVersion := eth.BlockV1
@@ -730,7 +750,11 @@ func readExecutionPayload(version uint32, data []byte, isCanyon bool) (*eth.Exec
 		return &eth.ExecutionPayloadEnvelope{ExecutionPayload: &res}, nil
 	case 1:
 		envelope := &eth.ExecutionPayloadEnvelope{}
-		if err := envelope.UnmarshalSSZ(uint32(len(data)), bytes.NewReader(data)); err != nil {
+		blockVersion := eth.BlockV3
+		if isIsthmus {
+			blockVersion = eth.BlockV4
+		}
+		if err := envelope.UnmarshalSSZ(blockVersion, uint32(len(data)), bytes.NewReader(data)); err != nil {
 			return nil, fmt.Errorf("failed to decode execution payload envelope response: %w", err)
 		}
 		return envelope, nil
@@ -817,7 +841,7 @@ func (srv *ReqRespServer) HandleSyncRequest(ctx context.Context, log log.Logger,
 		log.Warn("failed to serve p2p sync request", "req", req, "err", err)
 		if errors.Is(err, ethereum.NotFound) {
 			resultCode = ResultCodeNotFoundErr
-		} else if errors.Is(err, invalidRequestErr) {
+		} else if errors.Is(err, errInvalidRequest) {
 			resultCode = ResultCodeInvalidErr
 		} else {
 			resultCode = ResultCodeUnknownErr
@@ -830,7 +854,7 @@ func (srv *ReqRespServer) HandleSyncRequest(ctx context.Context, log log.Logger,
 	srv.metrics.ServerPayloadByNumberEvent(req, resultCode, time.Since(start))
 }
 
-var invalidRequestErr = errors.New("invalid request")
+var errInvalidRequest = errors.New("invalid request")
 
 func (srv *ReqRespServer) handleSyncRequest(ctx context.Context, stream network.Stream) (uint64, error) {
 	peerId := stream.Conn().RemotePeer()
@@ -876,14 +900,14 @@ func (srv *ReqRespServer) handleSyncRequest(ctx context.Context, stream network.
 
 	// Check the request is within the expected range of blocks
 	if req < srv.cfg.Genesis.L2.Number {
-		return req, fmt.Errorf("cannot serve request for L2 block %d before genesis %d: %w", req, srv.cfg.Genesis.L2.Number, invalidRequestErr)
+		return req, fmt.Errorf("cannot serve request for L2 block %d before genesis %d: %w", req, srv.cfg.Genesis.L2.Number, errInvalidRequest)
 	}
 	max, err := srv.cfg.TargetBlockNumber(uint64(time.Now().Unix()))
 	if err != nil {
-		return req, fmt.Errorf("cannot determine max target block number to verify request: %w", invalidRequestErr)
+		return req, fmt.Errorf("cannot determine max target block number to verify request: %w", errInvalidRequest)
 	}
 	if req > max {
-		return req, fmt.Errorf("cannot serve request for L2 block %d after max expected block (%v): %w", req, max, invalidRequestErr)
+		return req, fmt.Errorf("cannot serve request for L2 block %d after max expected block (%v): %w", req, max, errInvalidRequest)
 	}
 
 	envelope, err := srv.l2.PayloadByNumber(ctx, req)

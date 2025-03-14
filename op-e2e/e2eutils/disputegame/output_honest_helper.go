@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/transactions"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
@@ -16,12 +17,12 @@ const getTraceTimeout = 10 * time.Minute
 type OutputHonestHelper struct {
 	t            *testing.T
 	require      *require.Assertions
-	game         *OutputGameHelper
+	game         *SplitGameHelper
 	contract     contracts.FaultDisputeGameContract
 	correctTrace types.TraceAccessor
 }
 
-func NewOutputHonestHelper(t *testing.T, require *require.Assertions, game *OutputGameHelper, contract contracts.FaultDisputeGameContract, correctTrace types.TraceAccessor) *OutputHonestHelper {
+func NewOutputHonestHelper(t *testing.T, require *require.Assertions, game *SplitGameHelper, contract contracts.FaultDisputeGameContract, correctTrace types.TraceAccessor) *OutputHonestHelper {
 	return &OutputHonestHelper{
 		t:            t,
 		require:      require,
@@ -99,8 +100,13 @@ func (h *OutputHonestHelper) StepFails(ctx context.Context, claimIdx int64, isAt
 		// If we're defending, then the step will be from the trace to the next one
 		pos = pos.MoveRight()
 	}
-	prestate, proofData, _, err := h.correctTrace.GetStepData(ctx, game, claim, pos)
+	prestate, proofData, preimage, err := h.correctTrace.GetStepData(ctx, game, claim, pos)
 	h.require.NoError(err, "Get step data")
+	if preimage != nil {
+		tx, err := h.game.Game.UpdateOracleTx(ctx, uint64(claimIdx), preimage)
+		h.require.NoError(err)
+		transactions.RequireSendTx(h.t, ctx, h.game.Client, tx, h.game.PrivKey)
+	}
 	h.game.StepFails(ctx, claimIdx, isAttack, prestate, proofData)
 }
 

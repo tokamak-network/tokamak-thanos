@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/boot"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
-	"github.com/tokamak-network/tokamak-thanos/op-program/client"
 )
 
 func TestLocalPreimages(t *testing.T) {
@@ -18,10 +19,10 @@ func TestLocalPreimages(t *testing.T) {
 	tests := []struct {
 		key preimage.Key
 	}{
-		{key: client.L1HeadLocalIndex},
-		{key: client.L2OutputRootLocalIndex},
-		{key: client.L2ClaimLocalIndex},
-		{key: client.L2ClaimBlockNumberLocalIndex},
+		{key: boot.L1HeadLocalIndex},
+		{key: boot.L2OutputRootLocalIndex},
+		{key: boot.L2ClaimLocalIndex},
+		{key: boot.L2ClaimBlockNumberLocalIndex},
 		// We don't check client.L2ChainIDLocalIndex because e2e tests use a custom chain configuration
 		// which requires using a custom chain ID indicator so op-program will load the full rollup config and
 		// genesis from the preimage oracle

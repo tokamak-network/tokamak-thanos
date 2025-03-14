@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive/params"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
@@ -163,6 +165,12 @@ func TestParseFramesInvalidVer(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestParseFramesOnlyVersion(t *testing.T) {
+	frames, err := ParseFrames([]byte{params.DerivationVersion0})
+	require.Empty(t, frames)
+	require.Error(t, err)
+}
+
 func TestParseFrames(t *testing.T) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	numFrames := rng.Intn(16) + 1
@@ -200,7 +208,7 @@ func TestParseFramesTruncated(t *testing.T) {
 // frames.
 func txMarshalFrames(frames []Frame) ([]byte, error) {
 	var data bytes.Buffer
-	if err := data.WriteByte(DerivationVersion0); err != nil {
+	if err := data.WriteByte(params.DerivationVersion0); err != nil {
 		return nil, err
 	}
 	for _, frame := range frames {

@@ -11,6 +11,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
+	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
@@ -190,7 +191,7 @@ func TestGetGameFromParameters(t *testing.T) {
 
 func TestGetGameImpl(t *testing.T) {
 	stubRpc, factory := setupDisputeGameFactoryTest(t)
-	gameType := uint32(3)
+	gameType := faultTypes.CannonGameType
 	gameImplAddr := common.Address{0xaa}
 	stubRpc.SetResponse(
 		factoryAddr,
@@ -198,7 +199,7 @@ func TestGetGameImpl(t *testing.T) {
 		rpcblock.Latest,
 		[]interface{}{gameType},
 		[]interface{}{gameImplAddr})
-	actual, err := factory.GetGameImpl(context.Background(), gameType)
+	actual, err := factory.GetGameImpl(context.Background(), faultTypes.CannonGameType)
 	require.NoError(t, err)
 	require.Equal(t, gameImplAddr, actual)
 }

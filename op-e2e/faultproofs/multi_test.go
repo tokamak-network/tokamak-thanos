@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
 )
@@ -26,7 +27,7 @@ func TestMultipleGameTypes(t *testing.T) {
 
 	// Start a challenger with both cannon and alphabet support
 	gameFactory.StartChallenger(ctx, "TowerDefense",
-		challenger.WithCannon(t, sys.RollupConfig, sys.L2GenesisCfg),
+		challenger.WithCannon(t, sys),
 		challenger.WithAlphabet(),
 		challenger.WithPrivKey(sys.Cfg.Secrets.Alice),
 	)

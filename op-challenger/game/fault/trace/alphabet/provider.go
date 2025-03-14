@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
-
 	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

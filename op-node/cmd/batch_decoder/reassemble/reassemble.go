@@ -25,7 +25,7 @@ type ChannelWithMetadata struct {
 	Frames         []FrameWithMetadata      `json:"frames"`
 	Batches        []derive.Batch           `json:"batches"`
 	BatchTypes     []int                    `json:"batch_types"`
-	ComprAlgos     []derive.CompressionAlgo `json:"compr_alogs"`
+	ComprAlgos     []derive.CompressionAlgo `json:"compr_algos"`
 }
 
 type FrameWithMetadata struct {
@@ -72,7 +72,7 @@ func Channels(config Config, rollupCfg *rollup.Config) {
 		framesByChannel[frame.Frame.ID] = append(framesByChannel[frame.Frame.ID], frame)
 	}
 	for id, frames := range framesByChannel {
-		ch := processFrames(config, rollupCfg, id, frames)
+		ch := ProcessFrames(config, rollupCfg, id, frames)
 		filename := path.Join(config.OutDirectory, fmt.Sprintf("%s.json", id.String()))
 		if err := writeChannel(ch, filename); err != nil {
 			log.Fatal(err)
@@ -90,9 +90,11 @@ func writeChannel(ch ChannelWithMetadata, filename string) error {
 	return enc.Encode(ch)
 }
 
-func processFrames(cfg Config, rollupCfg *rollup.Config, id derive.ChannelID, frames []FrameWithMetadata) ChannelWithMetadata {
+// ProcessFrames processes the frames for a given channel and reads batches and other relevant metadata
+// from the channel. Returns a ChannelWithMetadata struct containing all the relevant data.
+func ProcessFrames(cfg Config, rollupCfg *rollup.Config, id derive.ChannelID, frames []FrameWithMetadata) ChannelWithMetadata {
 	spec := rollup.NewChainSpec(rollupCfg)
-	ch := derive.NewChannel(id, eth.L1BlockRef{Number: frames[0].InclusionBlock})
+	ch := derive.NewChannel(id, eth.L1BlockRef{Number: frames[0].InclusionBlock}, rollupCfg.IsHolocene(frames[0].Timestamp))
 	invalidFrame := false
 
 	for _, frame := range frames {
@@ -101,7 +103,7 @@ func processFrames(cfg Config, rollupCfg *rollup.Config, id derive.ChannelID, fr
 			invalidFrame = true
 			break
 		}
-		if err := ch.AddFrame(frame.Frame, eth.L1BlockRef{Number: frame.InclusionBlock}); err != nil {
+		if err := ch.AddFrame(frame.Frame, eth.L1BlockRef{Number: frame.InclusionBlock, Time: frame.Timestamp}); err != nil {
 			fmt.Printf("Error adding to channel %v. Err: %v\n", id.String(), err)
 			invalidFrame = true
 		}

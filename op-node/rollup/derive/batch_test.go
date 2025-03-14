@@ -6,12 +6,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"

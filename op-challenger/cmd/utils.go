@@ -8,6 +8,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
 	contractMetrics "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
@@ -17,6 +18,12 @@ import (
 
 type ContractCreator[T any] func(context.Context, contractMetrics.ContractMetricer, common.Address, *batching.MultiCaller) (T, error)
 
+func Interruptible(action cli.ActionFunc) cli.ActionFunc {
+	return func(ctx *cli.Context) error {
+		ctx.Context = ctxinterrupt.WithCancelOnInterrupt(ctx.Context)
+		return action(ctx)
+	}
+}
 func AddrFromFlag(flagName string) func(ctx *cli.Context) (common.Address, error) {
 	return func(ctx *cli.Context) (common.Address, error) {
 		gameAddr, err := opservice.ParseAddress(ctx.String(flagName))

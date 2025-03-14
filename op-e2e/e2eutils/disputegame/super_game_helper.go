@@ -1,0 +1,48 @@
+package disputegame
+
+import (
+	"crypto/ecdsa"
+	"fmt"
+	"testing"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/super"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+)
+
+type SuperGameHelper struct {
+	SplitGameHelper
+}
+
+func NewSuperGameHelper(t *testing.T, require *require.Assertions, client *ethclient.Client, opts *bind.TransactOpts, privKey *ecdsa.PrivateKey,
+	game contracts.FaultDisputeGameContract, factoryAddr common.Address, addr common.Address, correctOutputProvider *super.SuperTraceProvider, system DisputeSystem) *SuperGameHelper {
+	return &SuperGameHelper{
+		SplitGameHelper: SplitGameHelper{
+			T:                     t,
+			Require:               require,
+			Client:                client,
+			Opts:                  opts,
+			PrivKey:               privKey,
+			Game:                  game,
+			FactoryAddr:           factoryAddr,
+			Addr:                  addr,
+			CorrectOutputProvider: correctOutputProvider,
+			System:                system,
+			DescribePosition: func(pos types.Position, splitDepth types.Depth) string {
+
+				if pos.Depth() > splitDepth {
+					return ""
+				}
+				timestamp, step, err := correctOutputProvider.ComputeStep(pos)
+				if err != nil {
+					return ""
+				}
+				return fmt.Sprintf("Timestamp: %v, Step: %v", timestamp, step)
+			},
+		},
+	}
+}

@@ -1,0 +1,32 @@
+package types
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+)
+
+func TestEnrichedGameData_UsesOutputRoots(t *testing.T) {
+	for _, gameType := range outputRootGameTypes {
+		gameType := gameType
+		t.Run(fmt.Sprintf("GameType-%v", gameType), func(t *testing.T) {
+			data := EnrichedGameData{
+				GameMetadata: types.GameMetadata{GameType: gameType},
+			}
+			require.True(t, data.UsesOutputRoots())
+		})
+	}
+
+	nonOutputRootTypes := []uint32{4, 5, 9, 42982, 20013130}
+	for _, gameType := range nonOutputRootTypes {
+		gameType := gameType
+		t.Run(fmt.Sprintf("GameType-%v", gameType), func(t *testing.T) {
+			data := EnrichedGameData{
+				GameMetadata: types.GameMetadata{GameType: gameType},
+			}
+			require.False(t, data.UsesOutputRoots())
+		})
+	}
+}

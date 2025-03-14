@@ -5,7 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
@@ -27,7 +26,7 @@ func NewOutputAlphabetTraceAccessor(
 	poststateBlock uint64,
 ) (*trace.Accessor, error) {
 	outputProvider := NewTraceProvider(logger, prestateProvider, rollupClient, l2Client, l1Head, splitDepth, prestateBlock, poststateBlock)
-	alphabetCreator := func(ctx context.Context, localContext common.Hash, depth types.Depth, agreed contracts.Proposal, claimed contracts.Proposal) (types.TraceProvider, error) {
+	alphabetCreator := func(ctx context.Context, localContext common.Hash, depth types.Depth, agreed utils.Proposal, claimed utils.Proposal) (types.TraceProvider, error) {
 		provider := alphabet.NewTraceProvider(agreed.L2BlockNumber, depth)
 		return provider, nil
 	}

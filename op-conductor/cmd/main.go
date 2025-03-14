@@ -12,8 +12,8 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-conductor/flags"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 )
 
 var (
@@ -34,7 +34,7 @@ func main() {
 	app.Action = cliapp.LifecycleCmd(OpConductorMain)
 	app.Commands = []*cli.Command{}
 
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	err := app.RunContext(ctx, os.Args)
 	if err != nil {
 		log.Crit("Application failed", "message", err)

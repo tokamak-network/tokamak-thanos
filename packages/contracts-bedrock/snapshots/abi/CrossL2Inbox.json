@@ -26,53 +26,16 @@
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "interopStart",
+    "outputs": [
       {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "origin",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "blockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "logIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "chainId",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct ICrossL2Inbox.Identifier",
-        "name": "_id",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "_target",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_message",
-        "type": "bytes"
+        "internalType": "uint256",
+        "name": "interopStart_",
+        "type": "uint256"
       }
     ],
-    "name": "executeMessage",
-    "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -103,6 +66,13 @@
   },
   {
     "inputs": [],
+    "name": "setInteropStart",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "timestamp",
     "outputs": [
       {
@@ -112,6 +82,51 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "origin",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "blockNumber",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "logIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "chainId",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Identifier",
+        "name": "_id",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_msgHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "validateMessage",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -131,16 +146,43 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "encodedId",
-        "type": "bytes"
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "msgHash",
+        "type": "bytes32"
       },
       {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "origin",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "blockNumber",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "logIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "chainId",
+            "type": "uint256"
+          }
+        ],
         "indexed": false,
-        "internalType": "bytes",
-        "name": "message",
-        "type": "bytes"
+        "internalType": "struct Identifier",
+        "name": "id",
+        "type": "tuple"
       }
     ],
     "name": "ExecutingMessage",
@@ -148,12 +190,17 @@
   },
   {
     "inputs": [],
-    "name": "InvalidChainId",
+    "name": "InteropStartAlreadySet",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidTimestamp",
+    "name": "NoExecutingDeposits",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotDepositor",
     "type": "error"
   },
   {
@@ -163,7 +210,7 @@
   },
   {
     "inputs": [],
-    "name": "TargetCallFailed",
+    "name": "ReentrantCall",
     "type": "error"
   }
 ]

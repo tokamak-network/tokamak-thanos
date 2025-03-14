@@ -1,9 +1,11 @@
 package batcher_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/batcher"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
@@ -36,8 +38,10 @@ func validBatcherConfig() batcher.CLIConfig {
 		MetricsConfig:          metrics.DefaultCLIConfig(),
 		PprofConfig:            oppprof.DefaultCLIConfig(),
 		// The compressor config is not checked in config.Check()
-		RPC:             rpc.DefaultCLIConfig(),
-		CompressionAlgo: derive.Zlib,
+		RPC:               rpc.DefaultCLIConfig(),
+		CompressionAlgo:   derive.Zlib,
+		ThrottleThreshold: 0, // no DA throttling
+		ThrottleTxSize:    0,
 	}
 }
 
@@ -45,6 +49,9 @@ func TestValidBatcherConfig(t *testing.T) {
 	cfg := validBatcherConfig()
 	require.NoError(t, cfg.Check(), "valid config should pass the check function")
 }
+
+// Set current
+var maxBlobsPerBlock = params.DefaultPragueBlobConfig.Max
 
 func TestBatcherConfig(t *testing.T) {
 	tests := []struct {
@@ -98,12 +105,12 @@ func TestBatcherConfig(t *testing.T) {
 			errString: "TargetNumFrames must be at least 1",
 		},
 		{
-			name: "larger 6 TargetNumFrames for blobs",
+			name: fmt.Sprintf("larger %d TargetNumFrames for blobs", maxBlobsPerBlock),
 			override: func(c *batcher.CLIConfig) {
-				c.TargetNumFrames = 7
+				c.TargetNumFrames = maxBlobsPerBlock + 1
 				c.DataAvailabilityType = flags.BlobsType
 			},
-			errString: "too many frames for blob transactions, max 6",
+			errString: fmt.Sprintf("too many frames for blob transactions, max %d", maxBlobsPerBlock),
 		},
 		{
 			name: "invalid compr ratio for ratio compressor",

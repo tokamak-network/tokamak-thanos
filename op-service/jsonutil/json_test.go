@@ -2,19 +2,19 @@ package jsonutil
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 )
 
 func TestRoundTripJSON(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "test.json")
 	data := &jsonTestData{A: "yay", B: 3}
-	err := WriteJSON(file, data, 0o755)
+	err := WriteJSON(data, ioutil.ToAtomicFile(file, 0o755))
 	require.NoError(t, err)
 
 	// Confirm the file is uncompressed
@@ -33,7 +33,7 @@ func TestRoundTripJSONWithGzip(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "test.json.gz")
 	data := &jsonTestData{A: "yay", B: 3}
-	err := WriteJSON(file, data, 0o755)
+	err := WriteJSON(data, ioutil.ToAtomicFile(file, 0o755))
 	require.NoError(t, err)
 
 	// Confirm the file isn't raw JSON
@@ -87,14 +87,14 @@ func TestLoadJSONWithExtraDataAppended(t *testing.T) {
 			require.NoError(t, err)
 
 			// Write primary json payload + extra data to the file
-			err = WriteJSON(file, data, 0o755)
+			err = WriteJSON(data, ioutil.ToAtomicFile(file, 0o755))
 			require.NoError(t, err)
 			err = appendDataToFile(file, extraData)
 			require.NoError(t, err)
 
 			var result *jsonTestData
 			result, err = LoadJSON[jsonTestData](file)
-			require.ErrorContains(t, err, fmt.Sprintf("unexpected trailing data in file %q", file))
+			require.ErrorContains(t, err, "unexpected trailing data")
 			require.Nil(t, result)
 		})
 	}
@@ -130,7 +130,7 @@ func TestLoadJSONWithTrailingWhitespace(t *testing.T) {
 			data := &jsonTestData{A: "yay", B: 3}
 
 			// Write primary json payload + extra data to the file
-			err := WriteJSON(file, data, 0o755)
+			err := WriteJSON(data, ioutil.ToAtomicFile(file, 0o755))
 			require.NoError(t, err)
 			err = appendDataToFile(file, tc.extraData)
 			require.NoError(t, err)

@@ -4,16 +4,19 @@ import (
 	"context"
 	"testing"
 
+	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	op_e2e "github.com/tokamak-network/tokamak-thanos/op-e2e"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/challenger"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame/preimage"
 )
 
+const testPreimageSize = preimage.MinPreimageSize * 20
+
 func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
-	op_e2e.InitParallel(t, op_e2e.UsesCannon)
+	op_e2e.InitParallel(t)
 	ctx := context.Background()
 	sys, _ := StartFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
@@ -23,7 +26,7 @@ func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
 		challenger.WithAlphabet(),
 		challenger.WithPrivKey(sys.Cfg.Secrets.Alice))
 	preimageHelper := disputeGameFactory.PreimageHelper(ctx)
-	ident := preimageHelper.UploadLargePreimage(ctx, preimage.MinPreimageSize,
+	ident := preimageHelper.UploadLargePreimage(ctx, testPreimageSize,
 		preimage.WithReplacedCommitment(0, common.Hash{0xaa}))
 
 	require.NotEqual(t, ident.Claimant, common.Address{})
@@ -32,7 +35,7 @@ func TestChallengeLargePreimages_ChallengeFirst(t *testing.T) {
 }
 
 func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
-	op_e2e.InitParallel(t, op_e2e.UsesCannon)
+	op_e2e.InitParallel(t)
 	ctx := context.Background()
 	sys, _ := StartFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
@@ -41,7 +44,7 @@ func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
 		challenger.WithAlphabet(),
 		challenger.WithPrivKey(sys.Cfg.Secrets.Mallory))
 	preimageHelper := disputeGameFactory.PreimageHelper(ctx)
-	ident := preimageHelper.UploadLargePreimage(ctx, preimage.MinPreimageSize,
+	ident := preimageHelper.UploadLargePreimage(ctx, testPreimageSize,
 		preimage.WithReplacedCommitment(10, common.Hash{0xaa}))
 
 	require.NotEqual(t, ident.Claimant, common.Address{})
@@ -50,7 +53,7 @@ func TestChallengeLargePreimages_ChallengeMiddle(t *testing.T) {
 }
 
 func TestChallengeLargePreimages_ChallengeLast(t *testing.T) {
-	op_e2e.InitParallel(t, op_e2e.UsesCannon)
+	op_e2e.InitParallel(t)
 	ctx := context.Background()
 	sys, _ := StartFaultDisputeSystem(t)
 	t.Cleanup(sys.Close)
@@ -59,7 +62,7 @@ func TestChallengeLargePreimages_ChallengeLast(t *testing.T) {
 		challenger.WithAlphabet(),
 		challenger.WithPrivKey(sys.Cfg.Secrets.Mallory))
 	preimageHelper := disputeGameFactory.PreimageHelper(ctx)
-	ident := preimageHelper.UploadLargePreimage(ctx, preimage.MinPreimageSize,
+	ident := preimageHelper.UploadLargePreimage(ctx, testPreimageSize,
 		preimage.WithLastCommitment(common.Hash{0xaa}))
 
 	require.NotEqual(t, ident.Claimant, common.Address{})

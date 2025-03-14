@@ -7,6 +7,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-program/host"
 	"github.com/tokamak-network/tokamak-thanos/op-program/host/config"
 	"github.com/tokamak-network/tokamak-thanos/op-program/host/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/subcmds"
 	"github.com/tokamak-network/tokamak-thanos/op-program/host/version"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
@@ -44,6 +45,9 @@ func run(args []string, action ConfigAction) error {
 	app.Name = "op-program"
 	app.Usage = "Optimism Fault Proof Program"
 	app.Description = "The Optimism Fault Proof Program fault proof program that runs through the rollup state-transition to verify an L2 output from L1 inputs."
+	app.Commands = []*cli.Command{
+		subcmds.ConfigsCommand,
+	}
 	app.Action = func(ctx *cli.Context) error {
 		logger, err := setupLogging(ctx)
 		if err != nil {

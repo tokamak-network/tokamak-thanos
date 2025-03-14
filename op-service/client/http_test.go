@@ -2,12 +2,11 @@ package client
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"golang.org/x/exp/slog"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"

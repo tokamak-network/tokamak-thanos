@@ -3,6 +3,7 @@ package dial
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
-	"golang.org/x/exp/slog"
 )
 
 func TestWaitRollupSync(t *testing.T) {

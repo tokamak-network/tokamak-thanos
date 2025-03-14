@@ -11,8 +11,8 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/cmd/check-fjord/checks"
 	op_service "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
 	"github.com/urfave/cli/v2"
 )
 
@@ -54,7 +54,7 @@ func makeCommandAction(fn CheckAction) func(c *cli.Context) error {
 		logCfg := oplog.ReadCLIConfig(c)
 		logger := oplog.NewLogger(c.App.Writer, logCfg)
 
-		c.Context = opio.CancelOnInterrupt(c.Context)
+		c.Context = ctxinterrupt.WithCancelOnInterrupt(c.Context)
 		l2Cl, err := ethclient.DialContext(c.Context, c.String(EndpointL2.Name))
 		if err != nil {
 			return fmt.Errorf("failed to dial L2 RPC: %w", err)

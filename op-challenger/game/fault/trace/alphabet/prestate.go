@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )

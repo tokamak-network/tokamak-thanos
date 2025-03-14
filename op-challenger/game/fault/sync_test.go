@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
@@ -34,7 +35,7 @@ func TestSyncStatusProvider(t *testing.T) {
 				},
 			},
 			statusReqErr: nil,
-			expected:     ErrNotInSync,
+			expected:     types.ErrNotInSync,
 		},
 		{
 			name:       "CurrentL1EqualToGameL1Head",
@@ -45,7 +46,7 @@ func TestSyncStatusProvider(t *testing.T) {
 				},
 			},
 			statusReqErr: nil,
-			expected:     ErrNotInSync,
+			expected:     types.ErrNotInSync,
 		},
 		{
 			name:       "CurrentL1AboveGameL1Head",

@@ -6,111 +6,94 @@ import "github.com/ethereum/go-ethereum/common"
 // This needs to be kept in sync with @eth-optimism/contracts-ts/wagmi.config.ts which also specifies this
 // To improve robustness and maintainability contracts-bedrock should export all addresses
 const (
-	L2ToL1MessagePasser                = "0x4200000000000000000000000000000000000016"
-	DeployerWhitelist                  = "0x4200000000000000000000000000000000000002"
-	WNativeToken                       = "0x4200000000000000000000000000000000000006"
-	L2CrossDomainMessenger             = "0x4200000000000000000000000000000000000007"
-	L2StandardBridge                   = "0x4200000000000000000000000000000000000010"
-	SequencerFeeVault                  = "0x4200000000000000000000000000000000000011"
-	OptimismMintableERC20Factory       = "0x4200000000000000000000000000000000000012"
-	L1BlockNumber                      = "0x4200000000000000000000000000000000000013"
-	GasPriceOracle                     = "0x420000000000000000000000000000000000000F"
-	L1Block                            = "0x4200000000000000000000000000000000000015"
-	GovernanceToken                    = "0x4200000000000000000000000000000000000042"
-	LegacyMessagePasser                = "0x4200000000000000000000000000000000000000"
-	L2ERC721Bridge                     = "0x4200000000000000000000000000000000000014"
-	OptimismMintableERC721Factory      = "0x4200000000000000000000000000000000000017"
-	ProxyAdmin                         = "0x4200000000000000000000000000000000000018"
-	BaseFeeVault                       = "0x4200000000000000000000000000000000000019"
-	L1FeeVault                         = "0x420000000000000000000000000000000000001a"
-	SchemaRegistry                     = "0x4200000000000000000000000000000000000020"
-	EAS                                = "0x4200000000000000000000000000000000000021"
-	ETH                                = "0x4200000000000000000000000000000000000486"
-	QuoterV2                           = "0x4200000000000000000000000000000000000500"
-	SwapRouter02                       = "0x4200000000000000000000000000000000000501"
-	UniswapV3Factory                   = "0x4200000000000000000000000000000000000502"
-	NFTDescriptor                      = "0x4200000000000000000000000000000000000503"
-	NonfungiblePositionManager         = "0x4200000000000000000000000000000000000504"
-	NonfungibleTokenPositionDescriptor = "0x4200000000000000000000000000000000000505"
-	TickLens                           = "0x4200000000000000000000000000000000000506"
-	UniswapInterfaceMulticall          = "0x4200000000000000000000000000000000000507"
-	UniversalRouter                    = "0x4200000000000000000000000000000000000508"
-	UnsupportedProtocol                = "0x4200000000000000000000000000000000000509"
-	L2UsdcBridge                       = "0x4200000000000000000000000000000000000775"
-	SignatureChecker                   = "0x4200000000000000000000000000000000000776"
-	MasterMinter                       = "0x4200000000000000000000000000000000000777"
-	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
-
-	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
-	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
-	Safe_v130                    = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
-	SafeL2_v130                  = "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA"
-	MultiSendCallOnly_v130       = "0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B"
-	SafeSingletonFactory         = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
-	DeterministicDeploymentProxy = "0x4e59b44847b379578588920cA78FbF26c0B4956C"
-	MultiSend_v130               = "0x998739BFdAAdde7C933B942a68053933098f9EDa"
-	Permit2                      = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
-	SenderCreator                = "0x7fc98430eaedbb6070b35b39d798725049088348"
-	EntryPoint                   = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+	L2ToL1MessagePasser           = "0x4200000000000000000000000000000000000016"
+	DeployerWhitelist             = "0x4200000000000000000000000000000000000002"
+	WETH                          = "0x4200000000000000000000000000000000000006"
+	L2CrossDomainMessenger        = "0x4200000000000000000000000000000000000007"
+	L2StandardBridge              = "0x4200000000000000000000000000000000000010"
+	SequencerFeeVault             = "0x4200000000000000000000000000000000000011"
+	OptimismMintableERC20Factory  = "0x4200000000000000000000000000000000000012"
+	L1BlockNumber                 = "0x4200000000000000000000000000000000000013"
+	GasPriceOracle                = "0x420000000000000000000000000000000000000F"
+	L1Block                       = "0x4200000000000000000000000000000000000015"
+	GovernanceToken               = "0x4200000000000000000000000000000000000042"
+	LegacyMessagePasser           = "0x4200000000000000000000000000000000000000"
+	L2ERC721Bridge                = "0x4200000000000000000000000000000000000014"
+	OptimismMintableERC721Factory = "0x4200000000000000000000000000000000000017"
+	ProxyAdmin                    = "0x4200000000000000000000000000000000000018"
+	BaseFeeVault                  = "0x4200000000000000000000000000000000000019"
+	L1FeeVault                    = "0x420000000000000000000000000000000000001a"
+	OperatorFeeVault              = "0x420000000000000000000000000000000000001b"
+	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
+	EAS                           = "0x4200000000000000000000000000000000000021"
+	CrossL2Inbox                  = "0x4200000000000000000000000000000000000022"
+	L2toL2CrossDomainMessenger    = "0x4200000000000000000000000000000000000023"
+	SuperchainWETH                = "0x4200000000000000000000000000000000000024"
+	ETHLiquidity                  = "0x4200000000000000000000000000000000000025"
+	SuperchainTokenBridge         = "0x4200000000000000000000000000000000000028"
+	Create2Deployer               = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
+	MultiCall3                    = "0xcA11bde05977b3631167028862bE2a173976CA11"
+	Safe_v130                     = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
+	SafeL2_v130                   = "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA"
+	MultiSendCallOnly_v130        = "0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B"
+	SafeSingletonFactory          = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
+	DeterministicDeploymentProxy  = "0x4e59b44847b379578588920cA78FbF26c0B4956C"
+	MultiSend_v130                = "0x998739BFdAAdde7C933B942a68053933098f9EDa"
+	Permit2                       = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+	SenderCreator_v060            = "0x7fc98430eaedbb6070b35b39d798725049088348"
+	EntryPoint_v060               = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+	SenderCreator_v070            = "0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C"
+	EntryPoint_v070               = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
 )
 
 var (
-	L2ToL1MessagePasserAddr                = common.HexToAddress(L2ToL1MessagePasser)
-	DeployerWhitelistAddr                  = common.HexToAddress(DeployerWhitelist)
-	WNativeTokenAddr                       = common.HexToAddress(WNativeToken)
-	L2CrossDomainMessengerAddr             = common.HexToAddress(L2CrossDomainMessenger)
-	L2StandardBridgeAddr                   = common.HexToAddress(L2StandardBridge)
-	SequencerFeeVaultAddr                  = common.HexToAddress(SequencerFeeVault)
-	OptimismMintableERC20FactoryAddr       = common.HexToAddress(OptimismMintableERC20Factory)
-	L1BlockNumberAddr                      = common.HexToAddress(L1BlockNumber)
-	GasPriceOracleAddr                     = common.HexToAddress(GasPriceOracle)
-	L1BlockAddr                            = common.HexToAddress(L1Block)
-	GovernanceTokenAddr                    = common.HexToAddress(GovernanceToken)
-	LegacyMessagePasserAddr                = common.HexToAddress(LegacyMessagePasser)
-	L2ERC721BridgeAddr                     = common.HexToAddress(L2ERC721Bridge)
-	OptimismMintableERC721FactoryAddr      = common.HexToAddress(OptimismMintableERC721Factory)
-	ProxyAdminAddr                         = common.HexToAddress(ProxyAdmin)
-	BaseFeeVaultAddr                       = common.HexToAddress(BaseFeeVault)
-	L1FeeVaultAddr                         = common.HexToAddress(L1FeeVault)
-	SchemaRegistryAddr                     = common.HexToAddress(SchemaRegistry)
-	EASAddr                                = common.HexToAddress(EAS)
-	ETHAddr                                = common.HexToAddress(ETH)
-	QuoterV2Addr                           = common.HexToAddress(QuoterV2)
-	SwapRouter02Addr                       = common.HexToAddress(SwapRouter02)
-	UniswapV3FactoryAddr                   = common.HexToAddress(UniswapV3Factory)
-	NFTDescriptorAddr                      = common.HexToAddress(NFTDescriptor)
-	NonfungiblePositionManagerAddr         = common.HexToAddress(NonfungiblePositionManager)
-	NonfungibleTokenPositionDescriptorAddr = common.HexToAddress(NonfungibleTokenPositionDescriptor)
-	TickLensAddr                           = common.HexToAddress(TickLens)
-	UniswapInterfaceMulticallAddr          = common.HexToAddress(UniswapInterfaceMulticall)
-	UniversalRouterAddr                    = common.HexToAddress(UniversalRouter)
-	UnsupportedProtocolAddr                = common.HexToAddress(UnsupportedProtocol)
-	L2UsdcBridgeAddr                       = common.HexToAddress(L2UsdcBridge)
-	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
-	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
-	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
-
-	Create2DeployerAddr              = common.HexToAddress(Create2Deployer)
-	MultiCall3Addr                   = common.HexToAddress(MultiCall3)
-	Safe_v130Addr                    = common.HexToAddress(Safe_v130)
-	SafeL2_v130Addr                  = common.HexToAddress(SafeL2_v130)
-	MultiSendCallOnly_v130Addr       = common.HexToAddress(MultiSendCallOnly_v130)
-	SafeSingletonFactoryAddr         = common.HexToAddress(SafeSingletonFactory)
-	DeterministicDeploymentProxyAddr = common.HexToAddress(DeterministicDeploymentProxy)
-	MultiSend_v130Addr               = common.HexToAddress(MultiSend_v130)
-	Permit2Addr                      = common.HexToAddress(Permit2)
-	SenderCreatorAddr                = common.HexToAddress(SenderCreator)
-	EntryPointAddr                   = common.HexToAddress(EntryPoint)
+	L2ToL1MessagePasserAddr           = common.HexToAddress(L2ToL1MessagePasser)
+	DeployerWhitelistAddr             = common.HexToAddress(DeployerWhitelist)
+	WETHAddr                          = common.HexToAddress(WETH)
+	L2CrossDomainMessengerAddr        = common.HexToAddress(L2CrossDomainMessenger)
+	L2StandardBridgeAddr              = common.HexToAddress(L2StandardBridge)
+	SequencerFeeVaultAddr             = common.HexToAddress(SequencerFeeVault)
+	OptimismMintableERC20FactoryAddr  = common.HexToAddress(OptimismMintableERC20Factory)
+	L1BlockNumberAddr                 = common.HexToAddress(L1BlockNumber)
+	GasPriceOracleAddr                = common.HexToAddress(GasPriceOracle)
+	L1BlockAddr                       = common.HexToAddress(L1Block)
+	GovernanceTokenAddr               = common.HexToAddress(GovernanceToken)
+	LegacyMessagePasserAddr           = common.HexToAddress(LegacyMessagePasser)
+	L2ERC721BridgeAddr                = common.HexToAddress(L2ERC721Bridge)
+	OptimismMintableERC721FactoryAddr = common.HexToAddress(OptimismMintableERC721Factory)
+	ProxyAdminAddr                    = common.HexToAddress(ProxyAdmin)
+	BaseFeeVaultAddr                  = common.HexToAddress(BaseFeeVault)
+	L1FeeVaultAddr                    = common.HexToAddress(L1FeeVault)
+	OperatorFeeVaultAddr              = common.HexToAddress(OperatorFeeVault)
+	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
+	EASAddr                           = common.HexToAddress(EAS)
+	CrossL2InboxAddr                  = common.HexToAddress(CrossL2Inbox)
+	L2toL2CrossDomainMessengerAddr    = common.HexToAddress(L2toL2CrossDomainMessenger)
+	SuperchainWETHAddr                = common.HexToAddress(SuperchainWETH)
+	ETHLiquidityAddr                  = common.HexToAddress(ETHLiquidity)
+	SuperchainTokenBridgeAddr         = common.HexToAddress(SuperchainTokenBridge)
+	Create2DeployerAddr               = common.HexToAddress(Create2Deployer)
+	MultiCall3Addr                    = common.HexToAddress(MultiCall3)
+	Safe_v130Addr                     = common.HexToAddress(Safe_v130)
+	SafeL2_v130Addr                   = common.HexToAddress(SafeL2_v130)
+	MultiSendCallOnly_v130Addr        = common.HexToAddress(MultiSendCallOnly_v130)
+	SafeSingletonFactoryAddr          = common.HexToAddress(SafeSingletonFactory)
+	DeterministicDeploymentProxyAddr  = common.HexToAddress(DeterministicDeploymentProxy)
+	MultiSend_v130Addr                = common.HexToAddress(MultiSend_v130)
+	Permit2Addr                       = common.HexToAddress(Permit2)
+	SenderCreator_v060Addr            = common.HexToAddress(SenderCreator_v060)
+	EntryPoint_v060Addr               = common.HexToAddress(EntryPoint_v060)
+	SenderCreator_v070Addr            = common.HexToAddress(SenderCreator_v070)
+	EntryPoint_v070Addr               = common.HexToAddress(EntryPoint_v070)
 
 	Predeploys          = make(map[string]*Predeploy)
 	PredeploysByAddress = make(map[common.Address]*Predeploy)
 )
 
 func init() {
-	Predeploys["LegacyERC20NativeToken"] = &Predeploy{Address: LegacyERC20NativeTokenAddr, ProxyDisabled: true}
 	Predeploys["L2ToL1MessagePasser"] = &Predeploy{Address: L2ToL1MessagePasserAddr}
 	Predeploys["DeployerWhitelist"] = &Predeploy{Address: DeployerWhitelistAddr}
-	Predeploys["WNativeToken"] = &Predeploy{Address: WNativeTokenAddr, ProxyDisabled: true}
+	Predeploys["WETH"] = &Predeploy{Address: WETHAddr, ProxyDisabled: true}
 	Predeploys["L2CrossDomainMessenger"] = &Predeploy{Address: L2CrossDomainMessengerAddr}
 	Predeploys["L2StandardBridge"] = &Predeploy{Address: L2StandardBridgeAddr}
 	Predeploys["SequencerFeeVault"] = &Predeploy{Address: SequencerFeeVaultAddr}
@@ -118,6 +101,11 @@ func init() {
 	Predeploys["L1BlockNumber"] = &Predeploy{Address: L1BlockNumberAddr}
 	Predeploys["GasPriceOracle"] = &Predeploy{Address: GasPriceOracleAddr}
 	Predeploys["L1Block"] = &Predeploy{Address: L1BlockAddr}
+	Predeploys["CrossL2Inbox"] = &Predeploy{Address: CrossL2InboxAddr}
+	Predeploys["L2toL2CrossDomainMessenger"] = &Predeploy{Address: L2toL2CrossDomainMessengerAddr}
+	Predeploys["SuperchainWETH"] = &Predeploy{Address: SuperchainWETHAddr}
+	Predeploys["ETHLiquidity"] = &Predeploy{Address: ETHLiquidityAddr}
+	Predeploys["SuperchainTokenBridge"] = &Predeploy{Address: SuperchainTokenBridgeAddr}
 	Predeploys["GovernanceToken"] = &Predeploy{
 		Address:       GovernanceTokenAddr,
 		ProxyDisabled: true,
@@ -131,24 +119,9 @@ func init() {
 	Predeploys["ProxyAdmin"] = &Predeploy{Address: ProxyAdminAddr}
 	Predeploys["BaseFeeVault"] = &Predeploy{Address: BaseFeeVaultAddr}
 	Predeploys["L1FeeVault"] = &Predeploy{Address: L1FeeVaultAddr}
+	Predeploys["OperatorFeeVault"] = &Predeploy{Address: OperatorFeeVaultAddr}
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
-	Predeploys["ETH"] = &Predeploy{Address: ETHAddr, ProxyDisabled: true}
-	Predeploys["QuoterV2"] = &Predeploy{Address: QuoterV2Addr, ProxyDisabled: true}
-	Predeploys["SwapRouter02"] = &Predeploy{Address: SwapRouter02Addr, ProxyDisabled: true}
-	Predeploys["UniswapV3Factory"] = &Predeploy{Address: UniswapV3FactoryAddr, ProxyDisabled: true}
-	Predeploys["NFTDescriptor"] = &Predeploy{Address: NFTDescriptorAddr, ProxyDisabled: true}
-	Predeploys["NonfungiblePositionManager"] = &Predeploy{Address: NonfungiblePositionManagerAddr, ProxyDisabled: true}
-	Predeploys["NonfungibleTokenPositionDescriptor"] = &Predeploy{Address: NonfungibleTokenPositionDescriptorAddr}
-	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr, ProxyDisabled: true}
-	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr, ProxyDisabled: true}
-	Predeploys["UniversalRouter"] = &Predeploy{Address: UniversalRouterAddr, ProxyDisabled: true}
-	Predeploys["UnsupportedProtocol"] = &Predeploy{Address: UnsupportedProtocolAddr, ProxyDisabled: true}
-	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr}
-	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true}
-	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true}
-	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr}
-
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
 		ProxyDisabled: true,
@@ -185,12 +158,20 @@ func init() {
 		Address:       Permit2Addr,
 		ProxyDisabled: true,
 	}
-	Predeploys["SenderCreator"] = &Predeploy{
-		Address:       SenderCreatorAddr,
+	Predeploys["SenderCreator_v060"] = &Predeploy{
+		Address:       SenderCreator_v060Addr,
 		ProxyDisabled: true,
 	}
-	Predeploys["EntryPoint"] = &Predeploy{
-		Address:       EntryPointAddr,
+	Predeploys["EntryPoint_v060"] = &Predeploy{
+		Address:       EntryPoint_v060Addr,
+		ProxyDisabled: true,
+	}
+	Predeploys["SenderCreator_v070"] = &Predeploy{
+		Address:       SenderCreator_v070Addr,
+		ProxyDisabled: true,
+	}
+	Predeploys["EntryPoint_v070"] = &Predeploy{
+		Address:       EntryPoint_v070Addr,
 		ProxyDisabled: true,
 	}
 
