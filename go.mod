@@ -240,7 +240,7 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101315.2-rc.1
+replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20250316144452-ffef43a7e0ca
 
 //replace github.com/ethereum/go-ethereum v1.13.9 => ../op-geth
 
