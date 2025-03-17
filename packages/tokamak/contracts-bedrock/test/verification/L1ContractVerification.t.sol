@@ -145,14 +145,26 @@ contract L1ContractVerificationTest is Test {
 
     // Call initialize through the proxy
     (bool success, ) = address(systemConfigProxy).call(initData);
-    require(success, "SystemConfig initialization failed");
+    require(success, 'SystemConfig initialization failed');
 
     // Verify the addresses were set correctly
     MockSystemConfig config = MockSystemConfig(address(systemConfigProxy));
-    require(config.l1StandardBridge() == address(l1StandardBridgeProxy), "L1StandardBridge not set correctly");
-    require(config.l1CrossDomainMessenger() == address(l1CrossDomainMessengerProxy), "L1CrossDomainMessenger not set correctly");
-    require(config.optimismPortal() == address(optimismPortalProxy), "OptimismPortal not set correctly");
-    require(config.nativeTokenAddress() == nativeToken, "NativeToken not set correctly");
+    require(
+      config.l1StandardBridge() == address(l1StandardBridgeProxy),
+      'L1StandardBridge not set correctly'
+    );
+    require(
+      config.l1CrossDomainMessenger() == address(l1CrossDomainMessengerProxy),
+      'L1CrossDomainMessenger not set correctly'
+    );
+    require(
+      config.optimismPortal() == address(optimismPortalProxy),
+      'OptimismPortal not set correctly'
+    );
+    require(
+      config.nativeTokenAddress() == nativeToken,
+      'NativeToken not set correctly'
+    );
 
     // Setup Safe wallet
     address[] memory safeOwners = new address[](3);
@@ -236,13 +248,25 @@ contract L1ContractVerificationTest is Test {
     _setupAllConfigs();
 
     console.log('-----------------------------------------------------------');
-    console.log("SystemConfig Proxy:", address(systemConfigProxy));
-    console.log("SystemConfig Implementation:", address(systemConfigImpl));
-    console.log("L1StandardBridge from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).l1StandardBridge());
-    console.log("L1CrossDomainMessenger from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger());
-    console.log("OptimismPortal from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).optimismPortal());
-    console.log("NativeToken from SystemConfig:", MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress());
-    console.log("ProxyAdmin Owner:", mockProxyAdmin.owner());
+    console.log('SystemConfig Proxy:', address(systemConfigProxy));
+    console.log('SystemConfig Implementation:', address(systemConfigImpl));
+    console.log(
+      'L1StandardBridge from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).l1StandardBridge()
+    );
+    console.log(
+      'L1CrossDomainMessenger from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger()
+    );
+    console.log(
+      'OptimismPortal from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).optimismPortal()
+    );
+    console.log(
+      'NativeToken from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress()
+    );
+    console.log('ProxyAdmin Owner:', mockProxyAdmin.owner());
     console.log('-----------------------------------------------------------');
 
     vm.stopPrank();
@@ -331,7 +355,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    address l2TON = makeAddr('l2TON');
+    address l2TON = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
 
     // Verify and register rollup config
     bool result = verifier.verifyAndRegisterRollupConfig(
@@ -357,7 +381,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    address l2TON = makeAddr('l2TON');
+    address l2TON = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
 
     // Verification should fail due to invalid token type
     vm.expectRevert('Registration allowed only for TON tokens');
@@ -641,7 +665,7 @@ contract L1ContractVerificationTest is Test {
 
     // Call initialize through the proxy
     (bool success, ) = address(systemConfigProxy).call(initData);
-    require(success, "SystemConfig initialization failed");
+    require(success, 'SystemConfig initialization failed');
 
     vm.stopPrank();
 
@@ -649,12 +673,21 @@ contract L1ContractVerificationTest is Test {
 
     address l2TON = makeAddr('l2TON');
 
+    // Verification should fail due to incorrect L2 Ton Address
+    vm.expectRevert('Provided L2 TON Token address is not correct');
+    verifier.verifyAndRegisterRollupConfig(
+      address(systemConfigProxy),
+      2, // TON token type
+      l2TON,
+      'TestRollup'
+    );
+
     // Verification should fail due to native token mismatch
     vm.expectRevert('The native token you are using is not TON.');
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       2, // TON token type
-      l2TON,
+      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'TestRollup'
     );
 
@@ -706,7 +739,9 @@ contract L1ContractVerificationTest is Test {
     MockProxyAdmin mockProxyAdminZeroImpl = new MockProxyAdmin(owner);
 
     // Deploy a new verifier with the mock proxy admin
-    L1ContractVerification newVerifier = new L1ContractVerification(address(mockProxyAdminZeroImpl));
+    L1ContractVerification newVerifier = new L1ContractVerification(
+      address(mockProxyAdminZeroImpl)
+    );
 
     // Set up the new verifier with the same configs
     newVerifier.setContractConfig(
@@ -737,7 +772,9 @@ contract L1ContractVerificationTest is Test {
     MockProxyAdmin mockProxyAdminZeroAdmin = new MockProxyAdmin(owner);
 
     // Deploy a new verifier with the mock proxy admin
-    L1ContractVerification newVerifier = new L1ContractVerification(address(mockProxyAdminZeroAdmin));
+    L1ContractVerification newVerifier = new L1ContractVerification(
+      address(mockProxyAdminZeroAdmin)
+    );
 
     // Set up the new verifier with the same configs
     newVerifier.setContractConfig(
@@ -752,7 +789,10 @@ contract L1ContractVerificationTest is Test {
 
     // Set implementation for the custom proxy but don't set admin
     // This will cause getProxyAdmin to revert with 'Admin not set for proxy'
-    mockProxyAdminZeroAdmin.setImplementation(customProxy, address(systemConfigImpl));
+    mockProxyAdminZeroAdmin.setImplementation(
+      customProxy,
+      address(systemConfigImpl)
+    );
 
     vm.stopPrank();
 

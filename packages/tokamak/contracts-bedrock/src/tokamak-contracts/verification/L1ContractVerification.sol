@@ -90,6 +90,10 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address _l2TON,
     string calldata _name
   ) external returns (bool) {
+    require(
+      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
+      'Provided L2 TON Token address is not correct'
+    );
     require(_type == 2, 'Registration allowed only for TON tokens');
     require(
       _verifyL1Contracts(block.chainid, systemConfigProxy),
@@ -106,7 +110,12 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     IL1BridgeRegistryV1_1 bridgeRegistry = IL1BridgeRegistryV1_1(
       L1BridgeRegistryV1_1Address
     );
-    bridgeRegistry.registerRollupConfig(systemConfigProxy, _type, _l2TON, _name);
+    bridgeRegistry.registerRollupConfig(
+      systemConfigProxy,
+      _type,
+      _l2TON,
+      _name
+    );
 
     emit RegistrationSuccess(msg.sender);
     return true;
