@@ -8,13 +8,17 @@ import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 contract DeployL1ContractVerification is Script {
   function run() external {
     // Load environment variables
-    address proxyAdminAddress = vm.envAddress("PROXY_ADMIN_CONTRACT_ADDRESS");
+    address proxyAdminAddress = vm.envAddress('PROXY_ADMIN_CONTRACT_ADDRESS');
+    address l2TONAddress = vm.envAddress('L2_TON_ADDRESS');
 
     // Start broadcasting transactions
     vm.startBroadcast();
 
     // Deploy the contract with the ProxyAdmin address
-    L1ContractVerification verificationContract = new L1ContractVerification(proxyAdminAddress);
+    L1ContractVerification verificationContract = new L1ContractVerification(
+      proxyAdminAddress,
+      l2TONAddress
+    );
 
     console.log(
       'L1ContractVerification deployed to:',

@@ -29,6 +29,7 @@ contract VerifyContractSetConfig is Script {
   address foundation;
   address thirdOwner;
   address bridgeAddress;
+  address l2TonAddress;
   uint256 threshold;
 
   function setUp() public {
@@ -50,6 +51,7 @@ contract VerifyContractSetConfig is Script {
     foundation = vm.envAddress('FOUNDATION_ADDRESS');
     thirdOwner = vm.envAddress('THIRD_OWNER_ADDRESS');
     bridgeAddress = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
+    l2TonAddress = vm.envAddress('L2_TON_ADDRESS');
     threshold = vm.envUint('THRESHOLD');
   }
 
@@ -131,7 +133,7 @@ contract VerifyContractSetConfig is Script {
       .verifyAndRegisterRollupConfig(
         systemConfigProxy,
         2,
-        nativeTokenAddress,
+        l2TonAddress,
         'TestRollup'
       );
     console.log(

@@ -48,6 +48,7 @@ contract L1ContractVerificationTest is Test {
   address thirdOwner;
   address user;
   address nativeToken;
+  address l2TONAddress;
 
   function setUp() public {
     // Setup accounts
@@ -57,6 +58,7 @@ contract L1ContractVerificationTest is Test {
     thirdOwner = makeAddr('thirdOwner');
     user = makeAddr('user');
     nativeToken = makeAddr('nativeToken');
+    l2TONAddress = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
 
     // Set chain ID for testing
     vm.chainId(CHAIN_ID);
@@ -177,7 +179,10 @@ contract L1ContractVerificationTest is Test {
     bridgeRegistry = new MockBridgeRegistry();
 
     // Deploy verifier contract with proxy admin address
-    verifier = new L1ContractVerification(address(mockProxyAdmin));
+    verifier = new L1ContractVerification(
+      address(mockProxyAdmin),
+      l2TONAddress
+    );
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -312,7 +317,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -339,7 +344,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('Safe verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -520,7 +525,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('L1 Standard Bridge verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -554,7 +559,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('L1 Cross Domain Messenger verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -588,7 +593,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('Optimism Portal verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -614,7 +619,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -639,7 +644,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -726,7 +731,7 @@ contract L1ContractVerificationTest is Test {
 
   function testConstructorFailZeroAddress() public {
     vm.expectRevert('Invalid proxy admin address');
-    new L1ContractVerification(address(0));
+    new L1ContractVerification(address(0), address(0));
   }
 
   function testVerifyL1ContractsFailZeroImplementation() public {
@@ -740,7 +745,8 @@ contract L1ContractVerificationTest is Test {
 
     // Deploy a new verifier with the mock proxy admin
     L1ContractVerification newVerifier = new L1ContractVerification(
-      address(mockProxyAdminZeroImpl)
+      address(mockProxyAdminZeroImpl),
+      l2TONAddress
     );
 
     // Set up the new verifier with the same configs
@@ -756,7 +762,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail because implementation is zero
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('SystemConfig verification failed');
     newVerifier.verifyL1Contracts(address(systemConfigProxy));
 
     vm.stopPrank();
@@ -773,7 +779,8 @@ contract L1ContractVerificationTest is Test {
 
     // Deploy a new verifier with the mock proxy admin
     L1ContractVerification newVerifier = new L1ContractVerification(
-      address(mockProxyAdminZeroAdmin)
+      address(mockProxyAdminZeroAdmin),
+      l2TONAddress
     );
 
     // Set up the new verifier with the same configs
@@ -799,7 +806,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail because admin check will fail
-    vm.expectRevert('Contracts verification failed');
+    vm.expectRevert('SystemConfig verification failed');
     newVerifier.verifyL1Contracts(customProxy);
 
     vm.stopPrank();
