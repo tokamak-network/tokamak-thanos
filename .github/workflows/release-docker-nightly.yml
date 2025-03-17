@@ -3,7 +3,7 @@ name: Publish Docker images (nightly)
 on:
   push:
     branches:
-      - main
+      - check/update-docker-imge-pectra
 
 jobs:
   version:
