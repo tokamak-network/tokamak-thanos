@@ -1,6 +1,8 @@
 name: 'Deposit and Withdrawal End To End Test'
 on:
-  pull_request:
+  push:
+    branches:
+      - check/update-docker-imge-pectra
 
 jobs:
   deposit-withdrawal-e2e-tests:
