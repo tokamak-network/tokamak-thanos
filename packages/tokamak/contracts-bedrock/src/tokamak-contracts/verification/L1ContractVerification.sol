@@ -9,6 +9,9 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   // ProxyAdmin contract address
   address public immutable PROXY_ADMIN_ADDRESS;
 
+  //L2 Ton address
+  address public immutable L2_TON_ADDRESS;
+
   struct ChainConfig {
     mapping(bytes32 => ContractConfig) contractConfigs;
     SafeConfig safeConfig;
@@ -32,9 +35,12 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   // Events
   event SafeVerificationRequiredSet(uint256 indexed chainId, bool required);
 
-  constructor(address _proxyAdminAddress) Ownable() {
+  constructor(address _proxyAdminAddress, address _l2TONAddress) Ownable() {
     require(_proxyAdminAddress != address(0), 'Invalid proxy admin address');
     PROXY_ADMIN_ADDRESS = _proxyAdminAddress;
+
+    require(_l2TONAddress != address(0), 'Invalid L2 TON address');
+    L2_TON_ADDRESS = _l2TONAddress;
   }
 
   // External functions
@@ -76,10 +82,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function verifyL1Contracts(
     address systemConfigProxy
   ) external returns (bool) {
-    require(
-      _verifyL1Contracts(block.chainid, systemConfigProxy),
-      'Contracts verification failed'
-    );
+    _verifyL1Contracts(block.chainid, systemConfigProxy);
     emit VerificationSuccess(msg.sender);
     return true;
   }
@@ -91,14 +94,13 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     string calldata _name
   ) external returns (bool) {
     require(
-      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
+      _l2TON == L2_TON_ADDRESS,
       'Provided L2 TON Token address is not correct'
     );
     require(_type == 2, 'Registration allowed only for TON tokens');
-    require(
-      _verifyL1Contracts(block.chainid, systemConfigProxy),
-      'Contracts verification failed'
-    );
+
+    // Verify L1 Contracts and safe wallet
+    _verifyL1Contracts(block.chainid, systemConfigProxy);
 
     ISystemConfig systemConfig = ISystemConfig(systemConfigProxy);
     require(
@@ -319,10 +321,10 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function _verifyL1Contracts(
     uint256 chainId,
     address systemConfigProxy
-  ) internal view returns (bool) {
+  ) internal view {
     // Verify SystemConfig
     if (!_verifyContract(systemConfigProxy, SYSTEM_CONFIG, chainId)) {
-      return false;
+      revert('SystemConfig verification failed');
     }
 
     // Get contract addresses from SystemConfig
@@ -332,16 +334,22 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address optimismPortal = systemConfig.optimismPortal();
 
     // Verify other contracts
+    if (!_verifyContract(l1StandardBridge, L1_STANDARD_BRIDGE, chainId)) {
+      revert('L1 Standard Bridge verification failed');
+    }
+
     if (
-      !_verifyContract(l1StandardBridge, L1_STANDARD_BRIDGE, chainId) ||
       !_verifyContract(
         l1CrossDomainMessenger,
         L1_CROSS_DOMAIN_MESSENGER,
         chainId
-      ) ||
-      !_verifyContract(optimismPortal, OPTIMISM_PORTAL, chainId)
+      )
     ) {
-      return false;
+      revert('L1 Cross Domain Messenger verification failed');
+    }
+
+    if (!_verifyContract(optimismPortal, OPTIMISM_PORTAL, chainId)) {
+      revert('Optimism Portal verification failed');
     }
 
     IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
@@ -352,9 +360,9 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
       chainConfigs[chainId].safeVerificationRequired &&
       !_verifySafe(safeWallet, chainId)
     ) {
-      return false;
+      revert('Safe verification failed');
     }
 
-    return true;
+    return;
   }
 }
