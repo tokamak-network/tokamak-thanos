@@ -1,32 +1,60 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+
+// Libraries
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { EOA } from "src/libraries/EOA.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import { DisputeGameFactory, IDisputeGame } from "src/dispute/DisputeGameFactory.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { ResourceMetering } from "src/L1/ResourceMetering.sol";
-import { ISemver } from "src/universal/ISemver.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import {
+    BadTarget,
+    LargeCalldata,
+    SmallGasLimit,
+    Unauthorized,
+    CallPaused,
+    GasEstimation,
+    NonReentrant,
+    InvalidProof,
+    InvalidGameType,
+    InvalidDisputeGame,
+    InvalidMerkleProof,
+    Blacklisted,
+    Unproven,
+    ProposalNotValidated,
+    AlreadyFinalized,
+    LegacyGame
+} from "src/libraries/PortalErrors.sol";
+import { GameStatus, GameType, Claim, Timestamp } from "src/dispute/lib/Types.sol";
 
-import "src/libraries/PortalErrors.sol";
-import "src/dispute/lib/Types.sol";
+// Interfaces
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 
-/// @custom:proxied
+/// @custom:proxied true
 /// @title OptimismPortal2
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
+    /// @notice Allows for interactions with non standard ERC20 tokens.
+    using SafeERC20 for IERC20;
+
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy The address of the dispute game proxy that the withdrawal was proven against.
-    /// @custom:field timestamp        Timestamp at whcih the withdrawal was proven.
+    /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
     struct ProvenWithdrawal {
         IDisputeGame disputeGameProxy;
         uint64 timestamp;
@@ -44,6 +72,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice The L2 gas limit set when eth is deposited using the receive() function.
     uint64 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 100_000;
+
+    /// @notice The L2 gas limit for system deposit transactions that are initiated from L1.
+    uint32 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
 
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
     ///         If the of this variable is the default L2 sender address, then we are NOT inside of
@@ -64,7 +95,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     bool private spacer_53_0_1;
 
     /// @notice Contract of the Superchain Config.
-    SuperchainConfig public superchainConfig;
+    ISuperchainConfig public superchainConfig;
 
     /// @custom:legacy
     /// @custom:spacer l2Oracle
@@ -73,11 +104,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Contract of the SystemConfig.
     /// @custom:network-specific
-    SystemConfig public systemConfig;
+    ISystemConfig public systemConfig;
 
     /// @notice Address of the DisputeGameFactory.
     /// @custom:network-specific
-    DisputeGameFactory public disputeGameFactory;
+    IDisputeGameFactory public disputeGameFactory;
 
     /// @notice A mapping of withdrawal hashes to proof submitters to `ProvenWithdrawal` data.
     mapping(bytes32 => mapping(address => ProvenWithdrawal)) public provenWithdrawals;
@@ -91,12 +122,19 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice The timestamp at which the respected game type was last updated.
     uint64 public respectedGameTypeUpdatedAt;
 
-    /// @notice Mapping of withdrawal hashes to addresses that have submitted a proof for the withdrawal.
+    /// @notice Mapping of withdrawal hashes to addresses that have submitted a proof for the
+    ///         withdrawal. Original OptimismPortal contract only allowed one proof to be submitted
+    ///         for any given withdrawal hash. Fault Proofs version of this contract must allow
+    ///         multiple proofs for the same withdrawal hash to prevent a malicious user from
+    ///         blocking other withdrawals by proving them against invalid proposals. Submitters
+    ///         are tracked in an array to simplify the off-chain process of determining which
+    ///         proof submission should be used when finalizing a withdrawal.
     mapping(bytes32 => address[]) public proofSubmitters;
 
-    /// @custom:spacer _balance (custom gas token)
-    /// @notice Spacer for forwards compatibility.
-    bytes32 private spacer_61_0_32;
+    /// @custom:legacy
+    /// @custom:spacer _balance
+    /// @notice Spacer taking up the legacy `_balance` slot.
+    uint256 private spacer_61_0_32;
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -140,20 +178,17 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 3.10.0
-    string public constant version = "3.10.0";
+    /// @custom:semver 3.14.0
+    function version() public pure virtual returns (string memory) {
+        return "3.14.0";
+    }
 
     /// @notice Constructs the OptimismPortal contract.
     constructor(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) {
         PROOF_MATURITY_DELAY_SECONDS = _proofMaturityDelaySeconds;
         DISPUTE_GAME_FINALITY_DELAY_SECONDS = _disputeGameFinalityDelaySeconds;
 
-        initialize({
-            _disputeGameFactory: DisputeGameFactory(address(0)),
-            _systemConfig: SystemConfig(address(0)),
-            _superchainConfig: SuperchainConfig(address(0)),
-            _initialRespectedGameType: GameType.wrap(0)
-        });
+        _disableInitializers();
     }
 
     /// @notice Initializer.
@@ -161,12 +196,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     function initialize(
-        DisputeGameFactory _disputeGameFactory,
-        SystemConfig _systemConfig,
-        SuperchainConfig _superchainConfig,
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
         GameType _initialRespectedGameType
     )
-        public
+        external
         initializer
     {
         disputeGameFactory = _disputeGameFactory;
@@ -220,7 +255,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _byteCount Number of bytes in the calldata.
     /// @return The minimum gas limit for a deposit.
     function minimumGasLimit(uint64 _byteCount) public pure returns (uint64) {
-        return _byteCount * 16 + 21000;
+        return _byteCount * 40 + 21000;
     }
 
     /// @notice Accepts value so that users can send ETH directly to this contract and have the
@@ -241,9 +276,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice Getter for the resource config.
     ///         Used internally by the ResourceMetering contract.
     ///         The SystemConfig is the source of truth for the resource config.
-    /// @return ResourceMetering ResourceConfig
-    function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory) {
-        return systemConfig.resourceConfig();
+    /// @return config_ ResourceMetering ResourceConfig
+    function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory config_) {
+        IResourceMetering.ResourceConfig memory config = systemConfig.resourceConfig();
+        assembly ("memory-safe") {
+            config_ := config
+        }
     }
 
     /// @notice Proves a withdrawal transaction.
@@ -263,30 +301,43 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
+        if (_tx.target == address(this)) revert BadTarget();
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
         (GameType gameType,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
         Claim outputRoot = gameProxy.rootClaim();
 
         // The game type of the dispute game must be the respected game type.
-        require(gameType.raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
+        if (gameType.raw() != respectedGameType.raw()) revert InvalidGameType();
+
+        // The game type of the DisputeGame must have been the respected game type at creation.
+        // eip150-safe
+        try gameProxy.wasRespectedGameTypeWhenCreated() returns (bool wasRespected_) {
+            if (!wasRespected_) revert InvalidGameType();
+        } catch {
+            revert LegacyGame();
+        }
+
+        // Game must have been created after the respected game type was updated. This check is a
+        // strict inequality because we want to prevent users from being able to prove or finalize
+        // withdrawals against games that were created in the same block that the retirement
+        // timestamp was set. If the retirement timestamp and game type are changed in the same
+        // block, such games could still be considered valid even if they used the old game type
+        // that we intended to invalidate.
+        require(
+            gameProxy.createdAt().raw() > respectedGameTypeUpdatedAt,
+            "OptimismPortal: dispute game created before respected game type was updated"
+        );
 
         // Verify that the output root can be generated with the elements in the proof.
-        require(
-            outputRoot.raw() == Hashing.hashOutputRootProof(_outputRootProof),
-            "OptimismPortal: invalid output root proof"
-        );
+        if (outputRoot.raw() != Hashing.hashOutputRootProof(_outputRootProof)) revert InvalidProof();
 
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // We do not allow for proving withdrawals against dispute games that have resolved against the favor
         // of the root claim.
-        require(
-            gameProxy.status() != GameStatus.CHALLENGER_WINS,
-            "OptimismPortal: cannot prove against invalid dispute games"
-        );
+        if (gameProxy.status() == GameStatus.CHALLENGER_WINS) revert InvalidDisputeGame();
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
         // Refer to the Solidity documentation for more information on how storage layouts are
@@ -302,15 +353,14 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // on L2. If this is true, under the assumption that the SecureMerkleTrie does not have
         // bugs, then we know that this withdrawal was actually triggered on L2 and can therefore
         // be relayed on L1.
-        require(
+        if (
             SecureMerkleTrie.verifyInclusionProof({
                 _key: abi.encode(storageKey),
                 _value: hex"01",
                 _proof: _withdrawalProof,
                 _root: _outputRootProof.messagePasserStorageRoot
-            }),
-            "OptimismPortal: invalid withdrawal inclusion proof"
-        );
+            }) == false
+        ) revert InvalidMerkleProof();
 
         // Designate the withdrawalHash as proven by storing the `disputeGameProxy` & `timestamp` in the
         // `provenWithdrawals` mapping. A `withdrawalHash` can only be proven once unless the dispute game it proved
@@ -346,9 +396,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
-        require(
-            l2Sender == Constants.DEFAULT_L2_SENDER, "OptimismPortal: can only trigger one withdrawal per transaction"
-        );
+        if (l2Sender != Constants.DEFAULT_L2_SENDER) revert NonReentrant();
 
         // Compute the withdrawal hash.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
@@ -422,7 +470,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         // Transform the from-address to its alias if the caller is a contract.
         address from = msg.sender;
-        if (msg.sender != tx.origin) {
+        if (!EOA.isSenderEOA()) {
             from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
         }
 
@@ -449,9 +497,16 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _gameType The game type to consult for output proposals.
     function setRespectedGameType(GameType _gameType) external {
         if (msg.sender != guardian()) revert Unauthorized();
-        respectedGameType = _gameType;
-        respectedGameTypeUpdatedAt = uint64(block.timestamp);
-        emit RespectedGameTypeSet(_gameType, Timestamp.wrap(respectedGameTypeUpdatedAt));
+        // respectedGameTypeUpdatedAt is now no longer set by default. We want to avoid modifying
+        // this function's signature as that would result in changes to the DeputyGuardianModule.
+        // We use type(uint32).max as a temporary solution to allow us to update the
+        // respectedGameTypeUpdatedAt timestamp without modifying this function's signature.
+        if (_gameType.raw() == type(uint32).max) {
+            respectedGameTypeUpdatedAt = uint64(block.timestamp);
+        } else {
+            respectedGameType = _gameType;
+        }
+        emit RespectedGameTypeSet(respectedGameType, Timestamp.wrap(respectedGameTypeUpdatedAt));
     }
 
     /// @notice Checks if a withdrawal can be finalized. This function will revert if the withdrawal cannot be
@@ -463,16 +518,14 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
 
         // The dispute game must not be blacklisted.
-        require(!disputeGameBlacklist[disputeGameProxy], "OptimismPortal: dispute game has been blacklisted");
+        if (disputeGameBlacklist[disputeGameProxy]) revert Blacklisted();
 
         // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
         // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
         // a timestamp of zero.
-        require(
-            provenWithdrawal.timestamp != 0,
-            "OptimismPortal: withdrawal has not been proven by proof submitter address yet"
-        );
+        if (provenWithdrawal.timestamp == 0) revert Unproven();
 
+        // Grab the createdAt timestamp once.
         uint64 createdAt = disputeGameProxy.createdAt().raw();
 
         // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
@@ -492,20 +545,28 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // A proven withdrawal must wait until the dispute game it was proven against has been
         // resolved in favor of the root claim (the output proposal). This is to prevent users
         // from finalizing withdrawals proven against non-finalized output roots.
-        require(
-            disputeGameProxy.status() == GameStatus.DEFENDER_WINS,
-            "OptimismPortal: output proposal has not been validated"
-        );
+        if (disputeGameProxy.status() != GameStatus.DEFENDER_WINS) revert ProposalNotValidated();
 
-        // The game type of the dispute game must be the respected game type. This was also checked in
-        // `proveWithdrawalTransaction`, but we check it again in case the respected game type has changed since
-        // the withdrawal was proven.
-        require(disputeGameProxy.gameType().raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
+        // The game type of the dispute game must have been the respected game type at creation
+        // time. We check that the game type is the respected game type at proving time, but it's
+        // possible that the respected game type has since changed. Users can still use this game
+        // to finalize a withdrawal as long as it has not been otherwise invalidated.
+        // The game type of the DisputeGame must have been the respected game type at creation.
+        // eip150-safe
+        try disputeGameProxy.wasRespectedGameTypeWhenCreated() returns (bool wasRespected_) {
+            if (!wasRespected_) revert InvalidGameType();
+        } catch {
+            revert LegacyGame();
+        }
 
-        // The game must have been created after `respectedGameTypeUpdatedAt`. This is to prevent users from creating
-        // invalid disputes against a deployed game type while the off-chain challenge agents are not watching.
+        // Game must have been created after the respected game type was updated. This check is a
+        // strict inequality because we want to prevent users from being able to prove or finalize
+        // withdrawals against games that were created in the same block that the retirement
+        // timestamp was set. If the retirement timestamp and game type are changed in the same
+        // block, such games could still be considered valid even if they used the old game type
+        // that we intended to invalidate.
         require(
-            createdAt >= respectedGameTypeUpdatedAt,
+            createdAt > respectedGameTypeUpdatedAt,
             "OptimismPortal: dispute game created before respected game type was updated"
         );
 
@@ -518,7 +579,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         );
 
         // Check that this withdrawal has not already been finalized, this is replay protection.
-        require(!finalizedWithdrawals[_withdrawalHash], "OptimismPortal: withdrawal has already been finalized");
+        if (finalizedWithdrawals[_withdrawalHash]) revert AlreadyFinalized();
     }
 
     /// @notice External getter for the number of proof submitters for a withdrawal hash.

@@ -1,23 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { OptimismPortal } from "src/L1/OptimismPortal.sol";
-import { L1BlockInterop, ConfigType } from "src/L2/L1BlockInterop.sol";
+// Contracts
+import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
+
+// Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { Unauthorized } from "src/libraries/PortalErrors.sol";
 
-/// @custom:proxied
+// Interfaces
+import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+
+/// @custom:proxied true
 /// @title OptimismPortalInterop
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortalInterop is OptimismPortal {
-    /// @notice Thrown when a non-depositor account attempts update static configuration.
-    error Unauthorized();
+contract OptimismPortalInterop is OptimismPortal2 {
+    constructor(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds)
+    { }
 
-    /// @custom:semver +interop
+    /// @custom:semver +interop.3
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop");
+        return string.concat(super.version(), "+interop.3");
     }
 
     /// @notice Sets static configuration options for the L2 system.
@@ -40,7 +50,7 @@ contract OptimismPortalInterop is OptimismPortal {
                 uint256(0), // value
                 uint64(SYSTEM_DEPOSIT_GAS_LIMIT), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(L1BlockInterop.setConfig, (_type, _value))
+                abi.encodeCall(IL1BlockInterop.setConfig, (_type, _value))
             )
         );
     }

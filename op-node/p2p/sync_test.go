@@ -163,7 +163,7 @@ func TestSinglePeerSync(t *testing.T) {
 	hostA.SetStreamHandler(PayloadByNumberProtocolID(cfg.L2ChainID), payloadByNumber)
 
 	// Setup host B as the client
-	cl := NewSyncClient(log.New("role", "client"), cfg, hostB.NewStream, receivePayload, metrics.NoopMetrics, &NoopApplicationScorer{})
+	cl := NewSyncClient(log.New("role", "client"), cfg, hostB, receivePayload, metrics.NoopMetrics, &NoopApplicationScorer{})
 
 	// Setup host B (client) to sync from its peer Host A (server)
 	cl.AddPeer(hostA.ID())
@@ -224,7 +224,7 @@ func TestMultiPeerSync(t *testing.T) {
 		payloadByNumber := MakeStreamHandler(ctx, log.New("serve", "payloads_by_number"), srv.HandleSyncRequest)
 		h.SetStreamHandler(PayloadByNumberProtocolID(cfg.L2ChainID), payloadByNumber)
 
-		cl := NewSyncClient(log.New("role", "client"), cfg, h.NewStream, receivePayload, metrics.NoopMetrics, &NoopApplicationScorer{})
+		cl := NewSyncClient(log.New("role", "client"), cfg, h, receivePayload, metrics.NoopMetrics, &NoopApplicationScorer{})
 		return cl, received
 	}
 
@@ -236,7 +236,7 @@ func TestMultiPeerSync(t *testing.T) {
 	hostA, hostB, hostC := hosts[0], hosts[1], hosts[2]
 	require.Equal(t, hostA.Network().Connectedness(hostB.ID()), network.Connected)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	clA, recvA := setupPeer(ctx, hostA)
@@ -264,11 +264,15 @@ func TestMultiPeerSync(t *testing.T) {
 	// With such large range to request we are going to hit the rate-limits of B and C,
 	// but that means we'll balance the work between the peers.
 	for i := uint64(89); i > 10; i-- { // wait for all payloads
-		e := <-recvA
-		p := e.ExecutionPayload
-		exp, ok := payloads.getPayload(uint64(p.BlockNumber))
-		require.True(t, ok, "expecting known payload")
-		require.Equal(t, exp.ExecutionPayload.BlockHash, p.BlockHash, "expecting the correct payload")
+		select {
+		case e := <-recvA:
+			p := e.ExecutionPayload
+			exp, ok := payloads.getPayload(uint64(p.BlockNumber))
+			require.True(t, ok, "expecting known payload")
+			require.Equal(t, exp.ExecutionPayload.BlockHash, p.BlockHash, "expecting the correct payload")
+		case <-ctx.Done():
+			t.Fatal("timed out waiting for payload")
+		}
 	}
 
 	// now see if B can sync a range, and fill the gap with a re-request
@@ -280,15 +284,19 @@ func TestMultiPeerSync(t *testing.T) {
 	require.True(t, clB.activeRangeRequests.get(rangeReqId), "expecting range request to be active")
 
 	for i := uint64(29); i > 25; i-- {
-		p := <-recvB
-		exp, ok := payloads.getPayload(uint64(p.ExecutionPayload.BlockNumber))
-		require.True(t, ok, "expecting known payload")
-		require.Equal(t, exp.ExecutionPayload.BlockHash, p.ExecutionPayload.BlockHash, "expecting the correct payload")
+		select {
+		case p := <-recvB:
+			exp, ok := payloads.getPayload(uint64(p.ExecutionPayload.BlockNumber))
+			require.True(t, ok, "expecting known payload")
+			require.Equal(t, exp.ExecutionPayload.BlockHash, p.ExecutionPayload.BlockHash, "expecting the correct payload")
+		case <-ctx.Done():
+			t.Fatal("timed out waiting for payload")
+		}
 	}
 
 	// Wait for the request for block 25 to be made
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
+	childCtx, cancelChild := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelChild()
 	requestMade := false
 	for requestMade != true {
 		select {
@@ -296,7 +304,7 @@ func TestMultiPeerSync(t *testing.T) {
 			if blockNum == 25 {
 				requestMade = true
 			}
-		case <-ctx.Done():
+		case <-childCtx.Done():
 			t.Fatal("Did not request block 25 in a reasonable time")
 		}
 	}
@@ -310,10 +318,10 @@ func TestMultiPeerSync(t *testing.T) {
 	// But the re-request checks the status in the main loop, and it may thus look like it's still in-flight,
 	// and thus not run the new request.
 	// Wait till the failed request is recognized as marked as done, so the re-request actually runs.
-	ctx, cancelFunc = context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelFunc()
+	childCtx, cancelChild = context.WithTimeout(ctx, 30*time.Second)
+	defer cancelChild()
 	for {
-		isInFlight, err := clB.isInFlight(ctx, 25)
+		isInFlight, err := clB.isInFlight(childCtx, 25)
 		require.NoError(t, err)
 		time.Sleep(time.Second)
 		if !isInFlight {
@@ -328,15 +336,19 @@ func TestMultiPeerSync(t *testing.T) {
 	_, err = clB.RequestL2Range(ctx, payloads.getBlockRef(20), payloads.getBlockRef(26))
 	require.NoError(t, err)
 	for i := uint64(25); i > 20; i-- {
-		p := <-recvB
-		exp, ok := payloads.getPayload(uint64(p.ExecutionPayload.BlockNumber))
-		require.True(t, ok, "expecting known payload")
-		require.Equal(t, exp.ExecutionPayload.BlockHash, p.ExecutionPayload.BlockHash, "expecting the correct payload")
-		require.Equal(t, exp.ParentBeaconBlockRoot, p.ParentBeaconBlockRoot)
-		if cfg.IsEcotone(uint64(p.ExecutionPayload.Timestamp)) {
-			require.NotNil(t, p.ParentBeaconBlockRoot)
-		} else {
-			require.Nil(t, p.ParentBeaconBlockRoot)
+		select {
+		case p := <-recvB:
+			exp, ok := payloads.getPayload(uint64(p.ExecutionPayload.BlockNumber))
+			require.True(t, ok, "expecting known payload")
+			require.Equal(t, exp.ExecutionPayload.BlockHash, p.ExecutionPayload.BlockHash, "expecting the correct payload")
+			require.Equal(t, exp.ParentBeaconBlockRoot, p.ParentBeaconBlockRoot)
+			if cfg.IsEcotone(uint64(p.ExecutionPayload.Timestamp)) {
+				require.NotNil(t, p.ParentBeaconBlockRoot)
+			} else {
+				require.Nil(t, p.ParentBeaconBlockRoot)
+			}
+		case <-ctx.Done():
+			t.Fatal("timed out waiting for payload")
 		}
 	}
 }
@@ -356,22 +368,28 @@ func TestNetworkNotifyAddPeerAndRemovePeer(t *testing.T) {
 	require.NoError(t, err, "failed to launch host B")
 	defer hostB.Close()
 
-	syncCl := NewSyncClient(log, cfg, hostA.NewStream, func(ctx context.Context, from peer.ID, payload *eth.ExecutionPayloadEnvelope) error {
+	syncCl := NewSyncClient(log, cfg, hostA, func(ctx context.Context, from peer.ID, payload *eth.ExecutionPayloadEnvelope) error {
 		return nil
 	}, metrics.NoopMetrics, &NoopApplicationScorer{})
 
-	waitChan := make(chan struct{}, 1)
+	waitChan := make(chan struct{}, 2)
+	var connectedOnce sync.Once
+	var disconnectedOnce sync.Once
 	hostA.Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(nw network.Network, conn network.Conn) {
-			syncCl.AddPeer(conn.RemotePeer())
-			waitChan <- struct{}{}
+			connectedOnce.Do(func() {
+				syncCl.AddPeer(conn.RemotePeer())
+				waitChan <- struct{}{}
+			})
 		},
 		DisconnectedF: func(nw network.Network, conn network.Conn) {
-			// only when no connection is available, we can remove the peer
-			if nw.Connectedness(conn.RemotePeer()) == network.NotConnected {
-				syncCl.RemovePeer(conn.RemotePeer())
-			}
-			waitChan <- struct{}{}
+			disconnectedOnce.Do(func() {
+				// only when no connection is available, we can remove the peer
+				if nw.Connectedness(conn.RemotePeer()) == network.NotConnected {
+					syncCl.RemovePeer(conn.RemotePeer())
+				}
+				waitChan <- struct{}{}
+			})
 		},
 	})
 	syncCl.Start()
@@ -390,8 +408,13 @@ func TestNetworkNotifyAddPeerAndRemovePeer(t *testing.T) {
 
 	// wait for async removing process done
 	<-waitChan
+	syncCl.peersLock.Lock()
+	// Technically this can't fail since SyncClient.RemovePeer also deletes from the
+	// SyncClient.peers, so unless that action is deferred to SyncClient.peerLoop it's not very
+	// interesting.
 	_, peerBExist3 := syncCl.peers[hostB.ID()]
-	require.True(t, !peerBExist3, "peerB should not exist in syncClient")
+	syncCl.peersLock.Unlock()
+	require.False(t, peerBExist3, "peerB should not exist in syncClient")
 }
 
 func TestPanicGuard(t *testing.T) {

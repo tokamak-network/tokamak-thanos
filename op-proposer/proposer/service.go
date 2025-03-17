@@ -11,13 +11,17 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-proposer/metrics"
 	"github.com/ethereum-optimism/optimism/op-proposer/proposer/rpc"
+	"github.com/ethereum-optimism/optimism/op-proposer/proposer/source"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
+	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/httputil"
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
+	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -56,7 +60,7 @@ type ProposerService struct {
 
 	TxManager      txmgr.TxManager
 	L1Client       *ethclient.Client
-	RollupProvider dial.RollupProvider
+	ProposalSource source.ProposalSource
 
 	driver *L2OutputSubmitter
 
@@ -128,17 +132,31 @@ func (ps *ProposerService) initRPCClients(ctx context.Context, cfg *CLIConfig) e
 	}
 	ps.L1Client = l1Client
 
-	var rollupProvider dial.RollupProvider
-	if strings.Contains(cfg.RollupRpc, ",") {
-		rollupUrls := strings.Split(cfg.RollupRpc, ",")
-		rollupProvider, err = dial.NewActiveL2RollupProvider(ctx, rollupUrls, cfg.ActiveSequencerCheckDuration, dial.DefaultDialTimeout, ps.Log)
-	} else {
-		rollupProvider, err = dial.NewStaticL2RollupProvider(ctx, ps.Log, cfg.RollupRpc)
+	if cfg.RollupRpc != "" {
+		var rollupProvider dial.RollupProvider
+		if strings.Contains(cfg.RollupRpc, ",") {
+			rollupUrls := strings.Split(cfg.RollupRpc, ",")
+			rollupProvider, err = dial.NewActiveL2RollupProvider(ctx, rollupUrls, cfg.ActiveSequencerCheckDuration, dial.DefaultDialTimeout, ps.Log)
+		} else {
+			rollupProvider, err = dial.NewStaticL2RollupProvider(ctx, ps.Log, cfg.RollupRpc)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to build L2 endpoint provider: %w", err)
+		}
+		ps.ProposalSource = source.NewRollupProposalSource(rollupProvider)
 	}
-	if err != nil {
-		return fmt.Errorf("failed to build L2 endpoint provider: %w", err)
+	if len(cfg.SupervisorRpcs) != 0 {
+		var clients []source.SupervisorClient
+		for _, url := range cfg.SupervisorRpcs {
+			supervisorRpc, err := dial.DialRPCClientWithTimeout(ctx, dial.DefaultDialTimeout, ps.Log, url)
+			if err != nil {
+				return fmt.Errorf("failed to dial supervisor RPC client (%v): %w", url, err)
+			}
+			cl := sources.NewSupervisorClient(client.NewBaseRPCClient(supervisorRpc))
+			clients = append(clients, cl)
+		}
+		ps.ProposalSource = source.NewSupervisorProposalSource(ps.Log, clients...)
 	}
-	ps.RollupProvider = rollupProvider
 	return nil
 }
 
@@ -186,19 +204,19 @@ func (ps *ProposerService) initPProf(cfg *CLIConfig) error {
 
 func (ps *ProposerService) initMetricsServer(cfg *CLIConfig) error {
 	if !cfg.MetricsConfig.Enabled {
-		ps.Log.Info("metrics disabled")
+		ps.Log.Info("Metrics disabled")
 		return nil
 	}
 	m, ok := ps.Metrics.(opmetrics.RegistryMetricer)
 	if !ok {
 		return fmt.Errorf("metrics were enabled, but metricer %T does not expose registry for metrics-server", ps.Metrics)
 	}
-	ps.Log.Debug("starting metrics server", "addr", cfg.MetricsConfig.ListenAddr, "port", cfg.MetricsConfig.ListenPort)
+	ps.Log.Debug("Starting metrics server", "addr", cfg.MetricsConfig.ListenAddr, "port", cfg.MetricsConfig.ListenPort)
 	metricsSrv, err := opmetrics.StartServer(m.Registry(), cfg.MetricsConfig.ListenAddr, cfg.MetricsConfig.ListenPort)
 	if err != nil {
 		return fmt.Errorf("failed to start metrics server: %w", err)
 	}
-	ps.Log.Info("started metrics server", "addr", metricsSrv.Addr())
+	ps.Log.Info("Started metrics server", "addr", metricsSrv.Addr())
 	ps.metricsSrv = metricsSrv
 	return nil
 }
@@ -230,7 +248,8 @@ func (ps *ProposerService) initDriver() error {
 		Cfg:            ps.ProposerConfig,
 		Txmgr:          ps.TxManager,
 		L1Client:       ps.L1Client,
-		RollupProvider: ps.RollupProvider,
+		Multicaller:    batching.NewMultiCaller(ps.L1Client.Client(), batching.DefaultBatchSize),
+		ProposalSource: ps.ProposalSource,
 	})
 	if err != nil {
 		return err
@@ -249,6 +268,7 @@ func (ps *ProposerService) initRPCServer(cfg *CLIConfig) error {
 	if cfg.RPCConfig.EnableAdmin {
 		adminAPI := rpc.NewAdminAPI(ps.driver, ps.Metrics, ps.Log)
 		server.AddAPI(rpc.GetAdminAPI(adminAPI))
+		server.AddAPI(ps.TxManager.API())
 		ps.Log.Info("Admin RPC enabled")
 	}
 	ps.Log.Info("Starting JSON-RPC server")
@@ -323,8 +343,8 @@ func (ps *ProposerService) Stop(ctx context.Context) error {
 		ps.L1Client.Close()
 	}
 
-	if ps.RollupProvider != nil {
-		ps.RollupProvider.Close()
+	if ps.ProposalSource != nil {
+		ps.ProposalSource.Close()
 	}
 
 	if result == nil {

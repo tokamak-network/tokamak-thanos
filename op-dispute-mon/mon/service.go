@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync/atomic"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/bonds"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	rpcclient "github.com/ethereum-optimism/optimism/op-service/client"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
@@ -28,24 +29,28 @@ import (
 )
 
 type Service struct {
-	logger  log.Logger
-	metrics metrics.Metricer
-	monitor *gameMonitor
+	logger       log.Logger
+	metrics      metrics.Metricer
+	monitor      *gameMonitor
+	honestActors types.HonestActors
 
 	factoryContract *contracts.DisputeGameFactoryContract
 
 	cl clock.Clock
 
-	extractor    *extract.Extractor
-	forecast     *Forecast
-	bonds        *bonds.Bonds
-	game         *extract.GameCallerCreator
-	resolutions  *ResolutionMonitor
-	claims       *ClaimMonitor
-	withdrawals  *WithdrawalMonitor
-	rollupClient *sources.RollupClient
+	extractor        *extract.Extractor
+	forecast         *Forecast
+	bonds            *bonds.Bonds
+	game             *extract.GameCallerCreator
+	resolutions      *ResolutionMonitor
+	claims           *ClaimMonitor
+	withdrawals      *WithdrawalMonitor
+	rollupClient     *sources.RollupClient
+	supervisorClient *sources.SupervisorClient
 
-	l1Client *ethclient.Client
+	l1RPC    rpcclient.RPC
+	l1Client *sources.L1Client
+	l1Caller *batching.MultiCaller
 
 	pprofService *oppprof.Service
 	metricsSrv   *httputil.HTTPServer
@@ -56,9 +61,10 @@ type Service struct {
 // NewService creates a new Service.
 func NewService(ctx context.Context, logger log.Logger, cfg *config.Config) (*Service, error) {
 	s := &Service{
-		cl:      clock.SystemClock,
-		logger:  logger,
-		metrics: metrics.NewMetrics(),
+		cl:           clock.SystemClock,
+		logger:       logger,
+		metrics:      metrics.NewMetrics(),
+		honestActors: types.NewHonestActors(cfg.HonestActors),
 	}
 
 	if err := s.initFromConfig(ctx, cfg); err != nil {
@@ -84,6 +90,9 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	if err := s.initOutputRollupClient(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init rollup client: %w", err)
 	}
+	if err := s.initSupervisorClient(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to init supervisor client: %w", err)
+	}
 
 	s.initClaimMonitor(cfg)
 	s.initResolutionMonitor()
@@ -105,7 +114,7 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 }
 
 func (s *Service) initClaimMonitor(cfg *config.Config) {
-	s.claims = NewClaimMonitor(s.logger, s.cl, cfg.HonestActors, s.metrics)
+	s.claims = NewClaimMonitor(s.logger, s.cl, s.honestActors, s.metrics)
 }
 
 func (s *Service) initResolutionMonitor() {
@@ -113,16 +122,17 @@ func (s *Service) initResolutionMonitor() {
 }
 
 func (s *Service) initWithdrawalMonitor() {
-	s.withdrawals = NewWithdrawalMonitor(s.logger, s.metrics)
+	s.withdrawals = NewWithdrawalMonitor(s.logger, s.cl, s.metrics, s.honestActors)
 }
 
 func (s *Service) initGameCallerCreator() {
-	s.game = extract.NewGameCallerCreator(s.metrics, batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize))
+	s.game = extract.NewGameCallerCreator(s.metrics, s.l1Caller)
 }
 
 func (s *Service) initExtractor(cfg *config.Config) {
 	s.extractor = extract.NewExtractor(
 		s.logger,
+		s.cl,
 		s.game.CreateContract,
 		s.factoryContract.GetGamesAtOrAfter,
 		cfg.IgnoredGames,
@@ -133,7 +143,8 @@ func (s *Service) initExtractor(cfg *config.Config) {
 		extract.NewBondEnricher(),
 		extract.NewBalanceEnricher(),
 		extract.NewL1HeadBlockNumEnricher(s.l1Client),
-		extract.NewAgreementEnricher(s.logger, s.metrics, s.rollupClient),
+		extract.NewSuperAgreementEnricher(s.logger, s.metrics, s.supervisorClient, clock.SystemClock),
+		extract.NewOutputAgreementEnricher(s.logger, s.metrics, s.rollupClient, clock.SystemClock),
 	)
 }
 
@@ -146,6 +157,9 @@ func (s *Service) initBonds() {
 }
 
 func (s *Service) initOutputRollupClient(ctx context.Context, cfg *config.Config) error {
+	if cfg.RollupRpc == "" {
+		return nil
+	}
 	outputRollupClient, err := dial.DialRollupClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.RollupRpc)
 	if err != nil {
 		return fmt.Errorf("failed to dial rollup client: %w", err)
@@ -154,10 +168,32 @@ func (s *Service) initOutputRollupClient(ctx context.Context, cfg *config.Config
 	return nil
 }
 
+func (s *Service) initSupervisorClient(ctx context.Context, cfg *config.Config) error {
+	if cfg.SupervisorRpc == "" {
+		return nil
+	}
+	rpcClient, err := dial.DialRPCClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.SupervisorRpc)
+	if err != nil {
+		return fmt.Errorf("failed to dial supervisor client: %w", err)
+	}
+	s.supervisorClient = sources.NewSupervisorClient(rpcclient.NewBaseRPCClient(rpcClient))
+	return nil
+}
+
 func (s *Service) initL1Client(ctx context.Context, cfg *config.Config) error {
-	l1Client, err := dial.DialEthClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.L1EthRpc)
+	l1RPC, err := dial.DialRPCClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.L1EthRpc)
 	if err != nil {
 		return fmt.Errorf("failed to dial L1: %w", err)
+	}
+	s.l1RPC = rpcclient.NewBaseRPCClient(l1RPC, rpcclient.WithCallTimeout(30*time.Second))
+	s.l1Caller = batching.NewMultiCaller(s.l1RPC, batching.DefaultBatchSize)
+	// The RPC is trusted because the majority of data comes from contract calls which are not verified even when the
+	// RPC is untrusted and also avoids needing to update op-dispute-mon for L1 hard forks that change the header.
+	// Note that receipts are never fetched so the RPCKind has no actual effect.
+	clCfg := sources.L1ClientSimpleConfig(true, sources.RPCKindAny, 100)
+	l1Client, err := sources.NewL1Client(s.l1RPC, s.logger, s.metrics, clCfg)
+	if err != nil {
+		return fmt.Errorf("failed to init l1 client: %w", err)
 	}
 	s.l1Client = l1Client
 	return nil
@@ -199,38 +235,26 @@ func (s *Service) initMetricsServer(cfg *opmetrics.CLIConfig) error {
 }
 
 func (s *Service) initFactoryContract(cfg *config.Config) error {
-	factoryContract := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress,
-		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize))
+	factoryContract := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress, s.l1Caller)
 	s.factoryContract = factoryContract
 	return nil
 }
 
 func (s *Service) initMonitor(ctx context.Context, cfg *config.Config) {
-	blockHashFetcher := func(ctx context.Context, blockNumber *big.Int) (common.Hash, error) {
-		block, err := s.l1Client.BlockByNumber(ctx, blockNumber)
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to fetch block by number: %w", err)
-		}
-		return block.Hash(), nil
+	headBlockFetcher := func(ctx context.Context) (eth.L1BlockRef, error) {
+		return s.l1Client.L1BlockRefByLabel(ctx, "latest")
 	}
 	l2ChallengesMonitor := NewL2ChallengesMonitor(s.logger, s.metrics)
-	s.monitor = newGameMonitor(
-		ctx,
-		s.logger,
-		s.cl,
-		s.metrics,
-		cfg.MonitorInterval,
-		cfg.GameWindow,
+	updateTimeMonitor := NewUpdateTimeMonitor(s.cl, s.metrics)
+	s.monitor = newGameMonitor(ctx, s.logger, s.cl, s.metrics, cfg.MonitorInterval, cfg.GameWindow, headBlockFetcher,
+		s.extractor.Extract,
 		s.forecast.Forecast,
 		s.bonds.CheckBonds,
 		s.resolutions.CheckResolutions,
 		s.claims.CheckClaims,
 		s.withdrawals.CheckWithdrawals,
 		l2ChallengesMonitor.CheckL2Challenges,
-		s.extractor.Extract,
-		s.l1Client.BlockNumber,
-		blockHashFetcher,
-	)
+		updateTimeMonitor.CheckUpdateTimes)
 }
 
 func (s *Service) Start(ctx context.Context) error {

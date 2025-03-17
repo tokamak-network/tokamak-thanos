@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/vm"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
@@ -22,6 +23,7 @@ import (
 
 //go:embed test_data
 var testData embed.FS
+var asteriscWitnessLen = 362
 
 func PositionFromTraceIndex(provider *AsteriscTraceProvider, idx *big.Int) types.Position {
 	return types.NewPosition(provider.gameDepth, idx)
@@ -205,12 +207,12 @@ func setupTestData(t *testing.T) (string, string) {
 	entries, err := testData.ReadDir(srcDir)
 	require.NoError(t, err)
 	dataDir := t.TempDir()
-	require.NoError(t, os.Mkdir(filepath.Join(dataDir, proofsDir), 0o777))
+	require.NoError(t, os.Mkdir(filepath.Join(dataDir, utils.ProofsDir), 0o777))
 	for _, entry := range entries {
 		path := filepath.Join(srcDir, entry.Name())
 		file, err := testData.ReadFile(path)
 		require.NoErrorf(t, err, "reading %v", path)
-		proofFile := filepath.Join(dataDir, proofsDir, entry.Name()+".gz")
+		proofFile := filepath.Join(dataDir, utils.ProofsDir, entry.Name()+".gz")
 		err = ioutil.WriteCompressedBytes(proofFile, file, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o644)
 		require.NoErrorf(t, err, "writing %v", path)
 	}
@@ -220,11 +222,12 @@ func setupTestData(t *testing.T) (string, string) {
 func setupWithTestData(t *testing.T, dataDir string, prestate string) (*AsteriscTraceProvider, *stubGenerator) {
 	generator := &stubGenerator{}
 	return &AsteriscTraceProvider{
-		logger:    testlog.Logger(t, log.LevelInfo),
-		dir:       dataDir,
-		generator: generator,
-		prestate:  filepath.Join(dataDir, prestate),
-		gameDepth: 63,
+		logger:         testlog.Logger(t, log.LevelInfo),
+		dir:            dataDir,
+		generator:      generator,
+		prestate:       filepath.Join(dataDir, prestate),
+		gameDepth:      63,
+		stateConverter: generator,
 	}, generator
 }
 
@@ -232,6 +235,20 @@ type stubGenerator struct {
 	generated  []int // Using int makes assertions easier
 	finalState *VMState
 	proof      *utils.ProofData
+
+	finalStatePath string
+}
+
+func (e *stubGenerator) ConvertStateToProof(ctx context.Context, statePath string) (*utils.ProofData, uint64, bool, error) {
+	if statePath == e.finalStatePath {
+		return &utils.ProofData{
+			ClaimValue: e.finalState.StateHash,
+			StateData:  e.finalState.Witness,
+			ProofData:  []byte{},
+		}, e.finalState.Step, e.finalState.Exited, nil
+	} else {
+		return nil, 0, false, fmt.Errorf("loading unexpected state: %s, only support: %s", statePath, e.finalStatePath)
+	}
 }
 
 func (e *stubGenerator) GenerateProof(ctx context.Context, dir string, i uint64) error {
@@ -241,7 +258,8 @@ func (e *stubGenerator) GenerateProof(ctx context.Context, dir string, i uint64)
 	var err error
 	if e.finalState != nil && e.finalState.Step <= i {
 		// Requesting a trace index past the end of the trace
-		proofFile = filepath.Join(dir, utils.FinalState)
+		proofFile = vm.FinalStatePath(dir, false)
+		e.finalStatePath = proofFile
 		data, err = json.Marshal(e.finalState)
 		if err != nil {
 			return err
@@ -249,7 +267,7 @@ func (e *stubGenerator) GenerateProof(ctx context.Context, dir string, i uint64)
 		return ioutil.WriteCompressedBytes(proofFile, data, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o644)
 	}
 	if e.proof != nil {
-		proofFile = filepath.Join(dir, proofsDir, fmt.Sprintf("%d.json.gz", i))
+		proofFile = filepath.Join(dir, utils.ProofsDir, fmt.Sprintf("%d.json.gz", i))
 		data, err = json.Marshal(e.proof)
 		if err != nil {
 			return err

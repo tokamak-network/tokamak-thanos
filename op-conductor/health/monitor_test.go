@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/ethereum-optimism/optimism/op-conductor/metrics"
@@ -53,11 +54,10 @@ func (s *HealthMonitorTestSuite) SetupMonitor(
 		ps1 := &p2p.PeerStats{
 			Connected: healthyPeerCount,
 		}
-		mockP2P.EXPECT().PeerStats(context.Background()).Return(ps1, nil)
+		mockP2P.EXPECT().PeerStats(mock.Anything).Return(ps1, nil)
 	}
 	monitor := &SequencerHealthMonitor{
 		log:            s.log,
-		done:           make(chan struct{}),
 		interval:       s.interval,
 		metrics:        &metrics.NoopMetricsImpl{},
 		healthUpdateCh: make(chan error),
@@ -70,7 +70,7 @@ func (s *HealthMonitorTestSuite) SetupMonitor(
 		node:           mockRollupClient,
 		p2p:            mockP2P,
 	}
-	err := monitor.Start()
+	err := monitor.Start(context.Background())
 	s.NoError(err)
 	return monitor
 }
@@ -88,13 +88,13 @@ func (s *HealthMonitorTestSuite) TestUnhealthyLowPeerCount() {
 	ps1 := &p2p.PeerStats{
 		Connected: unhealthyPeerCount,
 	}
-	pc.EXPECT().PeerStats(context.Background()).Return(ps1, nil).Times(1)
+	pc.EXPECT().PeerStats(mock.Anything).Return(ps1, nil).Times(1)
 
 	monitor := s.SetupMonitor(now, 60, 60, rc, pc)
 
 	healthUpdateCh := monitor.Subscribe()
-	healthy := <-healthUpdateCh
-	s.NotNil(healthy)
+	healthFailure := <-healthUpdateCh
+	s.NotNil(healthFailure)
 
 	s.NoError(monitor.Stop())
 }
@@ -105,21 +105,23 @@ func (s *HealthMonitorTestSuite) TestUnhealthyUnsafeHeadNotProgressing() {
 
 	rc := &testutils.MockRollupClient{}
 	ss1 := mockSyncStatus(now, 5, now-8, 1)
-	for i := 0; i < 5; i++ {
+	unsafeBlocksInterval := 10
+	for i := 0; i < unsafeBlocksInterval+2; i++ {
 		rc.ExpectSyncStatus(ss1, nil)
 	}
 
-	monitor := s.SetupMonitor(now, 60, 60, rc, nil)
+	monitor := s.SetupMonitor(now, uint64(unsafeBlocksInterval), 60, rc, nil)
 	healthUpdateCh := monitor.Subscribe()
 
-	for i := 0; i < 5; i++ {
-		healthy := <-healthUpdateCh
-		if i < 4 {
-			s.Nil(healthy)
+	// once the unsafe interval is surpassed, we should expect "unsafe head is falling behind the unsafe interval"
+	for i := 0; i < unsafeBlocksInterval+2; i++ {
+		healthFailure := <-healthUpdateCh
+		if i <= unsafeBlocksInterval {
+			s.Nil(healthFailure)
 			s.Equal(now, monitor.lastSeenUnsafeTime)
 			s.Equal(uint64(5), monitor.lastSeenUnsafeNum)
 		} else {
-			s.NotNil(healthy)
+			s.NotNil(healthFailure)
 		}
 	}
 
@@ -142,11 +144,11 @@ func (s *HealthMonitorTestSuite) TestUnhealthySafeHeadNotProgressing() {
 	healthUpdateCh := monitor.Subscribe()
 
 	for i := 0; i < 5; i++ {
-		healthy := <-healthUpdateCh
+		healthFailure := <-healthUpdateCh
 		if i < 4 {
-			s.Nil(healthy)
+			s.Nil(healthFailure)
 		} else {
-			s.NotNil(healthy)
+			s.NotNil(healthFailure)
 		}
 	}
 
@@ -181,24 +183,24 @@ func (s *HealthMonitorTestSuite) TestHealthyWithUnsafeLag() {
 	s.Zero(monitor.lastSeenUnsafeTime)
 
 	// confirm state after first check
-	healthy := <-healthUpdateCh
-	s.Nil(healthy)
+	healthFailure := <-healthUpdateCh
+	s.Nil(healthFailure)
 	lastSeenUnsafeTime := monitor.lastSeenUnsafeTime
 	s.NotZero(monitor.lastSeenUnsafeTime)
 	s.Equal(uint64(1), monitor.lastSeenUnsafeNum)
 
-	healthy = <-healthUpdateCh
-	s.Nil(healthy)
+	healthFailure = <-healthUpdateCh
+	s.Nil(healthFailure)
 	s.Equal(lastSeenUnsafeTime, monitor.lastSeenUnsafeTime)
 	s.Equal(uint64(1), monitor.lastSeenUnsafeNum)
 
-	healthy = <-healthUpdateCh
-	s.Nil(healthy)
+	healthFailure = <-healthUpdateCh
+	s.Nil(healthFailure)
 	s.Equal(lastSeenUnsafeTime+2, monitor.lastSeenUnsafeTime)
 	s.Equal(uint64(2), monitor.lastSeenUnsafeNum)
 
-	healthy = <-healthUpdateCh
-	s.Nil(healthy)
+	healthFailure = <-healthUpdateCh
+	s.Nil(healthFailure)
 	s.Equal(lastSeenUnsafeTime+2, monitor.lastSeenUnsafeTime)
 	s.Equal(uint64(2), monitor.lastSeenUnsafeNum)
 

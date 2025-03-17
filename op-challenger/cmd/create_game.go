@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/config"
 	"github.com/ethereum-optimism/optimism/op-challenger/flags"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
 	contractMetrics "github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/op-challenger/tools"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -18,11 +18,11 @@ import (
 )
 
 var (
-	TraceTypeFlag = &cli.StringFlag{
-		Name:    "trace-type",
-		Usage:   "Trace types to support.",
+	GameTypeFlag = &cli.StringFlag{
+		Name:    "game-type",
+		Usage:   "Game type to create (numeric values).",
 		EnvVars: opservice.PrefixEnvVar(flags.EnvVarPrefix, "TRACE_TYPE"),
-		Value:   config.TraceTypeCannon.String(),
+		Value:   types.CannonGameType.String(),
 	}
 	OutputRootFlag = &cli.StringFlag{
 		Name:    "output-root",
@@ -38,7 +38,7 @@ var (
 
 func CreateGame(ctx *cli.Context) error {
 	outputRoot := common.HexToHash(ctx.String(OutputRootFlag.Name))
-	traceType := ctx.Uint64(TraceTypeFlag.Name)
+	gameType := ctx.Uint64(GameTypeFlag.Name)
 	l2BlockNum := ctx.Uint64(L2BlockNumFlag.Name)
 
 	contract, txMgr, err := NewContractWithTxMgr[*contracts.DisputeGameFactoryContract](ctx, flags.FactoryAddress,
@@ -50,7 +50,7 @@ func CreateGame(ctx *cli.Context) error {
 	}
 
 	creator := tools.NewGameCreator(contract, txMgr)
-	gameAddr, err := creator.CreateGame(ctx.Context, outputRoot, traceType, l2BlockNum)
+	gameAddr, err := creator.CreateGame(ctx.Context, outputRoot, gameType, l2BlockNum)
 	if err != nil {
 		return fmt.Errorf("failed to create game: %w", err)
 	}
@@ -63,7 +63,7 @@ func createGameFlags() []cli.Flag {
 		flags.L1EthRpcFlag,
 		flags.NetworkFlag,
 		flags.FactoryAddressFlag,
-		TraceTypeFlag,
+		GameTypeFlag,
 		OutputRootFlag,
 		L2BlockNumFlag,
 	}
@@ -76,6 +76,6 @@ var CreateGameCommand = &cli.Command{
 	Name:        "create-game",
 	Usage:       "Creates a dispute game via the factory",
 	Description: "Creates a dispute game via the factory",
-	Action:      CreateGame,
+	Action:      Interruptible(CreateGame),
 	Flags:       createGameFlags(),
 }

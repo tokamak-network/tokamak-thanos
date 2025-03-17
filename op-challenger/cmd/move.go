@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-challenger/flags"
@@ -70,7 +69,7 @@ func Move(ctx *cli.Context) error {
 		return fmt.Errorf("either attack or defense flag must be set")
 	}
 
-	rct, err := txMgr.Send(context.Background(), tx)
+	rct, err := txMgr.Send(ctx.Context, tx)
 	if err != nil {
 		return fmt.Errorf("failed to send tx: %w", err)
 	}
@@ -97,6 +96,6 @@ var MoveCommand = &cli.Command{
 	Name:        "move",
 	Usage:       "Creates and sends a move transaction to the dispute game",
 	Description: "Creates and sends a move transaction to the dispute game",
-	Action:      Move,
+	Action:      Interruptible(Move),
 	Flags:       moveFlags(),
 }

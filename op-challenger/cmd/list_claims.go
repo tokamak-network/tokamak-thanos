@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -91,6 +92,14 @@ func listClaims(ctx context.Context, game contracts.FaultDisputeGameContract, ve
 		return fmt.Errorf("failed to retrieve claims: %w", err)
 	}
 
+	var resolutionTime time.Time
+	if status != gameTypes.GameStatusInProgress {
+		resolutionTime, err = game.GetResolvedAt(ctx, rpcblock.Latest)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve resolved at: %w", err)
+		}
+	}
+
 	// The top game runs from depth 0 to split depth *inclusive*.
 	// The - 1 here accounts for the fact that the split depth is included in the top game.
 	bottomDepth := maxDepth - splitDepth - 1
@@ -107,13 +116,13 @@ func listClaims(ctx context.Context, game contracts.FaultDisputeGameContract, ve
 	}
 	now := time.Now()
 	lineFormat := "%3v %-7v %6v %5v %14v " + valueFormat + " %-42v %12v %-19v %10v %v\n"
-	info := fmt.Sprintf(lineFormat, "Idx", "Move", "Parent", "Depth", "Index", "Value", "Claimant", "Bond (ETH)", "Time", "Clock Used", "Resolution")
+	info := fmt.Sprintf(lineFormat, "Idx", "Move", "Parent", "Depth", "Trace", "Value", "Claimant", "Bond (ETH)", "Time", "Clock Used", "Resolution")
 	for i, claim := range claims {
 		pos := claim.Position
 		parent := strconv.Itoa(claim.ParentContractIndex)
 		var elapsed time.Duration // Root claim does not accumulate any time on its team's chess clock
 		if claim.IsRoot() {
-			parent = ""
+			parent = "-"
 		} else {
 			parentClaim, err := gameState.GetParent(claim)
 			if err != nil {
@@ -162,12 +171,16 @@ func listClaims(ctx context.Context, game contracts.FaultDisputeGameContract, ve
 		info = info + fmt.Sprintf(lineFormat,
 			i, move, parent, pos.Depth(), traceIdx, value, claim.Claimant, bond, timestamp, elapsed, countered)
 	}
-	blockNumChallenger := "L2 Block: Unchallenged"
+	blockNumChallenger := "Unchallenged"
 	if metadata.L2BlockNumberChallenged {
-		blockNumChallenger = "L2 Block: ❌ " + metadata.L2BlockNumberChallenger.Hex()
+		blockNumChallenger = "❌ " + metadata.L2BlockNumberChallenger.Hex()
 	}
-	fmt.Printf("Status: %v • L2 Blocks: %v to %v • Split Depth: %v • Max Depth: %v • %v • Claim Count: %v\n%v\n",
-		status, l2StartBlockNum, l2BlockNum, splitDepth, maxDepth, blockNumChallenger, len(claims), info)
+	statusStr := status.String()
+	if status != gameTypes.GameStatusInProgress {
+		statusStr = fmt.Sprintf("%v • Resolution Time: %v", statusStr, resolutionTime.Format(time.DateTime))
+	}
+	fmt.Printf("Status: %v • L2 Blocks: %v to %v (%v) • Split Depth: %v • Max Depth: %v • Claim Count: %v\n%v\n",
+		statusStr, l2StartBlockNum, l2BlockNum, blockNumChallenger, splitDepth, maxDepth, len(claims), info)
 	return nil
 }
 
@@ -185,6 +198,6 @@ var ListClaimsCommand = &cli.Command{
 	Name:        "list-claims",
 	Usage:       "List the claims in a dispute game",
 	Description: "Lists the claims in a dispute game",
-	Action:      ListClaims,
+	Action:      Interruptible(ListClaims),
 	Flags:       listClaimsFlags(),
 }

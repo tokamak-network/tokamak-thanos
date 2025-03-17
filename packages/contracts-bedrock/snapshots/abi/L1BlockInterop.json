@@ -92,6 +92,13 @@
   },
   {
     "inputs": [],
+    "name": "depositsComplete",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "gasPayingToken",
     "outputs": [
       {
@@ -105,7 +112,7 @@
         "type": "uint8"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -118,7 +125,7 @@
         "type": "string"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -131,7 +138,7 @@
         "type": "string"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -153,7 +160,20 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "is_",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isDeposit",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isDeposit_",
         "type": "bool"
       }
     ],
@@ -220,6 +240,32 @@
   },
   {
     "inputs": [],
+    "name": "operatorFeeConstant",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "operatorFeeScalar",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "sequenceNumber",
     "outputs": [
       {
@@ -245,34 +291,6 @@
       }
     ],
     "name": "setConfig",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint8",
-        "name": "_decimals",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_name",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_symbol",
-        "type": "bytes32"
-      }
-    ],
-    "name": "setGasPayingToken",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -334,6 +352,20 @@
   },
   {
     "inputs": [],
+    "name": "setL1BlockValuesInterop",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "setL1BlockValuesIsthmus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "timestamp",
     "outputs": [
       {
@@ -385,37 +417,6 @@
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint8",
-        "name": "decimals",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "name",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "symbol",
-        "type": "bytes32"
-      }
-    ],
-    "name": "GasPayingTokenSet",
-    "type": "event"
-  },
-  {
     "inputs": [],
     "name": "AlreadyDependency",
     "type": "error"
@@ -428,6 +429,11 @@
   {
     "inputs": [],
     "name": "DependencySetSizeTooLarge",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotCrossL2Inbox",
     "type": "error"
   },
   {

@@ -12,21 +12,14 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-challenger/config"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/vm"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
+	kvtypes "github.com/ethereum-optimism/optimism/op-program/host/types"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
-
-const (
-	proofsDir      = "proofs"
-	diskStateCache = "state.json.gz"
-)
-
-type AsteriscMetricer interface {
-	RecordAsteriscExecutionTime(t float64)
-}
 
 type AsteriscTraceProvider struct {
 	logger         log.Logger
@@ -35,6 +28,8 @@ type AsteriscTraceProvider struct {
 	generator      utils.ProofGenerator
 	gameDepth      types.Depth
 	preimageLoader *utils.PreimageLoader
+	stateConverter vm.StateConverter
+	cfg            vm.Config
 
 	types.PrestateProvider
 
@@ -43,15 +38,19 @@ type AsteriscTraceProvider struct {
 	lastStep uint64
 }
 
-func NewTraceProvider(logger log.Logger, m AsteriscMetricer, cfg *config.Config, prestateProvider types.PrestateProvider, asteriscPrestate string, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *AsteriscTraceProvider {
+func NewTraceProvider(logger log.Logger, m vm.Metricer, cfg vm.Config, vmCfg vm.OracleServerExecutor, prestateProvider types.PrestateProvider, asteriscPrestate string, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *AsteriscTraceProvider {
 	return &AsteriscTraceProvider{
-		logger:           logger,
-		dir:              dir,
-		prestate:         asteriscPrestate,
-		generator:        NewExecutor(logger, m, cfg, asteriscPrestate, localInputs),
-		gameDepth:        gameDepth,
-		preimageLoader:   utils.NewPreimageLoader(kvstore.NewDiskKV(utils.PreimageDir(dir)).Get),
+		logger:    logger,
+		dir:       dir,
+		prestate:  asteriscPrestate,
+		generator: vm.NewExecutor(logger, m, cfg, vmCfg, asteriscPrestate, localInputs),
+		gameDepth: gameDepth,
+		preimageLoader: utils.NewPreimageLoader(func() (utils.PreimageSource, error) {
+			return kvstore.NewDiskKV(logger, vm.PreimageDir(dir), kvtypes.DataFormatFile)
+		}),
 		PrestateProvider: prestateProvider,
+		stateConverter:   NewStateConverter(cfg),
+		cfg:              cfg,
 	}
 }
 
@@ -116,7 +115,7 @@ func (p *AsteriscTraceProvider) loadProof(ctx context.Context, i uint64) (*utils
 	if p.lastStep != 0 && i > p.lastStep {
 		i = p.lastStep
 	}
-	path := filepath.Join(p.dir, proofsDir, fmt.Sprintf("%d.json.gz", i))
+	path := filepath.Join(p.dir, utils.ProofsDir, fmt.Sprintf("%d.json.gz", i))
 	file, err := ioutil.OpenDecompressed(path)
 	if errors.Is(err, os.ErrNotExist) {
 		if err := p.generator.GenerateProof(ctx, p.dir, i); err != nil {
@@ -126,31 +125,23 @@ func (p *AsteriscTraceProvider) loadProof(ctx context.Context, i uint64) (*utils
 		file, err = ioutil.OpenDecompressed(path)
 		if errors.Is(err, os.ErrNotExist) {
 			// Expected proof wasn't generated, check if we reached the end of execution
-			state, err := p.finalState()
+			proof, step, exited, err := p.stateConverter.ConvertStateToProof(ctx, vm.FinalStatePath(p.dir, p.cfg.BinarySnapshots))
 			if err != nil {
 				return nil, err
 			}
-			if state.Exited && state.Step <= i {
-				p.logger.Warn("Requested proof was after the program exited", "proof", i, "last", state.Step)
+			if exited && step <= i {
+				p.logger.Warn("Requested proof was after the program exited", "proof", i, "last", step)
 				// The final instruction has already been applied to this state, so the last step we can execute
 				// is one before its Step value.
-				p.lastStep = state.Step - 1
+				p.lastStep = step - 1
 				// Extend the trace out to the full length using a no-op instruction that doesn't change any state
 				// No execution is done, so no proof-data or oracle values are required.
-				proof := &utils.ProofData{
-					ClaimValue:   state.StateHash,
-					StateData:    state.Witness,
-					ProofData:    []byte{},
-					OracleKey:    nil,
-					OracleValue:  nil,
-					OracleOffset: 0,
-				}
 				if err := utils.WriteLastStep(p.dir, proof, p.lastStep); err != nil {
 					p.logger.Warn("Failed to write last step to disk cache", "step", p.lastStep)
 				}
 				return proof, nil
 			} else {
-				return nil, fmt.Errorf("expected proof not generated but final state was not exited, requested step %v, final state at step %v", i, state.Step)
+				return nil, fmt.Errorf("expected proof not generated but final state was not exited, requested step %v, final state at step %v", i, step)
 			}
 		}
 	}
@@ -166,46 +157,42 @@ func (p *AsteriscTraceProvider) loadProof(ctx context.Context, i uint64) (*utils
 	return &proof, nil
 }
 
-func (c *AsteriscTraceProvider) finalState() (*VMState, error) {
-	state, err := parseState(filepath.Join(c.dir, utils.FinalState))
-	if err != nil {
-		return nil, fmt.Errorf("cannot read final state: %w", err)
-	}
-	return state, nil
-}
-
 // AsteriscTraceProviderForTest is a AsteriscTraceProvider that can find the step referencing the preimage read
 // Only to be used for testing
 type AsteriscTraceProviderForTest struct {
 	*AsteriscTraceProvider
 }
 
-func NewTraceProviderForTest(logger log.Logger, m AsteriscMetricer, cfg *config.Config, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *AsteriscTraceProviderForTest {
+func NewTraceProviderForTest(logger log.Logger, m vm.Metricer, cfg *config.Config, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *AsteriscTraceProviderForTest {
 	p := &AsteriscTraceProvider{
-		logger:         logger,
-		dir:            dir,
-		prestate:       cfg.AsteriscAbsolutePreState,
-		generator:      NewExecutor(logger, m, cfg, cfg.AsteriscNetwork, localInputs),
-		gameDepth:      gameDepth,
-		preimageLoader: utils.NewPreimageLoader(kvstore.NewDiskKV(utils.PreimageDir(dir)).Get),
+		logger:    logger,
+		dir:       dir,
+		prestate:  cfg.AsteriscAbsolutePreState,
+		generator: vm.NewExecutor(logger, m, cfg.Asterisc, vm.NewOpProgramServerExecutor(logger), cfg.AsteriscAbsolutePreState, localInputs),
+		gameDepth: gameDepth,
+		preimageLoader: utils.NewPreimageLoader(func() (utils.PreimageSource, error) {
+			return kvstore.NewDiskKV(logger, vm.PreimageDir(dir), kvtypes.DataFormatFile)
+		}),
+		stateConverter: NewStateConverter(cfg.Asterisc),
+		cfg:            cfg.Asterisc,
 	}
 	return &AsteriscTraceProviderForTest{p}
 }
 
 func (p *AsteriscTraceProviderForTest) FindStep(ctx context.Context, start uint64, preimage utils.PreimageOpt) (uint64, error) {
 	// Run asterisc to find the step that meets the preimage conditions
-	if err := p.generator.(*Executor).generateProof(ctx, p.dir, start, math.MaxUint64, preimage()...); err != nil {
+	if err := p.generator.(*vm.Executor).DoGenerateProof(ctx, p.dir, start, math.MaxUint64, preimage()...); err != nil {
 		return 0, fmt.Errorf("generate asterisc trace (until preimage read): %w", err)
 	}
 	// Load the step from the state asterisc finished with
-	state, err := p.finalState()
+	_, step, exited, err := p.stateConverter.ConvertStateToProof(ctx, vm.FinalStatePath(p.dir, p.cfg.BinarySnapshots))
 	if err != nil {
 		return 0, fmt.Errorf("failed to load final state: %w", err)
 	}
 	// Check we didn't get to the end of the trace without finding the preimage read we were looking for
-	if state.Exited {
+	if exited {
 		return 0, fmt.Errorf("preimage read not found: %w", io.EOF)
 	}
 	// The state is the post-state so the step we want to execute to read the preimage is step - 1.
-	return state.Step - 1, nil
+	return step - 1, nil
 }
