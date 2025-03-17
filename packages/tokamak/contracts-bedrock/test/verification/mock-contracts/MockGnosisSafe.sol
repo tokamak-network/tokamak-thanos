@@ -17,4 +17,8 @@ contract MockGnosisSafe {
   function getThreshold() external view returns (uint256) {
     return threshold;
   }
+
+  function masterCopy() external view returns (address) {
+    return address(this);
+  }
 }
