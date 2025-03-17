@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 interface IGnosisSafe {
   function getThreshold() external view returns (uint256);
   function getOwners() external view returns (address[] memory);
+  function masterCopy() external view returns (address);
 }
 
 interface ISystemConfig {
@@ -13,7 +14,7 @@ interface ISystemConfig {
   function nativeTokenAddress() external view returns (address);
 }
 
-interface IL1BridgeRegistryV1_1 {
+interface IL1BridgeRegistry {
   function registerRollupConfig(
     address rollupConfig,
     uint8 _type,
@@ -24,102 +25,52 @@ interface IL1BridgeRegistryV1_1 {
 
 interface IL1ContractVerification {
   // Struct definitions
-  struct ContractConfig {
-    address implementationAddress;
-    bytes32 proxyHash;
-    address expectedProxyAdmin;
+  struct LogicContractInfo {
+    address logicAddress;
+    bytes32 proxyCodehash;
   }
 
-  struct SafeConfig {
+  struct SafeWalletInfo {
+    address safeWalletAddress;
     address tokamakDAO;
     address foundation;
-    address thirdOwner;
+    bytes32 implementationCodehash;
+    bytes32 proxyCodehash;
     uint256 requiredThreshold;
   }
 
   // Events
-  event ConfigurationSet(bytes32 indexed contractId);
+  event ConfigurationSet(string indexed contractName);
   event VerificationSuccess(address indexed verifier);
-  event VerificationFailure(address indexed operator, string reason);
   event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
+  event SafeConfigSet(address tokamakDAO, address foundation, uint256 threshold);
+  event NativeTokenSet(address indexed tokenAddress);
+  event ProxyAdminCodehashSet(bytes32 codehash);
 
   // Functions
-  function setContractConfig(
-    bytes32 contractId,
-    address implementationAddress,
-    bytes32 proxyHash,
-    address expectedProxyAdmin
+  function setLogicContractInfo(
+    address _systemConfigProxy,
+    address _proxyAdmin
   ) external;
 
-  function setSafeConfig(
-    address tokamakDAO,
-    address foundation,
-    address thirdOwner,
-    uint256 threshold
+  function setSafeWalletInfo(
+    address _tokamakDAO,
+    address _foundation,
+    uint256 _threshold,
+    address _proxyAdmin,
+    bytes32 _implementationCodehash,
+    bytes32 _proxyCodehash
   ) external;
 
-  function verifyL1Contracts(address systemConfigProxy) external returns (bool);
+  function setBridgeRegistryAddress(address _bridgeRegistry) external;
 
   function verifyAndRegisterRollupConfig(
-    address systemConfigProxy,
+    address _systemConfigProxy,
+    address _proxyAdmin,
     uint8 _type,
     address _l2TON,
     string calldata _name
   ) external returns (bool);
 
-  function setBridgeRegistryAddress(address _bridgeRegistry) external;
-
-  /**
-   * @notice Get the safe configuration for a specific chain
-   * @return tokamakDAO The address of the safe owner
-   * @return foundation The address of the safe owner
-   * @return thirdOwner The address of the safe owner
-   * @return requiredThreshold The required threshold for the safe
-   */
-  function getSafeConfig()
-    external
-    view
-    returns (
-      address tokamakDAO,
-      address foundation,
-      address thirdOwner,
-      uint256 requiredThreshold
-    );
-
-  /**
-   * @notice Get the contract configuration for a specific chain and contract ID
-   * @param contractId The contract ID to get the config for
-   * @return implementationAddress The address of the implementation contract
-   * @return proxyHash The hash of the proxy contract code
-   * @return expectedProxyAdmin The expected admin address for the proxy
-   */
-  function getContractConfig(
-    bytes32 contractId
-  )
-    external
-    view
-    returns (
-      address implementationAddress,
-      bytes32 proxyHash,
-      address expectedProxyAdmin
-    );
-
-  /**
-   * @notice Set whether safe verification is required for a specific chain
-   * @param required Whether safe verification is required
-   */
-  function setSafeVerificationRequired(bool required) external;
-
-  /**
-   * @notice Set the expected native token for a specific chain
-   * @param tokenAddress The address of the expected native token
-   */
-  function setExpectedNativeToken(address tokenAddress) external;
-
-  /**
-   * @notice Get the ProxyAdmin contract address
-   * @return The address of the ProxyAdmin contract
-   */
-  function PROXY_ADMIN_ADDRESS() external view returns (address);
 }

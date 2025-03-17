@@ -4,110 +4,211 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
+import "forge-std/console.sol";
 
+/**
+ * @title L1ContractVerification
+ * @notice This contract verifies the integrity of critical L1 contracts for Tokamak rollups
+ * @dev This contract is deployed to L1 by the TRH team before the trh-sdk release and helps
+ *      ensure that L2 operators deploy contracts with the correct implementations
+ */
 contract L1ContractVerification is IL1ContractVerification, Ownable {
-  // ProxyAdmin contract address
-  address public immutable PROXY_ADMIN_ADDRESS;
 
-  struct ChainConfig {
-    mapping(bytes32 => ContractConfig) contractConfigs;
-    SafeConfig safeConfig;
-    address expectedNativeToken;
-    bool safeVerificationRequired;
-  }
-
-  // Consolidated mappings
-  mapping(uint256 => ChainConfig) public chainConfigs;
+  // The expected native token (TON) address
+  address public immutable expectedNativeToken;
 
   // Bridge registry address
-  address public L1BridgeRegistryV1_1Address;
+  address public l1BridgeRegistryAddress;
 
-  // Contract IDs
-  bytes32 public constant L1_STANDARD_BRIDGE = keccak256('L1_STANDARD_BRIDGE');
-  bytes32 public constant L1_CROSS_DOMAIN_MESSENGER =
-    keccak256('L1_CROSS_DOMAIN_MESSENGER');
-  bytes32 public constant OPTIMISM_PORTAL = keccak256('OPTIMISM_PORTAL');
-  bytes32 public constant SYSTEM_CONFIG = keccak256('SYSTEM_CONFIG');
+  // The codehash of the ProxyAdmin contract
+  bytes32 public proxyAdminCodehash;
 
-  // Events
-  event SafeVerificationRequiredSet(uint256 indexed chainId, bool required);
+  // Logic contract information storage
+  LogicContractInfo public systemConfig;
+  LogicContractInfo public l1StandardBridge;
+  LogicContractInfo public l1CrossDomainMessenger;
+  LogicContractInfo public optimismPortal;
 
-  constructor(address _proxyAdminAddress) Ownable() {
-    require(_proxyAdminAddress != address(0), 'Invalid proxy admin address');
-    PROXY_ADMIN_ADDRESS = _proxyAdminAddress;
+  // Safe wallet information storage
+  SafeWalletInfo public safeWallet;
+
+  /**
+   * @notice Constructor
+   * @param _tokenAddress The address of the native token (TON)
+   */
+  constructor(address _tokenAddress) Ownable() {
+        expectedNativeToken = _tokenAddress;
   }
 
-  // External functions
-  function setContractConfig(
-    bytes32 contractId,
-    address implementationAddress,
-    bytes32 proxyHash,
-    address expectedProxyAdmin
+  /**
+   * @notice Set all logic contract info in one call using a deployed SystemConfig contract
+   * @param _systemConfigProxy The address of the SystemConfig proxy
+   * @param _proxyAdmin The address of the ProxyAdmin
+   * @dev This function records implementation addresses and codehashes for all key contracts
+   */
+  function setLogicContractInfo(
+    address _systemConfigProxy,
+    address _proxyAdmin
   ) external onlyOwner {
-    _setContractConfig(
-      block.chainid,
-      contractId,
-      implementationAddress,
-      proxyHash,
-      expectedProxyAdmin
-    );
+    require(_systemConfigProxy != address(0), 'SystemConfig proxy address cannot be zero');
+    require(_proxyAdmin != address(0), 'ProxyAdmin address cannot be zero');
+
+    // Verify ProxyAdmin
+    bytes32 proxyAdminHash = _proxyAdmin.codehash;
+    require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
+    proxyAdminCodehash = proxyAdminHash;
+
+    // Get contract addresses from SystemConfig
+    ISystemConfig config = ISystemConfig(_systemConfigProxy);
+    address l1StandardBridgeAddress = config.l1StandardBridge();
+    address l1CrossDomainMessengerAddress = config.l1CrossDomainMessenger();
+    address optimismPortalAddress = config.optimismPortal();
+
+    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
+
+    // Set SystemConfig info
+    systemConfig.logicAddress = proxyAdmin.getProxyImplementation(_systemConfigProxy);
+    systemConfig.proxyCodehash = _systemConfigProxy.codehash;
+
+    // Set L1StandardBridge info
+    l1StandardBridge.logicAddress = proxyAdmin.getProxyImplementation(l1StandardBridgeAddress);
+    l1StandardBridge.proxyCodehash = l1StandardBridgeAddress.codehash;
+
+    // Set L1CrossDomainMessenger info
+    l1CrossDomainMessenger.logicAddress = proxyAdmin.getProxyImplementation(l1CrossDomainMessengerAddress);
+    l1CrossDomainMessenger.proxyCodehash = l1CrossDomainMessengerAddress.codehash;
+
+    // Set OptimismPortal info
+    optimismPortal.logicAddress = proxyAdmin.getProxyImplementation(optimismPortalAddress);
+    optimismPortal.proxyCodehash = optimismPortalAddress.codehash;
+
+    // Emit events
+    emit ProxyAdminCodehashSet(proxyAdminHash);
+    emit ConfigurationSet("SystemConfig");
+    emit ConfigurationSet("L1StandardBridge");
+    emit ConfigurationSet("L1CrossDomainMessenger");
+    emit ConfigurationSet("OptimismPortal");
   }
 
-  function setSafeConfig(
-    address tokamakDAO,
-    address foundation,
-    address thirdOwner,
-    uint256 threshold
+  /**
+   * @notice Set the Safe wallet configuration
+   * @param _tokamakDAO The address of the tokamakDAO owner
+   * @param _foundation The address of the foundation owner
+   * @param _threshold The required threshold for the safe wallet
+   * @param _proxyAdmin The address of the ProxyAdmin
+   * @param _implementationCodehash The codehash of the implementation contract
+   * @param _proxyCodehash The codehash of the proxy contract
+   * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin
+   */
+  function setSafeWalletInfo(
+    address _tokamakDAO,
+    address _foundation,
+    uint256 _threshold,
+    address _proxyAdmin,
+    bytes32 _implementationCodehash,
+    bytes32 _proxyCodehash
   ) external onlyOwner {
-    _setSafeConfig(
-      block.chainid,
-      tokamakDAO,
-      foundation,
-      thirdOwner,
-      threshold
-    );
+    require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
+    require(_foundation != address(0), 'Foundation address cannot be zero');
+    require(_threshold > 0, 'Threshold must be greater than zero');
+
+    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
+    address safeWalletAddress = proxyAdmin.owner();
+
+    safeWallet = SafeWalletInfo({
+      safeWalletAddress: safeWalletAddress,
+      tokamakDAO: _tokamakDAO,
+      foundation: _foundation,
+      implementationCodehash: _implementationCodehash,
+      proxyCodehash: _proxyCodehash,
+      requiredThreshold: _threshold
+    });
+
+    emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
   }
 
-  function setExpectedNativeToken(address tokenAddress) external onlyOwner {
-    require(tokenAddress != address(0), 'Invalid token address');
-    chainConfigs[block.chainid].expectedNativeToken = tokenAddress;
+  /**
+   * @notice Set the bridge registry address
+   * @param _bridgeRegistry The address of the bridge registry
+   * @dev The bridge registry is used when registering rollup configurations
+   */
+  function setBridgeRegistryAddress(address _bridgeRegistry) external onlyOwner {
+    require(_bridgeRegistry != address(0), 'Bridge registry address cannot be zero');
+    l1BridgeRegistryAddress = _bridgeRegistry;
+    emit BridgeRegistryUpdated(_bridgeRegistry);
   }
 
+  /**
+   * @notice Verify L1 contracts
+   * @param systemConfigProxy The address of the SystemConfig proxy
+   * @param proxyAdmin The address of the ProxyAdmin
+   * @return Returns true if verification succeeds, otherwise reverts
+   * @dev First checks that the native token matches expected value, then verifies
+   *      the ProxyAdmin and all contract implementations
+   */
   function verifyL1Contracts(
-    address systemConfigProxy
+    address systemConfigProxy,
+    address proxyAdmin
   ) external returns (bool) {
-    _verifyL1Contracts(block.chainid, systemConfigProxy);
+    // Verify native token first
+    ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
+    require(
+      systemConfigContract.nativeTokenAddress() == expectedNativeToken,
+      'The native token you are using is not TON'
+    );
+
+    // Verify proxy admin
+    _verifyProxyAdmin(proxyAdmin);
+
+    // Verify L1 contracts
+    _verifyL1Contracts(systemConfigProxy, proxyAdmin);
+
     emit VerificationSuccess(msg.sender);
     return true;
   }
 
+  /**
+   * @notice Verify L1 contracts and register rollup configuration
+   * @param _systemConfigProxy The address of the SystemConfig proxy
+   * @param _proxyAdmin The address of the ProxyAdmin
+   * @param _type Token type (must be 2 for TON)
+   * @param _l2TON The address of the L2 TON token
+   * @param _name The name of the rollup configuration
+   * @return Returns true if verification and registration succeeds, otherwise reverts
+   * @dev Performs verification and additionally registers the rollup with the bridge registry
+   */
   function verifyAndRegisterRollupConfig(
-    address systemConfigProxy,
+    address _systemConfigProxy,
+    address _proxyAdmin,
     uint8 _type,
     address _l2TON,
     string calldata _name
   ) external returns (bool) {
     require(
-      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
+      _l2TON == expectedNativeToken,
       'Provided L2 TON Token address is not correct'
     );
     require(_type == 2, 'Registration allowed only for TON tokens');
 
-    // Verify L1 Contracts and safe wallet
-    _verifyL1Contracts(block.chainid, systemConfigProxy);
-
-    ISystemConfig systemConfig = ISystemConfig(systemConfigProxy);
+    // Verify native token first
+    ISystemConfig systemConfigContract = ISystemConfig(_systemConfigProxy);
     require(
-      systemConfig.nativeTokenAddress() ==
-        chainConfigs[block.chainid].expectedNativeToken,
-      'The native token you are using is not TON.'
+      systemConfigContract.nativeTokenAddress() == expectedNativeToken,
+      'The native token you are using is not TON'
     );
 
-    IL1BridgeRegistryV1_1 bridgeRegistry = IL1BridgeRegistryV1_1(
-      L1BridgeRegistryV1_1Address
+    // Verify proxy admin
+    _verifyProxyAdmin(_proxyAdmin);
+
+    // Verify L1 contracts
+    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin);
+
+    // Register rollup configuration
+    IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
+      l1BridgeRegistryAddress
     );
     bridgeRegistry.registerRollupConfig(
-      systemConfigProxy,
+      _systemConfigProxy,
       _type,
       _l2TON,
       _name
@@ -117,232 +218,152 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     return true;
   }
 
-  function setBridgeRegistryAddress(
-    address _bridgeRegistry
-  ) external onlyOwner {
-    require(_bridgeRegistry != address(0), 'Invalid bridge registry address');
-    L1BridgeRegistryV1_1Address = _bridgeRegistry;
-    emit BridgeRegistryUpdated(_bridgeRegistry);
-  }
-
-  function setSafeVerificationRequired(bool required) external onlyOwner {
-    chainConfigs[block.chainid].safeVerificationRequired = required;
-    emit SafeVerificationRequiredSet(block.chainid, required);
+  /**
+   * @notice Verify the ProxyAdmin contract
+   * @param _proxyAdmin The address of the ProxyAdmin contract
+   * @dev Ensures the ProxyAdmin has the expected codehash
+   */
+  function _verifyProxyAdmin(address _proxyAdmin) internal view {
+    // Verify that ProxyAdmin contract has the expected codehash
+    require(_proxyAdmin.codehash == proxyAdminCodehash, 'ProxyAdmin verification failed');
   }
 
   /**
-   * @notice Get the contract configuration for the current chain and contract ID
-   * @param contractId The contract ID to get the config for
-   * @return implementationAddress The address of the implementation contract
-   * @return proxyHash The hash of the proxy contract code
-   * @return expectedProxyAdmin The expected admin address for the proxy
+   * @notice Verify the implementation of a proxy contract
+   * @param _proxyAddress The address of the proxy contract
+   * @param _expectedImplementation The expected implementation address
+   * @param _proxyAdmin The address of the ProxyAdmin contract
+   * @return Returns true if verification succeeds, otherwise false
+   * @dev Uses the ProxyAdmin to get the implementation of the proxy and compares it
    */
-  function getContractConfig(
-    bytes32 contractId
-  )
-    external
-    view
-    returns (
-      address implementationAddress,
-      bytes32 proxyHash,
-      address expectedProxyAdmin
-    )
-  {
-    ContractConfig storage config = chainConfigs[block.chainid].contractConfigs[
-      contractId
-    ];
-    return (
-      config.implementationAddress,
-      config.proxyHash,
-      config.expectedProxyAdmin
-    );
-  }
-
-  /**
-   * @notice Get the safe configuration for the current chain
-   * @return tokamakDAO The address of the safe owner
-   * @return foundation The address of the safe owner
-   * @return thirdOwner The address of the safe owner
-   * @return requiredThreshold The required threshold for the safe
-   */
-  function getSafeConfig()
-    external
-    view
-    returns (
-      address tokamakDAO,
-      address foundation,
-      address thirdOwner,
-      uint256 requiredThreshold
-    )
-  {
-    SafeConfig storage config = chainConfigs[block.chainid].safeConfig;
-    return (
-      config.tokamakDAO,
-      config.foundation,
-      config.thirdOwner,
-      config.requiredThreshold
-    );
-  }
-
-  // Internal functions
-  function _setContractConfig(
-    uint256 chainId,
-    bytes32 contractId,
-    address implementationAddress,
-    bytes32 proxyHash,
-    address expectedProxyAdmin
-  ) internal {
-    chainConfigs[chainId].contractConfigs[contractId] = ContractConfig({
-      implementationAddress: implementationAddress,
-      proxyHash: proxyHash,
-      expectedProxyAdmin: expectedProxyAdmin
-    });
-
-    emit ConfigurationSet(contractId);
-  }
-
-  function _setSafeConfig(
-    uint256 chainId,
-    address tokamakDAO,
-    address foundation,
-    address thirdOwner,
-    uint256 threshold
-  ) internal {
-    chainConfigs[chainId].safeConfig = SafeConfig({
-      tokamakDAO: tokamakDAO,
-      foundation: foundation,
-      thirdOwner: thirdOwner,
-      requiredThreshold: threshold
-    });
-  }
-
-  function _verifyProxyAdmin(
-    address proxyAddress,
-    address expectedAdmin
-  ) internal view returns (bool) {
-    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
-
-    // Convert to payable address for compatibility with IProxyAdmin interface
-    address payable payableProxyAddress = payable(proxyAddress);
-
-    try proxyAdmin.getProxyAdmin(payableProxyAddress) returns (
-      address fetchedAdmin
-    ) {
-      return fetchedAdmin == expectedAdmin;
-    } catch {
-      return false;
-    }
-  }
-
   function _verifyImplementation(
-    address proxyAddress,
-    address expectedImplementation
+    address _proxyAddress,
+    address _expectedImplementation,
+    address _proxyAdmin
   ) internal view returns (bool) {
-    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
+    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
 
-    try proxyAdmin.getProxyImplementation(proxyAddress) returns (
+    try proxyAdmin.getProxyImplementation(_proxyAddress) returns (
       address fetchedImpl
     ) {
-      return fetchedImpl == expectedImplementation;
+      return fetchedImpl == _expectedImplementation;
     } catch {
       return false;
     }
   }
 
-  function _verifySafe(
-    address safeWallet,
-    uint256 chainId
+  /**
+   * @notice Verify the codehash of a proxy contract
+   * @param _proxyAddress The address of the proxy contract
+   * @param _expectedHash The expected codehash
+   * @return Returns true if verification succeeds, otherwise false
+   * @dev Compares the codehash of the proxy contract with the expected hash
+   */
+  function _verifyProxyHash(
+    address _proxyAddress,
+    bytes32 _expectedHash
   ) internal view returns (bool) {
-    IGnosisSafe safe = IGnosisSafe(safeWallet);
-    SafeConfig storage safeConfig = chainConfigs[chainId].safeConfig;
-    if (safe.getThreshold() != safeConfig.requiredThreshold) {
+    return _proxyAddress.codehash == _expectedHash;
+  }
+
+  /**
+   * @notice Verify the Safe wallet
+   * @param _proxyAdmin The address of the ProxyAdmin contract
+   * @return Returns true if verification succeeds, otherwise false
+   * @dev Verifies that the safe wallet has the correct address, implementation,
+   *      proxy codehash, threshold, and includes both tokamakDAO and foundation as owners
+   */
+  function _verifySafe(address _proxyAdmin) internal view returns (bool) {
+    // Get safe wallet address from ProxyAdmin.owner()
+    IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
+    address safeWalletAddress = proxyAdminContract.owner();
+    IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
+
+    // Check if the safe wallet address is the same as the expected safe wallet address
+    if (safeWalletAddress != safeWallet.safeWalletAddress) {
       return false;
     }
 
+    // Get the implementation from the masterCopy function of the safe wallet
+    address implementation = safe.masterCopy();
+
+    // Check if the implementation codehash is the same as the expected implementation codehash
+    if (implementation.codehash != safeWallet.implementationCodehash) {
+      return false;
+    }
+
+    // Check if the proxy codehash is the same as the expected proxy codehash
+    if (safeWalletAddress.codehash != safeWallet.proxyCodehash) {
+      return false;
+    }
+
+    // Verify threshold
+    if (safe.getThreshold() != safeWallet.requiredThreshold) {
+      return false;
+    }
+
+    // Verify owners (tokamakDAO, foundation must be included)
     address[] memory owners = safe.getOwners();
 
     bool foundTokamakDAO = false;
     bool foundFoundation = false;
-    bool foundThirdOwner = false;
 
     for (uint i = 0; i < owners.length; i++) {
-      if (owners[i] == safeConfig.tokamakDAO) foundTokamakDAO = true;
-      if (owners[i] == safeConfig.foundation) foundFoundation = true;
-      if (owners[i] == safeConfig.thirdOwner) foundThirdOwner = true;
-      if (foundTokamakDAO && foundFoundation && foundThirdOwner) break;
+      if (owners[i] == safeWallet.tokamakDAO) foundTokamakDAO = true;
+      if (owners[i] == safeWallet.foundation) foundFoundation = true;
+      if (foundTokamakDAO && foundFoundation) break;
     }
 
-    return foundTokamakDAO && foundFoundation && foundThirdOwner;
+    // Both tokamakDAO and foundation must be present
+    return foundTokamakDAO && foundFoundation;
   }
 
-  function _verifyProxyHash(
-    address proxyAddress,
-    bytes32 expectedHash
-  ) internal view returns (bool) {
-    require(expectedHash != bytes32(0), 'Expected hash cannot be zero');
-    return proxyAddress.codehash == expectedHash;
-  }
-
-  function _verifyContract(
-    address proxyAddress,
-    bytes32 contractId,
-    uint256 chainId
-  ) internal view returns (bool) {
-    ContractConfig storage config = chainConfigs[chainId].contractConfigs[
-      contractId
-    ];
-
-    return
-      _verifyImplementation(proxyAddress, config.implementationAddress) &&
-      _verifyProxyAdmin(proxyAddress, config.expectedProxyAdmin) &&
-      _verifyProxyHash(proxyAddress, config.proxyHash);
-  }
-
+  /**
+   * @notice Verify the L1 contracts and the safe wallet
+   * @param _systemConfigProxy The address of the SystemConfig proxy
+   * @param _proxyAdmin The address of the ProxyAdmin contract
+   * @dev Verifies each contract in sequence: SystemConfig, L1StandardBridge,
+   *      L1CrossDomainMessenger, OptimismPortal, and the Safe wallet
+   */
   function _verifyL1Contracts(
-    uint256 chainId,
-    address systemConfigProxy
+    address _systemConfigProxy,
+    address _proxyAdmin
   ) internal view {
-    // Verify SystemConfig
-    if (!_verifyContract(systemConfigProxy, SYSTEM_CONFIG, chainId)) {
-      revert('SystemConfig verification failed');
-    }
+    // Step 1: Verify SystemConfig
+    require(
+      _verifyImplementation(_systemConfigProxy, systemConfig.logicAddress, _proxyAdmin) &&
+      _verifyProxyHash(_systemConfigProxy, systemConfig.proxyCodehash),
+      'SystemConfig verification failed'
+    );
 
     // Get contract addresses from SystemConfig
-    ISystemConfig systemConfig = ISystemConfig(systemConfigProxy);
-    address l1StandardBridge = systemConfig.l1StandardBridge();
-    address l1CrossDomainMessenger = systemConfig.l1CrossDomainMessenger();
-    address optimismPortal = systemConfig.optimismPortal();
+    ISystemConfig systemConfigContract = ISystemConfig(_systemConfigProxy);
+    address l1StandardBridgeAddress = systemConfigContract.l1StandardBridge();
+    address l1CrossDomainMessengerAddress = systemConfigContract.l1CrossDomainMessenger();
+    address optimismPortalAddress = systemConfigContract.optimismPortal();
 
-    // Verify other contracts
-    if (!_verifyContract(l1StandardBridge, L1_STANDARD_BRIDGE, chainId)) {
-      revert('L1 Standard Bridge verification failed');
-    }
+    // Step 2: Verify L1StandardBridge
+    require(
+      _verifyImplementation(l1StandardBridgeAddress, l1StandardBridge.logicAddress, _proxyAdmin) &&
+      _verifyProxyHash(l1StandardBridgeAddress, l1StandardBridge.proxyCodehash),
+      'L1StandardBridge verification failed'
+    );
 
-    if (
-      !_verifyContract(
-        l1CrossDomainMessenger,
-        L1_CROSS_DOMAIN_MESSENGER,
-        chainId
-      )
-    ) {
-      revert('L1 Cross Domain Messenger verification failed');
-    }
+    // Step 3: Verify L1CrossDomainMessenger
+    require(
+      _verifyImplementation(l1CrossDomainMessengerAddress, l1CrossDomainMessenger.logicAddress, _proxyAdmin) &&
+      _verifyProxyHash(l1CrossDomainMessengerAddress, l1CrossDomainMessenger.proxyCodehash),
+      'L1CrossDomainMessenger verification failed'
+    );
 
-    if (!_verifyContract(optimismPortal, OPTIMISM_PORTAL, chainId)) {
-      revert('Optimism Portal verification failed');
-    }
+    // Step 4: Verify OptimismPortal
+    require(
+      _verifyImplementation(optimismPortalAddress, optimismPortal.logicAddress, _proxyAdmin) &&
+      _verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash),
+      'OptimismPortal verification failed'
+    );
 
-    IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
-
-    address safeWallet = proxyAdmin.owner();
-    // Verify Safe configuration if required
-    if (
-      chainConfigs[chainId].safeVerificationRequired &&
-      !_verifySafe(safeWallet, chainId)
-    ) {
-      revert('Safe verification failed');
-    }
-
-    return;
+    // Step 5: Verify Safe wallet
+    require(_verifySafe(_proxyAdmin), 'Safe wallet verification failed');
   }
 }
