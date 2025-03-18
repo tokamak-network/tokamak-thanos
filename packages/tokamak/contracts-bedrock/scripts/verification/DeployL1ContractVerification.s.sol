@@ -9,15 +9,13 @@ contract DeployL1ContractVerification is Script {
   function run() external {
     // Load environment variables
     address proxyAdminAddress = vm.envAddress('PROXY_ADMIN_CONTRACT_ADDRESS');
-    address l2TONAddress = vm.envAddress('L2_TON_ADDRESS');
 
     // Start broadcasting transactions
     vm.startBroadcast();
 
     // Deploy the contract with the ProxyAdmin address
     L1ContractVerification verificationContract = new L1ContractVerification(
-      proxyAdminAddress,
-      l2TONAddress
+      proxyAdminAddress
     );
 
     console.log(

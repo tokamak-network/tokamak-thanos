@@ -65,12 +65,11 @@ contract VerifyContractSetConfig is Script {
     bytes32 contractId,
     L1ContractVerification verifier
   ) internal {
-    bytes32 implementationHash = implAddress.codehash;
     bytes32 proxyHash = proxyAddress.codehash;
 
     verifier.setContractConfig(
       contractId,
-      implementationHash,
+      implAddress,
       proxyHash,
       proxyAdmin
     );

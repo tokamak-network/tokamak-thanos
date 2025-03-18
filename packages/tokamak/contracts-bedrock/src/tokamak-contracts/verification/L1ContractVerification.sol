@@ -9,9 +9,6 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   // ProxyAdmin contract address
   address public immutable PROXY_ADMIN_ADDRESS;
 
-  //L2 Ton address
-  address public immutable L2_TON_ADDRESS;
-
   struct ChainConfig {
     mapping(bytes32 => ContractConfig) contractConfigs;
     SafeConfig safeConfig;
@@ -35,25 +32,22 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   // Events
   event SafeVerificationRequiredSet(uint256 indexed chainId, bool required);
 
-  constructor(address _proxyAdminAddress, address _l2TONAddress) Ownable() {
+  constructor(address _proxyAdminAddress) Ownable() {
     require(_proxyAdminAddress != address(0), 'Invalid proxy admin address');
     PROXY_ADMIN_ADDRESS = _proxyAdminAddress;
-
-    require(_l2TONAddress != address(0), 'Invalid L2 TON address');
-    L2_TON_ADDRESS = _l2TONAddress;
   }
 
   // External functions
   function setContractConfig(
     bytes32 contractId,
-    bytes32 implementationHash,
+    address implementationAddress,
     bytes32 proxyHash,
     address expectedProxyAdmin
   ) external onlyOwner {
     _setContractConfig(
       block.chainid,
       contractId,
-      implementationHash,
+      implementationAddress,
       proxyHash,
       expectedProxyAdmin
     );
@@ -94,7 +88,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     string calldata _name
   ) external returns (bool) {
     require(
-      _l2TON == L2_TON_ADDRESS,
+      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'Provided L2 TON Token address is not correct'
     );
     require(_type == 2, 'Registration allowed only for TON tokens');
@@ -139,7 +133,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   /**
    * @notice Get the contract configuration for the current chain and contract ID
    * @param contractId The contract ID to get the config for
-   * @return implementationHash The hash of the implementation contract code
+   * @return implementationAddress The address of the implementation contract
    * @return proxyHash The hash of the proxy contract code
    * @return expectedProxyAdmin The expected admin address for the proxy
    */
@@ -149,7 +143,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     external
     view
     returns (
-      bytes32 implementationHash,
+      address implementationAddress,
       bytes32 proxyHash,
       address expectedProxyAdmin
     )
@@ -158,7 +152,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
       contractId
     ];
     return (
-      config.implementationHash,
+      config.implementationAddress,
       config.proxyHash,
       config.expectedProxyAdmin
     );
@@ -194,12 +188,12 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function _setContractConfig(
     uint256 chainId,
     bytes32 contractId,
-    bytes32 implementationHash,
+    address implementationAddress,
     bytes32 proxyHash,
     address expectedProxyAdmin
   ) internal {
     chainConfigs[chainId].contractConfigs[contractId] = ContractConfig({
-      implementationHash: implementationHash,
+      implementationAddress: implementationAddress,
       proxyHash: proxyHash,
       expectedProxyAdmin: expectedProxyAdmin
     });
@@ -227,7 +221,6 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address expectedAdmin
   ) internal view returns (bool) {
     IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
-    address admin;
 
     // Convert to payable address for compatibility with IProxyAdmin interface
     address payable payableProxyAddress = payable(proxyAddress);
@@ -235,38 +228,25 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     try proxyAdmin.getProxyAdmin(payableProxyAddress) returns (
       address fetchedAdmin
     ) {
-      admin = fetchedAdmin;
+      return fetchedAdmin == expectedAdmin;
     } catch {
       return false;
     }
-
-    if (admin == address(0)) {
-      return false;
-    }
-
-    return admin == expectedAdmin;
   }
 
   function _verifyImplementation(
     address proxyAddress,
-    bytes32 expectedHash
+    address expectedImplementation
   ) internal view returns (bool) {
     IProxyAdmin proxyAdmin = IProxyAdmin(PROXY_ADMIN_ADDRESS);
-    address implementation;
 
     try proxyAdmin.getProxyImplementation(proxyAddress) returns (
       address fetchedImpl
     ) {
-      implementation = fetchedImpl;
+      return fetchedImpl == expectedImplementation;
     } catch {
       return false;
     }
-
-    if (implementation == address(0)) {
-      return false;
-    }
-
-    return implementation.codehash == expectedHash;
   }
 
   function _verifySafe(
@@ -313,7 +293,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     ];
 
     return
-      _verifyImplementation(proxyAddress, config.implementationHash) &&
+      _verifyImplementation(proxyAddress, config.implementationAddress) &&
       _verifyProxyAdmin(proxyAddress, config.expectedProxyAdmin) &&
       _verifyProxyHash(proxyAddress, config.proxyHash);
   }
