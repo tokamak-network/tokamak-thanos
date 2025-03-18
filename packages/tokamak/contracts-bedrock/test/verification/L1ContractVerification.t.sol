@@ -179,10 +179,7 @@ contract L1ContractVerificationTest is Test {
     bridgeRegistry = new MockBridgeRegistry();
 
     // Deploy verifier contract with proxy admin address
-    verifier = new L1ContractVerification(
-      address(mockProxyAdmin),
-      l2TONAddress
-    );
+    verifier = new L1ContractVerification(address(mockProxyAdmin));
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -205,19 +202,19 @@ contract L1ContractVerificationTest is Test {
     // Set contract config for SystemConfig
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       address(systemConfigProxy).codehash,
       address(mockProxyAdmin)
     );
 
     // Verify the config was set correctly
     (
-      bytes32 implementationHash,
+      address implementationAddress,
       bytes32 proxyHash,
       address expectedProxyAdmin
     ) = verifier.getContractConfig(SYSTEM_CONFIG_ID);
 
-    assertEq(implementationHash, address(systemConfigImpl).codehash);
+    assertEq(implementationAddress, address(systemConfigImpl));
     assertEq(proxyHash, address(systemConfigProxy).codehash);
     assertEq(expectedProxyAdmin, address(mockProxyAdmin));
 
@@ -307,7 +304,7 @@ contract L1ContractVerificationTest is Test {
     // won't match what's expected in the config
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(makeAddr('wrongAddress')), // Incorrect implementation hash
       address(systemConfigProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -407,7 +404,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      bytes32(0),
+      address(0),
       bytes32(0),
       address(0)
     );
@@ -428,7 +425,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      bytes32(0),
+      address(0),
       bytes32(0),
       address(0)
     );
@@ -512,10 +509,10 @@ contract L1ContractVerificationTest is Test {
       address(differentL1StandardBridgeImpl)
     );
 
-    // Set an incorrect implementation hash in the contract config
+    // Set an incorrect implementation address in the contract config
     verifier.setContractConfig(
       L1_STANDARD_BRIDGE_ID,
-      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(makeAddr('incorrectAddress')), // Incorrect implementation address
       address(l1StandardBridgeProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -546,10 +543,10 @@ contract L1ContractVerificationTest is Test {
       address(differentL1CrossDomainMessengerImpl)
     );
 
-    // Set an incorrect implementation hash in the contract config
+    // Set an incorrect implementation address in the contract config
     verifier.setContractConfig(
       L1_CROSS_DOMAIN_MESSENGER_ID,
-      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(makeAddr('incorrectAddress')), // Incorrect implementation address
       address(l1CrossDomainMessengerProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -580,10 +577,10 @@ contract L1ContractVerificationTest is Test {
       address(differentOptimismPortalImpl)
     );
 
-    // Set an incorrect implementation hash in the contract config
+    // Set an incorrect implementation address in the contract config
     verifier.setContractConfig(
       OPTIMISM_PORTAL_ID,
-      bytes32(uint256(0x123456)), // Incorrect implementation hash
+      address(makeAddr('incorrectAddress')), // Incorrect implementation address
       address(optimismPortalProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -609,7 +606,7 @@ contract L1ContractVerificationTest is Test {
     address differentProxyAdmin = makeAddr('differentProxyAdmin');
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       address(systemConfigProxy).codehash,
       differentProxyAdmin
     );
@@ -634,7 +631,7 @@ contract L1ContractVerificationTest is Test {
     // Set an incorrect proxy hash in the contract config
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       bytes32(uint256(0x123456)), // Incorrect proxy hash
       address(mockProxyAdmin)
     );
@@ -731,7 +728,7 @@ contract L1ContractVerificationTest is Test {
 
   function testConstructorFailZeroAddress() public {
     vm.expectRevert('Invalid proxy admin address');
-    new L1ContractVerification(address(0), address(0));
+    new L1ContractVerification(address(0));
   }
 
   function testVerifyL1ContractsFailZeroImplementation() public {
@@ -745,14 +742,13 @@ contract L1ContractVerificationTest is Test {
 
     // Deploy a new verifier with the mock proxy admin
     L1ContractVerification newVerifier = new L1ContractVerification(
-      address(mockProxyAdminZeroImpl),
-      l2TONAddress
+      address(mockProxyAdminZeroImpl)
     );
 
     // Set up the new verifier with the same configs
     newVerifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       address(systemConfigProxy).codehash,
       address(mockProxyAdminZeroImpl)
     );
@@ -779,14 +775,13 @@ contract L1ContractVerificationTest is Test {
 
     // Deploy a new verifier with the mock proxy admin
     L1ContractVerification newVerifier = new L1ContractVerification(
-      address(mockProxyAdminZeroAdmin),
-      l2TONAddress
+      address(mockProxyAdminZeroAdmin)
     );
 
     // Set up the new verifier with the same configs
     newVerifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       address(systemConfigProxy).codehash,
       address(mockProxyAdminZeroAdmin)
     );
@@ -818,7 +813,7 @@ contract L1ContractVerificationTest is Test {
     // Set all required configs but with zero proxy hash
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       bytes32(0), // Zero proxy hash
       address(mockProxyAdmin)
     );
@@ -839,7 +834,7 @@ contract L1ContractVerificationTest is Test {
     // Set contract config for SystemConfig
     verifier.setContractConfig(
       SYSTEM_CONFIG_ID,
-      address(systemConfigImpl).codehash,
+      address(systemConfigImpl),
       address(systemConfigProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -847,7 +842,7 @@ contract L1ContractVerificationTest is Test {
     // Set contract config for L1StandardBridge
     verifier.setContractConfig(
       L1_STANDARD_BRIDGE_ID,
-      address(l1StandardBridgeImpl).codehash,
+      address(l1StandardBridgeImpl),
       address(l1StandardBridgeProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -855,7 +850,7 @@ contract L1ContractVerificationTest is Test {
     // Set contract config for L1CrossDomainMessenger
     verifier.setContractConfig(
       L1_CROSS_DOMAIN_MESSENGER_ID,
-      address(l1CrossDomainMessengerImpl).codehash,
+      address(l1CrossDomainMessengerImpl),
       address(l1CrossDomainMessengerProxy).codehash,
       address(mockProxyAdmin)
     );
@@ -863,7 +858,7 @@ contract L1ContractVerificationTest is Test {
     // Set contract config for OptimismPortal
     verifier.setContractConfig(
       OPTIMISM_PORTAL_ID,
-      address(optimismPortalImpl).codehash,
+      address(optimismPortalImpl),
       address(optimismPortalProxy).codehash,
       address(mockProxyAdmin)
     );

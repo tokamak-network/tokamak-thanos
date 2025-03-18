@@ -25,7 +25,7 @@ interface IL1BridgeRegistryV1_1 {
 interface IL1ContractVerification {
   // Struct definitions
   struct ContractConfig {
-    bytes32 implementationHash;
+    address implementationAddress;
     bytes32 proxyHash;
     address expectedProxyAdmin;
   }
@@ -47,7 +47,7 @@ interface IL1ContractVerification {
   // Functions
   function setContractConfig(
     bytes32 contractId,
-    bytes32 implementationHash,
+    address implementationAddress,
     bytes32 proxyHash,
     address expectedProxyAdmin
   ) external;
@@ -90,7 +90,7 @@ interface IL1ContractVerification {
   /**
    * @notice Get the contract configuration for a specific chain and contract ID
    * @param contractId The contract ID to get the config for
-   * @return implementationHash The hash of the implementation contract code
+   * @return implementationAddress The address of the implementation contract
    * @return proxyHash The hash of the proxy contract code
    * @return expectedProxyAdmin The expected admin address for the proxy
    */
@@ -100,7 +100,7 @@ interface IL1ContractVerification {
     external
     view
     returns (
-      bytes32 implementationHash,
+      address implementationAddress,
       bytes32 proxyHash,
       address expectedProxyAdmin
     );
