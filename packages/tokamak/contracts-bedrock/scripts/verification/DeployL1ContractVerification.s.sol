@@ -17,7 +17,7 @@ contract SetupL1ContractVerification is Script {
   address private _proxyAdmin;
   address private _tokamakDAO;
   address private _foundation;
-  address private _nativeToken;  // TON token address
+  address private _nativeToken; // TON token address
   address private _bridgeRegistry;
 
   // Constants - private constants with leading underscore
@@ -52,13 +52,10 @@ contract SetupL1ContractVerification is Script {
     // Deploy L1ContractVerification
     L1ContractVerification verifier = new L1ContractVerification(_nativeToken);
 
-    console.log("L1ContractVerification deployed at:", address(verifier));
+    console.log('L1ContractVerification deployed at:', address(verifier));
 
     // Set logic contract info
-    verifier.setLogicContractInfo(
-      _systemConfigProxy,
-      _proxyAdmin
-    );
+    verifier.setLogicContractInfo(_systemConfigProxy, _proxyAdmin);
 
     // Get the safe wallet address from the proxy admin
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
@@ -68,7 +65,7 @@ contract SetupL1ContractVerification is Script {
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
     // Set Safe wallet info with the implementation address and codehash
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       _tokamakDAO,
       _foundation,
       _SAFE_THRESHOLD,
@@ -80,7 +77,7 @@ contract SetupL1ContractVerification is Script {
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(_bridgeRegistry);
 
-    console.log("L1ContractVerification configuration complete");
+    console.log('L1ContractVerification configuration complete');
     vm.stopBroadcast();
   }
 }

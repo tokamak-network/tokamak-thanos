@@ -22,7 +22,8 @@ contract L1ContractVerificationTest is Test {
     keccak256('L1_CROSS_DOMAIN_MESSENGER');
   bytes32 constant OPTIMISM_PORTAL_ID = keccak256('OPTIMISM_PORTAL');
   bytes32 constant SYSTEM_CONFIG_ID = keccak256('SYSTEM_CONFIG');
- bytes32 constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+  bytes32 constant IMPLEMENTATION_SLOT =
+    0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
   // Contracts
   L1ContractVerification verifier;
@@ -216,7 +217,7 @@ contract L1ContractVerificationTest is Test {
     address implementation = safeWallet.masterCopy();
 
     // Correctly set the safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -229,10 +230,22 @@ contract L1ContractVerificationTest is Test {
     console.log('-----------------------------------------------------------');
     console.log('SystemConfig Proxy:', address(systemConfigProxy));
     console.log('SystemConfig Implementation:', address(systemConfigImpl));
-    console.log('L1StandardBridge from SystemConfig:', MockSystemConfig(address(systemConfigProxy)).l1StandardBridge());
-    console.log('L1CrossDomainMessenger from SystemConfig:', MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger());
-    console.log('OptimismPortal from SystemConfig:', MockSystemConfig(address(systemConfigProxy)).optimismPortal());
-    console.log('NativeToken from SystemConfig:', MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress());
+    console.log(
+      'L1StandardBridge from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).l1StandardBridge()
+    );
+    console.log(
+      'L1CrossDomainMessenger from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger()
+    );
+    console.log(
+      'OptimismPortal from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).optimismPortal()
+    );
+    console.log(
+      'NativeToken from SystemConfig:',
+      MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress()
+    );
     console.log('ProxyAdmin Owner:', mockProxyAdmin.owner());
     console.log('-----------------------------------------------------------');
 
@@ -270,7 +283,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -294,7 +307,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('SystemConfig verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(mockProxyAdmin));
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
   }
@@ -317,7 +333,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -342,7 +358,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Safe wallet verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(mockProxyAdmin));
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
   }
@@ -367,7 +386,7 @@ contract L1ContractVerificationTest is Test {
     address implementation = safeWallet.masterCopy();
 
     // Correctly set the safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -385,7 +404,7 @@ contract L1ContractVerificationTest is Test {
       address(systemConfigProxy),
       address(mockProxyAdmin),
       2, // TON token
-      nativeToken, // Use nativeToken to pass the verification
+      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup'
     );
 
@@ -413,7 +432,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -432,7 +451,7 @@ contract L1ContractVerificationTest is Test {
       address(systemConfigProxy),
       address(mockProxyAdmin),
       1, // Invalid token type
-      nativeToken, // Use nativeToken to pass the l2TON check so we can test the token type check
+      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup'
     );
 
@@ -457,7 +476,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -497,7 +516,14 @@ contract L1ContractVerificationTest is Test {
     verifier.setLogicContractInfo(address(0), address(0));
 
     vm.expectRevert('Ownable: caller is not the owner');
-    verifier.setSafeWalletInfo(address(0), address(0), 0, address(0), bytes32(0), bytes32(0));
+    verifier.setSafeConfig(
+      address(0),
+      address(0),
+      0,
+      address(0),
+      bytes32(0),
+      bytes32(0)
+    );
 
     vm.expectRevert('Ownable: caller is not the owner');
     verifier.setBridgeRegistryAddress(address(0));
@@ -551,7 +577,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -575,7 +601,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('L1StandardBridge verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(mockProxyAdmin));
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
   }
@@ -598,7 +627,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -622,7 +651,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('L1CrossDomainMessenger verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(mockProxyAdmin));
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
   }
@@ -645,7 +677,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -669,7 +701,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('OptimismPortal verification failed');
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(mockProxyAdmin));
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
 
     vm.stopPrank();
   }
@@ -692,7 +727,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -702,7 +737,7 @@ contract L1ContractVerificationTest is Test {
     );
 
     address differentNativeToken = vm.addr(1234);
-    vm.label(differentNativeToken, "differentNativeToken");
+    vm.label(differentNativeToken, 'differentNativeToken');
 
     // Initialize SystemConfig with a different native token
     bytes memory initData = abi.encodeWithSelector(
@@ -722,7 +757,9 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Create a new L1ContractVerification instance that expects the original native token
-    L1ContractVerification newVerifier = new L1ContractVerification(nativeToken);
+    L1ContractVerification newVerifier = new L1ContractVerification(
+      nativeToken
+    );
 
     // Set contract info on the new verifier
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -732,7 +769,7 @@ contract L1ContractVerificationTest is Test {
     );
 
     // Setup safe wallet info on the new verifier
-    newVerifier.setSafeWalletInfo(
+    newVerifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3,
@@ -742,13 +779,13 @@ contract L1ContractVerificationTest is Test {
     );
 
     // Verification should fail due to using a different native token
-    vm.expectRevert("The native token you are using is not TON");
+    vm.expectRevert('The native token you are using is not TON');
     newVerifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       2, // TON token type
-      nativeToken, // Use original nativeToken
-      "TestRollup"
+      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
+      'TestRollup'
     );
 
     vm.stopPrank();
@@ -772,7 +809,7 @@ contract L1ContractVerificationTest is Test {
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
     // Setup safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       3, // threshold
@@ -791,8 +828,11 @@ contract L1ContractVerificationTest is Test {
     MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
 
     // Verification should fail with ProxyAdmin verification error
-    vm.expectRevert("ProxyAdmin verification failed");
-    verifier.verifyL1Contracts(address(systemConfigProxy), address(wrongProxyAdmin));
+    vm.expectRevert('ProxyAdmin verification failed');
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(wrongProxyAdmin)
+    );
 
     vm.stopPrank();
   }

@@ -17,12 +17,13 @@ contract VerifyContractSetConfig is Script {
   address proxyAdmin;
   address tokamakDAO;
   address foundation;
-  address nativeToken;  // TON token address
+  address nativeToken; // TON token address
   address bridgeRegistry;
 
   // Constants
   uint256 constant SAFE_THRESHOLD = 3;
-  bytes32 constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+  bytes32 constant IMPLEMENTATION_SLOT =
+    0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
   function setUp() public {
     // Load environment variables for contract addresses
@@ -45,14 +46,10 @@ contract VerifyContractSetConfig is Script {
     // Deploy L1ContractVerification
     L1ContractVerification verifier = new L1ContractVerification(nativeToken);
 
-    console.log("L1ContractVerification deployed at:", address(verifier));
+    console.log('L1ContractVerification deployed at:', address(verifier));
 
     // Set logic contract info
-    verifier.setLogicContractInfo(
-      systemConfigProxy,
-      proxyAdmin
-    );
-
+    verifier.setLogicContractInfo(systemConfigProxy, proxyAdmin);
 
     IProxyAdmin proxyAdminContract = IProxyAdmin(proxyAdmin);
     address safeWalletAddress = proxyAdminContract.owner();
@@ -61,7 +58,7 @@ contract VerifyContractSetConfig is Script {
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
     // Set Safe wallet info
-    verifier.setSafeWalletInfo(
+    verifier.setSafeConfig(
       tokamakDAO,
       foundation,
       SAFE_THRESHOLD,
@@ -73,7 +70,7 @@ contract VerifyContractSetConfig is Script {
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(bridgeRegistry);
 
-    console.log("L1ContractVerification configuration complete");
+    console.log('L1ContractVerification configuration complete');
 
     // Verify and register rollup config
     bool verifyAndRegisterRollupConfigResult = verifier
@@ -81,7 +78,7 @@ contract VerifyContractSetConfig is Script {
         systemConfigProxy,
         proxyAdmin,
         2,
-        nativeToken,
+        address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
         'TestRollup'
       );
     console.log(
