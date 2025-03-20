@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
-import "forge-std/console.sol";
 
 /**
  * @title L1ContractVerification
@@ -13,7 +12,6 @@ import "forge-std/console.sol";
  *      ensure that L2 operators deploy contracts with the correct implementations
  */
 contract L1ContractVerification is IL1ContractVerification, Ownable {
-
   // The expected native token (TON) address
   address public immutable expectedNativeToken;
 
@@ -37,7 +35,17 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    * @param _tokenAddress The address of the native token (TON)
    */
   constructor(address _tokenAddress) Ownable() {
-        expectedNativeToken = _tokenAddress;
+    expectedNativeToken = _tokenAddress;
+  }
+
+  /**
+   * @notice Set Proxy Admin Codehash
+   * @param _proxyAdmin The address of the ProxyAdmin
+   * @dev This updates codehash of proxy admin
+   */
+  function setProxyAdminCodeHash(address _proxyAdmin) external onlyOwner {
+    _setProxyAdminCodehash(_proxyAdmin);
+    emit ProxyAdminCodehashSet(proxyAdminCodehash);
   }
 
   /**
@@ -50,13 +58,14 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     address _systemConfigProxy,
     address _proxyAdmin
   ) external onlyOwner {
-    require(_systemConfigProxy != address(0), 'SystemConfig proxy address cannot be zero');
+    require(
+      _systemConfigProxy != address(0),
+      'SystemConfig proxy address cannot be zero'
+    );
     require(_proxyAdmin != address(0), 'ProxyAdmin address cannot be zero');
 
-    // Verify ProxyAdmin
-    bytes32 proxyAdminHash = _proxyAdmin.codehash;
-    require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
-    proxyAdminCodehash = proxyAdminHash;
+    // Set Proxy Admin Codehash
+    _setProxyAdminCodehash(_proxyAdmin);
 
     // Get contract addresses from SystemConfig
     ISystemConfig config = ISystemConfig(_systemConfigProxy);
@@ -67,27 +76,36 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
 
     // Set SystemConfig info
-    systemConfig.logicAddress = proxyAdmin.getProxyImplementation(_systemConfigProxy);
+    systemConfig.logicAddress = proxyAdmin.getProxyImplementation(
+      _systemConfigProxy
+    );
     systemConfig.proxyCodehash = _systemConfigProxy.codehash;
 
     // Set L1StandardBridge info
-    l1StandardBridge.logicAddress = proxyAdmin.getProxyImplementation(l1StandardBridgeAddress);
+    l1StandardBridge.logicAddress = proxyAdmin.getProxyImplementation(
+      l1StandardBridgeAddress
+    );
     l1StandardBridge.proxyCodehash = l1StandardBridgeAddress.codehash;
 
     // Set L1CrossDomainMessenger info
-    l1CrossDomainMessenger.logicAddress = proxyAdmin.getProxyImplementation(l1CrossDomainMessengerAddress);
-    l1CrossDomainMessenger.proxyCodehash = l1CrossDomainMessengerAddress.codehash;
+    l1CrossDomainMessenger.logicAddress = proxyAdmin.getProxyImplementation(
+      l1CrossDomainMessengerAddress
+    );
+    l1CrossDomainMessenger.proxyCodehash = l1CrossDomainMessengerAddress
+      .codehash;
 
     // Set OptimismPortal info
-    optimismPortal.logicAddress = proxyAdmin.getProxyImplementation(optimismPortalAddress);
+    optimismPortal.logicAddress = proxyAdmin.getProxyImplementation(
+      optimismPortalAddress
+    );
     optimismPortal.proxyCodehash = optimismPortalAddress.codehash;
 
     // Emit events
-    emit ProxyAdminCodehashSet(proxyAdminHash);
-    emit ConfigurationSet("SystemConfig");
-    emit ConfigurationSet("L1StandardBridge");
-    emit ConfigurationSet("L1CrossDomainMessenger");
-    emit ConfigurationSet("OptimismPortal");
+    emit ProxyAdminCodehashSet(proxyAdminCodehash);
+    emit ConfigurationSet('SystemConfig');
+    emit ConfigurationSet('L1StandardBridge');
+    emit ConfigurationSet('L1CrossDomainMessenger');
+    emit ConfigurationSet('OptimismPortal');
   }
 
   /**
@@ -100,7 +118,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    * @param _proxyCodehash The codehash of the proxy contract
    * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin
    */
-  function setSafeWalletInfo(
+  function setSafeConfig(
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
@@ -132,8 +150,13 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    * @param _bridgeRegistry The address of the bridge registry
    * @dev The bridge registry is used when registering rollup configurations
    */
-  function setBridgeRegistryAddress(address _bridgeRegistry) external onlyOwner {
-    require(_bridgeRegistry != address(0), 'Bridge registry address cannot be zero');
+  function setBridgeRegistryAddress(
+    address _bridgeRegistry
+  ) external onlyOwner {
+    require(
+      _bridgeRegistry != address(0),
+      'Bridge registry address cannot be zero'
+    );
     l1BridgeRegistryAddress = _bridgeRegistry;
     emit BridgeRegistryUpdated(_bridgeRegistry);
   }
@@ -185,7 +208,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     string calldata _name
   ) external returns (bool) {
     require(
-      _l2TON == expectedNativeToken,
+      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'Provided L2 TON Token address is not correct'
     );
     require(_type == 2, 'Registration allowed only for TON tokens');
@@ -225,7 +248,10 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    */
   function _verifyProxyAdmin(address _proxyAdmin) internal view {
     // Verify that ProxyAdmin contract has the expected codehash
-    require(_proxyAdmin.codehash == proxyAdminCodehash, 'ProxyAdmin verification failed');
+    require(
+      _proxyAdmin.codehash == proxyAdminCodehash,
+      'ProxyAdmin verification failed'
+    );
   }
 
   /**
@@ -331,39 +357,69 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   ) internal view {
     // Step 1: Verify SystemConfig
     require(
-      _verifyImplementation(_systemConfigProxy, systemConfig.logicAddress, _proxyAdmin) &&
-      _verifyProxyHash(_systemConfigProxy, systemConfig.proxyCodehash),
+      _verifyImplementation(
+        _systemConfigProxy,
+        systemConfig.logicAddress,
+        _proxyAdmin
+      ) && _verifyProxyHash(_systemConfigProxy, systemConfig.proxyCodehash),
       'SystemConfig verification failed'
     );
 
     // Get contract addresses from SystemConfig
     ISystemConfig systemConfigContract = ISystemConfig(_systemConfigProxy);
     address l1StandardBridgeAddress = systemConfigContract.l1StandardBridge();
-    address l1CrossDomainMessengerAddress = systemConfigContract.l1CrossDomainMessenger();
+    address l1CrossDomainMessengerAddress = systemConfigContract
+      .l1CrossDomainMessenger();
     address optimismPortalAddress = systemConfigContract.optimismPortal();
 
     // Step 2: Verify L1StandardBridge
     require(
-      _verifyImplementation(l1StandardBridgeAddress, l1StandardBridge.logicAddress, _proxyAdmin) &&
-      _verifyProxyHash(l1StandardBridgeAddress, l1StandardBridge.proxyCodehash),
+      _verifyImplementation(
+        l1StandardBridgeAddress,
+        l1StandardBridge.logicAddress,
+        _proxyAdmin
+      ) &&
+        _verifyProxyHash(
+          l1StandardBridgeAddress,
+          l1StandardBridge.proxyCodehash
+        ),
       'L1StandardBridge verification failed'
     );
 
     // Step 3: Verify L1CrossDomainMessenger
     require(
-      _verifyImplementation(l1CrossDomainMessengerAddress, l1CrossDomainMessenger.logicAddress, _proxyAdmin) &&
-      _verifyProxyHash(l1CrossDomainMessengerAddress, l1CrossDomainMessenger.proxyCodehash),
+      _verifyImplementation(
+        l1CrossDomainMessengerAddress,
+        l1CrossDomainMessenger.logicAddress,
+        _proxyAdmin
+      ) &&
+        _verifyProxyHash(
+          l1CrossDomainMessengerAddress,
+          l1CrossDomainMessenger.proxyCodehash
+        ),
       'L1CrossDomainMessenger verification failed'
     );
 
     // Step 4: Verify OptimismPortal
     require(
-      _verifyImplementation(optimismPortalAddress, optimismPortal.logicAddress, _proxyAdmin) &&
-      _verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash),
+      _verifyImplementation(
+        optimismPortalAddress,
+        optimismPortal.logicAddress,
+        _proxyAdmin
+      ) &&
+        _verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash),
       'OptimismPortal verification failed'
     );
 
     // Step 5: Verify Safe wallet
     require(_verifySafe(_proxyAdmin), 'Safe wallet verification failed');
+  }
+
+  function _setProxyAdminCodehash(
+    address _proxyAdmin
+  ) internal {
+    bytes32 proxyAdminHash = _proxyAdmin.codehash;
+    require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
+    proxyAdminCodehash = proxyAdminHash;
   }
 }
