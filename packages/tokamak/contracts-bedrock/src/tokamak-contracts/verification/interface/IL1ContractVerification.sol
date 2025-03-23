@@ -50,12 +50,12 @@ interface IL1ContractVerification {
   event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
-    address tokamakDAO,
-    address foundation,
-    uint256 threshold
+    address indexed tokamakDAO,
+    address indexed foundation,
+    uint256 indexed threshold
   );
   event NativeTokenSet(address indexed tokenAddress);
-  event ProxyAdminCodehashSet(bytes32 codehash);
+  event ProxyAdminCodehashSet(bytes32 indexed codehash);
 
   // Functions
   function setLogicContractInfo(

@@ -1,21 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
 /**
  * @title L1ContractVerification
  * @notice This contract verifies the integrity of critical L1 contracts for Tokamak rollups
- * @dev This contract is deployed to L1 by the TRH team before the trh-sdk release and helps
- *      ensure that L2 operators deploy contracts with the correct implementations
+ * @dev This contract is designed as an upgradeable contract that provides security
+ *      guarantees for Tokamak Layer 2 operators. It ensures that the L1 contracts
+ *      they interact with have the correct implementations and configurations.
+ *
+ * @custom:security-model The security model of this contract follows these principles:
+ *      1. Proxy Pattern Verification: Validates both proxy and implementation contracts
+ *      2. Ownership Verification: Ensures ownership is held by the expected multisig wallets
+ *      3. Address Registry: Acts as a trusted registry of verified contract addresses
+ *      4. Trust Minimization: Reduces trust required in L2 operators by verifying their setups
+ *
+ * @custom:upgrade-safety This contract uses the TransparentUpgradeableProxy pattern for upgrades.
+ *      Upgrades should be carefully vetted to ensure storage layout compatibility.
  */
 contract L1ContractVerification is
   IL1ContractVerification,
   Initializable,
-  OwnableUpgradeable
+  AccessControlUpgradeable
 {
+  // Role definitions
+  /**
+   * @notice Admin role for managing configuration and performing operations
+   * @dev Has access to all contract functions
+   */
+  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
   // The expected native token (TON) address
   address public expectedNativeToken;
 
@@ -44,10 +61,35 @@ contract L1ContractVerification is
   /**
    * @notice Initialize the contract (replaces constructor for upgradeable contracts)
    * @param _tokenAddress The address of the native token (TON)
+   * @param _initialAdmin The address that will be granted the admin role
    */
-  function initialize(address _tokenAddress) public initializer {
-    __Ownable_init();
+  function initialize(address _tokenAddress, address _initialAdmin) public initializer {
+    __AccessControl_init();
+
+    // Set up roles
+    _setupRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+    _setupRole(ADMIN_ROLE, _initialAdmin);
+
     expectedNativeToken = _tokenAddress;
+    emit NativeTokenSet(_tokenAddress);
+  }
+
+  /**
+   * @notice Add an admin
+   * @param _admin The address to grant the admin role to
+   * @dev Only callable by existing admins
+   */
+  function addAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
+    grantRole(ADMIN_ROLE, _admin);
+  }
+
+  /**
+   * @notice Remove an admin
+   * @param _admin The address to revoke the admin role from
+   * @dev Only callable by existing admins
+   */
+  function removeAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
+    revokeRole(ADMIN_ROLE, _admin);
   }
 
   /**
@@ -55,7 +97,7 @@ contract L1ContractVerification is
    * @param _proxyAdmin The address of the ProxyAdmin
    * @dev This updates codehash of proxy admin
    */
-  function setProxyAdminCodeHash(address _proxyAdmin) external onlyOwner {
+  function setProxyAdminCodeHash(address _proxyAdmin) external onlyRole(ADMIN_ROLE) {
     _setProxyAdminCodehash(_proxyAdmin);
     emit ProxyAdminCodehashSet(proxyAdminCodehash);
   }
@@ -69,7 +111,7 @@ contract L1ContractVerification is
   function setLogicContractInfo(
     address _systemConfigProxy,
     address _proxyAdmin
-  ) external onlyOwner {
+  ) external onlyRole(ADMIN_ROLE) {
     require(
       _systemConfigProxy != address(0),
       'SystemConfig proxy address cannot be zero'
@@ -125,7 +167,7 @@ contract L1ContractVerification is
    * @param _tokamakDAO The address of the tokamakDAO owner
    * @param _foundation The address of the foundation owner
    * @param _threshold The required threshold for the safe wallet
-   * @param _proxyAdmin The address of the ProxyAdmin
+   * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
    * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin
@@ -137,7 +179,7 @@ contract L1ContractVerification is
     address _proxyAdmin,
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
-  ) external onlyOwner {
+  ) external onlyRole(ADMIN_ROLE) {
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
@@ -164,7 +206,7 @@ contract L1ContractVerification is
    */
   function setBridgeRegistryAddress(
     address _bridgeRegistry
-  ) external onlyOwner {
+  ) external onlyRole(ADMIN_ROLE) {
     require(
       _bridgeRegistry != address(0),
       'Bridge registry address cannot be zero'
@@ -264,7 +306,7 @@ contract L1ContractVerification is
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @dev Ensures the ProxyAdmin has the expected codehash and is owned by the expected safe wallet
    */
-  function _verifyProxyAdmin(address _proxyAdmin) internal view {
+  function _verifyProxyAdmin(address _proxyAdmin) private view {
     // 1. Verify that ProxyAdmin contract has the expected codehash
     require(
       _proxyAdmin.codehash == proxyAdminCodehash,
@@ -295,7 +337,7 @@ contract L1ContractVerification is
     address _proxyAddress,
     address _expectedImplementation,
     address _proxyAdmin
-  ) internal view returns (bool) {
+  ) private view returns (bool) {
     IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
 
     try proxyAdmin.getProxyImplementation(_proxyAddress) returns (
@@ -328,7 +370,7 @@ contract L1ContractVerification is
    * @dev Verifies that the safe wallet has the correct address, implementation,
    *      proxy codehash, threshold, and includes both tokamakDAO and foundation as owners
    */
-  function _verifySafe(address _proxyAdmin) internal view returns (bool) {
+  function _verifySafe(address _proxyAdmin) private view returns (bool) {
     // Get safe wallet address from ProxyAdmin.owner()
     // We are verifying owner of proxy wallet which will also verify if this proxy admin address provided by operator is correct or not.
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
@@ -387,13 +429,27 @@ contract L1ContractVerification is
    * @notice Verify the L1 contracts and the safe wallet
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin contract
-   * @dev Verifies each contract in sequence: SystemConfig, L1StandardBridge,
-   *      L1CrossDomainMessenger, OptimismPortal, and the Safe wallet
+   * @dev Verifies each contract in sequence using a multi-layered approach:
+   *      1. SystemConfig: Validates both proxy codehash and implementation address
+   *      2. Retrieves child contract addresses from the verified SystemConfig
+   *      3. L1StandardBridge: Validates correct implementation behind the proxy
+   *      4. L1CrossDomainMessenger: Ensures correct messenger implementation
+   *      5. OptimismPortal: Verifies correct portal implementation
+   *      6. Safe Wallet: Validates the multisig with correct owners and threshold
+   *
+   * The verification process ensures that:
+   * - All proxies point to the expected implementations
+   * - All proxies have the expected bytecode (via codehash)
+   * - The proxy admin is properly owned by the safe wallet
+   * - The safe wallet has the correct owner set and threshold
+   *
+   * This comprehensive verification prevents potential attacks where an
+   * operator might use modified implementations or incorrect configurations.
    */
   function _verifyL1Contracts(
     address _systemConfigProxy,
     address _proxyAdmin
-  ) internal view {
+  ) private view {
     // Step 1: Verify SystemConfig
     require(
       _verifyImplementation(
@@ -454,7 +510,7 @@ contract L1ContractVerification is
     require(_verifySafe(_proxyAdmin), 'Safe wallet verification failed');
   }
 
-  function _setProxyAdminCodehash(address _proxyAdmin) internal {
+  function _setProxyAdminCodehash(address _proxyAdmin) private {
     bytes32 proxyAdminHash = _proxyAdmin.codehash;
     require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
     proxyAdminCodehash = proxyAdminHash;

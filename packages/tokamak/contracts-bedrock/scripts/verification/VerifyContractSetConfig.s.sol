@@ -54,7 +54,8 @@ contract VerifyContractSetConfig is Script {
     // Prepare initialization data for the proxy
     bytes memory initData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
-      _nativeToken
+      _nativeToken,
+      msg.sender
     );
 
     // Deploy the TransparentUpgradeableProxy with the implementation and initialization data
@@ -93,19 +94,19 @@ contract VerifyContractSetConfig is Script {
 
     console.log('L1ContractVerification configuration complete');
 
-    // // Verify and register rollup config
-    // bool verifyAndRegisterRollupConfigResult = verifier
-    //   .verifyAndRegisterRollupConfig(
-    //     _systemConfigProxy,
-    //     _proxyAdmin,
-    //     2,
-    //     address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
-    //     'TestRollup'
-    //   );
-    // console.log(
-    //   'Verify and register rollup config result:',
-    //   verifyAndRegisterRollupConfigResult
-    // );
+    // Verify and register rollup config
+    bool verifyAndRegisterRollupConfigResult = verifier
+      .verifyAndRegisterRollupConfig(
+        _systemConfigProxy,
+        _proxyAdmin,
+        2,
+        address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
+        'TestRollup'
+      );
+    console.log(
+      'Verify and register rollup config result:',
+      verifyAndRegisterRollupConfigResult
+    );
 
     vm.stopBroadcast();
   }

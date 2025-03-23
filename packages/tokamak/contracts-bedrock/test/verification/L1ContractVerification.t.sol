@@ -11,6 +11,8 @@ import './mock-contracts/MockContracts.sol';
 import './mock-contracts/MockGnosisSafe.sol';
 import './mock-contracts/MockProxyAdmin.sol';
 import './mock-contracts/MockSystemConfig.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol';
 
 /**
  * @title L1ContractVerificationTest
@@ -198,7 +200,8 @@ contract L1ContractVerificationTest is Test {
     // The initialization data
     bytes memory verifierInitData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
-      nativeToken
+      nativeToken,
+      owner
     );
 
     // Deploy the proxy with the implementation
@@ -274,6 +277,9 @@ contract L1ContractVerificationTest is Test {
     console.log('ProxyAdmin Owner:', mockProxyAdmin.owner());
     console.log('-----------------------------------------------------------');
 
+    // Grant ADMIN_ROLE to the user so they can verify
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -318,6 +324,9 @@ contract L1ContractVerificationTest is Test {
       implementation.codehash,
       proxyCodehash
     );
+
+    // Grant ADMIN_ROLE to the user so they can verify and register
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -385,6 +394,9 @@ contract L1ContractVerificationTest is Test {
       implementationCodehash,
       proxyCodehash
     );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -578,6 +590,9 @@ contract L1ContractVerificationTest is Test {
       address(differentSystemConfigImpl)
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -635,6 +650,9 @@ contract L1ContractVerificationTest is Test {
         )
       );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -687,6 +705,9 @@ contract L1ContractVerificationTest is Test {
       address(l1StandardBridgeProxy),
       address(differentL1StandardBridgeImpl)
     );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -742,6 +763,9 @@ contract L1ContractVerificationTest is Test {
       address(differentL1CrossDomainMessengerImpl)
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -796,6 +820,9 @@ contract L1ContractVerificationTest is Test {
       address(differentOptimismPortalImpl)
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -812,6 +839,7 @@ contract L1ContractVerificationTest is Test {
 
   /**
    * @dev Safe wallet verification Failures
+   */
   /**
    * @notice Test verification failure with invalid safe wallet
    * @dev Creates a different safe wallet with incorrect owners to trigger verification failure
@@ -838,6 +866,9 @@ contract L1ContractVerificationTest is Test {
       implementationCodehash,
       proxyCodehash
     );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -880,6 +911,9 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -920,6 +954,9 @@ contract L1ContractVerificationTest is Test {
       implementationCodehash,
       proxyCodehash
     );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -962,6 +999,9 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -978,6 +1018,7 @@ contract L1ContractVerificationTest is Test {
 
   /**
    * @dev Other Failures
+   */
   /**
    * @notice Test verification failure with invalid token type
    * @dev Attempts registration with an invalid token type
@@ -1004,6 +1045,9 @@ contract L1ContractVerificationTest is Test {
       implementationCodehash,
       proxyCodehash
     );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
@@ -1049,6 +1093,9 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
@@ -1069,17 +1116,25 @@ contract L1ContractVerificationTest is Test {
   }
 
   /**
-   * @notice Test access controls on owner-only functions
-   * @dev Attempts to call owner functions from a non-owner account
+   * @notice Test access controls for admin functions
+   * @dev Attempts to call admin functions from a non-admin account
    */
   function testOnlyOwnerFunctions() public {
     vm.startPrank(user);
 
-    // All these should revert because user is not the owner
-    vm.expectRevert('Ownable: caller is not the owner');
+    // All these should revert because user is not an admin
+    bytes32 adminRole = verifier.ADMIN_ROLE();
+    bytes memory revertMsg = abi.encodePacked(
+      "AccessControl: account ",
+      StringsUpgradeable.toHexString(uint160(user), 20),
+      " is missing role ",
+      StringsUpgradeable.toHexString(uint256(adminRole), 32)
+    );
+
+    vm.expectRevert(revertMsg);
     verifier.setLogicContractInfo(address(0), address(0));
 
-    vm.expectRevert('Ownable: caller is not the owner');
+    vm.expectRevert(revertMsg);
     verifier.setSafeConfig(
       address(0),
       address(0),
@@ -1089,7 +1144,7 @@ contract L1ContractVerificationTest is Test {
       bytes32(0)
     );
 
-    vm.expectRevert('Ownable: caller is not the owner');
+    vm.expectRevert(revertMsg);
     verifier.setBridgeRegistryAddress(address(0));
 
     vm.stopPrank();
@@ -1161,10 +1216,11 @@ contract L1ContractVerificationTest is Test {
     // Create a proxy admin
     ProxyAdmin newVerifierProxyAdmin = new ProxyAdmin();
 
-    // Initialize with the original native token
+    // Initialize with the original native token and user as admin
     bytes memory newVerifierInitData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
-      nativeToken
+      nativeToken,
+      user
     );
 
     // Create proxy for the new verifier
@@ -1203,6 +1259,107 @@ contract L1ContractVerificationTest is Test {
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup'
     );
+
+    vm.stopPrank();
+  }
+
+  /**
+   * @notice Test failure when setting a zero threshold
+   * @dev Attempts to set a safe wallet with a threshold of zero, which should revert
+   */
+  function testSetSafeConfigFailZeroThreshold() public {
+    vm.startPrank(owner);
+
+    bytes32 implementationCodehash = address(safeWallet).codehash;
+    bytes32 proxyCodehash = address(safeWallet).codehash;
+
+    vm.expectRevert('Threshold must be greater than zero');
+    verifier.setSafeConfig(
+      tokamakDAO,
+      foundation,
+      0, // Zero threshold should cause revert
+      address(mockProxyAdmin),
+      implementationCodehash,
+      proxyCodehash
+    );
+
+    vm.stopPrank();
+  }
+
+  /**
+   * @notice Test safe wallet verification with large owner set
+   * @dev Creates a safe with many owners to test the verification works with large owner sets
+   */
+  function testVerifyL1ContractsWithLargeOwnerSet() public {
+    vm.startPrank(owner);
+
+    // Setup all contract information
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Create a large set of owners (20 addresses)
+    address[] memory largeOwnerSet = new address[](20);
+    largeOwnerSet[0] = tokamakDAO;
+    largeOwnerSet[1] = foundation;
+    for (uint i = 2; i < 20; i++) {
+      largeOwnerSet[i] = address(uint160(0x1000 + i));
+    }
+
+    // Create a new safe with many owners
+    MockGnosisSafe largeSafe = new MockGnosisSafe(largeOwnerSet, 3);
+
+    // Create a new proxy admin for the large safe
+    MockProxyAdmin largeProxyAdmin = new MockProxyAdmin(owner);
+    largeProxyAdmin.setOwner(address(largeSafe));
+
+    // Set up implementations for the large proxy admin
+    largeProxyAdmin.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+    largeProxyAdmin.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(l1StandardBridgeImpl)
+    );
+    largeProxyAdmin.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(l1CrossDomainMessengerImpl)
+    );
+    largeProxyAdmin.setImplementation(
+      address(optimismPortalProxy),
+      address(optimismPortalImpl)
+    );
+
+    // Get safe wallet codehashes
+    bytes32 implementationCodehash = address(largeSafe).codehash;
+    bytes32 proxyCodehash = address(largeSafe).codehash;
+
+    // Set safe wallet configuration
+    verifier.setSafeConfig(
+      tokamakDAO,
+      foundation,
+      3, // Threshold
+      address(largeProxyAdmin),
+      implementationCodehash,
+      proxyCodehash
+    );
+
+    // Grant ADMIN_ROLE to the user
+    verifier.addAdmin(user);
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should succeed even with many owners
+    bool result = verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(largeProxyAdmin)
+    );
+
+    assertTrue(result, "Verification failed with large owner set");
 
     vm.stopPrank();
   }

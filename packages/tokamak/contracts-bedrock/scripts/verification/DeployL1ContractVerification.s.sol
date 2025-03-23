@@ -21,6 +21,7 @@ contract SetupL1ContractVerification is Script {
   address private _foundation;
   address private _nativeToken; // TON token address
   address private _bridgeRegistry;
+  address private _safeWallet;
 
   // Constants - private constants with leading underscore
   uint256 private constant _SAFE_THRESHOLD = 3;
@@ -39,6 +40,8 @@ contract SetupL1ContractVerification is Script {
 
     _nativeToken = vm.envAddress('NATIVE_TOKEN_ADDRESS');
     _bridgeRegistry = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
+
+    _safeWallet = vm.envAddress('SAFE_WALLET');
   }
 
   /**
@@ -62,7 +65,8 @@ contract SetupL1ContractVerification is Script {
     // Prepare initialization data for the proxy
     bytes memory initData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
-      _nativeToken
+      _nativeToken,
+      0xdE91efE7F3a50aCeBC09954d818F4eD40e68A2F1 //Using my address as the admin for testing, later we can use the safe wallet as the initial admin
     );
 
     // Deploy the TransparentUpgradeableProxy with the implementation and initialization data
@@ -101,7 +105,7 @@ contract SetupL1ContractVerification is Script {
 
     // Transfer ownership of the ProxyAdmin to secure management (could be a Gnosis Safe)
     // Uncomment the following line when ready to transfer ownership
-    // proxyAdmin.transferOwnership(SAFE_WALLET_OR_OWNER_ADDRESS);
+    // proxyAdmin.transferOwnership(_safeWallet);
 
     console.log('L1ContractVerification configuration complete');
     vm.stopBroadcast();
