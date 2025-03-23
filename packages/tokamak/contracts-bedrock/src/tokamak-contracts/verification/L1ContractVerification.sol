@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
 /**
@@ -10,9 +11,13 @@ import './interface/IProxyAdmin.sol';
  * @dev This contract is deployed to L1 by the TRH team before the trh-sdk release and helps
  *      ensure that L2 operators deploy contracts with the correct implementations
  */
-contract L1ContractVerification is IL1ContractVerification, Ownable {
+contract L1ContractVerification is
+  IL1ContractVerification,
+  Initializable,
+  OwnableUpgradeable
+{
   // The expected native token (TON) address
-  address public immutable expectedNativeToken;
+  address public expectedNativeToken;
 
   // Bridge registry address
   address public l1BridgeRegistryAddress;
@@ -30,10 +35,18 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   SafeWalletInfo public safeWallet;
 
   /**
-   * @notice Constructor
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+      _disableInitializers();
+  }
+
+  /**
+   * @notice Initialize the contract (replaces constructor for upgradeable contracts)
    * @param _tokenAddress The address of the native token (TON)
    */
-  constructor(address _tokenAddress) Ownable() {
+  function initialize(address _tokenAddress) public initializer {
+    __Ownable_init();
     expectedNativeToken = _tokenAddress;
   }
 
@@ -171,7 +184,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   function verifyL1Contracts(
     address systemConfigProxy,
     address proxyAdmin
-  ) external returns (bool) {
+  ) external view returns (bool) {
     // Verify native token first
     ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
     require(
@@ -185,7 +198,6 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     // Verify L1 contracts
     _verifyL1Contracts(systemConfigProxy, proxyAdmin);
 
-    emit VerificationSuccess(msg.sender);
     return true;
   }
 
@@ -225,10 +237,17 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     // Verify L1 contracts
     _verifyL1Contracts(_systemConfigProxy, _proxyAdmin);
 
+    // Emit verification success event
+    emit VerificationSuccess(msg.sender, _systemConfigProxy, _proxyAdmin, block.timestamp);
+
     // Register rollup configuration
     IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
       l1BridgeRegistryAddress
     );
+
+    bool isAvailable = bridgeRegistry.availableForRegistration(_systemConfigProxy, _type);
+    require(isAvailable, "Rollup configuration already registered or not available for registration");
+
     bridgeRegistry.registerRollupConfig(
       _systemConfigProxy,
       _type,
@@ -243,13 +262,24 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   /**
    * @notice Verify the ProxyAdmin contract
    * @param _proxyAdmin The address of the ProxyAdmin contract
-   * @dev Ensures the ProxyAdmin has the expected codehash
+   * @dev Ensures the ProxyAdmin has the expected codehash and is owned by the expected safe wallet
    */
   function _verifyProxyAdmin(address _proxyAdmin) internal view {
-    // Verify that ProxyAdmin contract has the expected codehash
+    // 1. Verify that ProxyAdmin contract has the expected codehash
     require(
       _proxyAdmin.codehash == proxyAdminCodehash,
-      'ProxyAdmin verification failed'
+      'ProxyAdmin verification failed: invalid codehash'
+    );
+
+    // 2. Verify the ProxyAdmin is owned by the expected safe wallet
+    IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
+    address ownerAddress = proxyAdminContract.owner();
+
+    // This also implicitly verifies that the address provided is a valid ProxyAdmin
+    // since it must successfully call the owner() function
+    require(
+      ownerAddress == safeWallet.safeWalletAddress,
+      'Invalid proxy admin address'
     );
   }
 
@@ -294,7 +324,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
   /**
    * @notice Verify the Safe wallet
    * @param _proxyAdmin The address of the ProxyAdmin contract
-   * @return Returns true if verification succeeds, otherwise false
+   * @return Returns true if verification succeeds, otherwise reverts with a specific error message
    * @dev Verifies that the safe wallet has the correct address, implementation,
    *      proxy codehash, threshold, and includes both tokamakDAO and foundation as owners
    */
@@ -306,27 +336,31 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Check if the safe wallet address is the same as the expected safe wallet address
-    if (safeWalletAddress != safeWallet.safeWalletAddress) {
-      revert('Invalid proxy admin address');
-    }
+    require(
+      safeWalletAddress == safeWallet.safeWalletAddress,
+      'Safe wallet verification failed: address mismatch'
+    );
 
     // Get the implementation from the masterCopy function of the safe wallet
     address implementation = safe.masterCopy();
 
     // Check if the implementation codehash is the same as the expected implementation codehash
-    if (implementation.codehash != safeWallet.implementationCodehash) {
-      revert('Invalid safe wallet implementation codehash');
-    }
+    require(
+      implementation.codehash == safeWallet.implementationCodehash,
+      'Safe wallet verification failed: invalid implementation codehash'
+    );
 
     // Check if the proxy codehash is the same as the expected proxy codehash
-    if (safeWalletAddress.codehash != safeWallet.proxyCodehash) {
-      revert('Invalid safe wallet proxy codehash');
-    }
+    require(
+      safeWalletAddress.codehash == safeWallet.proxyCodehash,
+      'Safe wallet verification failed: invalid proxy codehash'
+    );
 
     // Verify threshold
-    if (safe.getThreshold() != safeWallet.requiredThreshold) {
-      revert('Invalid safe wallet threshold');
-    }
+    require(
+      safe.getThreshold() == safeWallet.requiredThreshold,
+      'Safe wallet verification failed: invalid threshold'
+    );
 
     // Verify owners (tokamakDAO, foundation must be included)
     address[] memory owners = safe.getOwners();
@@ -341,7 +375,12 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     }
 
     // Both tokamakDAO and foundation must be present
-    return foundTokamakDAO && foundFoundation;
+    require(
+      foundTokamakDAO && foundFoundation,
+      'Safe wallet verification failed: missing required owners'
+    );
+
+    return true;
   }
 
   /**

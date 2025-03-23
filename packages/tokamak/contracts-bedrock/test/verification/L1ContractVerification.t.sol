@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
+import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
 import {L1ChugSplashProxy} from 'src/legacy/L1ChugSplashProxy.sol';
 import './mock-contracts/LegacyProxy.sol';
 import './mock-contracts/MockContracts.sol';
@@ -27,7 +28,11 @@ contract L1ContractVerificationTest is Test {
     0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
   // Contracts
+  L1ContractVerification verifierImpl;
   L1ContractVerification verifier;
+  ProxyAdmin verifierProxyAdmin;
+  TransparentUpgradeableProxy verifierProxy;
+
   MockProxyAdmin mockProxyAdmin;
 
   // Mock implementations
@@ -69,7 +74,7 @@ contract L1ContractVerificationTest is Test {
     thirdOwner = makeAddr('thirdOwner');
     user = makeAddr('user');
     nativeToken = makeAddr('nativeToken');
-    l2TONAddress = nativeToken; // Set l2TONAddress to the same as nativeToken to pass verification
+    l2TONAddress = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000); // Use the expected L2 TON address
 
     vm.startPrank(owner);
 
@@ -183,8 +188,28 @@ contract L1ContractVerificationTest is Test {
     // Deploy bridge registry
     bridgeRegistry = new MockBridgeRegistry();
 
-    // Deploy verifier contract with native token
-    verifier = new L1ContractVerification(nativeToken);
+    // Deploy verifier contract as upgradeable
+    // First the implementation
+    verifierImpl = new L1ContractVerification();
+
+    // The proxy admin to manage the proxy
+    verifierProxyAdmin = new ProxyAdmin();
+
+    // The initialization data
+    bytes memory verifierInitData = abi.encodeWithSelector(
+      L1ContractVerification.initialize.selector,
+      nativeToken
+    );
+
+    // Deploy the proxy with the implementation
+    verifierProxy = new TransparentUpgradeableProxy(
+      address(verifierImpl),
+      address(verifierProxyAdmin),
+      verifierInitData
+    );
+
+    // Create a reference to interact with the proxy
+    verifier = L1ContractVerification(address(verifierProxy));
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -371,7 +396,7 @@ contract L1ContractVerificationTest is Test {
     MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
 
     // Verification should fail with ProxyAdmin verification error
-    vm.expectRevert('ProxyAdmin verification failed');
+    vm.expectRevert('ProxyAdmin verification failed: invalid codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(wrongProxyAdmin)
@@ -561,6 +586,62 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    vm.stopPrank();
+  }
+
+
+  /**
+   * @notice Test verification failure with wrong SystemConfig proxy that has correct native token and implementation
+   * @dev Uses a SystemConfig with the correct native token and implementation but wrong proxy codehash
+   */
+  function testVerifyL1ContractsFailWrongSystemConfigProxyWithCorrectImplementation()
+    public
+  {
+    vm.startPrank(owner);
+
+    // Setup all contract information with the original SystemConfig proxy
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Get codehashes for safe wallet
+    bytes32 implementationCodehash = address(safeWallet).codehash;
+    bytes32 proxyCodehash = address(safeWallet).codehash;
+
+    // Setup safe wallet info
+    verifier.setSafeConfig(
+      tokamakDAO,
+      foundation,
+      3, // threshold
+      address(mockProxyAdmin),
+      implementationCodehash,
+      proxyCodehash
+    );
+
+    // Create a new proxy that points to the original implementation
+    TransparentUpgradeableProxy differentProxy = new TransparentUpgradeableProxy(
+        address(systemConfigImpl),
+        address(mockProxyAdmin),
+        abi.encodeWithSelector(
+          MockSystemConfig.initialize.selector,
+          address(l1StandardBridgeProxy),
+          address(l1CrossDomainMessengerProxy),
+          address(optimismPortalProxy),
+          nativeToken
+        )
+      );
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    vm.expectRevert('SystemConfig verification failed');
+    verifier.verifyL1Contracts(
+      address(differentProxy), // Using different proxy with correct implementation
       address(mockProxyAdmin)
     );
 
@@ -763,7 +844,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Safe wallet verification failed');
+    vm.expectRevert('Safe wallet verification failed: missing required owners');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -804,7 +885,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Invalid safe wallet implementation codehash');
+    vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -845,7 +926,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Invalid safe wallet proxy codehash');
+    vm.expectRevert('Safe wallet verification failed: invalid proxy codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -886,7 +967,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Invalid safe wallet threshold');
+    vm.expectRevert('Safe wallet verification failed: invalid threshold');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -1075,9 +1156,26 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Create a new L1ContractVerification instance that expects the original native token
-    L1ContractVerification newVerifier = new L1ContractVerification(
+    L1ContractVerification newVerifierImpl = new L1ContractVerification();
+
+    // Create a proxy admin
+    ProxyAdmin newVerifierProxyAdmin = new ProxyAdmin();
+
+    // Initialize with the original native token
+    bytes memory newVerifierInitData = abi.encodeWithSelector(
+      L1ContractVerification.initialize.selector,
       nativeToken
     );
+
+    // Create proxy for the new verifier
+    TransparentUpgradeableProxy newVerifierProxy = new TransparentUpgradeableProxy(
+      address(newVerifierImpl),
+      address(newVerifierProxyAdmin),
+      newVerifierInitData
+    );
+
+    // Create a reference to the new verifier
+    L1ContractVerification newVerifier = L1ContractVerification(address(newVerifierProxy));
 
     // Set contract info on the new verifier
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
