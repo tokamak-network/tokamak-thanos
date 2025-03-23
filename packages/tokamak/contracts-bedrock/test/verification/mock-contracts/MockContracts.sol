@@ -29,4 +29,11 @@ contract MockBridgeRegistry {
   ) external {
     emit RollupConfigRegistered(rollupConfig, tokenType, l2Token, name);
   }
+
+  function availableForRegistration(
+    address rollupConfig,
+    uint8 tokenType
+  ) external view returns (bool) {
+    return true;
+  }
 }
