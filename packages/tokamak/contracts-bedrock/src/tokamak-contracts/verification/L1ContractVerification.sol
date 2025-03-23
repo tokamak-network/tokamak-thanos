@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
-
 /**
  * @title L1ContractVerification
  * @notice This contract verifies the integrity of critical L1 contracts for Tokamak rollups
@@ -301,13 +300,14 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
    */
   function _verifySafe(address _proxyAdmin) internal view returns (bool) {
     // Get safe wallet address from ProxyAdmin.owner()
+    // We are verifying owner of proxy wallet which will also verify if this proxy admin address provided by operator is correct or not.
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
     address safeWalletAddress = proxyAdminContract.owner();
     IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Check if the safe wallet address is the same as the expected safe wallet address
     if (safeWalletAddress != safeWallet.safeWalletAddress) {
-      return false;
+      revert('Invalid proxy admin address');
     }
 
     // Get the implementation from the masterCopy function of the safe wallet
@@ -315,17 +315,17 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
 
     // Check if the implementation codehash is the same as the expected implementation codehash
     if (implementation.codehash != safeWallet.implementationCodehash) {
-      return false;
+      revert('Invalid safe wallet implementation codehash');
     }
 
     // Check if the proxy codehash is the same as the expected proxy codehash
     if (safeWalletAddress.codehash != safeWallet.proxyCodehash) {
-      return false;
+      revert('Invalid safe wallet proxy codehash');
     }
 
     // Verify threshold
     if (safe.getThreshold() != safeWallet.requiredThreshold) {
-      return false;
+      revert('Invalid safe wallet threshold');
     }
 
     // Verify owners (tokamakDAO, foundation must be included)
@@ -415,9 +415,7 @@ contract L1ContractVerification is IL1ContractVerification, Ownable {
     require(_verifySafe(_proxyAdmin), 'Safe wallet verification failed');
   }
 
-  function _setProxyAdminCodehash(
-    address _proxyAdmin
-  ) internal {
+  function _setProxyAdminCodehash(address _proxyAdmin) internal {
     bytes32 proxyAdminHash = _proxyAdmin.codehash;
     require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
     proxyAdminCodehash = proxyAdminHash;
