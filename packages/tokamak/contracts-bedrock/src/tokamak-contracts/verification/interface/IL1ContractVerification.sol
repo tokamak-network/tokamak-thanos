@@ -21,6 +21,11 @@ interface IL1BridgeRegistry {
     address _l2TON,
     string calldata _name
   ) external;
+
+  function availableForRegistration(
+    address rollupConfig,
+    uint8 _type
+  ) external view returns (bool);
 }
 
 interface IL1ContractVerification {
@@ -41,7 +46,7 @@ interface IL1ContractVerification {
 
   // Events
   event ConfigurationSet(string indexed contractName);
-  event VerificationSuccess(address indexed verifier);
+  event VerificationSuccess(address indexed verifier, address indexed systemConfigProxy, address indexed proxyAdmin, uint256 timestamp);
   event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
