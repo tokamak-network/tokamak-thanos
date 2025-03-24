@@ -64,6 +64,9 @@ contract L1ContractVerificationTest is Test {
   address nativeToken;
   address l2TONAddress;
 
+    // Add the randomUser address:
+  address randomUser;
+
   /**
    * @notice Set up the test environment
    * @dev Deploys all required contracts and configures them for testing
@@ -77,6 +80,9 @@ contract L1ContractVerificationTest is Test {
     user = makeAddr('user');
     nativeToken = makeAddr('nativeToken');
     l2TONAddress = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000); // Use the expected L2 TON address
+
+        // Initialize the randomUser
+    randomUser = makeAddr('randomUser');
 
     vm.startPrank(owner);
 
@@ -1119,48 +1125,183 @@ contract L1ContractVerificationTest is Test {
    * @notice Test access controls for admin functions
    * @dev Attempts to call admin functions from a non-admin account
    */
-  function testOnlyOwnerFunctions() public {
-    vm.startPrank(user);
+  function testOnlyAdminFunctions() public {
+    vm.startPrank(randomUser); // Not an admin
 
-    // All these should revert because user is not an admin
+    // Build the dynamic error message
     bytes32 adminRole = verifier.ADMIN_ROLE();
-    bytes memory revertMsg = abi.encodePacked(
+    bytes memory expectedError = abi.encodePacked(
       "AccessControl: account ",
-      StringsUpgradeable.toHexString(uint160(user), 20),
+      StringsUpgradeable.toHexString(uint160(randomUser), 20),
       " is missing role ",
       StringsUpgradeable.toHexString(uint256(adminRole), 32)
     );
 
-    vm.expectRevert(revertMsg);
-    verifier.setLogicContractInfo(address(0), address(0));
-
-    vm.expectRevert(revertMsg);
+    // Each of these should revert due to caller not having ADMIN_ROLE
+    vm.expectRevert(expectedError);
     verifier.setSafeConfig(
-      address(0),
-      address(0),
-      0,
-      address(0),
+      tokamakDAO,
+      foundation,
+      3,
+      address(mockProxyAdmin),
       bytes32(0),
       bytes32(0)
     );
 
-    vm.expectRevert(revertMsg);
-    verifier.setBridgeRegistryAddress(address(0));
+    vm.expectRevert(expectedError);
+    verifier.setBridgeRegistryAddress(address(0x1));
+
+    // Also test the new admin functions
+    vm.expectRevert(expectedError);
+    verifier.addAdmin(address(0x3));
+
+    vm.expectRevert(expectedError);
+    verifier.removeAdmin(address(0x4));
 
     vm.stopPrank();
   }
 
   /**
-   * @notice Test bridge registry address validation
-   * @dev Attempts to set a zero address for the bridge registry
+   * @notice Test successful addition of a new admin
+   * @dev Owner adds a new admin and verifies they can perform admin operations
    */
-  function testSetBridgeRegistryAddressFailZeroAddress() public {
-    vm.startPrank(owner);
+  function testAddAdminSuccess() public {
+    address newAdmin = makeAddr('newAdmin');
 
-    vm.expectRevert('Bridge registry address cannot be zero');
-    verifier.setBridgeRegistryAddress(address(0));
+    // Initial state - new admin should not have ADMIN_ROLE
+    assertFalse(verifier.hasRole(verifier.ADMIN_ROLE(), newAdmin));
+
+    // Owner grants ADMIN_ROLE to the new admin
+    vm.startPrank(owner);
+    verifier.addAdmin(newAdmin);
+    vm.stopPrank();
+
+    // New admin should now have ADMIN_ROLE
+    assertTrue(verifier.hasRole(verifier.ADMIN_ROLE(), newAdmin));
+
+    // Verify that the new admin can perform admin operations
+    vm.startPrank(newAdmin);
+
+    // Set bridge registry address as the new admin
+    address newBridgeRegistry = makeAddr('newBridgeRegistry');
+    verifier.setBridgeRegistryAddress(newBridgeRegistry);
+
+    // Verify the change was successful
+    assertEq(verifier.l1BridgeRegistryAddress(), newBridgeRegistry);
 
     vm.stopPrank();
+  }
+
+  /**
+   * @notice Test successful removal of an admin
+   * @dev Owner removes an admin and verifies they can no longer perform admin operations
+   */
+  function testRemoveAdminSuccess() public {
+    address tempAdmin = makeAddr('tempAdmin');
+
+    // First add the temporary admin
+    vm.startPrank(owner);
+    verifier.addAdmin(tempAdmin);
+    vm.stopPrank();
+
+    // Verify the admin was added correctly
+    assertTrue(verifier.hasRole(verifier.ADMIN_ROLE(), tempAdmin));
+
+    // Verify the admin can perform admin operations
+    vm.startPrank(tempAdmin);
+    address newBridgeRegistry = makeAddr('newBridgeRegistry');
+    verifier.setBridgeRegistryAddress(newBridgeRegistry);
+    vm.stopPrank();
+
+    // Now remove the admin
+    vm.startPrank(owner);
+    verifier.removeAdmin(tempAdmin);
+    vm.stopPrank();
+
+    // Verify the admin no longer has ADMIN_ROLE
+    assertFalse(verifier.hasRole(verifier.ADMIN_ROLE(), tempAdmin));
+
+    // Verify the removed admin can no longer perform admin operations
+    vm.startPrank(tempAdmin);
+
+    // This should revert since tempAdmin is no longer an admin
+    bytes32 adminRole = verifier.ADMIN_ROLE();
+    vm.expectRevert(
+      abi.encodePacked(
+        "AccessControl: account ",
+        StringsUpgradeable.toHexString(uint160(tempAdmin), 20),
+        " is missing role ",
+        StringsUpgradeable.toHexString(uint256(adminRole), 32)
+      )
+    );
+    verifier.setBridgeRegistryAddress(makeAddr('anotherRegistry'));
+
+    vm.stopPrank();
+  }
+
+  /**
+   * @notice Test that a non-admin cannot add an admin
+   * @dev Non-admin attempts to add a new admin, which should fail
+   */
+  function testAddAdminFailureNonAdmin() public {
+    address nonAdmin = makeAddr('nonAdmin');
+    address anotherAccount = makeAddr('anotherAccount');
+
+    // Verify non-admin doesn't have ADMIN_ROLE
+    assertFalse(verifier.hasRole(verifier.ADMIN_ROLE(), nonAdmin));
+
+    // Non-admin attempts to add another account as admin
+    vm.startPrank(nonAdmin);
+
+    // This should revert
+    bytes32 adminRole = verifier.ADMIN_ROLE();
+    vm.expectRevert(
+      abi.encodePacked(
+        "AccessControl: account ",
+        StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
+        " is missing role ",
+        StringsUpgradeable.toHexString(uint256(adminRole), 32)
+      )
+    );
+    verifier.addAdmin(anotherAccount);
+
+    vm.stopPrank();
+
+    // Verify that anotherAccount did not get ADMIN_ROLE
+    assertFalse(verifier.hasRole(verifier.ADMIN_ROLE(), anotherAccount));
+  }
+
+  /**
+   * @notice Test that a non-admin cannot remove an admin
+   * @dev Non-admin attempts to remove an existing admin, which should fail
+   */
+  function testRemoveAdminFailureNonAdmin() public {
+    address nonAdmin = makeAddr('nonAdmin');
+
+    // Verify non-admin doesn't have ADMIN_ROLE
+    assertFalse(verifier.hasRole(verifier.ADMIN_ROLE(), nonAdmin));
+    // Verify owner has ADMIN_ROLE
+    assertTrue(verifier.hasRole(verifier.ADMIN_ROLE(), owner));
+
+    // Non-admin attempts to remove owner as admin
+    vm.startPrank(nonAdmin);
+
+    // This should revert
+    bytes32 adminRole = verifier.ADMIN_ROLE();
+    vm.expectRevert(
+      abi.encodePacked(
+        "AccessControl: account ",
+        StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
+        " is missing role ",
+        StringsUpgradeable.toHexString(uint256(adminRole), 32)
+      )
+    );
+    verifier.removeAdmin(owner);
+
+    vm.stopPrank();
+
+    // Verify that owner still has ADMIN_ROLE
+    assertTrue(verifier.hasRole(verifier.ADMIN_ROLE(), owner));
   }
 
   /**
@@ -1360,6 +1501,19 @@ contract L1ContractVerificationTest is Test {
     );
 
     assertTrue(result, "Verification failed with large owner set");
+
+    vm.stopPrank();
+  }
+
+  /**
+   * @notice Test bridge registry address validation
+   * @dev Attempts to set a zero address for the bridge registry
+   */
+  function testSetBridgeRegistryAddressFailZeroAddress() public {
+    vm.startPrank(owner);
+
+    vm.expectRevert('Bridge registry address cannot be zero');
+    verifier.setBridgeRegistryAddress(address(0));
 
     vm.stopPrank();
   }
