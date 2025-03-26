@@ -3,7 +3,7 @@ name: Publish Docker images (nightly)
 on:
   push:
     branches:
-      - main
+      - test/withdrawal-thanos-sepolia
 
 jobs:
   version:
