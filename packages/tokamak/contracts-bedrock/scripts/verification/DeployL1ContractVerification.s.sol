@@ -58,9 +58,6 @@ contract SetupL1ContractVerification is Script {
     L1ContractVerification implementationContract = new L1ContractVerification();
     console.log('L1ContractVerification implementation deployed at:', address(implementationContract));
 
-    // Deploy a ProxyAdmin for managing the proxy
-    ProxyAdmin proxyAdmin = new ProxyAdmin();
-    console.log('ProxyAdmin deployed at:', address(proxyAdmin));
 
     // Prepare initialization data for the proxy
     bytes memory initData = abi.encodeWithSelector(
@@ -72,7 +69,7 @@ contract SetupL1ContractVerification is Script {
     // Deploy the TransparentUpgradeableProxy with the implementation and initialization data
     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
       address(implementationContract),
-      address(proxyAdmin),
+      address(_proxyAdmin),
       initData
     );
     console.log('L1ContractVerification proxy deployed at:', address(proxy));
