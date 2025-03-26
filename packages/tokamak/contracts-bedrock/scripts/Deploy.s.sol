@@ -1204,10 +1204,7 @@ contract Deploy is Deployer {
             console.log("SystemConfig address from JSON: %s", systemConfig);
         }
 
-        _upgradeAndCallViaSafe({
-            _proxy: payable(systemConfigProxy),
-            _implementation: systemConfig,
-            _innerCallData: abi.encodeCall(
+        bytes memory _innerCallData = abi.encodeCall(
                 SystemConfig.initialize,
                 (
                     cfg.finalSystemOwner(),
@@ -1228,8 +1225,12 @@ contract Deploy is Deployer {
                         gasPayingToken: customGasTokenAddress,
                         nativeTokenAddress: l2NativeTokenAddress
                     })
-                )
-            )
+                ));
+
+        _upgradeAndCallViaSafe({
+            _proxy: payable(systemConfigProxy),
+            _implementation: systemConfig,
+            _innerCallData: _innerCallData
         });
         SystemConfig config = SystemConfig(systemConfigProxy);
         string memory version = config.version();
