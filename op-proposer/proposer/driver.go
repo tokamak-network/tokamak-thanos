@@ -312,6 +312,13 @@ func (l *L2OutputSubmitter) ProposeL2OutputTxData(output *eth.OutputResponse) ([
 
 // proposeL2OutputTxData creates the transaction data for the ProposeL2Output function
 func proposeL2OutputTxData(abi *abi.ABI, output *eth.OutputResponse) ([]byte, error) {
+	// Log the packing arguments
+	log.Info("Packing proposeL2Output with arguments",
+		"OutputRoot", output.OutputRoot,
+		"BlockRef.Number", output.BlockRef.Number,
+		"CurrentL1.Hash", output.Status.CurrentL1.Hash.Hex(),
+		"CurrentL1.Number", output.Status.CurrentL1.Number,
+	)
 	return abi.Pack(
 		"proposeL2Output",
 		output.OutputRoot,
