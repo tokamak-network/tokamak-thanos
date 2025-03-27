@@ -31,7 +31,7 @@ contract L1ContractVerification is
    * @notice Admin role for managing configuration and performing operations
    * @dev Has access to all contract functions
    */
-  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
   // The expected native token (TON) address
   address public expectedNativeToken;
@@ -41,6 +41,9 @@ contract L1ContractVerification is
 
   // The codehash of the ProxyAdmin contract
   bytes32 public proxyAdminCodehash;
+
+  // Flag to control if verification is possible
+  bool public isVerificationPossible;
 
   // Logic contract information storage
   LogicContractInfo public systemConfig;
@@ -55,7 +58,7 @@ contract L1ContractVerification is
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
-      _disableInitializers();
+    _disableInitializers();
   }
 
   /**
@@ -63,7 +66,10 @@ contract L1ContractVerification is
    * @param _tokenAddress The address of the native token (TON)
    * @param _initialAdmin The address that will be granted the admin role
    */
-  function initialize(address _tokenAddress, address _initialAdmin) public initializer {
+  function initialize(
+    address _tokenAddress,
+    address _initialAdmin
+  ) public initializer {
     __AccessControl_init();
 
     // Set up roles
@@ -71,6 +77,7 @@ contract L1ContractVerification is
     _setupRole(ADMIN_ROLE, _initialAdmin);
 
     expectedNativeToken = _tokenAddress;
+    isVerificationPossible = false;
     emit NativeTokenSet(_tokenAddress);
   }
 
@@ -81,6 +88,18 @@ contract L1ContractVerification is
    */
   function addAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
     grantRole(ADMIN_ROLE, _admin);
+  }
+
+  /**
+   * @notice Set whether verification is possible
+   * @param _isVerificationPossible Boolean flag to enable/disable verification
+   * @dev Only callable by admins
+   */
+  function setVerificationPossible(
+    bool _isVerificationPossible
+  ) external onlyRole(ADMIN_ROLE) {
+    isVerificationPossible = _isVerificationPossible;
+    emit VerificationPossibleSet(_isVerificationPossible);
   }
 
   /**
@@ -97,7 +116,9 @@ contract L1ContractVerification is
    * @param _proxyAdmin The address of the ProxyAdmin
    * @dev This updates codehash of proxy admin
    */
-  function setProxyAdminCodeHash(address _proxyAdmin) external onlyRole(ADMIN_ROLE) {
+  function setProxyAdminCodeHash(
+    address _proxyAdmin
+  ) external onlyRole(ADMIN_ROLE) {
     _setProxyAdminCodehash(_proxyAdmin);
     emit ProxyAdminCodehashSet(proxyAdminCodehash);
   }
@@ -280,15 +301,26 @@ contract L1ContractVerification is
     _verifyL1Contracts(_systemConfigProxy, _proxyAdmin);
 
     // Emit verification success event
-    emit VerificationSuccess(msg.sender, _systemConfigProxy, _proxyAdmin, block.timestamp);
+    emit VerificationSuccess(
+      msg.sender,
+      _systemConfigProxy,
+      _proxyAdmin,
+      block.timestamp
+    );
 
     // Register rollup configuration
     IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
       l1BridgeRegistryAddress
     );
 
-    bool isAvailable = bridgeRegistry.availableForRegistration(_systemConfigProxy, _type);
-    require(isAvailable, "Rollup configuration already registered or not available for registration");
+    bool isAvailable = bridgeRegistry.availableForRegistration(
+      _systemConfigProxy,
+      _type
+    );
+    require(
+      isAvailable,
+      'Rollup configuration already registered or not available for registration'
+    );
 
     bridgeRegistry.registerRollupConfig(
       _systemConfigProxy,

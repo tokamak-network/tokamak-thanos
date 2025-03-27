@@ -46,7 +46,12 @@ interface IL1ContractVerification {
 
   // Events
   event ConfigurationSet(string indexed contractName);
-  event VerificationSuccess(address indexed verifier, address indexed systemConfigProxy, address indexed proxyAdmin, uint256 timestamp);
+  event VerificationSuccess(
+    address indexed verifier,
+    address indexed systemConfigProxy,
+    address indexed proxyAdmin,
+    uint256 timestamp
+  );
   event RegistrationSuccess(address indexed verifier);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
@@ -56,7 +61,7 @@ interface IL1ContractVerification {
   );
   event NativeTokenSet(address indexed tokenAddress);
   event ProxyAdminCodehashSet(bytes32 indexed codehash);
-
+  event VerificationPossibleSet(bool indexed isVerificationPossible);
   // Functions
   function setLogicContractInfo(
     address _systemConfigProxy,
@@ -83,4 +88,6 @@ interface IL1ContractVerification {
   ) external returns (bool);
 
   function setProxyAdminCodeHash(address _proxyAdmin) external;
+
+  function setVerificationPossible(bool _isVerificationPossible) external;
 }
