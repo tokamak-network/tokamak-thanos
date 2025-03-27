@@ -222,6 +222,7 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 		Context: cCtx,
 	}
 	nextCheckpointBlock, err := l.l2ooContract.NextBlockNumber(callOpts)
+	l.Log.Info("nextCheckpointBlock", nextCheckpointBlock)
 	if err != nil {
 		l.Log.Error("proposer unable to get next block number", "err", err)
 		return nil, false, err
@@ -231,14 +232,13 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 	if err != nil {
 		return nil, false, err
 	}
-
 	// Ensure that we do not submit a block in the future
-	if currentBlockNumber.Cmp(nextCheckpointBlock) < 0 {
-		l.Log.Debug("proposer submission interval has not elapsed", "currentBlockNumber", currentBlockNumber, "nextBlockNumber", nextCheckpointBlock)
-		return nil, false, nil
-	}
+	// if currentBlockNumber.Cmp(nextCheckpointBlock) < 0 {
+	// 	l.Log.Debug("proposer submission interval has not elapsed", "currentBlockNumber", currentBlockNumber, "nextBlockNumber", nextCheckpointBlock)
+	// 	return nil, false, nil
+	// }
 
-	return l.FetchOutput(ctx, nextCheckpointBlock)
+	return l.FetchOutput(ctx, currentBlockNumber)
 }
 
 // FetchCurrentBlockNumber gets the current block number from the [L2OutputSubmitter]'s [RollupClient]. If the `AllowNonFinalized` configuration
