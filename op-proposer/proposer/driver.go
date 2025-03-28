@@ -241,8 +241,10 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 		return nil, false, nil
 	}
 
-	blockNum := big.NewInt(1707597)
+	// check packing arguments with block 1,726,700
+	blockNum := big.NewInt(1726700)
 	// manually push the output
+	// return l.FetchOutput(ctx, nextCheckpointBlock)
 	return l.FetchOutput(ctx, blockNum)
 }
 
