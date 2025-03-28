@@ -230,6 +230,7 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 	}
 	// Fetch the current L2 heads
 	currentBlockNumber, err := l.FetchCurrentBlockNumber(ctx)
+	l.Log.Info("currentBlockNumber", currentBlockNumber)
 	if err != nil {
 		return nil, false, err
 	}
@@ -272,6 +273,7 @@ func (l *L2OutputSubmitter) FetchCurrentBlockNumber(ctx context.Context) (*big.I
 }
 
 func (l *L2OutputSubmitter) FetchOutput(ctx context.Context, block *big.Int) (*eth.OutputResponse, bool, error) {
+	l.Log.Info("Start to fetch output")
 	rollupClient, err := l.RollupProvider.RollupClient(ctx)
 	if err != nil {
 		l.Log.Error("proposer unable to get rollup client", "err", err)
@@ -304,6 +306,7 @@ func (l *L2OutputSubmitter) FetchOutput(ctx context.Context, block *big.Int) (*e
 			"allow_non_finalized", l.Cfg.AllowNonFinalized)
 		return nil, false, nil
 	}
+	l.Log.Info("can return output")
 	return output, true, nil
 }
 
@@ -376,6 +379,7 @@ func (l *L2OutputSubmitter) waitForL1Head(ctx context.Context, blockNum uint64) 
 
 // sendTransaction creates & sends transactions through the underlying transaction manager.
 func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, output *eth.OutputResponse) error {
+	l.Log.Info("Start to send transaction")
 	err := l.waitForL1Head(ctx, output.Status.HeadL1.Number+1)
 	if err != nil {
 		return err
@@ -502,6 +506,7 @@ func (l *L2OutputSubmitter) loopDGF(ctx context.Context) {
 }
 
 func (l *L2OutputSubmitter) proposeOutput(ctx context.Context, output *eth.OutputResponse) {
+	l.Log.Info("Start to propose output")
 	cCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
