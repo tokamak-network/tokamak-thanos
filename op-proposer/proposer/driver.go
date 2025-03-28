@@ -211,6 +211,7 @@ func (l *L2OutputSubmitter) StopL2OutputSubmitting() error {
 // FetchNextOutputInfo gets the block number of the next proposal.
 // It returns: the next block number, if the proposal should be made, error
 func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.OutputResponse, bool, error) {
+	l.Log.Info("Get output with L2 block")
 	if l.l2ooContract == nil {
 		return nil, false, fmt.Errorf("L2OutputOracle contract not set, cannot fetch next output info")
 	}
@@ -232,11 +233,12 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 	if err != nil {
 		return nil, false, err
 	}
+
 	// Ensure that we do not submit a block in the future
-	// if currentBlockNumber.Cmp(nextCheckpointBlock) < 0 {
-	// 	l.Log.Debug("proposer submission interval has not elapsed", "currentBlockNumber", currentBlockNumber, "nextBlockNumber", nextCheckpointBlock)
-	// 	return nil, false, nil
-	// }
+	if currentBlockNumber.Cmp(nextCheckpointBlock) < 0 {
+		l.Log.Debug("proposer submission interval has not elapsed", "currentBlockNumber", currentBlockNumber, "nextBlockNumber", nextCheckpointBlock)
+		return nil, false, nil
+	}
 
 	return l.FetchOutput(ctx, currentBlockNumber)
 }
@@ -458,6 +460,7 @@ func (l *L2OutputSubmitter) waitNodeSync() error {
 }
 
 func (l *L2OutputSubmitter) loopL2OO(ctx context.Context) {
+	l.Log.Info("Start loop with L2OO")
 	ticker := time.NewTicker(l.Cfg.PollInterval)
 	defer ticker.Stop()
 	for {
