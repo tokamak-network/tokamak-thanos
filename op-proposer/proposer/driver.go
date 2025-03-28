@@ -241,7 +241,9 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 		return nil, false, nil
 	}
 
-	return l.FetchOutput(ctx, currentBlockNumber)
+	blockNum := big.NewInt(1707597)
+	// manually push the output
+	return l.FetchOutput(ctx, blockNum)
 }
 
 // FetchCurrentBlockNumber gets the current block number from the [L2OutputSubmitter]'s [RollupClient]. If the `AllowNonFinalized` configuration
