@@ -241,11 +241,7 @@ func (l *L2OutputSubmitter) FetchNextOutputInfo(ctx context.Context) (*eth.Outpu
 		return nil, false, nil
 	}
 
-	// check packing arguments with block 1,726,700
-	blockNum := big.NewInt(1726700)
-	// manually push the output
-	// return l.FetchOutput(ctx, nextCheckpointBlock)
-	return l.FetchOutput(ctx, blockNum)
+	return l.FetchOutput(ctx, nextCheckpointBlock)
 }
 
 // FetchCurrentBlockNumber gets the current block number from the [L2OutputSubmitter]'s [RollupClient]. If the `AllowNonFinalized` configuration
