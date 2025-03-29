@@ -684,32 +684,32 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 6. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
-        export PATH="/root/.local/share/pnpm:$PATH"
+        export PATH="$HOME/.local/share/pnpm:$PATH"
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
-            curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
+            curl -fsSL https://get.pnpm.io/install.sh | bash -
 
             # Check if the pnpm configuration is already in the CONFIG_FILE
-            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$CONFIG_FILE"; then
+            if ! grep -Fq 'export PATH="$HOME/.local/share/pnpm:$PATH"' "$CONFIG_FILE"; then
 
                 # If the configuration is not found, add pnpm to the current shell session
                 {
                     echo ''
-                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                    echo 'export PATH="$HOME/.local/share/pnpm:$PATH"'
                 } >> "$CONFIG_FILE"
             fi
 
             # Check if the pnpm configuration is already in the PROFILE_FILE
-            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$PROFILE_FILE"; then
+            if ! grep -Fq 'export PATH="$HOME/.local/share/pnpm:$PATH"' "$PROFILE_FILE"; then
 
                 # If the configuration is not found, add pnpm to the current shell session
                 {
                     echo ''
-                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                    echo 'export PATH="$HOME/.local/share/pnpm:$PATH"'
                 } >> "$PROFILE_FILE"
             fi
 
-            export PATH="/root/.local/share/pnpm:$PATH"
+            export PATH="$HOME/.local/share/pnpm:$PATH"
         else
             echo "pnpm is already installed."
         fi
