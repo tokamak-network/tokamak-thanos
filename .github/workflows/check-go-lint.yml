@@ -23,7 +23,7 @@ jobs:
         run: make mod-tidy && git diff --exit-code
 
       - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v1.54
           args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
