@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	_ "net/http/pprof"
 	"sync"
@@ -515,12 +516,16 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 		candidate = l.calldataTxCandidate(data)
 	}
 
+	// gaslimit?
 	intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
+
 	if err != nil {
 		// we log instead of return an error here because txmgr can do its own gas estimation
 		l.Log.Error("Failed to calculate intrinsic gas", "err", err)
 	} else {
-		candidate.GasLimit = intrinsicGas
+		// make a margin to avoid the error: insufficient gas for floor data gas cost
+		candidate.GasLimit = uint64(math.Round(float64(intrinsicGas) * 1.1))
+		l.Log.Info("Original gas limit: %d, 10% Increased: %d\n", intrinsicGas, candidate.GasLimit)
 	}
 
 	queue.Send(txdata.ID(), *candidate, receiptsCh)
