@@ -77,6 +77,14 @@ function display_completion_message {
         echo "All $TOTAL_STEPS steps are complete."
         echo "Please source your profile to apply changes:"
         echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
+
+
+        if [ "$SHELL_NAME" = "zsh" ]; then
+            zsh -c "source $CONFIG_FILE"
+        elif [ "$SHELL_NAME" = "bash" ]; then
+            bash -c "source $CONFIG_FILE"
+        fi
+
         echo ""
 
         echo "Let's start devnet:"
