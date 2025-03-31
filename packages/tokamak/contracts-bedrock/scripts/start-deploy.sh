@@ -143,9 +143,9 @@ deployContracts() {
   cd $projectRoot/packages/tokamak/contracts-bedrock
   unset DEPLOYMENT_OUTFILE
   if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
-    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE
+    forge script scripts/Deploy.s.sol:Deploy -vvv --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE --resume
   else
-    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
+    forge script scripts/Deploy.s.sol:Deploy -vvv --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --resume
   fi
   cd $currentPWD
 }
