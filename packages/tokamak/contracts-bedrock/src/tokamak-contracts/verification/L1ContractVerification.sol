@@ -308,11 +308,11 @@ contract L1ContractVerification is
       block.timestamp
     );
 
-    // Register rollup configuration
     IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
       l1BridgeRegistryAddress
     );
 
+    // Check if the bridge registry is available for registration
     bool isAvailable = bridgeRegistry.availableForRegistration(
       _systemConfigProxy,
       _type
