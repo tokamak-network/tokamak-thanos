@@ -7,6 +7,20 @@ import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
 import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
 
+interface IMultiSigWallet {
+    function submitTransaction(
+        address _to,
+        uint _value,
+        bytes memory _data
+    ) external;
+
+    function confirmTransaction(uint _txIndex) external;
+
+    function executeTransaction(uint _txIndex) external;
+
+    function getTransactionCount() external view returns (uint);
+}
+
 /**
  * @title UpgradeL1ContractVerification
  * @notice Script to upgrade the L1ContractVerification contract implementation
@@ -15,7 +29,11 @@ import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
 contract UpgradeL1ContractVerification is Script {
   // Environment variables - private variables with leading underscore
   address private _proxyAddress;
-  address private _proxyAdminAddress;
+  address private _verificationContractProxyAdminAddress;
+  uint256 private _multisigOwner1;
+  uint256 private _multisigOwner2;
+  uint256 private _multisigOwner3;
+  address private _multisigWallet;
 
   /**
    * @notice Load configuration from environment variables
@@ -24,7 +42,11 @@ contract UpgradeL1ContractVerification is Script {
   function setUp() public {
     // Load environment variables for addresses
     _proxyAddress = vm.envAddress('L1_CONTRACT_VERIFICATION_PROXY');
-    _proxyAdminAddress = vm.envAddress('L1_CONTRACT_VERIFICATION_PROXY_ADMIN');
+    _verificationContractProxyAdminAddress = vm.envAddress('L1_CONTRACT_VERIFICATION_PROXY_ADMIN');
+    _multisigOwner1 = vm.envUint('MULTISIG_OWNER_1');
+    _multisigOwner2 = vm.envUint('MULTISIG_OWNER_2');
+    _multisigOwner3 = vm.envUint('MULTISIG_OWNER_3');
+    _multisigWallet = vm.envAddress('MULTISIG_WALLET');
   }
 
   /**
@@ -34,37 +56,60 @@ contract UpgradeL1ContractVerification is Script {
   function run() external {
     setUp();
 
-    // Start broadcasting transactions
-    vm.startBroadcast();
-
-    // Deploy the new implementation contract
-    L1ContractVerification newImplementation = new L1ContractVerification();
-    console.log('New L1ContractVerification implementation deployed at:', address(newImplementation));
-
     // Get the ProxyAdmin contract
-    ProxyAdmin proxyAdmin = ProxyAdmin(_proxyAdminAddress);
+    ProxyAdmin proxyAdmin = ProxyAdmin(_verificationContractProxyAdminAddress);
 
-    // Get current implementation for logging
-    // Cast proxy address to the expected TransparentUpgradeableProxy type
-    TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(_proxyAddress));
-    address currentImplementation = proxyAdmin.getProxyImplementation(proxy);
-    console.log('Current implementation:', currentImplementation);
+    // Log the current owner
+    address currentOwner = proxyAdmin.owner();
+    console.log("Current ProxyAdmin owner:", currentOwner);
+    console.log("Expected multisig address:", _multisigWallet);
 
-    // Upgrade the proxy to the new implementation
-    proxyAdmin.upgrade(
-      proxy,
-      address(newImplementation)
+    require(currentOwner == _multisigWallet, "ProxyAdmin not owned by multisig!");
+
+    // Deploy new implementation
+    vm.startBroadcast();
+    L1ContractVerification newImplementation = new L1ContractVerification();
+    vm.stopBroadcast();
+
+    console.log("New L1ContractVerification implementation deployed at:", address(newImplementation));
+
+    // Get current implementation for comparison
+    address currentImplementation = proxyAdmin.getProxyImplementation(TransparentUpgradeableProxy(payable(_proxyAddress)));
+    console.log("Current implementation:", currentImplementation);
+
+    // Prepare the upgrade transaction data
+    bytes memory upgradeData = abi.encodeWithSelector(
+        ProxyAdmin.upgrade.selector,
+        _proxyAddress,
+        address(newImplementation)
     );
 
-    console.log('Proxy upgraded to new implementation');
+    // Get the multisig contract
+    IMultiSigWallet multiSig = IMultiSigWallet(_multisigWallet);
+
+    // Submit and confirm the transaction with first owner
+    vm.startPrank(vm.addr(_multisigOwner1));
+    multiSig.submitTransaction(
+        _verificationContractProxyAdminAddress,
+        0,
+        upgradeData
+    );
+    uint txIndex = multiSig.getTransactionCount() - 1;
+    vm.stopPrank();
+
+    // Second owner confirms
+    vm.startPrank(vm.addr(_multisigOwner2));
+    multiSig.confirmTransaction(txIndex);
+    vm.stopPrank();
+
+    // Execute the transaction (can be done by any owner since we have enough confirmations)
+    vm.startPrank(vm.addr(_multisigOwner1));
+    multiSig.executeTransaction(txIndex);
+    vm.stopPrank();
 
     // Verify the upgrade was successful
-    address newImplementationAddress = proxyAdmin.getProxyImplementation(proxy);
-    console.log('New implementation confirmed:', newImplementationAddress);
-
-    // If additional initialization or configuration is needed after upgrade,
-    // call those functions here through the proxy
-
-    vm.stopBroadcast();
+    address newImplementationAddress = proxyAdmin.getProxyImplementation(TransparentUpgradeableProxy(payable(_proxyAddress)));
+    console.log("New implementation confirmed:", newImplementationAddress);
+    require(newImplementationAddress == address(newImplementation), "Upgrade failed");
   }
 }

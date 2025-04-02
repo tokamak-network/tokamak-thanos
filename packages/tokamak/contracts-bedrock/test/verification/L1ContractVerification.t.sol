@@ -64,7 +64,7 @@ contract L1ContractVerificationTest is Test {
   address nativeToken;
   address l2TONAddress;
 
-  // Add the randomUser address:
+    // Add the randomUser address:
   address randomUser;
 
   /**
@@ -81,7 +81,7 @@ contract L1ContractVerificationTest is Test {
     nativeToken = makeAddr('nativeToken');
     l2TONAddress = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000); // Use the expected L2 TON address
 
-    // Initialize the randomUser
+        // Initialize the randomUser
     randomUser = makeAddr('randomUser');
 
     vm.startPrank(owner);
@@ -616,6 +616,7 @@ contract L1ContractVerificationTest is Test {
     vm.stopPrank();
   }
 
+
   /**
    * @notice Test verification failure with wrong SystemConfig proxy that has correct native token and implementation
    * @dev Uses a SystemConfig with the correct native token and implementation but wrong proxy codehash
@@ -927,9 +928,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert(
-      'Safe wallet verification failed: invalid implementation codehash'
-    );
+    vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -1135,9 +1134,9 @@ contract L1ContractVerificationTest is Test {
     // Build the dynamic error message
     bytes32 adminRole = verifier.ADMIN_ROLE();
     bytes memory expectedError = abi.encodePacked(
-      'AccessControl: account ',
+      "AccessControl: account ",
       StringsUpgradeable.toHexString(uint160(randomUser), 20),
-      ' is missing role ',
+      " is missing role ",
       StringsUpgradeable.toHexString(uint256(adminRole), 32)
     );
 
@@ -1232,9 +1231,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        'AccessControl: account ',
+        "AccessControl: account ",
         StringsUpgradeable.toHexString(uint160(tempAdmin), 20),
-        ' is missing role ',
+        " is missing role ",
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1261,9 +1260,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        'AccessControl: account ',
+        "AccessControl: account ",
         StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
-        ' is missing role ',
+        " is missing role ",
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1294,9 +1293,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        'AccessControl: account ',
+        "AccessControl: account ",
         StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
-        ' is missing role ',
+        " is missing role ",
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1370,15 +1369,13 @@ contract L1ContractVerificationTest is Test {
 
     // Create proxy for the new verifier
     TransparentUpgradeableProxy newVerifierProxy = new TransparentUpgradeableProxy(
-        address(newVerifierImpl),
-        address(newVerifierProxyAdmin),
-        newVerifierInitData
-      );
+      address(newVerifierImpl),
+      address(newVerifierProxyAdmin),
+      newVerifierInitData
+    );
 
     // Create a reference to the new verifier
-    L1ContractVerification newVerifier = L1ContractVerification(
-      address(newVerifierProxy)
-    );
+    L1ContractVerification newVerifier = L1ContractVerification(address(newVerifierProxy));
 
     // Set contract info on the new verifier
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -1507,7 +1504,7 @@ contract L1ContractVerificationTest is Test {
       address(largeProxyAdmin)
     );
 
-    assertTrue(result, 'Verification failed with large owner set');
+    assertTrue(result, "Verification failed with large owner set");
 
     vm.stopPrank();
   }
@@ -1523,5 +1520,168 @@ contract L1ContractVerificationTest is Test {
     verifier.setBridgeRegistryAddress(address(0));
 
     vm.stopPrank();
+  }
+
+  /**
+   * @notice Test suite for upgrade functionality
+   */
+  function testUpgradeWithoutMultisigShouldFail() public {
+    vm.startPrank(randomUser);
+
+    // Deploy new implementation
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    // Attempt to upgrade without multisig approval
+    vm.expectRevert("Ownable: caller is not the owner");
+    verifierProxyAdmin.upgrade(
+        verifierProxy,
+        address(newImplementation)
+    );
+
+    vm.stopPrank();
+  }
+
+  function testUpgradeWithMultisigSuccess() public {
+    vm.startPrank(owner);
+
+    // Deploy new implementation
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    // Store the current implementation address
+    address currentImplementation = verifierProxyAdmin.getProxyImplementation(verifierProxy);
+
+    // Transfer ProxyAdmin ownership to multisig
+    verifierProxyAdmin.transferOwnership(address(safeWallet));
+
+    vm.stopPrank();
+
+    // Simulate multisig wallet call
+    vm.prank(address(safeWallet));
+
+    // Upgrade to new implementation
+    verifierProxyAdmin.upgrade(
+        verifierProxy,
+        address(newImplementation)
+    );
+
+    // Verify the upgrade was successful
+    address newImplementationAddress = verifierProxyAdmin.getProxyImplementation(verifierProxy);
+    assertNotEq(currentImplementation, newImplementationAddress, "Implementation should have changed");
+    assertEq(newImplementationAddress, address(newImplementation), "New implementation not set correctly");
+  }
+
+  function testUpgradeWithoutOwnershipTransferShouldSucceed() public {
+    vm.startPrank(owner);
+
+    // Deploy new implementation
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    // Store the current implementation address
+    address currentImplementation = verifierProxyAdmin.getProxyImplementation(verifierProxy);
+
+    // Attempt to upgrade without transferring ownership
+    verifierProxyAdmin.upgrade(
+        verifierProxy,
+        address(newImplementation)
+    );
+
+    // This should succeed as ownership hasn't been transferred to multisig yet
+    address newImplementationAddress = verifierProxyAdmin.getProxyImplementation(verifierProxy);
+    assertNotEq(currentImplementation, newImplementationAddress, "Implementation should have changed");
+    assertEq(newImplementationAddress, address(newImplementation), "New implementation not set correctly");
+
+    vm.stopPrank();
+  }
+
+  function testVerifyProxyAdminOwnership() public {
+    vm.startPrank(owner);
+
+    // Transfer ownership to multisig
+    verifierProxyAdmin.transferOwnership(address(safeWallet));
+
+    // Verify ownership
+    assertEq(verifierProxyAdmin.owner(), address(safeWallet), "Ownership not transferred correctly");
+
+    // Try to upgrade after ownership transfer (should fail)
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    vm.expectRevert("Ownable: caller is not the owner");
+    verifierProxyAdmin.upgrade(
+        verifierProxy,
+        address(newImplementation)
+    );
+
+    vm.stopPrank();
+  }
+
+  function testMultisigOwnershipRequirement() public {
+    vm.startPrank(owner);
+
+    // Transfer ownership to multisig
+    verifierProxyAdmin.transferOwnership(address(safeWallet));
+
+    // Deploy new implementation
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    vm.stopPrank();
+
+    // Try to upgrade from each safe owner individually (should fail)
+    address[] memory owners = new address[](3);
+    owners[0] = tokamakDAO;
+    owners[1] = foundation;
+    owners[2] = thirdOwner;
+
+    for(uint i = 0; i < owners.length; i++) {
+        vm.prank(owners[i]);
+        vm.expectRevert("Ownable: caller is not the owner");
+        verifierProxyAdmin.upgrade(
+            verifierProxy,
+            address(newImplementation)
+        );
+    }
+  }
+
+  function testProxyAdminOwnershipAfterDeployment() public {
+    // Deploy contracts as in the deployment script
+    vm.startPrank(owner);
+
+    // Deploy implementation
+    L1ContractVerification implementationContract = new L1ContractVerification();
+
+    // Deploy ProxyAdmin
+    ProxyAdmin verificationContractProxyAdmin = new ProxyAdmin();
+
+    // Deploy proxy
+    bytes memory initData = abi.encodeWithSelector(
+        L1ContractVerification.initialize.selector,
+        nativeToken,
+        owner
+    );
+
+    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+        address(implementationContract),
+        address(verificationContractProxyAdmin),
+        initData
+    );
+
+    // Transfer ownership to multisig
+    verificationContractProxyAdmin.transferOwnership(address(safeWallet));
+
+    vm.stopPrank();
+
+    // Try to upgrade with original owner - should fail
+    vm.startPrank(owner);
+    L1ContractVerification newImplementation = new L1ContractVerification();
+
+    vm.expectRevert("Ownable: caller is not the owner");
+    verificationContractProxyAdmin.upgrade(
+        proxy,
+        address(newImplementation)
+    );
+
+    vm.stopPrank();
+
+    // Verify owner is actually the multisig
+    assertEq(verificationContractProxyAdmin.owner(), address(safeWallet), "ProxyAdmin owner should be multisig");
   }
 }
