@@ -75,20 +75,6 @@ function display_completion_message {
     if [[ "$SUCCESS" == "true" ]]; then
         echo ""
         echo "All $TOTAL_STEPS steps are complete."
-        echo "Please source your profile to apply changes:"
-        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
-
-
-        if [ "$SHELL_NAME" = "zsh" ]; then
-            zsh -c "source $CONFIG_FILE"
-        elif [ "$SHELL_NAME" = "bash" ]; then
-            bash -c "source $CONFIG_FILE"
-        fi
-
-        echo ""
-
-        echo "Let's start devnet:"
-        echo -e "\033[1;34m\033[1mmake devnet-up\033[0m"
         echo ""
         exit 0
     else
@@ -864,6 +850,11 @@ function check_command_version {
 
 # Final step: Check installation and versions
 echo "Verifying installation and versions..."
+if [ "$SHELL_NAME" = "zsh" ]; then
+    zsh -c "source $CONFIG_FILE"
+elif [ "$SHELL_NAME" = "bash" ]; then
+    bash -c "source $CONFIG_FILE"
+fi
 
 # Check Homebrew (for MacOS) - Just check if installed
 if [[ "$OS_TYPE" == "darwin" ]]; then
@@ -896,6 +887,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
     # Check Foundry
     check_command_version forge "" "forge --version"
+
     check_command_version cast "" "cast --version"
     check_command_version anvil "" "anvil --version"
 
