@@ -414,6 +414,14 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         echo "Docker is already installed."
     fi
 
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Compose..."
+    if ! command -v docker-compose &> /dev/null; then
+        echo "Docker Compose not found, installing..."
+        brew install docker-compose
+    else
+        echo "Docker Compose is already installed."
+    fi
+
     STEP=$((STEP + 1))
     echo
 
