@@ -64,7 +64,7 @@ contract L1ContractVerificationTest is Test {
   address nativeToken;
   address l2TONAddress;
 
-    // Add the randomUser address:
+  // Add the randomUser address:
   address randomUser;
 
   /**
@@ -81,7 +81,7 @@ contract L1ContractVerificationTest is Test {
     nativeToken = makeAddr('nativeToken');
     l2TONAddress = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000); // Use the expected L2 TON address
 
-        // Initialize the randomUser
+    // Initialize the randomUser
     randomUser = makeAddr('randomUser');
 
     vm.startPrank(owner);
@@ -222,6 +222,9 @@ contract L1ContractVerificationTest is Test {
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(address(bridgeRegistry));
+
+    // Set the verification possible to true for tests
+    verifier.setVerificationPossible(true);
 
     // Set the owner of the proxy admin to the safe wallet for verification
     mockProxyAdmin.setOwner(address(safeWallet));
@@ -613,7 +616,6 @@ contract L1ContractVerificationTest is Test {
     vm.stopPrank();
   }
 
-
   /**
    * @notice Test verification failure with wrong SystemConfig proxy that has correct native token and implementation
    * @dev Uses a SystemConfig with the correct native token and implementation but wrong proxy codehash
@@ -663,7 +665,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    vm.expectRevert('SystemConfig verification failed');
+    vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
     verifier.verifyL1Contracts(
       address(differentProxy), // Using different proxy with correct implementation
       address(mockProxyAdmin)
@@ -925,7 +927,9 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail
-    vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
+    vm.expectRevert(
+      'Safe wallet verification failed: invalid implementation codehash'
+    );
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin)
@@ -1131,9 +1135,9 @@ contract L1ContractVerificationTest is Test {
     // Build the dynamic error message
     bytes32 adminRole = verifier.ADMIN_ROLE();
     bytes memory expectedError = abi.encodePacked(
-      "AccessControl: account ",
+      'AccessControl: account ',
       StringsUpgradeable.toHexString(uint160(randomUser), 20),
-      " is missing role ",
+      ' is missing role ',
       StringsUpgradeable.toHexString(uint256(adminRole), 32)
     );
 
@@ -1228,9 +1232,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        "AccessControl: account ",
+        'AccessControl: account ',
         StringsUpgradeable.toHexString(uint160(tempAdmin), 20),
-        " is missing role ",
+        ' is missing role ',
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1257,9 +1261,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        "AccessControl: account ",
+        'AccessControl: account ',
         StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
-        " is missing role ",
+        ' is missing role ',
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1290,9 +1294,9 @@ contract L1ContractVerificationTest is Test {
     bytes32 adminRole = verifier.ADMIN_ROLE();
     vm.expectRevert(
       abi.encodePacked(
-        "AccessControl: account ",
+        'AccessControl: account ',
         StringsUpgradeable.toHexString(uint160(nonAdmin), 20),
-        " is missing role ",
+        ' is missing role ',
         StringsUpgradeable.toHexString(uint256(adminRole), 32)
       )
     );
@@ -1366,13 +1370,15 @@ contract L1ContractVerificationTest is Test {
 
     // Create proxy for the new verifier
     TransparentUpgradeableProxy newVerifierProxy = new TransparentUpgradeableProxy(
-      address(newVerifierImpl),
-      address(newVerifierProxyAdmin),
-      newVerifierInitData
-    );
+        address(newVerifierImpl),
+        address(newVerifierProxyAdmin),
+        newVerifierInitData
+      );
 
     // Create a reference to the new verifier
-    L1ContractVerification newVerifier = L1ContractVerification(address(newVerifierProxy));
+    L1ContractVerification newVerifier = L1ContractVerification(
+      address(newVerifierProxy)
+    );
 
     // Set contract info on the new verifier
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
@@ -1391,6 +1397,7 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
+    newVerifier.setVerificationPossible(true);
     // Verification should fail due to using a different native token
     vm.expectRevert('The native token you are using is not TON');
     newVerifier.verifyAndRegisterRollupConfig(
@@ -1500,7 +1507,7 @@ contract L1ContractVerificationTest is Test {
       address(largeProxyAdmin)
     );
 
-    assertTrue(result, "Verification failed with large owner set");
+    assertTrue(result, 'Verification failed with large owner set');
 
     vm.stopPrank();
   }

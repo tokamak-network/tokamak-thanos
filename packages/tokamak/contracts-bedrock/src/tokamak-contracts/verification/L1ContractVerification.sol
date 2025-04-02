@@ -249,6 +249,7 @@ contract L1ContractVerification is
     address proxyAdmin
   ) external view returns (bool) {
     // Verify native token first
+    require(isVerificationPossible, 'Contract not registered as registerant');
     ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
     require(
       systemConfigContract.nativeTokenAddress() == expectedNativeToken,
@@ -281,6 +282,7 @@ contract L1ContractVerification is
     address _l2TON,
     string calldata _name
   ) external returns (bool) {
+    require(isVerificationPossible, 'Contract not registered as registerant');
     require(
       _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'Provided L2 TON Token address is not correct'
@@ -377,7 +379,7 @@ contract L1ContractVerification is
     ) {
       return fetchedImpl == _expectedImplementation;
     } catch {
-      return false;
+      revert("Failed to call getProxyImplementation on ProxyAdmin");
     }
   }
 
@@ -391,7 +393,7 @@ contract L1ContractVerification is
   function _verifyProxyHash(
     address _proxyAddress,
     bytes32 _expectedHash
-  ) internal view returns (bool) {
+  ) private view returns (bool) {
     return _proxyAddress.codehash == _expectedHash;
   }
 
