@@ -75,20 +75,6 @@ function display_completion_message {
     if [[ "$SUCCESS" == "true" ]]; then
         echo ""
         echo "All $TOTAL_STEPS steps are complete."
-        echo "Please source your profile to apply changes:"
-        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
-
-
-        if [ "$SHELL_NAME" = "zsh" ]; then
-            zsh -c "source $CONFIG_FILE"
-        elif [ "$SHELL_NAME" = "bash" ]; then
-            bash -c "source $CONFIG_FILE"
-        fi
-
-        echo ""
-
-        echo "Let's start devnet:"
-        echo -e "\033[1;34m\033[1mmake devnet-up\033[0m"
         echo ""
         exit 0
     else
@@ -431,24 +417,24 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     else
       if pnpm install:foundry; then
           # Check if the foundry configuration is already in the CONFIG_FILE
-          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+          if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$CONFIG_FILE"; then
 
               # If the configuration is not found, add foundry to the current shell session
               {
                   echo ''
-                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  echo 'export PATH="$PATH:$HOME/.foundry/bin"'
               } >> "$CONFIG_FILE"
           fi
 
           # Check if the foundry configuration is already in the PROFILE_FILE
-          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+          if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$PROFILE_FILE"; then
               # If the configuration is not found, add foundry to the current shell session
               {
                   echo ''
-                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  echo 'export PATH="$PATH:$HOME/.foundry/bin"'
               } >> "$PROFILE_FILE"
           fi
-          export PATH="$PATH:/root/.foundry/bin"
+          export PATH="$PATH:$HOME/.foundry/bin"
       else
           exit
       fi
@@ -802,24 +788,24 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         else
           if pnpm install:foundry; then
               # Check if the foundry configuration is already in the CONFIG_FILE
-              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+              if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$CONFIG_FILE"; then
 
                   # If the configuration is not found, add foundry to the current shell session
                   {
                       echo ''
-                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                      echo 'export PATH="$PATH:$HOME/.foundry/bin"'
                   } >> "$CONFIG_FILE"
               fi
 
               # Check if the foundry configuration is already in the PROFILE_FILE
-              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+              if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$PROFILE_FILE"; then
                   # If the configuration is not found, add foundry to the current shell session
                   {
                       echo ''
-                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                      echo 'export PATH="$PATH:$HOME/.foundry/bin"'
                   } >> "$PROFILE_FILE"
               fi
-              export PATH="$PATH:/root/.foundry/bin"
+              export PATH="$PATH:$HOME/.foundry/bin"
           else
               exit
           fi
@@ -864,6 +850,11 @@ function check_command_version {
 
 # Final step: Check installation and versions
 echo "Verifying installation and versions..."
+if [ "$SHELL_NAME" = "zsh" ]; then
+    zsh -c "source $CONFIG_FILE"
+elif [ "$SHELL_NAME" = "bash" ]; then
+    bash -c "source $CONFIG_FILE"
+fi
 
 # Check Homebrew (for MacOS) - Just check if installed
 if [[ "$OS_TYPE" == "darwin" ]]; then
