@@ -22,6 +22,7 @@ contract SetupL1ContractVerification is Script {
   address private _bridgeRegistry;
   address private _safeWallet;
   address private _multisigWallet;
+  address private _l1ProxyAdmin;
 
   // Constants - private constants with leading underscore
   uint256 private constant _SAFE_THRESHOLD = 3;
@@ -39,6 +40,7 @@ contract SetupL1ContractVerification is Script {
     _bridgeRegistry = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
     _safeWallet = vm.envAddress('SAFE_WALLET');
     _multisigWallet = vm.envAddress('MULTISIG_WALLET');
+    _l1ProxyAdmin = vm.envAddress('PROXY_ADMIN_ADDRESS');
   }
 
   /**
@@ -56,38 +58,45 @@ contract SetupL1ContractVerification is Script {
     console.log('L1ContractVerification implementation deployed at:', address(implementationContract));
 
     // Deploy a new ProxyAdmin
-    ProxyAdmin newProxyAdmin = new ProxyAdmin();
-    console.log('New ProxyAdmin deployed at:', address(newProxyAdmin));
+    ProxyAdmin verificationContractProxyAdmin = new ProxyAdmin();
+    console.log('verificationContractProxyAdmin deployed at:', address(verificationContractProxyAdmin));
 
     // Prepare initialization data for the proxy
     bytes memory initData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
       _nativeToken,
-      msg.sender // Your address as the admin
+      msg.sender // TODO: Currently deployer has ADMIN_ROLE, later we can transfer the ownership to the safe wallet
     );
 
     // Deploy the TransparentUpgradeableProxy with the new ProxyAdmin
     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
       address(implementationContract),
-      address(newProxyAdmin),
+      address(verificationContractProxyAdmin),
       initData
     );
     console.log('L1ContractVerification proxy deployed at:', address(proxy));
 
     // Transfer ownership of the ProxyAdmin to the multisig wallet
-    newProxyAdmin.transferOwnership(_multisigWallet);
-    console.log('ProxyAdmin ownership transferred to multisig wallet:', _multisigWallet);
+    verificationContractProxyAdmin.transferOwnership(_multisigWallet);
+    console.log('verificationContractProxyAdmin ownership transferred to multisig wallet:', _multisigWallet);
+
+    address currentOwner = verificationContractProxyAdmin.owner();
+    console.log('Current ProxyAdmin owner:', currentOwner);
+    console.log('Expected multisig address:', _multisigWallet);
+
+    require(currentOwner == _multisigWallet, "ProxyAdmin not owned by multisig!");
 
     // Create a reference to the proxy contract to call its functions
     L1ContractVerification verifier = L1ContractVerification(address(proxy));
 
     // Set logic contract info
-    verifier.setLogicContractInfo(_systemConfigProxy, msg.sender);
+    verifier.setLogicContractInfo(_systemConfigProxy, _l1ProxyAdmin);
 
     // Get the safe wallet address from the proxy admin
-    IProxyAdmin proxyAdminContract = IProxyAdmin(address(newProxyAdmin));
+    IProxyAdmin proxyAdminContract = IProxyAdmin(address(_l1ProxyAdmin));
     address safeWalletAddress = proxyAdminContract.owner();
 
+    console.log('Safe wallet address:', safeWalletAddress);
     // Get the implementation address of the safe wallet using masterCopy function
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
@@ -96,7 +105,7 @@ contract SetupL1ContractVerification is Script {
       _tokamakDAO,
       _foundation,
       _SAFE_THRESHOLD,
-      msg.sender,
+      _l1ProxyAdmin,
       implementation.codehash,
       safeWalletAddress.codehash
     );
