@@ -355,11 +355,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 7. Install Cargo (v1.78.0)
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+    # 7. Install Cargo (v1.83.0)
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
     source "$HOME/.cargo/env"
-    if ! cargo --version | grep "1.78.0" &> /dev/null; then
-        echo "Cargo 1.78.0 not found, installing..."
+    if ! cargo --version | grep "1.83.0" &> /dev/null; then
+        echo "Cargo 1.83.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
         # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -382,16 +382,16 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         fi
 
         source "$HOME/.cargo/env"
-        rustup install 1.78.0
-        rustup default 1.78.0
+        rustup install 1.83.0
+        rustup default 1.83.0
     else
-        echo "Cargo 1.78.0 is already installed."
+        echo "Cargo 1.83.0 is already installed."
     fi
 
     STEP=$((STEP + 1))
     echo
 
-    # 8. Install Docker
+    # 8. Install and Run Docker
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
@@ -399,6 +399,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     else
         echo "Docker is already installed."
     fi
+
+    # Run Docker Daemon
+    echo "Starting Docker Daemon..."
+    open -a Docker
+    sudo chmod 666 /var/run/docker.sock
 
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Compose..."
     if ! command -v docker-compose &> /dev/null; then
@@ -443,6 +448,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
               } >> "$PROFILE_FILE"
           fi
           export PATH="$PATH:$HOME/.foundry/bin"
+          source $CONFIG_FILE
       else
           exit
       fi
@@ -719,11 +725,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 7. Install Cargo (v1.78.0)
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        # 7. Install Cargo (v1.83.0)
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
         source "$HOME/.cargo/env"
-        if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
-            echo "Cargo 1.78.0 not found, installing..."
+        if ! cargo --version | grep -q "1.83.0" &> /dev/null; then
+            echo "Cargo 1.83.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
             # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -746,16 +752,16 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             fi
 
             source "$HOME/.cargo/env"
-            rustup install 1.78.0
-            rustup default 1.78.0
+            rustup install 1.83.0
+            rustup default 1.83.0
         else
-            echo "Cargo 1.78.0 is already installed."
+            echo "Cargo 1.83.0 is already installed."
         fi
 
         STEP=$((STEP + 1))
         echo
 
-        # 8. Install Docker
+        # 8. Install and Run Docker
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
@@ -778,6 +784,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         else
             echo "Docker is already installed."
         fi
+
+        # Run Docker Daemon
+        echo "Starting Docker Daemon..."
+        sudo systemctl start docker
+        sudo chmod 666 /var/run/docker.sock
 
         STEP=$((STEP + 1))
         echo
@@ -814,6 +825,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                   } >> "$PROFILE_FILE"
               fi
               export PATH="$PATH:$HOME/.foundry/bin"
+              source $CONFIG_FILE
           else
               exit
           fi
@@ -887,8 +899,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
@@ -920,8 +932,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
