@@ -65,7 +65,7 @@ contract SetupL1ContractVerification is Script {
     bytes memory initData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
       _nativeToken,
-      msg.sender // TODO: Currently deployer has ADMIN_ROLE, later we can transfer the ownership to the safe wallet
+      msg.sender
     );
 
     // Deploy the TransparentUpgradeableProxy with the new ProxyAdmin
@@ -112,6 +112,10 @@ contract SetupL1ContractVerification is Script {
 
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(_bridgeRegistry);
+
+    // Now transfer admin role to multisig
+    verifier.grantRole(verifier.ADMIN_ROLE(), _multisigWallet);
+    console.log('Admin role transferred to multisig wallet:', _multisigWallet);
 
     console.log('L1ContractVerification configuration complete');
     vm.stopBroadcast();
