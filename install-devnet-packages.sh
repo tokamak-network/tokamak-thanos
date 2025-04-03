@@ -391,7 +391,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 8. Install Docker
+    # 8. Install and Run Docker
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
@@ -399,6 +399,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     else
         echo "Docker is already installed."
     fi
+
+    # Run Docker Daemon
+    echo "Starting Docker Daemon..."
+    open -a Docker
+    sudo chmod 666 /var/run/docker.sock
 
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Compose..."
     if ! command -v docker-compose &> /dev/null; then
@@ -755,7 +760,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 8. Install Docker
+        # 8. Install and Run Docker
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
@@ -778,6 +783,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         else
             echo "Docker is already installed."
         fi
+
+        # Run Docker Daemon
+        echo "Starting Docker Daemon..."
+        sudo systemctl start docker
+        sudo chmod 666 /var/run/docker.sock
 
         STEP=$((STEP + 1))
         echo
