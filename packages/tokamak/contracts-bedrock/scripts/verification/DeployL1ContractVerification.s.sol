@@ -20,7 +20,6 @@ contract SetupL1ContractVerification is Script {
   address private _foundation;
   address private _nativeToken; // TON token address
   address private _bridgeRegistry;
-  address private _safeWallet;
   address private _multisigWallet;
   address private _l1ProxyAdmin;
 
@@ -38,7 +37,6 @@ contract SetupL1ContractVerification is Script {
     _foundation = vm.envAddress('FOUNDATION_ADDRESS');
     _nativeToken = vm.envAddress('NATIVE_TOKEN_ADDRESS');
     _bridgeRegistry = vm.envAddress('L1_BRIDGE_REGISTRY_ADDRESS');
-    _safeWallet = vm.envAddress('SAFE_WALLET');
     _multisigWallet = vm.envAddress('MULTISIG_WALLET');
     _l1ProxyAdmin = vm.envAddress('PROXY_ADMIN_ADDRESS');
   }
