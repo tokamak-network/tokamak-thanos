@@ -448,6 +448,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
               } >> "$PROFILE_FILE"
           fi
           export PATH="$PATH:$HOME/.foundry/bin"
+          source $CONFIG_FILE
       else
           exit
       fi
@@ -824,6 +825,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                   } >> "$PROFILE_FILE"
               fi
               export PATH="$PATH:$HOME/.foundry/bin"
+              source $CONFIG_FILE
           else
               exit
           fi
