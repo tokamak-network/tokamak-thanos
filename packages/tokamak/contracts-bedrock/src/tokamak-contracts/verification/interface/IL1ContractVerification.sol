@@ -36,7 +36,6 @@ interface IL1ContractVerification {
   }
 
   struct SafeWalletInfo {
-    address safeWalletAddress;
     address tokamakDAO;
     address foundation;
     bytes32 implementationCodehash;
@@ -69,6 +68,7 @@ interface IL1ContractVerification {
   ) external;
 
   function setSafeConfig(
+    address _operator,
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
@@ -84,10 +84,16 @@ interface IL1ContractVerification {
     address _proxyAdmin,
     uint8 _type,
     address _l2TON,
-    string calldata _name
+    string calldata _name,
+    address _operator
   ) external returns (bool);
 
   function setProxyAdminCodeHash(address _proxyAdmin) external;
 
   function setVerificationPossible(bool _isVerificationPossible) external;
+
+  function verifyL1Contracts(
+    address systemConfigProxy,
+    address proxyAdmin
+  ) external view returns (bool);
 }

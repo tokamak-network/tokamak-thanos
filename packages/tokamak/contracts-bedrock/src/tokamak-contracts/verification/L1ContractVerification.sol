@@ -51,8 +51,11 @@ contract L1ContractVerification is
   LogicContractInfo public l1CrossDomainMessenger;
   LogicContractInfo public optimismPortal;
 
-  // Safe wallet information storage
-  SafeWalletInfo public safeWallet;
+  // Common safe wallet configuration
+  SafeWalletInfo public safeWalletConfig;
+
+  // Safe wallet address storage - mapping of operator address to their safe wallet address
+  mapping(address => address) public operatorSafeWallets;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -184,16 +187,18 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Set the Safe wallet configuration
+   * @notice Set the Safe wallet configuration for an operator
+   * @param _operator The address of the operator
    * @param _tokamakDAO The address of the tokamakDAO owner
    * @param _foundation The address of the foundation owner
    * @param _threshold The required threshold for the safe wallet
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
-   * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin
+   * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin for a specific operator
    */
   function setSafeConfig(
+    address _operator,
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
@@ -201,6 +206,7 @@ contract L1ContractVerification is
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
   ) external onlyRole(ADMIN_ROLE) {
+    require(_operator != address(0), 'Operator address cannot be zero');
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
@@ -208,14 +214,17 @@ contract L1ContractVerification is
     IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
     address safeWalletAddress = proxyAdmin.owner();
 
-    safeWallet = SafeWalletInfo({
-      safeWalletAddress: safeWalletAddress,
+    // Set common safe wallet configuration
+    safeWalletConfig = SafeWalletInfo({
       tokamakDAO: _tokamakDAO,
       foundation: _foundation,
       implementationCodehash: _implementationCodehash,
       proxyCodehash: _proxyCodehash,
       requiredThreshold: _threshold
     });
+
+    // Set operator's safe wallet address
+    operatorSafeWallets[_operator] = safeWalletAddress;
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
   }
@@ -237,12 +246,12 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Verify L1 contracts
+   * @notice Verify L1 contracts for a specific operator
    * @param systemConfigProxy The address of the SystemConfig proxy
    * @param proxyAdmin The address of the ProxyAdmin
    * @return Returns true if verification succeeds, otherwise reverts
    * @dev First checks that the native token matches expected value, then verifies
-   *      the ProxyAdmin and all contract implementations
+   *      the ProxyAdmin and all contract implementations for the operator's safe wallet
    */
   function verifyL1Contracts(
     address systemConfigProxy,
@@ -256,11 +265,18 @@ contract L1ContractVerification is
       'The native token you are using is not TON'
     );
 
+    // Get operator's safe wallet address
+    address safeWalletAddress = operatorSafeWallets[msg.sender];
+    require(
+      safeWalletAddress != address(0),
+      'No safe wallet configured for operator'
+    );
+
     // Verify proxy admin
-    _verifyProxyAdmin(proxyAdmin);
+    _verifyProxyAdmin(proxyAdmin, safeWalletAddress);
 
     // Verify L1 contracts
-    _verifyL1Contracts(systemConfigProxy, proxyAdmin);
+    _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
 
     return true;
   }
@@ -272,6 +288,7 @@ contract L1ContractVerification is
    * @param _type Token type (must be 2 for TON)
    * @param _l2TON The address of the L2 TON token
    * @param _name The name of the rollup configuration
+   * @param _operator The address of the operator to verify for
    * @return Returns true if verification and registration succeeds, otherwise reverts
    * @dev Performs verification and additionally registers the rollup with the bridge registry
    */
@@ -280,7 +297,8 @@ contract L1ContractVerification is
     address _proxyAdmin,
     uint8 _type,
     address _l2TON,
-    string calldata _name
+    string calldata _name,
+    address _operator
   ) external returns (bool) {
     require(isVerificationPossible, 'Contract not registered as registerant');
     require(
@@ -296,15 +314,22 @@ contract L1ContractVerification is
       'The native token you are using is not TON'
     );
 
+    // Get operator's safe wallet address
+    address safeWalletAddress = operatorSafeWallets[_operator];
+    require(
+      safeWalletAddress != address(0),
+      'No safe wallet configured for operator'
+    );
+
     // Verify proxy admin
-    _verifyProxyAdmin(_proxyAdmin);
+    _verifyProxyAdmin(_proxyAdmin, safeWalletAddress);
 
     // Verify L1 contracts
-    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin);
+    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, safeWalletAddress);
 
     // Emit verification success event
     emit VerificationSuccess(
-      msg.sender,
+      _operator,
       _systemConfigProxy,
       _proxyAdmin,
       block.timestamp
@@ -331,30 +356,32 @@ contract L1ContractVerification is
       _name
     );
 
-    emit RegistrationSuccess(msg.sender);
+    emit RegistrationSuccess(_operator);
     return true;
   }
 
   /**
-   * @notice Verify the ProxyAdmin contract
+   * @notice Verify the ProxyAdmin contract for a specific operator's safe wallet
    * @param _proxyAdmin The address of the ProxyAdmin contract
-   * @dev Ensures the ProxyAdmin has the expected codehash and is owned by the expected safe wallet
+   * @param _safeWalletAddress The safe wallet address for the operator
+   * @dev Ensures the ProxyAdmin has the expected codehash and is owned by the operator's safe wallet
    */
-  function _verifyProxyAdmin(address _proxyAdmin) private view {
+  function _verifyProxyAdmin(
+    address _proxyAdmin,
+    address _safeWalletAddress
+  ) private view {
     // 1. Verify that ProxyAdmin contract has the expected codehash
     require(
       _proxyAdmin.codehash == proxyAdminCodehash,
       'ProxyAdmin verification failed: invalid codehash'
     );
 
-    // 2. Verify the ProxyAdmin is owned by the expected safe wallet
+    // 2. Verify the ProxyAdmin is owned by the operator's safe wallet
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
     address ownerAddress = proxyAdminContract.owner();
 
-    // This also implicitly verifies that the address provided is a valid ProxyAdmin
-    // since it must successfully call the owner() function
     require(
-      ownerAddress == safeWallet.safeWalletAddress,
+      ownerAddress == _safeWalletAddress,
       'Invalid proxy admin address'
     );
   }
@@ -398,22 +425,23 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Verify the Safe wallet
+   * @notice Verify the Safe wallet for a specific operator
    * @param _proxyAdmin The address of the ProxyAdmin contract
+   * @param _safeWalletAddress The safe wallet address for the operator
    * @return Returns true if verification succeeds, otherwise reverts with a specific error message
-   * @dev Verifies that the safe wallet has the correct address, implementation,
-   *      proxy codehash, threshold, and includes both tokamakDAO and foundation as owners
    */
-  function _verifySafe(address _proxyAdmin) private view returns (bool) {
+  function _verifySafe(
+    address _proxyAdmin,
+    address _safeWalletAddress
+  ) private view returns (bool) {
     // Get safe wallet address from ProxyAdmin.owner()
-    // We are verifying owner of proxy wallet which will also verify if this proxy admin address provided by operator is correct or not.
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
     address safeWalletAddress = proxyAdminContract.owner();
     IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Check if the safe wallet address is the same as the expected safe wallet address
     require(
-      safeWalletAddress == safeWallet.safeWalletAddress,
+      safeWalletAddress == _safeWalletAddress,
       'Safe wallet verification failed: address mismatch'
     );
 
@@ -422,19 +450,19 @@ contract L1ContractVerification is
 
     // Check if the implementation codehash is the same as the expected implementation codehash
     require(
-      implementation.codehash == safeWallet.implementationCodehash,
+      implementation.codehash == safeWalletConfig.implementationCodehash,
       'Safe wallet verification failed: invalid implementation codehash'
     );
 
     // Check if the proxy codehash is the same as the expected proxy codehash
     require(
-      safeWalletAddress.codehash == safeWallet.proxyCodehash,
+      safeWalletAddress.codehash == safeWalletConfig.proxyCodehash,
       'Safe wallet verification failed: invalid proxy codehash'
     );
 
     // Verify threshold
     require(
-      safe.getThreshold() == safeWallet.requiredThreshold,
+      safe.getThreshold() == safeWalletConfig.requiredThreshold,
       'Safe wallet verification failed: invalid threshold'
     );
 
@@ -445,8 +473,8 @@ contract L1ContractVerification is
     bool foundFoundation = false;
 
     for (uint i = 0; i < owners.length; i++) {
-      if (owners[i] == safeWallet.tokamakDAO) foundTokamakDAO = true;
-      if (owners[i] == safeWallet.foundation) foundFoundation = true;
+      if (owners[i] == safeWalletConfig.tokamakDAO) foundTokamakDAO = true;
+      if (owners[i] == safeWalletConfig.foundation) foundFoundation = true;
       if (foundTokamakDAO && foundFoundation) break;
     }
 
@@ -460,29 +488,15 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Verify the L1 contracts and the safe wallet
+   * @notice Verify the L1 contracts and the safe wallet for a specific operator
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin contract
-   * @dev Verifies each contract in sequence using a multi-layered approach:
-   *      1. SystemConfig: Validates both proxy codehash and implementation address
-   *      2. Retrieves child contract addresses from the verified SystemConfig
-   *      3. L1StandardBridge: Validates correct implementation behind the proxy
-   *      4. L1CrossDomainMessenger: Ensures correct messenger implementation
-   *      5. OptimismPortal: Verifies correct portal implementation
-   *      6. Safe Wallet: Validates the multisig with correct owners and threshold
-   *
-   * The verification process ensures that:
-   * - All proxies point to the expected implementations
-   * - All proxies have the expected bytecode (via codehash)
-   * - The proxy admin is properly owned by the safe wallet
-   * - The safe wallet has the correct owner set and threshold
-   *
-   * This comprehensive verification prevents potential attacks where an
-   * operator might use modified implementations or incorrect configurations.
+   * @param _safeWalletAddress The safe wallet address for the operator
    */
   function _verifyL1Contracts(
     address _systemConfigProxy,
-    address _proxyAdmin
+    address _proxyAdmin,
+    address _safeWalletAddress
   ) private view {
     // Step 1: Verify SystemConfig
     require(
@@ -541,7 +555,7 @@ contract L1ContractVerification is
     );
 
     // Step 5: Verify Safe wallet
-    require(_verifySafe(_proxyAdmin), 'Safe wallet verification failed');
+    require(_verifySafe(_proxyAdmin, _safeWalletAddress), 'Safe wallet verification failed');
   }
 
   function _setProxyAdminCodehash(address _proxyAdmin) private {
