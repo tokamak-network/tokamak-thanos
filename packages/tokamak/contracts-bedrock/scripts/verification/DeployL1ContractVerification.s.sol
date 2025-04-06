@@ -100,6 +100,7 @@ contract SetupL1ContractVerification is Script {
 
     // Set Safe wallet info with the implementation address and codehash
     verifier.setSafeConfig(
+      msg.sender, // operator
       _tokamakDAO,
       _foundation,
       _SAFE_THRESHOLD,

@@ -31,9 +31,9 @@ contract MockBridgeRegistry {
   }
 
   function availableForRegistration(
-    address rollupConfig,
-    uint8 tokenType
-  ) external view returns (bool) {
+    address /* rollupConfig */,
+    uint8 /* tokenType */
+  ) external pure returns (bool) {
     return true;
   }
 }
