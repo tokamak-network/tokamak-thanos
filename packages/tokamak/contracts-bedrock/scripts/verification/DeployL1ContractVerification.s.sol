@@ -74,21 +74,15 @@ contract SetupL1ContractVerification is Script {
     );
     console.log('L1ContractVerification proxy deployed at:', address(proxy));
 
-    // Transfer ownership of the ProxyAdmin to the multisig wallet
-    verificationContractProxyAdmin.transferOwnership(_multisigWallet);
-    console.log('verificationContractProxyAdmin ownership transferred to multisig wallet:', _multisigWallet);
-
-    address currentOwner = verificationContractProxyAdmin.owner();
-    console.log('Current ProxyAdmin owner:', currentOwner);
-    console.log('Expected multisig address:', _multisigWallet);
-
-    require(currentOwner == _multisigWallet, "ProxyAdmin not owned by multisig!");
-
     // Create a reference to the proxy contract to call its functions
     L1ContractVerification verifier = L1ContractVerification(address(proxy));
 
     // Set logic contract info
     verifier.setLogicContractInfo(_systemConfigProxy, _l1ProxyAdmin);
+
+    // Set ProxyAdmin codehash
+    verifier.setProxyAdminCodeHash(_l1ProxyAdmin);
+    console.log('ProxyAdmin codehash set');
 
     // Get the safe wallet address from the proxy admin
     IProxyAdmin proxyAdminContract = IProxyAdmin(address(_l1ProxyAdmin));
@@ -103,7 +97,6 @@ contract SetupL1ContractVerification is Script {
       _tokamakDAO,
       _foundation,
       _SAFE_THRESHOLD,
-      _l1ProxyAdmin,
       implementation.codehash,
       safeWalletAddress.codehash
     );
@@ -111,9 +104,23 @@ contract SetupL1ContractVerification is Script {
     // Set bridge registry address
     verifier.setBridgeRegistryAddress(_bridgeRegistry);
 
+    // Enable verification
+    verifier.setVerificationPossible(true);
+    console.log('Verification enabled');
+
     // Now transfer admin role to multisig
     verifier.grantRole(verifier.ADMIN_ROLE(), _multisigWallet);
-    console.log('Admin role transferred to multisig wallet:', _multisigWallet);
+    console.log('Admin role granted to multisig wallet:', _multisigWallet);
+
+    // Transfer ownership of the ProxyAdmin to the multisig wallet
+    verificationContractProxyAdmin.transferOwnership(_multisigWallet);
+    console.log('verificationContractProxyAdmin ownership transferred to multisig wallet:', _multisigWallet);
+
+    address currentOwner = verificationContractProxyAdmin.owner();
+    console.log('Current ProxyAdmin owner:', currentOwner);
+    console.log('Expected multisig address:', _multisigWallet);
+
+    require(currentOwner == _multisigWallet, "ProxyAdmin not owned by multisig!");
 
     console.log('L1ContractVerification configuration complete');
     vm.stopBroadcast();

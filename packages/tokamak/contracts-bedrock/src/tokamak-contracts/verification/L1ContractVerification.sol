@@ -188,7 +188,6 @@ contract L1ContractVerification is
    * @param _tokamakDAO The address of the tokamakDAO owner
    * @param _foundation The address of the foundation owner
    * @param _threshold The required threshold for the safe wallet
-   * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
    */
@@ -196,7 +195,6 @@ contract L1ContractVerification is
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
-    address _proxyAdmin,
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
   ) external onlyRole(ADMIN_ROLE) {
