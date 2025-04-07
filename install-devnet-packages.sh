@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Re-run with the correct interpreter depending on the OS
+# Use SKIP_SHEBANG_CHECK variable to prevent infinite loop if already re-run
+if [ "$(uname)" = "Darwin" ] && [ -z "$SKIP_SHEBANG_CHECK" ]; then
+  export SKIP_SHEBANG_CHECK=1
+  echo "macOS detected. Switching to zsh interpreter......"
+  exec /bin/zsh "$0" "$@"
+fi
 
 TOTAL_STEPS=10
 STEP=1
