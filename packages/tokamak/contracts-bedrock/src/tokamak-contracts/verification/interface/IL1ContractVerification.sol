@@ -46,12 +46,12 @@ interface IL1ContractVerification {
   // Events
   event ConfigurationSet(string indexed contractName);
   event VerificationSuccess(
-    address indexed verifier,
+    address indexed safeWalletAddress,
     address indexed systemConfigProxy,
     address indexed proxyAdmin,
     uint256 timestamp
   );
-  event RegistrationSuccess(address indexed verifier);
+  event RegistrationSuccess(address indexed safeWalletAddress);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
     address indexed tokamakDAO,
@@ -68,7 +68,6 @@ interface IL1ContractVerification {
   ) external;
 
   function setSafeConfig(
-    address _operator,
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
@@ -85,7 +84,7 @@ interface IL1ContractVerification {
     uint8 _type,
     address _l2TON,
     string calldata _name,
-    address _operator
+    address _safeWalletAddress
   ) external returns (bool);
 
   function setProxyAdminCodeHash(address _proxyAdmin) external;
@@ -94,6 +93,7 @@ interface IL1ContractVerification {
 
   function verifyL1Contracts(
     address systemConfigProxy,
-    address proxyAdmin
+    address proxyAdmin,
+    address safeWalletAddress
   ) external view returns (bool);
 }
