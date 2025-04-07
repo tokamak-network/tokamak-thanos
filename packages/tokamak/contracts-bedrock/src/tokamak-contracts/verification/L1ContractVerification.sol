@@ -54,9 +54,6 @@ contract L1ContractVerification is
   // Common safe wallet configuration
   SafeWalletInfo public safeWalletConfig;
 
-  // Safe wallet address storage - mapping of operator address to their safe wallet address
-  mapping(address => address) public operatorSafeWallets;
-
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
@@ -187,18 +184,15 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Set the Safe wallet configuration for an operator
-   * @param _operator The address of the operator
+   * @notice Set the Safe wallet configuration
    * @param _tokamakDAO The address of the tokamakDAO owner
    * @param _foundation The address of the foundation owner
    * @param _threshold The required threshold for the safe wallet
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
-   * @dev Records information about the Gnosis Safe wallet that owns the ProxyAdmin for a specific operator
    */
   function setSafeConfig(
-    address _operator,
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
@@ -206,13 +200,9 @@ contract L1ContractVerification is
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
   ) external onlyRole(ADMIN_ROLE) {
-    require(_operator != address(0), 'Operator address cannot be zero');
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
-
-    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
-    address safeWalletAddress = proxyAdmin.owner();
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -222,9 +212,6 @@ contract L1ContractVerification is
       proxyCodehash: _proxyCodehash,
       requiredThreshold: _threshold
     });
-
-    // Set operator's safe wallet address
-    operatorSafeWallets[_operator] = safeWalletAddress;
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
   }
@@ -246,18 +233,17 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Verify L1 contracts for a specific operator
+   * @notice Verify L1 contracts for a specific safe wallet
    * @param systemConfigProxy The address of the SystemConfig proxy
    * @param proxyAdmin The address of the ProxyAdmin
+   * @param safeWalletAddress The address of the safe wallet to verify
    * @return Returns true if verification succeeds, otherwise reverts
-   * @dev First checks that the native token matches expected value, then verifies
-   *      the ProxyAdmin and all contract implementations for the operator's safe wallet
    */
   function verifyL1Contracts(
     address systemConfigProxy,
-    address proxyAdmin
+    address proxyAdmin,
+    address safeWalletAddress
   ) external view returns (bool) {
-    // Verify native token first
     require(isVerificationPossible, 'Contract not registered as registerant');
     ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
     require(
@@ -265,11 +251,9 @@ contract L1ContractVerification is
       'The native token you are using is not TON'
     );
 
-    // Get operator's safe wallet address
-    address safeWalletAddress = operatorSafeWallets[msg.sender];
     require(
       safeWalletAddress != address(0),
-      'No safe wallet configured for operator'
+      'Safe wallet address cannot be zero'
     );
 
     // Verify proxy admin
@@ -288,7 +272,7 @@ contract L1ContractVerification is
    * @param _type Token type (must be 2 for TON)
    * @param _l2TON The address of the L2 TON token
    * @param _name The name of the rollup configuration
-   * @param _operator The address of the operator to verify for
+   * @param _safeWalletAddress The address of the safe wallet to verify for
    * @return Returns true if verification and registration succeeds, otherwise reverts
    * @dev Performs verification and additionally registers the rollup with the bridge registry
    */
@@ -298,7 +282,7 @@ contract L1ContractVerification is
     uint8 _type,
     address _l2TON,
     string calldata _name,
-    address _operator
+    address _safeWalletAddress
   ) external returns (bool) {
     require(isVerificationPossible, 'Contract not registered as registerant');
     require(
@@ -315,21 +299,20 @@ contract L1ContractVerification is
     );
 
     // Get operator's safe wallet address
-    address safeWalletAddress = operatorSafeWallets[_operator];
     require(
-      safeWalletAddress != address(0),
+      _safeWalletAddress != address(0),
       'No safe wallet configured for operator'
     );
 
     // Verify proxy admin
-    _verifyProxyAdmin(_proxyAdmin, safeWalletAddress);
+    _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
 
     // Verify L1 contracts
-    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, safeWalletAddress);
+    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, _safeWalletAddress);
 
     // Emit verification success event
     emit VerificationSuccess(
-      _operator,
+      _safeWalletAddress,
       _systemConfigProxy,
       _proxyAdmin,
       block.timestamp
@@ -356,7 +339,7 @@ contract L1ContractVerification is
       _name
     );
 
-    emit RegistrationSuccess(_operator);
+    emit RegistrationSuccess(_safeWalletAddress);
     return true;
   }
 
@@ -437,13 +420,14 @@ contract L1ContractVerification is
     // Get safe wallet address from ProxyAdmin.owner()
     IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
     address safeWalletAddress = proxyAdminContract.owner();
-    IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Check if the safe wallet address is the same as the expected safe wallet address
     require(
       safeWalletAddress == _safeWalletAddress,
       'Safe wallet verification failed: address mismatch'
     );
+
+    IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Get the implementation from the masterCopy function of the safe wallet
     address implementation = safe.masterCopy();

@@ -28,6 +28,7 @@ interface IMultiSigWallet {
  */
 contract VerifyContractSetConfig is Script {
     // Environment variables
+    address private _safeWalletAddress;
     address private _proxyAddress;
     address private _systemConfigProxy;
     address private _l1ProxyAdmin;
@@ -45,6 +46,7 @@ contract VerifyContractSetConfig is Script {
         _multisigOwner2 = vm.envUint('MULTISIG_OWNER_2');
         _multisigOwner3 = vm.envUint('MULTISIG_OWNER_3');
         _multisigWallet = vm.envAddress('MULTISIG_WALLET');
+        _safeWalletAddress = vm.envAddress('SAFE_WALLET');
     }
 
     function run() external {
@@ -57,7 +59,8 @@ contract VerifyContractSetConfig is Script {
         bytes memory verifyData = abi.encodeWithSelector(
             L1ContractVerification.verifyL1Contracts.selector,
             _systemConfigProxy,
-            _l1ProxyAdmin
+            _l1ProxyAdmin,
+            _safeWalletAddress
         );
 
         // Get the multisig contract

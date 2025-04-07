@@ -255,7 +255,6 @@ contract L1ContractVerificationTest is Test {
 
     // Correctly set the safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -263,29 +262,6 @@ contract L1ContractVerificationTest is Test {
       implementation.codehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
-
-    // Log information for debugging
-    console.log('-----------------------------------------------------------');
-    console.log('SystemConfig Proxy:', address(systemConfigProxy));
-    console.log('SystemConfig Implementation:', address(systemConfigImpl));
-    console.log(
-      'L1StandardBridge from SystemConfig:',
-      MockSystemConfig(address(systemConfigProxy)).l1StandardBridge()
-    );
-    console.log(
-      'L1CrossDomainMessenger from SystemConfig:',
-      MockSystemConfig(address(systemConfigProxy)).l1CrossDomainMessenger()
-    );
-    console.log(
-      'OptimismPortal from SystemConfig:',
-      MockSystemConfig(address(systemConfigProxy)).optimismPortal()
-    );
-    console.log(
-      'NativeToken from SystemConfig:',
-      MockSystemConfig(address(systemConfigProxy)).nativeTokenAddress()
-    );
-    console.log('ProxyAdmin Owner:', mockProxyAdmin.owner());
-    console.log('-----------------------------------------------------------');
 
     // Grant ADMIN_ROLE to the user so they can verify
     verifier.addAdmin(user);
@@ -297,7 +273,8 @@ contract L1ContractVerificationTest is Test {
     // Verification should succeed
     bool result = verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     // Verification should succeed
@@ -327,7 +304,6 @@ contract L1ContractVerificationTest is Test {
 
     // Correctly set the safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -350,7 +326,7 @@ contract L1ContractVerificationTest is Test {
       2, // TON token
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup',
-      user // Pass user as operator
+      address(safeWallet) // Pass safe wallet address
     );
 
     // Verification and registration should succeed
@@ -399,7 +375,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -416,15 +391,14 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Passing a different contract so that verification fails
-    // Even if we redeployed the correct proxy admin contract for different address,
-    // contract will match the codehash and it will pass
     MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
 
     // Verification should fail with ProxyAdmin verification error
     vm.expectRevert('ProxyAdmin verification failed: invalid codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(wrongProxyAdmin)
+      address(wrongProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -449,7 +423,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info with the current safe wallet address
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -489,78 +462,51 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(differentProxyAdmin) // Using different proxy admin
+      address(differentProxyAdmin), // Using different proxy admin
+      address(safeWallet)
     );
 
     vm.stopPrank();
   }
 
   /**
-   * @notice Test verification failure with mismatched safe wallet address
-   * @dev Sets up a different safe wallet address in the configuration
+   * @notice Test verification failure when safe wallet address doesn't match proxy admin owner
+   * @dev Verifies that verification fails if the provided safe wallet address doesn't match proxy admin owner
    */
   function testVerifyL1ContractsFailMismatchedSafeWalletAddress() public {
     vm.startPrank(owner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      address(mockProxyAdmin)
+        address(systemConfigProxy),
+        address(mockProxyAdmin)
     );
 
-    // Create a new safe wallet
-    address[] memory safeOwners = new address[](3);
-    safeOwners[0] = tokamakDAO;
-    safeOwners[1] = foundation;
-    safeOwners[2] = thirdOwner;
-    MockGnosisSafe differentSafeWallet = new MockGnosisSafe(safeOwners, 3);
+    // Store the actual codehashes of the deployed safe wallet
+    bytes32 implementationCodehash = address(safeWallet).codehash;
+    bytes32 proxyCodehash = address(safeWallet).codehash;
 
-    // Create a new proxy admin for the different safe wallet
-    MockProxyAdmin differentProxyAdmin = new MockProxyAdmin(owner);
-    differentProxyAdmin.setOwner(address(differentSafeWallet));
-
-    // Set up the different proxy admin with the same implementations
-    differentProxyAdmin.setImplementation(
-      address(systemConfigProxy),
-      address(systemConfigImpl)
-    );
-    differentProxyAdmin.setImplementation(
-      address(l1StandardBridgeProxy),
-      address(l1StandardBridgeImpl)
-    );
-    differentProxyAdmin.setImplementation(
-      address(l1CrossDomainMessengerProxy),
-      address(l1CrossDomainMessengerImpl)
-    );
-    differentProxyAdmin.setImplementation(
-      address(optimismPortalProxy),
-      address(optimismPortalImpl)
-    );
-
-    // Get codehashes for the different safe wallet
-    bytes32 implementationCodehash = address(differentSafeWallet).codehash;
-    bytes32 proxyCodehash = address(differentSafeWallet).codehash;
-
-    // Setup safe wallet info with the DIFFERENT proxy admin
-    // This should set the expected safe wallet address to differentSafeWallet
+    // Setup safe wallet info with correct owners
     verifier.setSafeConfig(
-      user, // _operator
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(differentProxyAdmin), // Use the different proxy admin here
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+        tokamakDAO, // tokamakDAO address
+        foundation, // foundation address
+        3, // _threshold
+        address(mockProxyAdmin), // _proxyAdmin
+        implementationCodehash, // _implementationCodehash
+        proxyCodehash // _proxyCodehash
     );
 
     vm.stopPrank();
 
     vm.startPrank(user);
 
+    // Verification should fail because we're providing a different safe wallet address
+    // than what's configured as the owner in the proxy admin
     vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(mockProxyAdmin) // Use the original proxy admin here
+        address(systemConfigProxy),
+        address(mockProxyAdmin),
+        makeAddr("differentSafeWallet") // Use a different address than the one configured
     );
 
     vm.stopPrank();
@@ -588,7 +534,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -617,7 +562,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -645,7 +591,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -677,7 +622,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
     verifier.verifyL1Contracts(
       address(differentProxy), // Using different proxy with correct implementation
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -706,7 +652,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -735,7 +680,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('L1StandardBridge verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -764,7 +710,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -793,7 +738,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('L1CrossDomainMessenger verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -822,7 +768,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -851,7 +796,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('OptimismPortal verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -862,9 +808,9 @@ contract L1ContractVerificationTest is Test {
    */
   /**
    * @notice Test verification failure with invalid safe wallet
-   * @dev Creates a different safe wallet with incorrect owners to trigger verification failure
+   * @dev Creates a safe wallet with incorrect owners to trigger verification failure
    */
-  function testVerifyL1ContractsFailInvalidSafe() public {
+  function testVerifyL1ContractsFailInvalidSafeOwner() public {
     vm.startPrank(owner);
 
     // Setup all contract information
@@ -873,15 +819,14 @@ contract L1ContractVerificationTest is Test {
       address(mockProxyAdmin)
     );
 
-    // Get codehashes for safe wallet
+    // Store the actual codehashes of the deployed safe wallet
     bytes32 implementationCodehash = address(safeWallet).codehash;
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
-    // Setup safe wallet info with wrong foundation address
+    // Setup safe wallet info with different owners than what's in the safe
     verifier.setSafeConfig(
-      user, // _operator
-      tokamakDAO, // _tokamakDAO
-      makeAddr('random'), // _foundation (wrong address)
+      makeAddr('wrongTokamakDAO'), // Different tokamakDAO address
+      makeAddr('wrongFoundation'), // Different foundation address
       3, // _threshold
       address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
@@ -895,11 +840,12 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    // Verification should fail
+    // Verification should fail due to missing required owners
     vm.expectRevert('Safe wallet verification failed: missing required owners');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -924,7 +870,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -944,7 +889,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -969,7 +915,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -989,7 +934,8 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: invalid proxy codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      address(mockProxyAdmin),
+      address(safeWallet)
     );
 
     vm.stopPrank();
@@ -1002,39 +948,17 @@ contract L1ContractVerificationTest is Test {
   function testVerifyL1ContractsFailInvalidSafeThreshold() public {
     vm.startPrank(owner);
 
-    // Setup all contract information
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      address(mockProxyAdmin)
-    );
-
-    // Get codehashes for safe wallet
     bytes32 implementationCodehash = address(safeWallet).codehash;
     bytes32 proxyCodehash = address(safeWallet).codehash;
 
-    // Setup safe wallet info with wrong threshold
+    vm.expectRevert('Threshold must be greater than zero');
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
-      4, // _threshold (wrong value)
+      0, // Zero threshold should cause revert
       address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
-    );
-
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
-
-    vm.stopPrank();
-
-    vm.startPrank(user);
-
-    // Verification should fail
-    vm.expectRevert('Safe wallet verification failed: invalid threshold');
-    verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(mockProxyAdmin)
     );
 
     vm.stopPrank();
@@ -1059,7 +983,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -1083,7 +1006,7 @@ contract L1ContractVerificationTest is Test {
       1, // Invalid token type
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup',
-      user // Pass user as operator
+      address(safeWallet) // Pass safe wallet address
     );
 
     vm.stopPrank();
@@ -1108,7 +1031,6 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -1134,7 +1056,7 @@ contract L1ContractVerificationTest is Test {
       2, // Valid token type
       invalidL2TON, // Invalid L2TON address
       'TestRollup',
-      user // Pass user as operator
+      address(safeWallet) // Pass safe wallet address
     );
 
     vm.stopPrank();
@@ -1159,7 +1081,6 @@ contract L1ContractVerificationTest is Test {
     // Each of these should revert due to caller not having ADMIN_ROLE
     vm.expectRevert(expectedError);
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -1343,13 +1264,12 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      user,
-      tokamakDAO,
-      foundation,
-      3,
-      address(mockProxyAdmin),
-      implementationCodehash,
-      proxyCodehash
+      tokamakDAO, // _tokamakDAO
+      foundation, // _foundation
+      3, // _threshold
+      address(mockProxyAdmin), // _proxyAdmin
+      implementationCodehash, // _implementationCodehash
+      proxyCodehash // _proxyCodehash
     );
 
     // Use existing variables where possible
@@ -1390,13 +1310,12 @@ contract L1ContractVerificationTest is Test {
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
     newVerifier.setLogicContractInfo(address(systemConfigProxy), address(mockProxyAdmin));
     newVerifier.setSafeConfig(
-      user,
-      tokamakDAO,
-      foundation,
-      3,
-      address(mockProxyAdmin),
-      implementationCodehash,
-      proxyCodehash
+      tokamakDAO, // _tokamakDAO
+      foundation, // _foundation
+      3, // _threshold
+      address(mockProxyAdmin), // _proxyAdmin
+      implementationCodehash, // _implementationCodehash
+      proxyCodehash // _proxyCodehash
     );
     newVerifier.setVerificationPossible(true);
 
@@ -1408,7 +1327,7 @@ contract L1ContractVerificationTest is Test {
       2,
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'TestRollup',
-      user
+      address(safeWallet) // Pass safe wallet address
     );
 
     vm.stopPrank();
@@ -1466,7 +1385,6 @@ contract L1ContractVerificationTest is Test {
 
     // Set safe wallet configuration
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // Threshold
@@ -1485,7 +1403,8 @@ contract L1ContractVerificationTest is Test {
     // Verification should succeed even with many owners
     bool result = verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(largeProxyAdmin)
+      address(largeProxyAdmin),
+      address(largeSafe) // Use largeSafe instead of safeWallet
     );
 
     assertTrue(result, "Verification failed with large owner set");
@@ -1677,7 +1596,6 @@ contract L1ContractVerificationTest is Test {
 
     vm.expectRevert('Threshold must be greater than zero');
     verifier.setSafeConfig(
-      user, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       0, // Zero threshold should cause revert
@@ -1690,8 +1608,8 @@ contract L1ContractVerificationTest is Test {
   }
 
   /**
-   * @notice Test that different operators can have different safe wallets
-   * @dev Sets up multiple operators with different safe wallets and verifies them independently
+   * @notice Test that different safe wallets can be verified
+   * @dev Sets up multiple safe wallets and verifies them independently
    */
   function testMultipleOperatorSafeWallets() public {
     vm.startPrank(owner);
@@ -1702,55 +1620,74 @@ contract L1ContractVerificationTest is Test {
       address(mockProxyAdmin)
     );
 
-    // Create safe wallet for first operator
-    address operator1 = makeAddr('operator1');
-    address[] memory safeOwners1 = new address[](3);
-    safeOwners1[0] = tokamakDAO;
-    safeOwners1[1] = foundation;
-    safeOwners1[2] = thirdOwner;
-    MockGnosisSafe safe1 = new MockGnosisSafe(safeOwners1, 3);
+    // Create first safe wallet and proxy admin
+    address[] memory owners1 = new address[](3);
+    owners1[0] = tokamakDAO;
+    owners1[1] = foundation;
+    owners1[2] = thirdOwner;
+    MockGnosisSafe safe1 = new MockGnosisSafe(owners1, 3);
 
-    // Create safe wallet for second operator
-    address operator2 = makeAddr('operator2');
-    address[] memory safeOwners2 = new address[](3);
-    safeOwners2[0] = tokamakDAO;
-    safeOwners2[1] = foundation;
-    safeOwners2[2] = makeAddr('differentOwner');
-    MockGnosisSafe safe2 = new MockGnosisSafe(safeOwners2, 3);
-
-    // Create separate proxy admins for each operator
     MockProxyAdmin proxyAdmin1 = new MockProxyAdmin(owner);
     proxyAdmin1.setOwner(address(safe1));
+
+    // Create second safe wallet and proxy admin
+    address[] memory owners2 = new address[](3);
+    owners2[0] = tokamakDAO;
+    owners2[1] = foundation;
+    owners2[2] = makeAddr('differentOwner');
+    MockGnosisSafe safe2 = new MockGnosisSafe(owners2, 3);
+
     MockProxyAdmin proxyAdmin2 = new MockProxyAdmin(owner);
     proxyAdmin2.setOwner(address(safe2));
 
-    // Set up implementations for proxyAdmin1
-    proxyAdmin1.setImplementation(address(systemConfigProxy), address(systemConfigImpl));
-    proxyAdmin1.setImplementation(address(l1StandardBridgeProxy), address(l1StandardBridgeImpl));
-    proxyAdmin1.setImplementation(address(l1CrossDomainMessengerProxy), address(l1CrossDomainMessengerImpl));
-    proxyAdmin1.setImplementation(address(optimismPortalProxy), address(optimismPortalImpl));
+    // Set up implementations for both proxy admins
+    proxyAdmin1.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+    proxyAdmin1.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(l1StandardBridgeImpl)
+    );
+    proxyAdmin1.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(l1CrossDomainMessengerImpl)
+    );
+    proxyAdmin1.setImplementation(
+      address(optimismPortalProxy),
+      address(optimismPortalImpl)
+    );
 
-    // Set up implementations for proxyAdmin2
-    proxyAdmin2.setImplementation(address(systemConfigProxy), address(systemConfigImpl));
-    proxyAdmin2.setImplementation(address(l1StandardBridgeProxy), address(l1StandardBridgeImpl));
-    proxyAdmin2.setImplementation(address(l1CrossDomainMessengerProxy), address(l1CrossDomainMessengerImpl));
-    proxyAdmin2.setImplementation(address(optimismPortalProxy), address(optimismPortalImpl));
+    proxyAdmin2.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+    proxyAdmin2.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(l1StandardBridgeImpl)
+    );
+    proxyAdmin2.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(l1CrossDomainMessengerImpl)
+    );
+    proxyAdmin2.setImplementation(
+      address(optimismPortalProxy),
+      address(optimismPortalImpl)
+    );
 
-    // Set up admins for proxyAdmin1
+    // Set up admins for both proxy admins
     proxyAdmin1.setAdmin(address(systemConfigProxy), address(proxyAdmin1));
     proxyAdmin1.setAdmin(address(l1StandardBridgeProxy), address(proxyAdmin1));
     proxyAdmin1.setAdmin(address(l1CrossDomainMessengerProxy), address(proxyAdmin1));
     proxyAdmin1.setAdmin(address(optimismPortalProxy), address(proxyAdmin1));
 
-    // Set up admins for proxyAdmin2
     proxyAdmin2.setAdmin(address(systemConfigProxy), address(proxyAdmin2));
     proxyAdmin2.setAdmin(address(l1StandardBridgeProxy), address(proxyAdmin2));
     proxyAdmin2.setAdmin(address(l1CrossDomainMessengerProxy), address(proxyAdmin2));
     proxyAdmin2.setAdmin(address(optimismPortalProxy), address(proxyAdmin2));
 
-    // Configure safe wallets for both operators
+    // Set safe wallet configurations
     verifier.setSafeConfig(
-      operator1, // _operator
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
@@ -1759,222 +1696,38 @@ contract L1ContractVerificationTest is Test {
       address(safe1).codehash // _proxyCodehash
     );
 
-    verifier.setSafeConfig(
-      operator2, // _operator
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(proxyAdmin2), // _proxyAdmin
-      safe2.masterCopy().codehash, // _implementationCodehash
-      address(safe2).codehash // _proxyCodehash
-    );
-
-    // Grant admin roles to operators
-    verifier.addAdmin(operator1);
-    verifier.addAdmin(operator2);
+    // Grant admin roles
+    verifier.addAdmin(user);
 
     vm.stopPrank();
 
-    // Test verification with operator1
-    vm.startPrank(operator1);
+    // Test verification with first safe wallet
+    vm.startPrank(user);
     bool success1 = verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin1)
+      address(proxyAdmin1),
+      address(safe1)
     );
-    assertTrue(success1, "Operator1 verification should succeed");
+    assertTrue(success1, "First safe wallet verification should succeed");
     vm.stopPrank();
 
-    // Test verification with operator2
-    vm.startPrank(operator2);
+    // Test verification with second safe wallet
+    vm.startPrank(user);
     bool success2 = verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin2)
+      address(proxyAdmin2),
+      address(safe2)
     );
-    assertTrue(success2, "Operator2 verification should succeed");
+    assertTrue(success2, "Second safe wallet verification should succeed");
     vm.stopPrank();
 
-    // Test that operator1 cannot use operator2's proxy admin
-    vm.startPrank(operator1);
+    // Test that first safe wallet cannot use second safe wallet's proxy admin
+    vm.startPrank(user);
     vm.expectRevert("Invalid proxy admin address");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin2)
-    );
-    vm.stopPrank();
-  }
-
-  /**
-   * @notice Test that an operator cannot use another operator's safe wallet
-   * @dev Attempts to verify using a different operator's safe wallet configuration
-   */
-  function testOperatorCannotUseOtherSafeWallet() public {
-    vm.startPrank(owner);
-
-    // Setup contract information
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      address(mockProxyAdmin)
-    );
-
-    // Create safe wallet for operator1
-    address operator1 = makeAddr('operator1');
-    address[] memory safeOwners = new address[](3);
-    safeOwners[0] = tokamakDAO;
-    safeOwners[1] = foundation;
-    safeOwners[2] = thirdOwner;
-    MockGnosisSafe safe = new MockGnosisSafe(safeOwners, 3);
-
-    // Setup proxy admin
-    MockProxyAdmin proxyAdmin = new MockProxyAdmin(owner);
-    proxyAdmin.setOwner(address(safe));
-
-    // Configure safe wallet for operator1
-    verifier.setSafeConfig(
-      operator1,
-      tokamakDAO,
-      foundation,
-      3,
-      address(proxyAdmin),
-      address(safe).codehash,
-      address(safe).codehash
-    );
-
-    // Create operator2
-    address operator2 = makeAddr('operator2');
-    verifier.addAdmin(operator2);
-
-    vm.stopPrank();
-
-    // Attempt to verify using operator1's configuration with operator2
-    vm.startPrank(operator2);
-    vm.expectRevert('No safe wallet configured for operator');
-    verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(proxyAdmin)
-    );
-    vm.stopPrank();
-  }
-
-  /**
-   * @notice Test updating an operator's safe wallet configuration
-   * @dev Updates an operator's safe wallet and verifies the new configuration
-   */
-  function testUpdateOperatorSafeWallet() public {
-    vm.startPrank(owner);
-
-    // Setup initial configuration
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      address(mockProxyAdmin)
-    );
-
-    address operator = makeAddr('operator');
-    address[] memory initialOwners = new address[](3);
-    initialOwners[0] = tokamakDAO;
-    initialOwners[1] = foundation;
-    initialOwners[2] = thirdOwner;
-    MockGnosisSafe initialSafe = new MockGnosisSafe(initialOwners, 3);
-
-    MockProxyAdmin initialProxyAdmin = new MockProxyAdmin(owner);
-    initialProxyAdmin.setOwner(address(initialSafe));
-
-    // Set up implementations for initialProxyAdmin
-    initialProxyAdmin.setImplementation(
-      address(systemConfigProxy),
-      address(systemConfigImpl)
-    );
-    initialProxyAdmin.setImplementation(
-      address(l1StandardBridgeProxy),
-      address(l1StandardBridgeImpl)
-    );
-    initialProxyAdmin.setImplementation(
-      address(l1CrossDomainMessengerProxy),
-      address(l1CrossDomainMessengerImpl)
-    );
-    initialProxyAdmin.setImplementation(
-      address(optimismPortalProxy),
-      address(optimismPortalImpl)
-    );
-
-    // Set up admins for initialProxyAdmin
-    initialProxyAdmin.setAdmin(address(systemConfigProxy), address(initialProxyAdmin));
-    initialProxyAdmin.setAdmin(address(l1StandardBridgeProxy), address(initialProxyAdmin));
-    initialProxyAdmin.setAdmin(address(l1CrossDomainMessengerProxy), address(initialProxyAdmin));
-    initialProxyAdmin.setAdmin(address(optimismPortalProxy), address(initialProxyAdmin));
-
-    // Set initial configuration
-    verifier.setSafeConfig(
-      operator,
-      tokamakDAO,
-      foundation,
-      3,
-      address(initialProxyAdmin),
-      address(initialSafe).codehash,
-      address(initialSafe).codehash
-    );
-
-    // Create new safe wallet with different configuration
-    address[] memory newOwners = new address[](3);
-    newOwners[0] = tokamakDAO;
-    newOwners[1] = foundation;
-    newOwners[2] = makeAddr('newOwner');
-    MockGnosisSafe newSafe = new MockGnosisSafe(newOwners, 3);
-
-    MockProxyAdmin newProxyAdmin = new MockProxyAdmin(owner);
-    newProxyAdmin.setOwner(address(newSafe));
-
-    // Set up implementations for newProxyAdmin
-    newProxyAdmin.setImplementation(
-      address(systemConfigProxy),
-      address(systemConfigImpl)
-    );
-    newProxyAdmin.setImplementation(
-      address(l1StandardBridgeProxy),
-      address(l1StandardBridgeImpl)
-    );
-    newProxyAdmin.setImplementation(
-      address(l1CrossDomainMessengerProxy),
-      address(l1CrossDomainMessengerImpl)
-    );
-    newProxyAdmin.setImplementation(
-      address(optimismPortalProxy),
-      address(optimismPortalImpl)
-    );
-
-    // Set up admins for newProxyAdmin
-    newProxyAdmin.setAdmin(address(systemConfigProxy), address(newProxyAdmin));
-    newProxyAdmin.setAdmin(address(l1StandardBridgeProxy), address(newProxyAdmin));
-    newProxyAdmin.setAdmin(address(l1CrossDomainMessengerProxy), address(newProxyAdmin));
-    newProxyAdmin.setAdmin(address(optimismPortalProxy), address(newProxyAdmin));
-
-    // Update configuration
-    verifier.setSafeConfig(
-      operator,
-      tokamakDAO,
-      foundation,
-      3,
-      address(newProxyAdmin),
-      address(newSafe).codehash,
-      address(newSafe).codehash
-    );
-
-    verifier.addAdmin(operator);
-
-    vm.stopPrank();
-
-    // Verify new configuration works
-    vm.startPrank(operator);
-    bool result = verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(newProxyAdmin)
-    );
-    assertTrue(result, "Updated safe wallet verification failed");
-
-    // Old configuration should fail
-    vm.expectRevert('Invalid proxy admin address');
-    verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      address(initialProxyAdmin)
+      address(proxyAdmin2),
+      address(safe1)
     );
     vm.stopPrank();
   }
