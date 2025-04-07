@@ -258,7 +258,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
       implementation.codehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -304,12 +303,11 @@ contract L1ContractVerificationTest is Test {
 
     // Correctly set the safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementation.codehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementation.codehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user so they can verify and register
@@ -378,7 +376,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -426,7 +423,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -488,12 +484,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info with correct owners
     verifier.setSafeConfig(
-        tokamakDAO, // tokamakDAO address
-        foundation, // foundation address
-        3, // _threshold
-        address(mockProxyAdmin), // _proxyAdmin
-        implementationCodehash, // _implementationCodehash
-        proxyCodehash // _proxyCodehash
+        tokamakDAO,
+        foundation,
+        3, // threshold from safeWallet constructor
+        implementationCodehash,
+        proxyCodehash
     );
 
     vm.stopPrank();
@@ -537,7 +532,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -591,12 +585,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Create a new proxy that points to the original implementation
@@ -652,12 +645,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Deploy a different L1StandardBridge implementation
@@ -710,12 +702,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Deploy a different L1CrossDomainMessenger implementation
@@ -768,12 +759,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Deploy a different OptimismPortal implementation
@@ -828,7 +818,6 @@ contract L1ContractVerificationTest is Test {
       makeAddr('wrongTokamakDAO'), // Different tokamakDAO address
       makeAddr('wrongFoundation'), // Different foundation address
       3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -870,12 +859,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -915,12 +903,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -956,7 +943,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       0, // Zero threshold should cause revert
-      address(mockProxyAdmin), // _proxyAdmin
       implementationCodehash, // _implementationCodehash
       proxyCodehash // _proxyCodehash
     );
@@ -983,12 +969,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1031,12 +1016,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1081,12 +1065,11 @@ contract L1ContractVerificationTest is Test {
     // Each of these should revert due to caller not having ADMIN_ROLE
     vm.expectRevert(expectedError);
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      bytes32(0), // _implementationCodehash
-      bytes32(0) // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      bytes32(0),
+      bytes32(0)
     );
 
     vm.expectRevert(expectedError);
@@ -1264,12 +1247,11 @@ contract L1ContractVerificationTest is Test {
 
     // Setup safe wallet info
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Use existing variables where possible
@@ -1310,12 +1292,11 @@ contract L1ContractVerificationTest is Test {
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
     newVerifier.setLogicContractInfo(address(systemConfigProxy), address(mockProxyAdmin));
     newVerifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // _threshold
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
     newVerifier.setVerificationPossible(true);
 
@@ -1385,12 +1366,11 @@ contract L1ContractVerificationTest is Test {
 
     // Set safe wallet configuration
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      3, // Threshold
-      address(largeProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      3, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1596,12 +1576,11 @@ contract L1ContractVerificationTest is Test {
 
     vm.expectRevert('Threshold must be greater than zero');
     verifier.setSafeConfig(
-      tokamakDAO, // _tokamakDAO
-      foundation, // _foundation
-      0, // Zero threshold should cause revert
-      address(mockProxyAdmin), // _proxyAdmin
-      implementationCodehash, // _implementationCodehash
-      proxyCodehash // _proxyCodehash
+      tokamakDAO,
+      foundation,
+      0, // threshold from safeWallet constructor
+      implementationCodehash,
+      proxyCodehash
     );
 
     vm.stopPrank();
@@ -1691,7 +1670,6 @@ contract L1ContractVerificationTest is Test {
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
       3, // _threshold
-      address(proxyAdmin1), // _proxyAdmin
       safe1.masterCopy().codehash, // _implementationCodehash
       address(safe1).codehash // _proxyCodehash
     );

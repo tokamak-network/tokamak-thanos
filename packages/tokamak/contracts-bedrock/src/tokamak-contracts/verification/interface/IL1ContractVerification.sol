@@ -71,7 +71,6 @@ interface IL1ContractVerification {
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
-    address _proxyAdmin,
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
   ) external;
