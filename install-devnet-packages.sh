@@ -355,11 +355,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 7. Install Cargo (v1.78.0)
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+    # 7. Install Cargo (v1.83.0)
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
     source "$HOME/.cargo/env"
-    if ! cargo --version | grep "1.78.0" &> /dev/null; then
-        echo "Cargo 1.78.0 not found, installing..."
+    if ! cargo --version | grep "1.83.0" &> /dev/null; then
+        echo "Cargo 1.83.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
         # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -382,10 +382,10 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         fi
 
         source "$HOME/.cargo/env"
-        rustup install 1.78.0
-        rustup default 1.78.0
+        rustup install 1.83.0
+        rustup default 1.83.0
     else
-        echo "Cargo 1.78.0 is already installed."
+        echo "Cargo 1.83.0 is already installed."
     fi
 
     STEP=$((STEP + 1))
@@ -725,11 +725,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 7. Install Cargo (v1.78.0)
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        # 7. Install Cargo (v1.83.0)
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
         source "$HOME/.cargo/env"
-        if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
-            echo "Cargo 1.78.0 not found, installing..."
+        if ! cargo --version | grep -q "1.83.0" &> /dev/null; then
+            echo "Cargo 1.83.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
             # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -752,10 +752,10 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             fi
 
             source "$HOME/.cargo/env"
-            rustup install 1.78.0
-            rustup default 1.78.0
+            rustup install 1.83.0
+            rustup default 1.83.0
         else
-            echo "Cargo 1.78.0 is already installed."
+            echo "Cargo 1.83.0 is already installed."
         fi
 
         STEP=$((STEP + 1))
@@ -899,8 +899,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
@@ -932,8 +932,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
