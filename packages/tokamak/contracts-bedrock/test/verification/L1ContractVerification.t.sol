@@ -358,7 +358,7 @@ contract L1ContractVerificationTest is Test {
    * @notice Test verification failure with invalid ProxyAdmin
    * @dev Attempts verification with a contract that's not the expected ProxyAdmin
    */
-  function testVerifyL1ContractsFailInvalidProxyAdmin() public {
+  function testVerifyL1ContractsFailInvalidProxyAdminContract() public {
     vm.startPrank(owner);
 
     // Setup all contract information
@@ -391,7 +391,7 @@ contract L1ContractVerificationTest is Test {
     MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
 
     // Verification should fail with ProxyAdmin verification error
-    vm.expectRevert('ProxyAdmin verification failed: invalid codehash');
+    vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(wrongProxyAdmin),
@@ -455,7 +455,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    vm.expectRevert('Invalid proxy admin address');
+    vm.expectRevert('Safe wallet verification failed: address mismatch');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(differentProxyAdmin), // Using different proxy admin
@@ -497,7 +497,7 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail because we're providing a different safe wallet address
     // than what's configured as the owner in the proxy admin
-    vm.expectRevert('Invalid proxy admin address');
+    vm.expectRevert('Safe wallet verification failed: address mismatch');
     verifier.verifyL1Contracts(
         address(systemConfigProxy),
         address(mockProxyAdmin),
@@ -1701,7 +1701,7 @@ contract L1ContractVerificationTest is Test {
 
     // Test that first safe wallet cannot use second safe wallet's proxy admin
     vm.startPrank(user);
-    vm.expectRevert("Invalid proxy admin address");
+    vm.expectRevert("Safe wallet verification failed: address mismatch");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(proxyAdmin2),

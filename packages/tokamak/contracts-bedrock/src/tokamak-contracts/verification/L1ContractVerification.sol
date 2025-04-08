@@ -254,11 +254,11 @@ contract L1ContractVerification is
       'Safe wallet address cannot be zero'
     );
 
+        // Verify L1 contracts
+    _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
+
     // Verify proxy admin
     _verifyProxyAdmin(proxyAdmin, safeWalletAddress);
-
-    // Verify L1 contracts
-    _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
 
     return true;
   }
@@ -302,11 +302,11 @@ contract L1ContractVerification is
       'No safe wallet configured for operator'
     );
 
-    // Verify proxy admin
-    _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
-
     // Verify L1 contracts
     _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, _safeWalletAddress);
+
+    // Verify proxy admin
+    _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
 
     // Emit verification success event
     emit VerificationSuccess(
