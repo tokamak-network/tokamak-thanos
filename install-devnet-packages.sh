@@ -854,7 +854,14 @@ function check_command_version {
     VERSION_CMD=$3
 
     if command -v "$CMD" &> /dev/null; then
+
+        # If zsh, enable word splitting option locally.
+        if [[ "$OS_TYPE" == "darwin" ]]; then
+            setopt localoptions sh_word_split
+        fi
+
         CURRENT_VERSION=$($VERSION_CMD 2>&1 | head -n 1)
+
         if [[ -z "$EXPECTED_VERSION" ]]; then
             if [[ "$CMD" == "forge" || "$CMD" == "cast" || "$CMD" == "anvil" ]]; then
                 echo "✅ foundry - $CMD is installed. Current version: $CURRENT_VERSION"
