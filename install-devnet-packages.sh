@@ -860,7 +860,7 @@ function check_command_version {
             setopt localoptions sh_word_split
         fi
 
-        CURRENT_VERSION=$($VERSION_CMD 2>&1 | head -n 1)
+        CURRENT_VERSION=$(eval $VERSION_CMD 2>&1 | head -n 1)
 
         if [[ -z "$EXPECTED_VERSION" ]]; then
             if [[ "$CMD" == "forge" || "$CMD" == "cast" || "$CMD" == "anvil" ]]; then
