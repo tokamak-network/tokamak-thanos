@@ -112,18 +112,6 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Set Proxy Admin Codehash
-   * @param _proxyAdmin The address of the ProxyAdmin
-   * @dev This updates codehash of proxy admin
-   */
-  function setProxyAdminCodeHash(
-    address _proxyAdmin
-  ) external onlyRole(ADMIN_ROLE) {
-    _setProxyAdminCodehash(_proxyAdmin);
-    emit ProxyAdminCodehashSet(proxyAdminCodehash);
-  }
-
-  /**
    * @notice Set all logic contract info in one call using a deployed SystemConfig contract
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin
