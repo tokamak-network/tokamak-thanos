@@ -51,41 +51,13 @@ contract VerifyContractSetConfig is Script {
 
     function run() external {
         setUp();
-
+        vm.startBroadcast();
         // Create reference to the deployed proxy
         L1ContractVerification verifier = L1ContractVerification(_proxyAddress);
 
-        // Prepare the verification transaction data
-        bytes memory verifyData = abi.encodeWithSelector(
-            L1ContractVerification.verifyL1Contracts.selector,
-            _systemConfigProxy,
-            _l1ProxyAdmin,
-            _safeWalletAddress
-        );
-
-        // Get the multisig contract
-        IMultiSigWallet multiSig = IMultiSigWallet(_multisigWallet);
-
-        // Submit and confirm the transaction with first owner
-        vm.startPrank(vm.addr(_multisigOwner1));
-        multiSig.submitTransaction(
-            _proxyAddress,
-            0,
-            verifyData
-        );
-        uint txIndex = multiSig.getTransactionCount() - 1;
-        vm.stopPrank();
-
-        // Second owner confirms
-        vm.startPrank(vm.addr(_multisigOwner2));
-        multiSig.confirmTransaction(txIndex);
-        vm.stopPrank();
-
-        // Execute the transaction (can be done by any owner since we have enough confirmations)
-        vm.startPrank(vm.addr(_multisigOwner1));
-        multiSig.executeTransaction(txIndex);
-        vm.stopPrank();
+        verifier.verifyL1Contracts(_systemConfigProxy, _l1ProxyAdmin, _safeWalletAddress);
 
         console.log('L1 contracts verification completed successfully');
+        vm.stopBroadcast();
     }
 }
