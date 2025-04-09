@@ -412,6 +412,14 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     open -a Docker
     sudo chmod 666 /var/run/docker.sock
 
+    echo "Waiting for Docker to start..."
+    while [ ! -S /var/run/docker.sock ]; do
+        sleep 1
+    done
+
+    echo "Docker is ready. Changing socket permissions..."
+    sudo chmod 666 /var/run/docker.sock
+
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Compose..."
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose not found, installing..."
