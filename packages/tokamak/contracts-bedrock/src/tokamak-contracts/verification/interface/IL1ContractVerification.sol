@@ -86,8 +86,6 @@ interface IL1ContractVerification {
     address _safeWalletAddress
   ) external returns (bool);
 
-  function setProxyAdminCodeHash(address _proxyAdmin) external;
-
   function setVerificationPossible(bool _isVerificationPossible) external;
 
   function verifyL1Contracts(

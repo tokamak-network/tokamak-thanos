@@ -80,10 +80,6 @@ contract SetupL1ContractVerification is Script {
     // Set logic contract info
     verifier.setLogicContractInfo(_systemConfigProxy, _l1ProxyAdmin);
 
-    // Set ProxyAdmin codehash
-    verifier.setProxyAdminCodeHash(_l1ProxyAdmin);
-    console.log('ProxyAdmin codehash set');
-
     // Get the safe wallet address from the proxy admin
     IProxyAdmin proxyAdminContract = IProxyAdmin(address(_l1ProxyAdmin));
     address safeWalletAddress = proxyAdminContract.owner();
