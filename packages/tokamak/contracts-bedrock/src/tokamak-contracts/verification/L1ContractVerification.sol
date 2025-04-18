@@ -180,17 +180,20 @@ contract L1ContractVerification is
    * @param _threshold The required threshold for the safe wallet
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
+   * @param _ownersCount The maximum number of owners allowed for the safe wallet
    */
   function setSafeConfig(
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash
+    bytes32 _proxyCodehash,
+    uint256 _ownersCount
   ) external onlyRole(ADMIN_ROLE) {
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
+    require(_ownersCount == 3, 'Max owners must be 3');
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -198,7 +201,8 @@ contract L1ContractVerification is
       foundation: _foundation,
       implementationCodehash: _implementationCodehash,
       proxyCodehash: _proxyCodehash,
-      requiredThreshold: _threshold
+      requiredThreshold: _threshold,
+      ownersCount: _ownersCount
     });
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
@@ -442,6 +446,12 @@ contract L1ContractVerification is
     // Verify owners (tokamakDAO, foundation must be included)
     address[] memory owners = safe.getOwners();
 
+    // Verify number of owners doesn't exceed the maximum
+    require(
+      owners.length == safeWalletConfig.ownersCount,
+      'Safe wallet verification failed: wrong number of owners'
+    );
+
     bool foundTokamakDAO = false;
     bool foundFoundation = false;
 
@@ -564,32 +574,12 @@ contract L1ContractVerification is
     * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
     */
     function _verifyOwner(address _proxyAddress, address _proxyAdmin) private view returns (bool) {
-        // Get the admin slot value
-        bytes32 adminBytes;
-        address actualAdmin;
+  
+        IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
+
+        address actualAdmin = proxyAdminContract.getProxyAdmin(payable(_proxyAddress));
 
 
-        bytes32 ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-
-        // L1StandardBridge uses L1ChugSplashProxy which stores the owner at a different slot
-        if (_isL1StandardBridge(_proxyAddress)) {
-            // L1ChugSplashProxy uses slot 0 to store its owner
-            actualAdmin = IL1StandardBridge(_proxyAddress).getOwner();
-        }
-        // L1CrossDomainMessenger uses LegacyProxy
-        else if (_isL1CrossDomainMessenger(_proxyAddress)) {
-            // LegacyProxy stores the admin address at storage slot 0
-            actualAdmin = IL1CrossDomainMessenger(_proxyAddress).owner();
-        }
-        // this is for optimism portal
-        else {
-            assembly {
-                adminBytes := sload(ADMIN_SLOT)
-            }
-        }
-
-
-        actualAdmin = address(uint160(uint256(adminBytes)));
         console.log('Admin Recieved', actualAdmin);
         console.log('proxyAdmin', _proxyAdmin);
         return actualAdmin == _proxyAdmin;

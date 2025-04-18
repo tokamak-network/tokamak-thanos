@@ -53,6 +53,7 @@ interface IL1ContractVerification {
     bytes32 implementationCodehash;
     bytes32 proxyCodehash;
     uint256 requiredThreshold;
+    uint256 ownersCount;
   }
 
   // Events
@@ -84,7 +85,8 @@ interface IL1ContractVerification {
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash
+    bytes32 _proxyCodehash,
+    uint256 _ownersCount
   ) external;
 
   function setBridgeRegistryAddress(address _bridgeRegistry) external;
