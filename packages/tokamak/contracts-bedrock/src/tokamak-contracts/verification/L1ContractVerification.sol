@@ -5,6 +5,8 @@ import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol'
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
+import "forge-std/console.sol";
+
 /**
  * @title L1ContractVerification
  * @notice This contract verifies the integrity of critical L1 contracts for Tokamak rollups
@@ -368,6 +370,7 @@ contract L1ContractVerification is
     address _expectedImplementation,
     address _proxyAdmin
   ) private view returns (bool) {
+    // address owner = systemConfig.logicAddress;
     IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
 
     try proxyAdmin.getProxyImplementation(_proxyAddress) returns (
@@ -485,6 +488,26 @@ contract L1ContractVerification is
       .l1CrossDomainMessenger();
     address optimismPortalAddress = systemConfigContract.optimismPortal();
 
+        // Verify proxy admin relationship for OptimismPortal
+    require(
+        _verifyOwner(optimismPortalAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of OptimismPortal'
+    );
+
+    // Verify proxy admin relationship for L1StandardBridge
+    require(
+        _verifyOwner(l1StandardBridgeAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of L1StandardBridge'
+    );
+
+    // Verify proxy admin relationship for L1CrossDomainMessenger
+    require(
+        _verifyOwner(l1CrossDomainMessengerAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of L1CrossDomainMessenger'
+    );
+
+
+
     // Step 2: Verify L1StandardBridge
     require(
       _verifyImplementation(
@@ -533,4 +556,65 @@ contract L1ContractVerification is
     require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
     proxyAdminCodehash = proxyAdminHash;
   }
+
+    /**
+    * @notice Verifies that the provided proxy admin is the actual admin of a proxy contract
+    * @param _proxyAddress The address of the proxy contract to check
+    * @param _proxyAdmin The address of the claimed proxy admin
+    * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
+    */
+    function _verifyOwner(address _proxyAddress, address _proxyAdmin) private view returns (bool) {
+        // Get the admin slot value
+        bytes32 adminBytes;
+        address actualAdmin;
+
+
+        bytes32 ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+
+        // L1StandardBridge uses L1ChugSplashProxy which stores the owner at a different slot
+        if (_isL1StandardBridge(_proxyAddress)) {
+            // L1ChugSplashProxy uses slot 0 to store its owner
+            actualAdmin = IL1StandardBridge(_proxyAddress).getOwner();
+        }
+        // L1CrossDomainMessenger uses LegacyProxy
+        else if (_isL1CrossDomainMessenger(_proxyAddress)) {
+            // LegacyProxy stores the admin address at storage slot 0
+            actualAdmin = IL1CrossDomainMessenger(_proxyAddress).owner();
+        }
+        // this is for optimism portal
+        else {
+            assembly {
+                adminBytes := sload(ADMIN_SLOT)
+            }
+        }
+
+
+        actualAdmin = address(uint160(uint256(adminBytes)));
+        console.log('Admin Recieved', actualAdmin);
+        console.log('proxyAdmin', _proxyAdmin);
+        return actualAdmin == _proxyAdmin;
+    }
+
+
+    /**
+    * @notice Checks if the address is the L1StandardBridge contract
+    * @param _address The address to check
+    * @return Returns true if the address is L1StandardBridge
+    */
+    function _isL1StandardBridge(address _address) private view returns (bool) {
+        // We can determine this by checking against the address we got from SystemConfig
+        ISystemConfig systemConfig = ISystemConfig(systemConfig.logicAddress);
+        return _address == systemConfig.l1StandardBridge();
+    }
+
+    /**
+    * @notice Checks if the address is the L1CrossDomainMessenger contract
+    * @param _address The address to check
+    * @return Returns true if the address is L1CrossDomainMessenger
+    */
+    function _isL1CrossDomainMessenger(address _address) private view returns (bool) {
+        // We can determine this by checking against the address we got from SystemConfig
+        ISystemConfig systemConfig = ISystemConfig(systemConfig.logicAddress);
+        return _address == systemConfig.l1CrossDomainMessenger();
+}
 }

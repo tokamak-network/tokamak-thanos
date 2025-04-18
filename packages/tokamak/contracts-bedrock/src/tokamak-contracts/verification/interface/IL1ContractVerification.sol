@@ -14,6 +14,18 @@ interface ISystemConfig {
   function nativeTokenAddress() external view returns (address);
 }
 
+interface IL1CrossDomainMessenger{
+    function owner() external view returns (address);
+}
+
+interface IL1StandardBridge{
+    function getOwner() external view returns (address);
+}
+
+interface IOptimismPortal{
+    function admin() external view returns (address);
+}
+
 interface IL1BridgeRegistry {
   function registerRollupConfig(
     address rollupConfig,
