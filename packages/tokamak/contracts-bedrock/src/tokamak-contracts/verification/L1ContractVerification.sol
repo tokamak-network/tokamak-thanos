@@ -5,6 +5,7 @@ import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol'
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
+
 /**
  * @title L1ContractVerification
  * @notice This contract verifies the integrity of critical L1 contracts for Tokamak rollups
@@ -178,17 +179,20 @@ contract L1ContractVerification is
    * @param _threshold The required threshold for the safe wallet
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
+   * @param _ownersCount The number of owners allowed for the safe wallet
    */
   function setSafeConfig(
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash
+    bytes32 _proxyCodehash,
+    uint256 _ownersCount
   ) external onlyRole(ADMIN_ROLE) {
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
+    require(_ownersCount == 3, 'Owners must be 3');
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -196,7 +200,8 @@ contract L1ContractVerification is
       foundation: _foundation,
       implementationCodehash: _implementationCodehash,
       proxyCodehash: _proxyCodehash,
-      requiredThreshold: _threshold
+      requiredThreshold: _threshold,
+      ownersCount: _ownersCount
     });
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
@@ -439,6 +444,12 @@ contract L1ContractVerification is
     // Verify owners (tokamakDAO, foundation must be included)
     address[] memory owners = safe.getOwners();
 
+    // Verify number of owners doesn't exceed the maximum
+    require(
+      owners.length == safeWalletConfig.ownersCount,
+      'Safe wallet verification failed: wrong number of owners'
+    );
+
     bool foundTokamakDAO = false;
     bool foundFoundation = false;
 
@@ -484,6 +495,25 @@ contract L1ContractVerification is
     address l1CrossDomainMessengerAddress = systemConfigContract
       .l1CrossDomainMessenger();
     address optimismPortalAddress = systemConfigContract.optimismPortal();
+
+        // Verify proxy admin relationship for OptimismPortal
+    require(
+        _verifyProxyOwner(optimismPortalAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of OptimismPortal'
+    );
+
+    // Verify proxy admin relationship for L1StandardBridge
+    require(
+        _verifyProxyOwner(l1StandardBridgeAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of L1StandardBridge'
+    );
+
+    // Verify proxy admin relationship for L1CrossDomainMessenger
+    require(
+        _verifyProxyOwner(l1CrossDomainMessengerAddress, _proxyAdmin),
+        'ProxyAdmin is not the admin of L1CrossDomainMessenger'
+    );
+
 
     // Step 2: Verify L1StandardBridge
     require(
@@ -533,4 +563,18 @@ contract L1ContractVerification is
     require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
     proxyAdminCodehash = proxyAdminHash;
   }
+
+    /**
+    * @notice Verifies that the provided proxy admin is the actual admin of a proxy contract
+    * @param _proxyAddress The address of the proxy contract to check
+    * @param _proxyAdmin The address of the claimed proxy admin
+    * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
+    */
+    function _verifyProxyOwner(address _proxyAddress, address _proxyAdmin) private view returns (bool) {
+
+        IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
+
+        address actualAdmin = proxyAdminContract.getProxyAdmin(payable(_proxyAddress));
+        return actualAdmin == _proxyAdmin;
+    }
 }
