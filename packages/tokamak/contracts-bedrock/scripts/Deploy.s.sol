@@ -248,6 +248,12 @@ contract Deploy is Deployer {
         _callViaSafe({ _safe: safe, _target: proxyAdmin, _data: data });
     }
 
+    function verifyImplementationExists(address impl) internal view returns (bool) {
+        uint256 codeSize;
+        assembly { codeSize := extcodesize(impl) }
+        return codeSize > 0;
+    }
+
     /// @notice Transfer ownership of the ProxyAdmin contract to the final system owner
     function transferProxyAdminOwnership() public broadcast {
         ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
@@ -1023,15 +1029,25 @@ contract Deploy is Deployer {
     function initializeDisputeGameFactory() public broadcast {
         console.log("Upgrading and initializing DisputeGameFactory proxy");
         address disputeGameFactoryProxy = mustGetAddress("DisputeGameFactoryProxy");
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address disputeGameFactory = isFirst
-            ? mustGetAddress("DisputeGameFactory")
-            : jsonDeployment.readAddress(".DisputeGameFactory");
-        if (!isFirst) {
-            console.log("DisputeGameFactory address from JSON: %s", disputeGameFactory);
+        address disputeGameFactory;
+
+        if (cfg.isFirstDeploy()) {
+            disputeGameFactory = mustGetAddress("DisputeGameFactory");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".DisputeGameFactory");
+            console.log("DisputeGameFactory address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                disputeGameFactory = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                disputeGameFactory = address(new DisputeGameFactory{ salt: _implSalt() }());
+                require(disputeGameFactory != address(0), "DisputeGameFactory deployment failed");
+                save("DisputeGameFactory", disputeGameFactory);
+                console.log("DisputeGameFactory deployed at %s", disputeGameFactory);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1051,15 +1067,24 @@ contract Deploy is Deployer {
         address delayedWETHProxy = mustGetAddress("DelayedWETHProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address delayedWETH;
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address delayedWETH = isFirst
-            ? mustGetAddress("DelayedWETH")
-            : jsonDeployment.readAddress(".DelayedWETH");
-        if (!isFirst) {
-            console.log("DelayedWETH address from JSON: %s", delayedWETH);
+        if (cfg.isFirstDeploy()) {
+            delayedWETH = mustGetAddress("DelayedWETH");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".DelayedWETH");
+            console.log("DelayedWETH address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                delayedWETH = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
+                require(delayedWETH != address(0), "DelayedWETH deployment failed");
+                save("DelayedWETH", delayedWETH);
+                console.log("DelayedWETH deployed at %s", delayedWETH);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1084,15 +1109,31 @@ contract Deploy is Deployer {
         address delayedWETHProxy = mustGetAddress("PermissionedDelayedWETHProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address delayedWETH;
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address delayedWETH = isFirst
-            ? mustGetAddress("DelayedWETH")
-            : jsonDeployment.readAddress(".DelayedWETH");
-        if (!isFirst) {
-            console.log("DelayedWETH address from JSON: %s", delayedWETH);
+        if (cfg.isFirstDeploy()) {
+            delayedWETH = mustGetAddress("DelayedWETH");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".DelayedWETH");
+            console.log("DelayedWETH address from JSON: %s", savedAddress);
+
+            // Re-use on-chain deployment
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                delayedWETH = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                // If we didn't deploy the DelayedWETH contract in initializeDelayedWETH(), deploy it here.
+                if (load("DelayedWETH") == address(0)) {
+                    console.log("Implementation from JSON not found on-chain, deploying new one");
+                    delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
+                    require(delayedWETH != address(0), "DelayedWETH deployment failed");
+                    save("DelayedWETH", delayedWETH);
+                    console.log("DelayedWETH deployed at %s", delayedWETH);
+                // Import from deployment
+                } else {
+                    delayedWETH = mustGetAddress("DelayedWETH");
+                }
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1154,15 +1195,24 @@ contract Deploy is Deployer {
             })
         });
 
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address anchorStateRegistry;
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address anchorStateRegistry = isFirst
-            ? mustGetAddress("AnchorStateRegistry")
-            : jsonDeployment.readAddress(".AnchorStateRegistry");
-        if (!isFirst) {
-            console.log("AnchorStateRegistry address from JSON: %s", anchorStateRegistry);
+        if (cfg.isFirstDeploy()) {
+            anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".AnchorStateRegistry");
+            console.log("AnchorStateRegistry address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                anchorStateRegistry = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                anchorStateRegistry = address(new AnchorStateRegistry{ salt: _implSalt() }(DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"))));
+                require(anchorStateRegistry != address(0), "AnchorStateRegistry deployment failed");
+                save("AnchorStateRegistry", anchorStateRegistry);
+                console.log("AnchorStateRegistry deployed at %s", anchorStateRegistry);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1194,14 +1244,24 @@ contract Deploy is Deployer {
         }
         console.log("Address of l2NativeToken: ", l2NativeTokenAddress);
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address systemConfig;
 
-        address systemConfig = isFirst
-            ? mustGetAddress("SystemConfig")
-            : jsonDeployment.readAddress(".SystemConfig");
-        if (!isFirst) {
-            console.log("SystemConfig address from JSON: %s", systemConfig);
+        if (cfg.isFirstDeploy()) {
+            systemConfig = mustGetAddress("SystemConfig");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".SystemConfig");
+            console.log("SystemConfig address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                systemConfig = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                systemConfig = address(new SystemConfig{ salt: _implSalt() }());
+                require(systemConfig != address(0), "SystemConfig deployment failed");
+                save("SystemConfig", systemConfig);
+                console.log("SystemConfig deployed at %s", systemConfig);
+            }
         }
 
         bytes memory _innerCallData = abi.encodeCall(
@@ -1243,25 +1303,35 @@ contract Deploy is Deployer {
     function initializeL1StandardBridge() public broadcast {
         console.log("Upgrading and initializing L1StandardBridge proxy");
 
-        // Retrieve the ProxyAdmin contract instance.
-        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
-        // Get the L1StandardBridge proxy address.
+        // Retrieve the ProxyAdmin contract instance and addresses
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
+        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
-        // Check cfg.isFirstDeploy() only once.
-        bool isFirst = cfg.isFirstDeploy();
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        Safe safe = Safe(mustGetAddress("SystemOwnerSafe"));
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address l1StandardBridge = isFirst
-            ? mustGetAddress("L1StandardBridge")
-            : jsonDeployment.readAddress(".L1StandardBridge");
-        if (!isFirst) {
-            console.log("L1StandardBridge address from JSON: %s", l1StandardBridge);
+        address l1StandardBridge;
+
+        if (cfg.isFirstDeploy()) {
+            l1StandardBridge = mustGetAddress("L1StandardBridge");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".L1StandardBridge");
+            console.log("L1StandardBridge address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                l1StandardBridge = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                l1StandardBridge = deployL1StandardBridge();
+                require(l1StandardBridge != address(0), "L1StandardBridge deployment failed");
+            }
         }
 
         // Set the proxy type.
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
-        Safe safe = Safe(mustGetAddress("SystemOwnerSafe"));
         if (proxyType != uint256(ProxyAdmin.ProxyType.CHUGSPLASH)) {
             _callViaSafe({
                 _safe: safe,
@@ -1270,11 +1340,6 @@ contract Deploy is Deployer {
             });
         }
         require(uint256(proxyAdmin.proxyType(l1StandardBridgeProxy)) == uint256(ProxyAdmin.ProxyType.CHUGSPLASH));
-
-        // Retrieve dependent contract addresses.
-        address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l1StandardBridgeProxy),
@@ -1303,14 +1368,24 @@ contract Deploy is Deployer {
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address l1ERC721Bridge;
 
-        address l1ERC721Bridge = isFirst
-            ? mustGetAddress("L1ERC721Bridge")
-            : jsonDeployment.readAddress(".L1ERC721Bridge");
-        if (!isFirst) {
-            console.log("L1ERC721Bridge address from JSON: %s", l1ERC721Bridge);
+        if (cfg.isFirstDeploy()) {
+            l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".L1ERC721Bridge");
+            console.log("L1ERC721Bridge address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                l1ERC721Bridge = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                l1ERC721Bridge = address(new L1ERC721Bridge{ salt: _implSalt() }());
+                require(l1ERC721Bridge != address(0), "L1ERC721Bridge deployment failed");
+                save("L1ERC721Bridge", l1ERC721Bridge);
+                console.log("L1ERC721Bridge deployed at %s", l1ERC721Bridge);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1335,15 +1410,24 @@ contract Deploy is Deployer {
         address optimismMintableERC20FactoryProxy = mustGetAddress("OptimismMintableERC20FactoryProxy");
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address optimismMintableERC20Factory;
 
-        address optimismMintableERC20Factory = isFirst
-            ? mustGetAddress("OptimismMintableERC20Factory")
-            : jsonDeployment.readAddress(".OptimismMintableERC20Factory");
+        if (cfg.isFirstDeploy()) {
+            optimismMintableERC20Factory = mustGetAddress("OptimismMintableERC20Factory");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".OptimismMintableERC20Factory");
+            console.log("OptimismMintableERC20Factory address from JSON: %s", savedAddress);
 
-        if (!isFirst) {
-            console.log("OptimismMintableERC20Factory address from JSON: %s", optimismMintableERC20Factory);
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                optimismMintableERC20Factory = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                optimismMintableERC20Factory = address(new OptimismMintableERC20Factory{ salt: _implSalt() }());
+                require(optimismMintableERC20Factory != address(0), "OptimismMintableERC20Factory deployment failed");
+                save("OptimismMintableERC20Factory", optimismMintableERC20Factory);
+                console.log("OptimismMintableERC20Factory deployed at %s", optimismMintableERC20Factory);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1363,24 +1447,40 @@ contract Deploy is Deployer {
     function initializeL1CrossDomainMessenger() public broadcast {
         console.log("Upgrading and initializing L1CrossDomainMessenger proxy");
 
-        // Retrieve the ProxyAdmin instance and L1CrossDomainMessenger proxy address.
-        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        // Retrieve the contract instance and addresses
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
+        // Retrieve dependent contract addresses.
+        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
+        Safe safe = Safe(mustGetAddress("SystemOwnerSafe"));
 
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address l1CrossDomainMessenger = isFirst
-            ? mustGetAddress("L1CrossDomainMessenger")
-            : jsonDeployment.readAddress(".L1CrossDomainMessenger");
-        if (!isFirst) {
-            console.log("L1CrossDomainMessenger address from JSON: %s", l1CrossDomainMessenger);
+        address l1CrossDomainMessenger;
+
+        if (cfg.isFirstDeploy()) {
+            l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".L1CrossDomainMessenger");
+            console.log("L1CrossDomainMessenger address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                l1CrossDomainMessenger = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                l1CrossDomainMessenger = address(new L1CrossDomainMessenger{ salt: _implSalt() }());
+                require(l1CrossDomainMessenger != address(0), "L1CrossDomainMessenger deployment failed");
+                save("L1CrossDomainMessenger", l1CrossDomainMessenger);
+                console.log("L1CrossDomainMessenger deployed at %s", l1CrossDomainMessenger);
+
+            }
         }
 
         // Set the proxy type to RESOLVED if not already set.
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1CrossDomainMessengerProxy));
-        Safe safe = Safe(mustGetAddress("SystemOwnerSafe"));
+
         if (proxyType != uint256(ProxyAdmin.ProxyType.RESOLVED)) {
             _callViaSafe({
                 _safe: safe,
@@ -1405,10 +1505,7 @@ contract Deploy is Deployer {
             keccak256(bytes(contractName))
         );
 
-        // Retrieve dependent contract addresses.
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
-        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
+
         _upgradeAndCallViaSafe({
             _proxy: payable(l1CrossDomainMessengerProxy),
             _implementation: l1CrossDomainMessenger,
@@ -1435,14 +1532,24 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing L2OutputOracle proxy");
         address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address l2OutputOracle;
 
-        address l2OutputOracle = isFirst
-            ? mustGetAddress("L2OutputOracle")
-            : jsonDeployment.readAddress(".L2OutputOracle");
-        if (!isFirst) {
-            console.log("L2OutputOracle address from JSON: %s", l2OutputOracle);
+        if (cfg.isFirstDeploy()) {
+            l2OutputOracle = mustGetAddress("L2OutputOracle");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".L2OutputOracle");
+            console.log("L2OutputOracle address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                l2OutputOracle = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                l2OutputOracle = address(new L2OutputOracle{ salt: _implSalt() }());
+                require(l2OutputOracle != address(0), "L2OutputOracle deployment failed");
+                save("L2OutputOracle", l2OutputOracle);
+                console.log("L2OutputOracle deployed at %s", l2OutputOracle);
+            }
         }
 
         _upgradeAndCallViaSafe({
@@ -1484,17 +1591,27 @@ contract Deploy is Deployer {
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address optimismPortal;
 
         // Get the OptimismPortal implementation address based on deployment type.
-        // For first deployment, use current deployment history.
-        // For duplicate deployments, read from JSON.
-        address optimismPortal = isFirst
-            ? mustGetAddress("OptimismPortal")
-            : jsonDeployment.readAddress(".OptimismPortal");
-        if (!isFirst) {
-            console.log("OptimismPortal address from JSON: %s", optimismPortal);
+        if (cfg.isFirstDeploy()) {
+            // For initial deployment, use current deployment history
+            optimismPortal = mustGetAddress("OptimismPortal");
+        } else {
+            // For duplicate deployments, try to read from JSON
+            address savedAddress = jsonDeployment.readAddress(".OptimismPortal");
+            console.log("OptimismPortal address from JSON: %s", savedAddress);
+            // Check if the implementation exists on-chain
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                optimismPortal = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                optimismPortal = address(new OptimismPortal{ salt: _implSalt() }());
+                require(optimismPortal != address(0), "OptimismPortal deployment failed");
+                save("OptimismPortal", optimismPortal);
+                console.log("OptimismPortal deployed at %s", optimismPortal);
+            }
         }
         // Upgrade the proxy with the new implementation and initialization data.
         _upgradeAndCallViaSafe({
@@ -1527,14 +1644,27 @@ contract Deploy is Deployer {
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
         address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
-        // Determine if it's the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
+        address optimismPortal2;
 
-        address optimismPortal2 = isFirst
-            ? mustGetAddress("OptimismPortal2")
-            : jsonDeployment.readAddress(".OptimismPortal2");
-        if (!isFirst) {
-            console.log("OptimismPortal2 address from JSON: %s", optimismPortal2);
+        if (cfg.isFirstDeploy()) {
+            optimismPortal2 = mustGetAddress("OptimismPortal2");
+        } else {
+            address savedAddress = jsonDeployment.readAddress(".OptimismPortal2");
+            console.log("OptimismPortal2 address from JSON: %s", savedAddress);
+
+            if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
+                optimismPortal2 = savedAddress;
+                console.log("Using existing implementation from JSON");
+            } else {
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                optimismPortal2 = address(new OptimismPortal2{ salt: _implSalt() }({
+            _proofMaturityDelaySeconds: cfg.proofMaturityDelaySeconds(),
+            _disputeGameFinalityDelaySeconds: cfg.disputeGameFinalityDelaySeconds()
+        }));
+                require(optimismPortal2 != address(0), "OptimismPortal2 deployment failed");
+                save("OptimismPortal2", optimismPortal2);
+                console.log("OptimismPortal2 deployed at %s", optimismPortal2);
+            }
         }
 
         _upgradeAndCallViaSafe({
