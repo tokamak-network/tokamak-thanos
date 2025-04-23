@@ -1125,16 +1125,17 @@ contract Deploy is Deployer {
                 console.log("Using existing implementation from JSON");
             } else {
                 // If we didn't deploy the DelayedWETH contract in initializeDelayedWETH(), deploy it here.
-                if (load("DelayedWETH") == address(0)) {
+                // if (load("DelayedWETH") == address(0)) {
                     console.log("Implementation from JSON not found on-chain, deploying new one");
                     delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
                     require(delayedWETH != address(0), "DelayedWETH deployment failed");
                     save("DelayedWETH", delayedWETH);
                     console.log("DelayedWETH deployed at %s", delayedWETH);
                     // Import from deployment
-                } else {
-                    delayedWETH = mustGetAddress("DelayedWETH");
-                }
+                // }
+                // else {
+                //     delayedWETH = mustGetAddress("DelayedWETH");
+                // }
             }
         }
 
@@ -1332,8 +1333,10 @@ contract Deploy is Deployer {
                 console.log("Using existing implementation from JSON");
             } else {
                 console.log("Implementation from JSON not found on-chain, deploying new one");
-                l1StandardBridge = deployL1StandardBridge();
+                l1StandardBridge = address(new L1StandardBridge{ salt: _implSalt() }());
                 require(l1StandardBridge != address(0), "L1StandardBridge deployment failed");
+                save("L1StandardBridge", l1StandardBridge);
+                console.log("L1StandardBridge deployed at %s", l1StandardBridge);
             }
         }
 
