@@ -5,6 +5,7 @@ interface IGnosisSafe {
   function getThreshold() external view returns (uint256);
   function getOwners() external view returns (address[] memory);
   function masterCopy() external view returns (address);
+  function getModulesPaginated(address, uint256) external view returns (address[] memory);
 }
 
 interface ISystemConfig {
