@@ -1778,4 +1778,92 @@ contract L1ContractVerificationTest is Test {
     );
     vm.stopPrank();
   }
+
+  /**
+   * @notice Test verification failure when modules are set on the safe wallet
+   * @dev Verifies that a safe wallet with modules will fail verification
+   */
+  function testVerifyL1ContractsFailWithModules() public {
+    vm.startPrank(owner);
+
+    // Setup contract information
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Create a safe wallet with a module
+    address[] memory safeOwners = new address[](3);
+    safeOwners[0] = tokamakDAO;
+    safeOwners[1] = foundation;
+    safeOwners[2] = thirdOwner;
+    MockGnosisSafe maliciousSafe = new MockGnosisSafe(safeOwners, 3);
+
+    // Create a module address
+    address moduleAddress = makeAddr("maliciousModule");
+
+    // Create a proxy admin owned by the safe
+    MockProxyAdmin safeProxyAdmin = new MockProxyAdmin(owner);
+    safeProxyAdmin.setOwner(address(maliciousSafe));
+
+    // Set up implementations
+    safeProxyAdmin.setImplementation(
+      address(systemConfigProxy),
+      address(systemConfigImpl)
+    );
+    safeProxyAdmin.setImplementation(
+      address(l1StandardBridgeProxy),
+      address(l1StandardBridgeImpl)
+    );
+    safeProxyAdmin.setImplementation(
+      address(l1CrossDomainMessengerProxy),
+      address(l1CrossDomainMessengerImpl)
+    );
+    safeProxyAdmin.setImplementation(
+      address(optimismPortalProxy),
+      address(optimismPortalImpl)
+    );
+
+    // Set up admin relationships
+    safeProxyAdmin.setAdmin(address(systemConfigProxy), address(safeProxyAdmin));
+    safeProxyAdmin.setAdmin(address(l1StandardBridgeProxy), address(safeProxyAdmin));
+    safeProxyAdmin.setAdmin(address(l1CrossDomainMessengerProxy), address(safeProxyAdmin));
+    safeProxyAdmin.setAdmin(address(optimismPortalProxy), address(safeProxyAdmin));
+
+    // Set safe wallet configurations
+    verifier.setSafeConfig(
+      tokamakDAO,
+      foundation,
+      3,
+      maliciousSafe.masterCopy().codehash,
+      address(maliciousSafe).codehash,
+      3
+    );
+
+    // Grant admin roles
+    verifier.addAdmin(user);
+
+    vm.stopPrank();
+
+    // Create a modules array with one module
+    address[] memory modules = new address[](1);
+    modules[0] = moduleAddress;
+
+    // Mock the getModulesPaginated function to return modules
+    vm.mockCall(
+      address(maliciousSafe),
+      abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 100),
+      abi.encode(modules, address(0))
+    );
+
+    // Test that verification fails when modules are present
+    vm.startPrank(user);
+    vm.expectRevert("Safe wallet verification failed: unauthorized modules");
+    verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(safeProxyAdmin),
+      address(maliciousSafe)
+    );
+    vm.stopPrank();
+  }
 }

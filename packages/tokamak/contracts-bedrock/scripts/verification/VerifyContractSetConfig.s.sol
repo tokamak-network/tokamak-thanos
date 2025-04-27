@@ -42,10 +42,6 @@ contract VerifyContractSetConfig is Script {
         _proxyAddress = vm.envAddress('L1_CONTRACT_VERIFICATION_PROXY');
         _systemConfigProxy = vm.envAddress('SYSTEM_CONFIG_PROXY');
         _l1ProxyAdmin = vm.envAddress('PROXY_ADMIN_ADDRESS');
-        _multisigOwner1 = vm.envUint('MULTISIG_OWNER_1');
-        _multisigOwner2 = vm.envUint('MULTISIG_OWNER_2');
-        _multisigOwner3 = vm.envUint('MULTISIG_OWNER_3');
-        _multisigWallet = vm.envAddress('MULTISIG_WALLET');
         _safeWalletAddress = vm.envAddress('SAFE_WALLET');
     }
 
