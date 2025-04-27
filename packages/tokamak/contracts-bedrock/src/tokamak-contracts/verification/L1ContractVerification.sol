@@ -34,6 +34,8 @@ contract L1ContractVerification is
    */
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
+  address internal constant SENTINEL_MODULES = address(0x1);
+
   // The expected native token (TON) address
   address public expectedNativeToken;
 
@@ -428,6 +430,9 @@ contract L1ContractVerification is
       implementation.codehash == safeWalletConfig.implementationCodehash,
       'Safe wallet verification failed: invalid implementation codehash'
     );
+
+    // Check if the modules are not set
+    require(safe.getModulesPaginated(SENTINEL_MODULES, 100).length == 0, "Safe wallet verification failed: unauthorized modules");
 
     // Check if the proxy codehash is the same as the expected proxy codehash
     require(
