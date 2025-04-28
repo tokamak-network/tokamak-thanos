@@ -5,6 +5,7 @@ import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol'
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import './interface/IL1ContractVerification.sol';
 import './interface/IProxyAdmin.sol';
+import "forge-std/console.sol";
 
 /**
  * @title L1ContractVerification
@@ -33,6 +34,8 @@ contract L1ContractVerification is
    * @dev Has access to all contract functions
    */
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+
+  bytes32 private constant FALLBACK_HANDLER_STORAGE_SLOT = 0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
 
   address internal constant SENTINEL_MODULES = address(0x1);
 
@@ -243,6 +246,8 @@ contract L1ContractVerification is
       systemConfigContract.nativeTokenAddress() == expectedNativeToken,
       'The native token you are using is not TON'
     );
+    console.log("Fallback Handler", _getFallbackHandler(safeWalletAddress));
+
 
     require(
       safeWalletAddress != address(0),
@@ -431,6 +436,11 @@ contract L1ContractVerification is
       'Safe wallet verification failed: invalid implementation codehash'
     );
 
+    console.log("Fallback Handler", _getFallbackHandler(safeWalletAddress));
+
+    // Check if the fallback handler is not set
+    require(_getFallbackHandler(safeWalletAddress) == address(0), "Safe wallet verification failed: unauthorized fallback handler");
+
     // Check if the modules are not set
     require(safe.getModulesPaginated(SENTINEL_MODULES, 100).length == 0, "Safe wallet verification failed: unauthorized modules");
 
@@ -582,4 +592,20 @@ contract L1ContractVerification is
         address actualAdmin = proxyAdminContract.getProxyAdmin(payable(_proxyAddress));
         return actualAdmin == _proxyAdmin;
     }
+
+        /**
+     * @notice Checks if a fallback handler is set on a Safe contract
+     * @param safeAddress The address of the Safe contract to check
+     * @return handler The address of the fallback handler, or address(0) if not set
+     */
+    function _getFallbackHandler(address safeAddress) internal view returns (address handler) {
+        // Access the storage slot directly
+        bytes32 value;
+        assembly {
+            value := sload(add(safeAddress, FALLBACK_HANDLER_STORAGE_SLOT))
+        }
+
+        handler = address(uint160(uint256(value)));
+    }
+
 }
