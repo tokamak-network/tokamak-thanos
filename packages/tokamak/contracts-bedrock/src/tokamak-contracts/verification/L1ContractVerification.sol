@@ -249,11 +249,17 @@ contract L1ContractVerification is
       'Safe wallet address cannot be zero'
     );
 
+    // Verify proxy admin
+    _verifyProxyAdmin(proxyAdmin, safeWalletAddress);
+
         // Verify L1 contracts
     _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
 
-    // Verify proxy admin
-    _verifyProxyAdmin(proxyAdmin, safeWalletAddress);
+    // Additional security check: Ensure no delegate calls are allowed
+    require(
+        msg.sender == tx.origin,
+        'Delegate calls not allowed for verification'
+    );
 
     return true;
   }
