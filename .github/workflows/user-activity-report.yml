@@ -1,0 +1,22 @@
+name: 'User Activity Report'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate User Activity Report
+        uses: sorekz/user-activity-report@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: 'tokamak-network'
+          since: '2025-04-25T00:00:00Z'
+          until: '2025-05-01T23:59:59Z'
+          create-json: 'data.json'
+      - name: Upload Report Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports
+          path: data.json
