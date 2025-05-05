@@ -150,6 +150,19 @@ deployContracts() {
   cd $currentPWD
 }
 
+resumeDeployContracts() {
+  echo "Resume deploying smart contracts"
+  echo $DEPLOY_CONFIG_PATH
+  cd $projectRoot/packages/tokamak/contracts-bedrock
+
+  if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
+    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE --resume
+  else
+    forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --resume
+  fi
+  cd $currentPWD
+}
+
 generateL2Genesis() {
   echo "Generate L2 genesis"
   deployResultFile=$projectRoot/packages/tokamak/contracts-bedrock/deployments/$(printf "%d-deploy.json" "$chainID")
@@ -194,6 +207,12 @@ main() {
       shift
       handleScriptInput "$@"
       deployContracts
+      ;;
+    redeploy)
+      echo "Redeploying smart contracts..."
+      shift
+      handleScriptInput "$@"
+      resumeDeployContracts
       ;;
     generate)
       echo "Generate rollup and genesis config for L2..."
