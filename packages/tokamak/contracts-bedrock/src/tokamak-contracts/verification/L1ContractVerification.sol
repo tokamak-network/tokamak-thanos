@@ -257,8 +257,8 @@ contract L1ContractVerification is
 
     // Additional security check: Ensure no delegate calls are allowed
     require(
-        msg.sender == tx.origin,
-        'Delegate calls not allowed for verification'
+        msg.sender.code.length == 0,
+       'Calls from contract accounts not allowed for verification'
     );
 
     return true;
