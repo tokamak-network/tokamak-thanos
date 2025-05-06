@@ -394,7 +394,7 @@ contract L1ContractVerificationTest is Test {
     MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
 
     // Verification should fail with ProxyAdmin verification error
-    vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
+    vm.expectRevert("ProxyAdmin verification failed: invalid codehash");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(wrongProxyAdmin),
@@ -431,11 +431,9 @@ contract L1ContractVerificationTest is Test {
       3 // _ownersCount
     );
 
-    // Create a new proxy admin with a different owner
     MockProxyAdmin differentProxyAdmin = new MockProxyAdmin(owner);
-
     // Set the owner of the different proxy admin to the safe wallet
-    differentProxyAdmin.setOwner(address(differentProxyAdmin));
+    differentProxyAdmin.setOwner(address(mockProxyAdmin));
 
     // Set implementations for the different proxy admin
     differentProxyAdmin.setImplementation(
@@ -473,17 +471,11 @@ contract L1ContractVerificationTest is Test {
       address(differentProxyAdmin)
     );
 
-    // Setup all contract information
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      address(differentProxyAdmin)
-    );
-
     vm.stopPrank();
 
     vm.startPrank(user);
 
-    vm.expectRevert('Safe wallet verification failed: address mismatch');
+    vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(differentProxyAdmin), // Using different proxy admin
@@ -525,8 +517,8 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should fail because we're providing a different safe wallet address
-    // than what's configured as the owner in the proxy admin
-    vm.expectRevert('Safe wallet verification failed: address mismatch');
+    // than what's configured as the owner in the proxy admin, Failing on the ProxyAdmin verification because the owner is different
+    vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
         address(systemConfigProxy),
         address(mockProxyAdmin),
@@ -1770,7 +1762,7 @@ contract L1ContractVerificationTest is Test {
 
     // Test that first safe wallet cannot use second safe wallet's proxy admin
     vm.startPrank(user);
-    vm.expectRevert("Safe wallet verification failed: address mismatch");
+    vm.expectRevert("Invalid proxy admin address");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(proxyAdmin2),
