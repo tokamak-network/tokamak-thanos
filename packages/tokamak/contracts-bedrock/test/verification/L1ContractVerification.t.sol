@@ -1858,4 +1858,70 @@ contract L1ContractVerificationTest is Test {
     );
     vm.stopPrank();
   }
+
+  /**
+   * @notice Test verification failure when called from a contract
+   * @dev Creates a caller contract to test the restriction on contract calls
+   */
+  function testVerifyL1ContractsFailContractCall() public {
+    vm.startPrank(owner);
+
+    // Setup contract information
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Store the actual codehashes of the deployed safe wallet
+    bytes32 implementationCodehash = address(safeWallet).codehash;
+    bytes32 proxyCodehash = address(safeWallet).codehash;
+
+    // Setup safe wallet info
+    verifier.setSafeConfig(
+      tokamakDAO,
+      foundation,
+      3,
+      implementationCodehash,
+      proxyCodehash,
+      3
+    );
+
+    // Deploy a caller contract
+    ContractCaller callerContract = new ContractCaller(address(verifier));
+
+    // Grant ADMIN_ROLE to the caller contract
+    verifier.addAdmin(address(callerContract));
+    verifier.setVerificationPossible(true);
+
+    vm.stopPrank();
+
+    // Call verify through the caller contract
+    vm.expectRevert('Calls from contract accounts not allowed for verification');
+    callerContract.callVerify(
+      address(systemConfigProxy),
+      address(mockProxyAdmin),
+      address(safeWallet)
+    );
+  }
+}
+
+// Helper contract to test contract calls
+contract ContractCaller {
+    IL1ContractVerification private verifier;
+
+    constructor(address _verifier) {
+        verifier = IL1ContractVerification(_verifier);
+    }
+
+    function callVerify(
+        address systemConfigProxy,
+        address proxyAdmin,
+        address safeWalletAddress
+    ) external returns (bool) {
+        return verifier.verifyL1Contracts(
+            systemConfigProxy,
+            proxyAdmin,
+            safeWalletAddress
+        );
+    }
 }
