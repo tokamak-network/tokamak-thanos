@@ -283,6 +283,76 @@ contract L1ContractVerificationTest is Test {
     vm.stopPrank();
   }
 
+  function testFallbackHandler() public {
+    vm.startPrank(owner);
+
+    // Setup all contract information
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy),
+      address(mockProxyAdmin)
+    );
+
+    // Store the actual codehashes of the deployed safe wallet
+    bytes32 proxyCodehash = address(safeWallet).codehash;
+
+    // Get implementation address via masterCopy function
+    address implementation = safeWallet.masterCopy();
+
+    // Correctly set the safe wallet info
+    verifier.setSafeConfig(
+      tokamakDAO, // _tokamakDAO
+      foundation, // _foundation
+      3, // _threshold
+      implementation.codehash,
+      proxyCodehash,
+      3
+    );
+
+    // Grant ADMIN_ROLE to the user so they can verify
+    verifier.addAdmin(user);
+
+    vm.stopPrank();
+
+    vm.startPrank(user);
+
+    // Verification should succeed
+    bool result = verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin),
+      address(safeWallet)
+    );
+
+    // Verification should succeed
+    assertTrue(result);
+
+    address fallbackHandler = safeWallet.getFallbackHandler();
+    assertEq(fallbackHandler, address(0));
+
+    fallbackHandler = address(0x123);
+    safeWallet.setFallbackHandler(fallbackHandler);
+
+    // Verification should fail
+    vm.expectRevert('Safe wallet verification failed: fallback handler should be set to ZERO address');
+    bool result2 = verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin),
+      address(safeWallet)
+    );
+    fallbackHandler = safeWallet.getFallbackHandler();
+    assertEq(fallbackHandler, address(0x123));
+
+    // change it back to 0 and should succeed
+    safeWallet.setFallbackHandler(address(0));
+    bool result3 = verifier.verifyL1Contracts(
+      address(systemConfigProxy),
+      address(mockProxyAdmin),
+      address(safeWallet)
+    );
+    assertTrue(result3);
+
+    vm.stopPrank();
+  }
+
   /**
    * @notice Test successful verification and registration of rollup configuration
    * @dev Verifies L1 contracts and registers a rollup configuration

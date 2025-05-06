@@ -11,7 +11,7 @@ import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
 import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
 import { GnosisSafeProxyFactory as SafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
 import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
-
+import { SafeExtender } from "src/Safe/SafeExtender.sol";
 import { Deployer } from "scripts/Deployer.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -192,25 +192,23 @@ contract Deploy is Deployer {
     ////////////////////////////////////////////////////////////////
 
     /// @notice Gets the address of the SafeProxyFactory and Safe singleton for use in deploying a new GnosisSafe.
-    function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, Safe safeSingleton_) {
+        function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, SafeExtender safeSingleton_) {
         if (getAddress("SafeProxyFactory") != address(0)) {
             // The SafeProxyFactory is already saved, we can just use it.
             safeProxyFactory_ = SafeProxyFactory(getAddress("SafeProxyFactory"));
-            safeSingleton_ = Safe(getAddress("SafeSingleton"));
+            safeSingleton_ = SafeExtender(getAddress("SafeSingleton"));
             return (safeProxyFactory_, safeSingleton_);
         }
 
         // These are the standard create2 deployed contracts. First we'll check if they are deployed,
         // if not we'll deploy new ones, though not at these addresses.
         address safeProxyFactory = 0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2;
-        address safeSingleton = 0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552;
 
         safeProxyFactory.code.length == 0
             ? safeProxyFactory_ = new SafeProxyFactory()
             : safeProxyFactory_ = SafeProxyFactory(safeProxyFactory);
 
-        safeSingleton.code.length == 0 ? safeSingleton_ = new Safe() : safeSingleton_ = Safe(payable(safeSingleton));
-
+        safeSingleton_ = new SafeExtender();
         save("SafeProxyFactory", address(safeProxyFactory_));
         save("SafeSingleton", address(safeSingleton_));
     }
@@ -468,7 +466,7 @@ contract Deploy is Deployer {
     {
         bytes32 salt = keccak256(abi.encode(_name, _implSalt()));
         console.log("Deploying safe: %s with salt %s", _name, vm.toString(salt));
-        (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
+        (SafeProxyFactory safeProxyFactory, SafeExtender safeSingleton) = _getSafeFactory();
 
         address[] memory expandedOwners = new address[](_owners.length + 1);
         if (_keepDeployer) {
