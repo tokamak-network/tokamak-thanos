@@ -794,7 +794,7 @@ contract Deploy is Deployer {
         addr_ = address(versions);
     }
 
-    function getL2NativeToken() public returns (address) {
+    function getL2NativeToken() public view returns (address) {
         bool isForkPublicNetwork = vm.envOr("FORK_PUBLIC_NETWORK", false);
         if (isForkPublicNetwork) {
             address addr_ = vm.envAddress("L2_NATIVE_TOKEN");
