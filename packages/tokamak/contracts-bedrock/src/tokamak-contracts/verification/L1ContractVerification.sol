@@ -446,6 +446,9 @@ contract L1ContractVerification is
       'Safe wallet verification failed: invalid proxy codehash'
     );
 
+    // verify fallback handler
+    require(safe.getFallbackHandler() == address(0), "Safe wallet verification failed: fallback handler should be set to ZERO address");
+
     // Verify threshold
     require(
       safe.getThreshold() == safeWalletConfig.requiredThreshold,
