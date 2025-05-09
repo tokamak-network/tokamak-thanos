@@ -1,6 +1,6 @@
 import { hexStringEquals } from '@tokamak-network/core-utils'
 import { Contract } from 'ethers'
-import l1UsdcBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1UsdcBridge.sol/L1UsdcBridge.json'
+import l1UsdcBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L1UsdcBridge.sol/L1UsdcBridge.0.8.15.json'
 import l2UsdcBridgeArtifact from '@tokamak-network/thanos-contracts/forge-artifacts/L2UsdcBridge.sol/L2UsdcBridge.json'
 
 import { AddressLike } from '../interfaces'
