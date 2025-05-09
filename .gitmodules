@@ -61,7 +61,3 @@ url = https://github.com/gelatodigital/automate
 [submodule "packages/tokamak/contracts-bedrock/lib/kontrol-cheatcodes"]
 	path = packages/tokamak/contracts-bedrock/lib/kontrol-cheatcodes
 	url = https://github.com/runtimeverification/kontrol-cheatcodes
-[submodule "packages/tokamak/contracts-bedrock/lib/safe-smart-account"]
-	path = packages/tokamak/contracts-bedrock/lib/safe-smart-account
-	url = https://github.com/safe-global/safe-smart-account
-	branch = main
