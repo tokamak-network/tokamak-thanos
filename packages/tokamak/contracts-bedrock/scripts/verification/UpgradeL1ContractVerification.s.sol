@@ -6,20 +6,7 @@ import 'forge-std/console.sol';
 import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
 import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
-
-interface IMultiSigWallet {
-    function submitTransaction(
-        address _to,
-        uint _value,
-        bytes memory _data
-    ) external;
-
-    function confirmTransaction(uint _txIndex) external;
-
-    function executeTransaction(uint _txIndex) external;
-
-    function getTransactionCount() external view returns (uint);
-}
+import {IMultiSigWallet} from '../../src/tokamak-contracts/verification/interface/IMultiSigWallet.sol';
 
 /**
  * @title UpgradeL1ContractVerification
