@@ -18,7 +18,7 @@ import { predeploys } from '@tokamak-network/core-utils'
 import disputeGameFactory from '@tokamak-network/thanos-contracts/forge-artifacts/DisputeGameFactory.sol/DisputeGameFactory.json'
 import optimismPortal2 from '@tokamak-network/thanos-contracts/forge-artifacts/OptimismPortal2.sol/OptimismPortal2.json'
 import faultDisputeGame from '@tokamak-network/thanos-contracts/forge-artifacts/FaultDisputeGame.sol/FaultDisputeGame.json'
-import l1UsdcBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1UsdcBridge.sol/L1UsdcBridge.json'
+import l1UsdcBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L1UsdcBridge.sol/L1UsdcBridge.0.8.15.json'
 import l2UsdcBridge from '@tokamak-network/thanos-contracts/forge-artifacts/L2UsdcBridge.sol/L2UsdcBridge.json'
 
 import { toAddress } from './coercion'

@@ -1,11 +1,11 @@
 {
-  "name": "optimism",
-  "version": "1.0.0",
-  "author": "Optimism PBC",
+  "name": "thanos",
+  "version": "2.0.0",
+  "author": "Tokamak Network (The origin by Optimism PBC)",
   "license": "MIT",
   "private": true,
   "engines": {
-    "node": ">=16",
+    "node": ">=20",
     "pnpm": ">=9"
   },
   "scripts": {
