@@ -1,7 +1,7 @@
 {
   "name": "@tokamak-network/thanos-contracts",
   "version": "0.0.7",
-  "description": "Contracts for Optimism Specs",
+  "description": "Bedrock + Thanos smart contracts",
   "license": "MIT",
   "files": [
     "forge-artifacts/**/*.json",
@@ -16,7 +16,7 @@
     "sdk"
   ],
   "homepage": "https://github.com/tokamak-network/tokamak-thanos/tree/main/packages/tokamak/contracts-bedrock#readme",
-  "author": "Optimism PBC & Tokamak Network",
+  "author": "Tokamak Network (The origin by Optimism PBC)",
   "repository": {
     "type": "git",
     "url": "https://github.com/tokamak-network/tokamak-thanos.git"

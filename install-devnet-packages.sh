@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Re-run with the correct interpreter depending on the OS
+# Use SKIP_SHEBANG_CHECK variable to prevent infinite loop if already re-run
+if [ "$(uname)" = "Darwin" ] && [ -z "$SKIP_SHEBANG_CHECK" ]; then
+  export SKIP_SHEBANG_CHECK=1
+  echo "macOS detected. Switching to zsh interpreter......"
+  exec /bin/zsh "$0" "$@"
+fi
 
 TOTAL_STEPS=10
 STEP=1
@@ -75,12 +82,6 @@ function display_completion_message {
     if [[ "$SUCCESS" == "true" ]]; then
         echo ""
         echo "All $TOTAL_STEPS steps are complete."
-        echo "Please source your profile to apply changes:"
-        echo -e "\033[1;32msource $CONFIG_FILE\033[0m"
-        echo ""
-
-        echo "Let's start devnet:"
-        echo -e "\033[1;34m\033[1mmake devnet-up\033[0m"
         echo ""
         exit 0
     else
@@ -361,11 +362,11 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 7. Install Cargo (v1.78.0)
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+    # 7. Install Cargo (v1.83.0)
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
     source "$HOME/.cargo/env"
-    if ! cargo --version | grep "1.78.0" &> /dev/null; then
-        echo "Cargo 1.78.0 not found, installing..."
+    if ! cargo --version | grep "1.83.0" &> /dev/null; then
+        echo "Cargo 1.83.0 not found, installing..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
         # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -388,22 +389,35 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
         fi
 
         source "$HOME/.cargo/env"
-        rustup install 1.78.0
-        rustup default 1.78.0
+        rustup install 1.83.0
+        rustup default 1.83.0
     else
-        echo "Cargo 1.78.0 is already installed."
+        echo "Cargo 1.83.0 is already installed."
     fi
 
     STEP=$((STEP + 1))
     echo
 
-    # 8. Install Docker
+    # 8. Install and Run Docker
     echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
     if ! command -v docker &> /dev/null; then
         echo "Docker not found, installing..."
         brew install --cask docker
     else
         echo "Docker is already installed."
+    fi
+
+    # Run Docker Daemon
+    echo "Starting Docker Daemon..."
+    open -a Docker
+    sudo chmod 666 /var/run/docker.sock
+
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Compose..."
+    if ! command -v docker-compose &> /dev/null; then
+        echo "Docker Compose not found, installing..."
+        brew install docker-compose
+    else
+        echo "Docker Compose is already installed."
     fi
 
     STEP=$((STEP + 1))
@@ -423,24 +437,25 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     else
       if pnpm install:foundry; then
           # Check if the foundry configuration is already in the CONFIG_FILE
-          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+          if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$CONFIG_FILE"; then
 
               # If the configuration is not found, add foundry to the current shell session
               {
                   echo ''
-                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  echo 'export PATH="$PATH:$HOME/.foundry/bin"'
               } >> "$CONFIG_FILE"
           fi
 
           # Check if the foundry configuration is already in the PROFILE_FILE
-          if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+          if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$PROFILE_FILE"; then
               # If the configuration is not found, add foundry to the current shell session
               {
                   echo ''
-                  echo 'export PATH="$PATH:/root/.foundry/bin"'
+                  echo 'export PATH="$PATH:$HOME/.foundry/bin"'
               } >> "$PROFILE_FILE"
           fi
-          export PATH="$PATH:/root/.foundry/bin"
+          export PATH="$PATH:$HOME/.foundry/bin"
+          source $CONFIG_FILE
       else
           exit
       fi
@@ -684,32 +699,32 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
         # 6. Install Pnpm
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Pnpm..."
-        export PATH="/root/.local/share/pnpm:$PATH"
+        export PATH="$HOME/.local/share/pnpm:$PATH"
         if ! command -v pnpm &> /dev/null; then
             echo "pnpm not found, installing..."
-            curl -fsSL https://get.pnpm.io/install.sh | ENV="$CONFIG_FILE" SHELL="$(which "$SHELL_NAME")" "$SHELL_NAME" -
+            curl -fsSL https://get.pnpm.io/install.sh | bash -
 
             # Check if the pnpm configuration is already in the CONFIG_FILE
-            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$CONFIG_FILE"; then
+            if ! grep -Fq 'export PATH="$HOME/.local/share/pnpm:$PATH"' "$CONFIG_FILE"; then
 
                 # If the configuration is not found, add pnpm to the current shell session
                 {
                     echo ''
-                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                    echo 'export PATH="$HOME/.local/share/pnpm:$PATH"'
                 } >> "$CONFIG_FILE"
             fi
 
             # Check if the pnpm configuration is already in the PROFILE_FILE
-            if ! grep -Fq 'export PATH="/root/.local/share/pnpm:$PATH"' "$PROFILE_FILE"; then
+            if ! grep -Fq 'export PATH="$HOME/.local/share/pnpm:$PATH"' "$PROFILE_FILE"; then
 
                 # If the configuration is not found, add pnpm to the current shell session
                 {
                     echo ''
-                    echo 'export PATH="/root/.local/share/pnpm:$PATH"'
+                    echo 'export PATH="$HOME/.local/share/pnpm:$PATH"'
                 } >> "$PROFILE_FILE"
             fi
 
-            export PATH="/root/.local/share/pnpm:$PATH"
+            export PATH="$HOME/.local/share/pnpm:$PATH"
         else
             echo "pnpm is already installed."
         fi
@@ -717,11 +732,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 7. Install Cargo (v1.78.0)
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.78.0)..."
+        # 7. Install Cargo (v1.83.0)
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Cargo (v1.83.0)..."
         source "$HOME/.cargo/env"
-        if ! cargo --version | grep -q "1.78.0" &> /dev/null; then
-            echo "Cargo 1.78.0 not found, installing..."
+        if ! cargo --version | grep -q "1.83.0" &> /dev/null; then
+            echo "Cargo 1.83.0 not found, installing..."
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
             # Check if the Cargo configuration is already in the CONFIG_FILE
@@ -744,16 +759,16 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             fi
 
             source "$HOME/.cargo/env"
-            rustup install 1.78.0
-            rustup default 1.78.0
+            rustup install 1.83.0
+            rustup default 1.83.0
         else
-            echo "Cargo 1.78.0 is already installed."
+            echo "Cargo 1.83.0 is already installed."
         fi
 
         STEP=$((STEP + 1))
         echo
 
-        # 8. Install Docker
+        # 8. Install and Run Docker
         echo "[$STEP/$TOTAL_STEPS] ----- Installing Docker Engine..."
         if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
@@ -777,6 +792,11 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
             echo "Docker is already installed."
         fi
 
+        # Run Docker Daemon
+        echo "Starting Docker Daemon..."
+        sudo systemctl start docker
+        sudo chmod 666 /var/run/docker.sock
+
         STEP=$((STEP + 1))
         echo
 
@@ -794,24 +814,25 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         else
           if pnpm install:foundry; then
               # Check if the foundry configuration is already in the CONFIG_FILE
-              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$CONFIG_FILE"; then
+              if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$CONFIG_FILE"; then
 
                   # If the configuration is not found, add foundry to the current shell session
                   {
                       echo ''
-                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                      echo 'export PATH="$PATH:$HOME/.foundry/bin"'
                   } >> "$CONFIG_FILE"
               fi
 
               # Check if the foundry configuration is already in the PROFILE_FILE
-              if ! grep -Fq 'export PATH="$PATH:/root/.foundry/bin"' "$PROFILE_FILE"; then
+              if ! grep -Fq 'export PATH="$PATH:$HOME/.foundry/bin"' "$PROFILE_FILE"; then
                   # If the configuration is not found, add foundry to the current shell session
                   {
                       echo ''
-                      echo 'export PATH="$PATH:/root/.foundry/bin"'
+                      echo 'export PATH="$PATH:$HOME/.foundry/bin"'
                   } >> "$PROFILE_FILE"
               fi
-              export PATH="$PATH:/root/.foundry/bin"
+              export PATH="$PATH:$HOME/.foundry/bin"
+              source $CONFIG_FILE
           else
               exit
           fi
@@ -833,7 +854,14 @@ function check_command_version {
     VERSION_CMD=$3
 
     if command -v "$CMD" &> /dev/null; then
-        CURRENT_VERSION=$($VERSION_CMD 2>&1 | head -n 1)
+
+        # If zsh, enable word splitting option locally.
+        if [[ "$OS_TYPE" == "darwin" ]]; then
+            setopt localoptions sh_word_split
+        fi
+
+        CURRENT_VERSION=$(eval $VERSION_CMD 2>&1 | head -n 1)
+
         if [[ -z "$EXPECTED_VERSION" ]]; then
             if [[ "$CMD" == "forge" || "$CMD" == "cast" || "$CMD" == "anvil" ]]; then
                 echo "✅ foundry - $CMD is installed. Current version: $CURRENT_VERSION"
@@ -856,6 +884,11 @@ function check_command_version {
 
 # Final step: Check installation and versions
 echo "Verifying installation and versions..."
+if [ "$SHELL_NAME" = "zsh" ]; then
+    zsh -c "source $CONFIG_FILE"
+elif [ "$SHELL_NAME" = "bash" ]; then
+    bash -c "source $CONFIG_FILE"
+fi
 
 # Check Homebrew (for MacOS) - Just check if installed
 if [[ "$OS_TYPE" == "darwin" ]]; then
@@ -880,8 +913,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
@@ -913,8 +946,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     # Check Pnpm
     check_command_version pnpm "" "pnpm --version"
 
-    # Check Cargo (Expect version 1.78.0)
-    check_command_version cargo "1.78.0" "cargo --version"
+    # Check Cargo (Expect version 1.83.0)
+    check_command_version cargo "1.83.0" "cargo --version"
 
     # Check Docker
     check_command_version docker "" "docker --version"
