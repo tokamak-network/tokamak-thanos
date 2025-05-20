@@ -17,7 +17,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 ///         L2 on the L2 side. Users are generally encouraged to use this contract instead of lower
 ///         level message passing contracts.
 contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
-
     /// @custom:semver 2.1.0
     string public constant version = "2.1.0";
 
