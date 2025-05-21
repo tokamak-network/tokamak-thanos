@@ -99,5 +99,5 @@
   "poolInitCodeHash": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
   "universalRouterRewardsDistributor": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
   "devnet": true,
-  "isFirstDeploy": true
+  "ReuseDeployment": false
 }
