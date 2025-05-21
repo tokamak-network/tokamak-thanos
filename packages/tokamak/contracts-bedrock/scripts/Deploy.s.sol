@@ -300,13 +300,13 @@ contract Deploy is Deployer {
     }
 
     /// @notice Read the JSON file once and store it in jsonCache to get the deployed implementation contract address
-    function getDeployment() public {
+    function getDeploymentReUse() public {
         uint256 chainid = block.chainid;
         /// After deployment to mainnet we will add path of deployment file
         // if (chainid == Chains.Mainnet) {
         //     jsonCache = vm.readFile("./")
         // }
-        if (cfg.isFirstDeploy() == false) {
+        if (cfg.reuseDeployment()) {
             if (chainid == Chains.Sepolia) {
                 jsonDeployment = vm.readFile("./deployments/thanos-stack-sepolia/address.json");
             }
@@ -332,8 +332,8 @@ contract Deploy is Deployer {
             }
         }
         // Get the deployment following the deploying network
-        if (cfg.isFirstDeploy() == false) {
-            getDeployment();
+        if (cfg.reuseDeployment()) {
+            getDeploymentReUse();
         }
         setupOpChain();
         console.log("set up op chain!");
@@ -423,7 +423,7 @@ contract Deploy is Deployer {
     function deployImplementations() public {
         console.log("Deploying implementations");
 
-        if (cfg.isFirstDeploy()) {
+        if (cfg.reuseDeployment() == false) {
             deploySystemConfig();
             deployL1StandardBridge();
             deployL1ERC721Bridge();
@@ -1034,9 +1034,7 @@ contract Deploy is Deployer {
 
         address disputeGameFactory;
 
-        if (cfg.isFirstDeploy()) {
-            disputeGameFactory = mustGetAddress("DisputeGameFactory");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".DisputeGameFactory");
             console.log("DisputeGameFactory address from JSON: %s", savedAddress);
 
@@ -1050,6 +1048,8 @@ contract Deploy is Deployer {
                 save("DisputeGameFactory", disputeGameFactory);
                 console.log("DisputeGameFactory deployed at %s", disputeGameFactory);
             }
+        } else {
+            disputeGameFactory = mustGetAddress("DisputeGameFactory");
         }
 
         _upgradeAndCallViaSafe({
@@ -1071,9 +1071,7 @@ contract Deploy is Deployer {
 
         address delayedWETH;
 
-        if (cfg.isFirstDeploy()) {
-            delayedWETH = mustGetAddress("DelayedWETH");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".DelayedWETH");
             console.log("DelayedWETH address from JSON: %s", savedAddress);
 
@@ -1087,6 +1085,8 @@ contract Deploy is Deployer {
                 save("DelayedWETH", delayedWETH);
                 console.log("DelayedWETH deployed at %s", delayedWETH);
             }
+        } else {
+            delayedWETH = mustGetAddress("DelayedWETH");
         }
 
         _upgradeAndCallViaSafe({
@@ -1113,9 +1113,7 @@ contract Deploy is Deployer {
 
         address delayedWETH;
 
-        if (cfg.isFirstDeploy()) {
-            delayedWETH = mustGetAddress("DelayedWETH");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".DelayedWETH");
             console.log("DelayedWETH address from JSON: %s", savedAddress);
 
@@ -1137,6 +1135,8 @@ contract Deploy is Deployer {
                 //     delayedWETH = mustGetAddress("DelayedWETH");
                 // }
             }
+        } else {
+            delayedWETH = mustGetAddress("DelayedWETH");
         }
 
         _upgradeAndCallViaSafe({
@@ -1200,9 +1200,7 @@ contract Deploy is Deployer {
 
         address anchorStateRegistry;
 
-        if (cfg.isFirstDeploy()) {
-            anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".AnchorStateRegistry");
             console.log("AnchorStateRegistry address from JSON: %s", savedAddress);
 
@@ -1220,6 +1218,8 @@ contract Deploy is Deployer {
                 save("AnchorStateRegistry", anchorStateRegistry);
                 console.log("AnchorStateRegistry deployed at %s", anchorStateRegistry);
             }
+        } else {
+             anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
         }
 
         _upgradeAndCallViaSafe({
@@ -1253,9 +1253,7 @@ contract Deploy is Deployer {
 
         address systemConfig;
 
-        if (cfg.isFirstDeploy()) {
-            systemConfig = mustGetAddress("SystemConfig");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".SystemConfig");
             console.log("SystemConfig address from JSON: %s", savedAddress);
 
@@ -1269,6 +1267,8 @@ contract Deploy is Deployer {
                 save("SystemConfig", systemConfig);
                 console.log("SystemConfig deployed at %s", systemConfig);
             }
+        } else {
+            systemConfig = mustGetAddress("SystemConfig");
         }
 
         bytes memory _innerCallData = abi.encodeCall(
@@ -1322,9 +1322,7 @@ contract Deploy is Deployer {
 
         address l1StandardBridge;
 
-        if (cfg.isFirstDeploy()) {
-            l1StandardBridge = mustGetAddress("L1StandardBridge");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".L1StandardBridge");
             console.log("L1StandardBridge address from JSON: %s", savedAddress);
 
@@ -1338,6 +1336,8 @@ contract Deploy is Deployer {
                 save("L1StandardBridge", l1StandardBridge);
                 console.log("L1StandardBridge deployed at %s", l1StandardBridge);
             }
+        } else {
+            l1StandardBridge = mustGetAddress("L1StandardBridge");
         }
 
         // Set the proxy type.
@@ -1380,9 +1380,7 @@ contract Deploy is Deployer {
 
         address l1ERC721Bridge;
 
-        if (cfg.isFirstDeploy()) {
-            l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".L1ERC721Bridge");
             console.log("L1ERC721Bridge address from JSON: %s", savedAddress);
 
@@ -1396,6 +1394,8 @@ contract Deploy is Deployer {
                 save("L1ERC721Bridge", l1ERC721Bridge);
                 console.log("L1ERC721Bridge deployed at %s", l1ERC721Bridge);
             }
+        } else {
+            l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
         }
 
         _upgradeAndCallViaSafe({
@@ -1422,9 +1422,7 @@ contract Deploy is Deployer {
 
         address optimismMintableERC20Factory;
 
-        if (cfg.isFirstDeploy()) {
-            optimismMintableERC20Factory = mustGetAddress("OptimismMintableERC20Factory");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".OptimismMintableERC20Factory");
             console.log("OptimismMintableERC20Factory address from JSON: %s", savedAddress);
 
@@ -1438,6 +1436,8 @@ contract Deploy is Deployer {
                 save("OptimismMintableERC20Factory", optimismMintableERC20Factory);
                 console.log("OptimismMintableERC20Factory deployed at %s", optimismMintableERC20Factory);
             }
+        } else {
+            optimismMintableERC20Factory = mustGetAddress("OptimismMintableERC20Factory");
         }
 
         _upgradeAndCallViaSafe({
@@ -1469,9 +1469,7 @@ contract Deploy is Deployer {
 
         address l1CrossDomainMessenger;
 
-        if (cfg.isFirstDeploy()) {
-            l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".L1CrossDomainMessenger");
             console.log("L1CrossDomainMessenger address from JSON: %s", savedAddress);
 
@@ -1485,6 +1483,8 @@ contract Deploy is Deployer {
                 save("L1CrossDomainMessenger", l1CrossDomainMessenger);
                 console.log("L1CrossDomainMessenger deployed at %s", l1CrossDomainMessenger);
             }
+        } else {
+            l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
         }
 
         // Set the proxy type to RESOLVED if not already set.
@@ -1542,9 +1542,7 @@ contract Deploy is Deployer {
 
         address l2OutputOracle;
 
-        if (cfg.isFirstDeploy()) {
-            l2OutputOracle = mustGetAddress("L2OutputOracle");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".L2OutputOracle");
             console.log("L2OutputOracle address from JSON: %s", savedAddress);
 
@@ -1558,6 +1556,8 @@ contract Deploy is Deployer {
                 save("L2OutputOracle", l2OutputOracle);
                 console.log("L2OutputOracle deployed at %s", l2OutputOracle);
             }
+        } else {
+            l2OutputOracle = mustGetAddress("L2OutputOracle");
         }
 
         _upgradeAndCallViaSafe({
@@ -1602,10 +1602,7 @@ contract Deploy is Deployer {
         address optimismPortal;
 
         // Get the OptimismPortal implementation address based on deployment type.
-        if (cfg.isFirstDeploy()) {
-            // For initial deployment, use current deployment history
-            optimismPortal = mustGetAddress("OptimismPortal");
-        } else {
+        if (cfg.reuseDeployment()) {
             // For duplicate deployments, try to read from JSON
             address savedAddress = jsonDeployment.readAddress(".OptimismPortal");
             console.log("OptimismPortal address from JSON: %s", savedAddress);
@@ -1620,6 +1617,8 @@ contract Deploy is Deployer {
                 save("OptimismPortal", optimismPortal);
                 console.log("OptimismPortal deployed at %s", optimismPortal);
             }
+        } else {
+            optimismPortal = mustGetAddress("OptimismPortal");
         }
         // Upgrade the proxy with the new implementation and initialization data.
         _upgradeAndCallViaSafe({
@@ -1654,9 +1653,7 @@ contract Deploy is Deployer {
 
         address optimismPortal2;
 
-        if (cfg.isFirstDeploy()) {
-            optimismPortal2 = mustGetAddress("OptimismPortal2");
-        } else {
+        if (cfg.reuseDeployment()) {
             address savedAddress = jsonDeployment.readAddress(".OptimismPortal2");
             console.log("OptimismPortal2 address from JSON: %s", savedAddress);
 
@@ -1675,6 +1672,8 @@ contract Deploy is Deployer {
                 save("OptimismPortal2", optimismPortal2);
                 console.log("OptimismPortal2 deployed at %s", optimismPortal2);
             }
+        } else {
+            optimismPortal2 = mustGetAddress("OptimismPortal2");
         }
 
         _upgradeAndCallViaSafe({
@@ -1967,23 +1966,13 @@ contract Deploy is Deployer {
     function initializeDataAvailabilityChallenge() public broadcast {
         console.log("Upgrading and initializing DataAvailabilityChallenge proxy");
         address dataAvailabilityChallengeProxy = mustGetAddress("DataAvailabilityChallengeProxy");
+        address dataAvailabilityChallenge = mustGetAddress("DataAvailabilityChallenge");
 
         address finalSystemOwner = cfg.finalSystemOwner();
         uint256 daChallengeWindow = cfg.daChallengeWindow();
         uint256 daResolveWindow = cfg.daResolveWindow();
         uint256 daBondSize = cfg.daBondSize();
         uint256 daResolverRefundPercentage = cfg.daResolverRefundPercentage();
-
-        // Check if this is the first deployment.
-        bool isFirst = cfg.isFirstDeploy();
-
-        // For first deployment, use mustGetAddress; for duplicate deployments, read the address from JSON.
-        address dataAvailabilityChallenge = isFirst
-            ? mustGetAddress("DataAvailabilityChallenge")
-            : jsonDeployment.readAddress(".DataAvailabilityChallenge");
-        if (!isFirst) {
-            console.log("DataAvailabilityChallenge address from JSON: %s", dataAvailabilityChallenge);
-        }
 
         _upgradeAndCallViaSafe({
             _proxy: payable(dataAvailabilityChallengeProxy),
