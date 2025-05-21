@@ -94,7 +94,7 @@ contract DeployConfig is Script {
 
     bool public useInterop;
     bool public devnet;
-    bool public isFirstDeploy;
+    bool public reuseDeployment;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -182,7 +182,7 @@ contract DeployConfig is Script {
 
         useInterop = _readOr(_json, "$.useInterop", false);
         devnet = _readOr(_json, "$.devnet", false);
-        isFirstDeploy = _readOr(_json, "$.isFirstDeploy", true);
+        reuseDeployment = _readOr(_json, "$.reuseDeployment", false);
     }
 
     function setNativeTokenAddress(address _nativeTokenAddress, string memory _path) public {
