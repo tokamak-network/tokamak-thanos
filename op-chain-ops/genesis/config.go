@@ -356,6 +356,8 @@ type DeployConfig struct {
 
 	// Devnet is a flag that indicates if the network is devnet on your local
 	Devnet bool `json:"devnet,omitempty"`
+	// IsFirstDeploy is a flag that check if this is first deployment or not
+	IsFirstDeploy bool `json:"isFirstDeploy,omitempty"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
