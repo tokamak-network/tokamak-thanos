@@ -303,11 +303,11 @@ contract L1ContractVerification is
       'No safe wallet configured for operator'
     );
 
-    // Verify L1 contracts
-    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, _safeWalletAddress);
-
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
+
+    // Verify L1 contracts
+    _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, _safeWalletAddress);
 
     // Emit verification success event
     emit VerificationSuccess(
