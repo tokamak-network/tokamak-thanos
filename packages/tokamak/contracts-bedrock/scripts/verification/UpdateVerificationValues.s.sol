@@ -9,7 +9,7 @@ interface IGnosisSafe {
   function masterCopy() external view returns (address);
 }
 
-contract TestMultisigConfigurationCalls is Script {
+contract L1ContractVerificationMultisigConfigurationCalls is Script {
   // Address of the deployed L1ContractVerification contract
   address private _proxyAddress;
   address private _verificationContractProxyAdminAddress;
@@ -44,15 +44,15 @@ contract TestMultisigConfigurationCalls is Script {
     _multisigOwner3 = vm.envUint('MULTISIG_OWNER_3');
     _multisigWallet = vm.envAddress('MULTISIG_WALLET');
 
-    tokamakDAO = vm.envAddress('TEST_TOKAMAK_DAO_ADDRESS');
-    foundation = vm.envAddress('TEST_FOUNDATION_ADDRESS');
+    tokamakDAO = vm.envAddress('TOKAMAK_DAO_ADDRESS');
+    foundation = vm.envAddress('FOUNDATION_ADDRESS');
     safeThreshold = 3;
     safeWalletProxy = vm.envAddress('SAFE_WALLET');
     safeWalletImplementation = IGnosisSafe(safeWalletProxy).masterCopy();
     safeOwnersCount = 3;
 
-    systemConfigProxyAddress = vm.envAddress('TEST_SYSTEM_CONFIG_PROXY');
-    proxyAdminAddress = vm.envAddress('TEST_PROXY_ADMIN_ADDRESS');
+    systemConfigProxyAddress = vm.envAddress('SYSTEM_CONFIG_PROXY');
+    proxyAdminAddress = vm.envAddress('PROXY_ADMIN_ADDRESS');
   }
 
   function run() public {
@@ -121,6 +121,7 @@ contract TestMultisigConfigurationCalls is Script {
     multiSig.executeTransaction(txIndexSetLogic);
     console.log('setLogicContractInfo transaction executed by owner 1');
 
-    console.log('Multisig call tests completed.');
+
+    console.log('Verification factor update completed');
   }
 }
