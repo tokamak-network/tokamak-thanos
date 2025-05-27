@@ -14,6 +14,7 @@ export enum Chains {
 export const getDAOMembers = (chainid: number): [string, string] => {
   if (chainid === Chains.Mainnet) {
     // Mainnet
+    // TODO: addresses will be changed later
     return [
       '0x0Fd5632f3b52458C31A2C3eE1F4b447001872Be9',
       '0x61dc95E5f27266b94805ED23D95B4C9553A3D049',
@@ -21,6 +22,7 @@ export const getDAOMembers = (chainid: number): [string, string] => {
     ]
   } else if (chainid === Chains.Sepolia) {
     // Sepolia
+    // TODO: addresses will be changed later
     return [
       '0x0Fd5632f3b52458C31A2C3eE1F4b447001872Be9',
       '0x61dc95E5f27266b94805ED23D95B4C9553A3D049',
