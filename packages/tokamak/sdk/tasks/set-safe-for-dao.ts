@@ -118,11 +118,15 @@ task('set-safe-wallet', 'Set Safe Wallet for the Tokamak DAO').setAction(
         designatedOwners[1], // Foundation address
       ]
 
-      const ownersMatch = requiredOwners.every(owner => safeOwners.includes(owner))
+      const ownersMatch = requiredOwners.every((owner) =>
+        safeOwners.includes(owner)
+      )
       const thresholdMatches = currentThreshold.toString() === '3'
 
       if (ownersMatch && thresholdMatches) {
-        console.log('Skipping owner addition and threshold change as the current setup is correct.')
+        console.log(
+          'Skipping owner addition and threshold change as the current setup is correct.'
+        )
         return // Skip the rest of the process
       }
 
