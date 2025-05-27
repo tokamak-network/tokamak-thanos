@@ -74,6 +74,10 @@ task('set-safe-wallet', 'Set Safe Wallet for the Tokamak DAO').setAction(
       // Create the signer
       const signer = new ethers.Wallet(privateKey, l1Provider)
 
+      // Get the derived admin address from the private key
+      const adminAddress = signer.address
+      console.log('Admin Address from Private Key:', adminAddress)
+
       // Get the desigated owners depending network
       const designatedOwners = getDAOMembers(network.chainId)
       if (!designatedOwners || designatedOwners.length < 2) {
@@ -99,6 +103,32 @@ task('set-safe-wallet', 'Set Safe Wallet for the Tokamak DAO').setAction(
         signer
       )
       console.log('Gnosis Safe Contract:', gnosisSafeContract.address)
+
+      // Check current Safe owners and threshold
+      const safeOwners = await gnosisSafeContract.getOwners()
+      const currentThreshold = await gnosisSafeContract.getThreshold()
+
+      console.log('Current Safe Owners:', safeOwners)
+      console.log('Current Threshold:', currentThreshold.toString())
+
+      // Skip if owners are admin, TokamakDAO, Foundation and threshold is 3
+      const requiredOwners = [
+        adminAddress, // admin address
+        designatedOwners[0], // TokamakDAO address
+        designatedOwners[1], // Foundation address
+      ]
+
+      const ownersMatch = requiredOwners.every((owner) =>
+        safeOwners.includes(owner)
+      )
+      const thresholdMatches = currentThreshold.toString() === '3'
+
+      if (ownersMatch && thresholdMatches) {
+        console.log(
+          'Skipping owner addition and threshold change as the current setup is correct.'
+        )
+        return // Skip the rest of the process
+      }
 
       // Execute: Add owners to Safe
       await addOwnerAndVerify(gnosisSafeContract, designatedOwners[0], 1, [
