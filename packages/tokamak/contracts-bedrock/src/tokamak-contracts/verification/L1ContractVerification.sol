@@ -430,10 +430,9 @@ contract L1ContractVerification is
       'Safe wallet verification failed: address mismatch'
     );
 
-    IGnosisSafe safe = IGnosisSafe(safeWalletAddress);
 
     // Get the implementation from the masterCopy function of the safe wallet
-    address implementation = safe.masterCopy();
+    address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
     // Check if the implementation codehash is the same as the expected implementation codehash
     require(
@@ -442,7 +441,7 @@ contract L1ContractVerification is
     );
 
     // Check if the modules are not set
-    require(safe.getModulesPaginated(SENTINEL_MODULES, 1).length == 0, "Safe wallet verification failed: unauthorized modules");
+    require(IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 1).length == 0, "Safe wallet verification failed: unauthorized modules");
 
     // Check if the proxy codehash is the same as the expected proxy codehash
     require(
@@ -451,16 +450,16 @@ contract L1ContractVerification is
     );
 
     // verify fallback handler
-    require(safe.getFallbackHandler() == address(0), "Safe wallet verification failed: fallback handler should be set to ZERO address");
+    require(IGnosisSafe(safeWalletAddress).getFallbackHandler() == address(0), "Safe wallet verification failed: fallback handler should be set to ZERO address");
 
     // Verify threshold
     require(
-      safe.getThreshold() == safeWalletConfig.requiredThreshold,
+      IGnosisSafe(safeWalletAddress).getThreshold() == safeWalletConfig.requiredThreshold,
       'Safe wallet verification failed: invalid threshold'
     );
 
     // Verify owners (tokamakDAO, foundation must be included)
-    address[] memory owners = safe.getOwners();
+    address[] memory owners = IGnosisSafe(safeWalletAddress).getOwners();
 
     // Verify number of owners doesn't exceed the maximum
     require(
