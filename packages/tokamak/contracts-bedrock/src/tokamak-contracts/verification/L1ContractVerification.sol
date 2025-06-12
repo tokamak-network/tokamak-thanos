@@ -230,13 +230,12 @@ contract L1ContractVerification is
    * @param systemConfigProxy The address of the SystemConfig proxy
    * @param proxyAdmin The address of the ProxyAdmin
    * @param safeWalletAddress The address of the safe wallet to verify
-   * @return Returns true if verification succeeds, otherwise reverts
    */
   function verifyL1Contracts(
     address systemConfigProxy,
     address proxyAdmin,
     address safeWalletAddress
-  ) external view returns (bool) {
+  ) external view  {
     require(isVerificationPossible, 'Contract not registered as registerant');
     ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
     require(
@@ -260,8 +259,6 @@ contract L1ContractVerification is
 
         // Verify L1 contracts
     _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
-
-    return true;
   }
 
   /**
