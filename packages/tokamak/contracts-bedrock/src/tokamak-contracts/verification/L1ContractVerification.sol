@@ -468,8 +468,8 @@ contract L1ContractVerification is
       'Safe wallet verification failed: wrong number of owners'
     );
 
-    bool foundTokamakDAO = false;
-    bool foundFoundation = false;
+    bool foundTokamakDAO;
+    bool foundFoundation;
 
     for (uint i = 0; i < owners.length; i++) {
       if (owners[i] == safeWalletConfig.tokamakDAO) foundTokamakDAO = true;
