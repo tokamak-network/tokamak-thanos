@@ -271,14 +271,13 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should succeed
-    bool result = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       address(safeWallet)
     );
 
     // Verification should succeed
-    assertTrue(result);
 
     vm.stopPrank();
   }
@@ -316,14 +315,13 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should succeed
-    bool result = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       address(safeWallet)
     );
 
     // Verification should succeed
-    assertTrue(result);
 
     address fallbackHandler = safeWallet.getFallbackHandler();
     assertEq(fallbackHandler, address(0));
@@ -333,7 +331,7 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Safe wallet verification failed: fallback handler should be set to ZERO address');
-    bool result2 = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       address(safeWallet)
@@ -343,12 +341,11 @@ contract L1ContractVerificationTest is Test {
 
     // change it back to 0 and should succeed
     safeWallet.setFallbackHandler(address(0));
-    bool result3 = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       address(safeWallet)
     );
-    assertTrue(result3);
 
     vm.stopPrank();
   }
@@ -1809,22 +1806,20 @@ contract L1ContractVerificationTest is Test {
 
     // Test verification with first safe wallet
     vm.startPrank(user);
-    bool success1 = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(proxyAdmin1),
       address(safe1)
     );
-    assertTrue(success1, "First safe wallet verification should succeed");
     vm.stopPrank();
 
     // Test verification with second safe wallet
     vm.startPrank(user);
-    bool success2 = verifier.verifyL1Contracts(
+    verifier.verifyL1Contracts(
       address(systemConfigProxy),
       address(proxyAdmin2),
       address(safe2)
     );
-    assertTrue(success2, "Second safe wallet verification should succeed");
     vm.stopPrank();
 
     // Test that first safe wallet cannot use second safe wallet's proxy admin
@@ -1911,8 +1906,8 @@ contract L1ContractVerificationTest is Test {
     // Mock the getModulesPaginated function to return modules
     vm.mockCall(
       address(maliciousSafe),
-      abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 100),
-      abi.encode(modules, address(0))
+      abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 1),
+      abi.encode(modules, address(1))
     );
 
     // Test that verification fails when modules are present
@@ -1984,8 +1979,8 @@ contract ContractCaller {
         address systemConfigProxy,
         address proxyAdmin,
         address safeWalletAddress
-    ) external returns (bool) {
-        return verifier.verifyL1Contracts(
+    ) external {
+        verifier.verifyL1Contracts(
             systemConfigProxy,
             proxyAdmin,
             safeWalletAddress

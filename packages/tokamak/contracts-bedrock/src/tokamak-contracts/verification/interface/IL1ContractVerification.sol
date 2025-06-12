@@ -96,5 +96,5 @@ interface IL1ContractVerification {
     address systemConfigProxy,
     address proxyAdmin,
     address safeWalletAddress
-  ) external view returns (bool);
+  ) external view;
 }
