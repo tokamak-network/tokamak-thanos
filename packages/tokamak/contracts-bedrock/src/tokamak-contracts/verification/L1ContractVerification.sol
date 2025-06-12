@@ -442,7 +442,7 @@ contract L1ContractVerification is
     );
 
     // Check if the modules are not set
-    require(safe.getModulesPaginated(SENTINEL_MODULES, 100).length == 0, "Safe wallet verification failed: unauthorized modules");
+    require(safe.getModulesPaginated(SENTINEL_MODULES, 1).length == 0, "Safe wallet verification failed: unauthorized modules");
 
     // Check if the proxy codehash is the same as the expected proxy codehash
     require(
