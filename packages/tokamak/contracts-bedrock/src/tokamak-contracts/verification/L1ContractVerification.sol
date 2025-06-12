@@ -237,9 +237,8 @@ contract L1ContractVerification is
     address safeWalletAddress
   ) external view  {
     require(isVerificationPossible, 'Contract not registered as registerant');
-    ISystemConfig systemConfigContract = ISystemConfig(systemConfigProxy);
     require(
-      systemConfigContract.nativeTokenAddress() == expectedNativeToken,
+      ISystemConfig(systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
       'The native token you are using is not TON'
     );
 
@@ -293,9 +292,8 @@ contract L1ContractVerification is
     );
 
     // Verify native token first
-    ISystemConfig systemConfigContract = ISystemConfig(_systemConfigProxy);
     require(
-      systemConfigContract.nativeTokenAddress() == expectedNativeToken,
+      ISystemConfig(_systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
       'The native token you are using is not TON'
     );
 
@@ -504,11 +502,9 @@ contract L1ContractVerification is
     );
 
     // Get contract addresses from SystemConfig
-    ISystemConfig systemConfigContract = ISystemConfig(_systemConfigProxy);
-    address l1StandardBridgeAddress = systemConfigContract.l1StandardBridge();
-    address l1CrossDomainMessengerAddress = systemConfigContract
-      .l1CrossDomainMessenger();
-    address optimismPortalAddress = systemConfigContract.optimismPortal();
+    address l1StandardBridgeAddress = ISystemConfig(_systemConfigProxy).l1StandardBridge();
+    address l1CrossDomainMessengerAddress = ISystemConfig(_systemConfigProxy).l1CrossDomainMessenger();
+    address optimismPortalAddress = ISystemConfig(_systemConfigProxy).optimismPortal();
 
         // Verify proxy admin relationship for OptimismPortal
     require(
