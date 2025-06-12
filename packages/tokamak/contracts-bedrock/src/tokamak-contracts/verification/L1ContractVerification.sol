@@ -559,9 +559,8 @@ contract L1ContractVerification is
   }
 
   function _setProxyAdminCodehash(address _proxyAdmin) private {
-    bytes32 proxyAdminHash = _proxyAdmin.codehash;
-    require(proxyAdminHash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
-    proxyAdminCodehash = proxyAdminHash;
+    require(_proxyAdmin.codehash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
+    proxyAdminCodehash = _proxyAdmin.codehash;
   }
 
     /**
