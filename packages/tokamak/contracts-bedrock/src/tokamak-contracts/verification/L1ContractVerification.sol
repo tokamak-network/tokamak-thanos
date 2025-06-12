@@ -122,16 +122,16 @@ contract L1ContractVerification is
    */
   function setLogicContractInfo(
     address _systemConfigProxy,
-    address _proxyAdmin
+    IProxyAdmin _proxyAdmin
   ) external onlyRole(ADMIN_ROLE) {
     require(
       _systemConfigProxy != address(0),
       'SystemConfig proxy address cannot be zero'
     );
-    require(_proxyAdmin != address(0), 'ProxyAdmin address cannot be zero');
+    require(address(_proxyAdmin) != address(0), 'ProxyAdmin address cannot be zero');
 
     // Set Proxy Admin Codehash
-    _setProxyAdminCodehash(_proxyAdmin);
+    _setProxyAdminCodehash(address(_proxyAdmin));
 
     // Get contract addresses from SystemConfig
     ISystemConfig config = ISystemConfig(_systemConfigProxy);
@@ -139,29 +139,27 @@ contract L1ContractVerification is
     address l1CrossDomainMessengerAddress = config.l1CrossDomainMessenger();
     address optimismPortalAddress = config.optimismPortal();
 
-    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
-
     // Set SystemConfig info
-    systemConfig.logicAddress = proxyAdmin.getProxyImplementation(
+    systemConfig.logicAddress = _proxyAdmin.getProxyImplementation(
       _systemConfigProxy
     );
     systemConfig.proxyCodehash = _systemConfigProxy.codehash;
 
     // Set L1StandardBridge info
-    l1StandardBridge.logicAddress = proxyAdmin.getProxyImplementation(
+    l1StandardBridge.logicAddress = _proxyAdmin.getProxyImplementation(
       l1StandardBridgeAddress
     );
     l1StandardBridge.proxyCodehash = l1StandardBridgeAddress.codehash;
 
     // Set L1CrossDomainMessenger info
-    l1CrossDomainMessenger.logicAddress = proxyAdmin.getProxyImplementation(
+    l1CrossDomainMessenger.logicAddress = _proxyAdmin.getProxyImplementation(
       l1CrossDomainMessengerAddress
     );
     l1CrossDomainMessenger.proxyCodehash = l1CrossDomainMessengerAddress
       .codehash;
 
     // Set OptimismPortal info
-    optimismPortal.logicAddress = proxyAdmin.getProxyImplementation(
+    optimismPortal.logicAddress = _proxyAdmin.getProxyImplementation(
       optimismPortalAddress
     );
     optimismPortal.proxyCodehash = optimismPortalAddress.codehash;
@@ -233,7 +231,7 @@ contract L1ContractVerification is
    */
   function verifyL1Contracts(
     address systemConfigProxy,
-    address proxyAdmin,
+    IProxyAdmin proxyAdmin,
     address safeWalletAddress
   ) external view  {
     require(isVerificationPossible, 'Contract not registered as registerant');
@@ -272,7 +270,7 @@ contract L1ContractVerification is
    */
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
-    address _proxyAdmin,
+    IProxyAdmin _proxyAdmin,
     uint8 _type,
     address _l2TON,
     string calldata _name,
@@ -313,7 +311,7 @@ contract L1ContractVerification is
     emit VerificationSuccess(
       _safeWalletAddress,
       _systemConfigProxy,
-      _proxyAdmin,
+      address(_proxyAdmin),
       block.timestamp
     );
 
@@ -348,18 +346,17 @@ contract L1ContractVerification is
    * @dev Ensures the ProxyAdmin has the expected codehash and is owned by the operator's safe wallet
    */
   function _verifyProxyAdmin(
-    address _proxyAdmin,
+    IProxyAdmin _proxyAdmin,
     address _safeWalletAddress
   ) private view {
     // 1. Verify that ProxyAdmin contract has the expected codehash
     require(
-      _proxyAdmin.codehash == proxyAdminCodehash,
+      address(_proxyAdmin).codehash == proxyAdminCodehash,
       'ProxyAdmin verification failed: invalid codehash'
     );
 
     // 2. Verify the ProxyAdmin is owned by the operator's safe wallet
-    IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
-    address ownerAddress = proxyAdminContract.owner();
+    address ownerAddress = _proxyAdmin.owner();
 
     require(
       ownerAddress == _safeWalletAddress,
@@ -378,11 +375,9 @@ contract L1ContractVerification is
   function _verifyImplementation(
     address _proxyAddress,
     address _expectedImplementation,
-    address _proxyAdmin
+    IProxyAdmin _proxyAdmin
   ) private view returns (bool) {
-    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdmin);
-
-    try proxyAdmin.getProxyImplementation(_proxyAddress) returns (
+    try _proxyAdmin.getProxyImplementation(_proxyAddress) returns (
       address fetchedImpl
     ) {
       return fetchedImpl == _expectedImplementation;
@@ -412,19 +407,17 @@ contract L1ContractVerification is
    * @return Returns true if verification succeeds, otherwise reverts with a specific error message
    */
   function _verifySafe(
-    address _proxyAdmin,
+    IProxyAdmin _proxyAdmin,
     address _safeWalletAddress
   ) private view returns (bool) {
     // Get safe wallet address from ProxyAdmin.owner()
-    IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
-    address safeWalletAddress = proxyAdminContract.owner();
+    address safeWalletAddress = _proxyAdmin.owner();
 
     // Check if the safe wallet address is the same as the expected safe wallet address
     require(
       safeWalletAddress == _safeWalletAddress,
       'Safe wallet verification failed: address mismatch'
     );
-
 
     // Get the implementation from the masterCopy function of the safe wallet
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
@@ -488,7 +481,7 @@ contract L1ContractVerification is
    */
   function _verifyL1Contracts(
     address _systemConfigProxy,
-    address _proxyAdmin,
+    IProxyAdmin _proxyAdmin,
     address _safeWalletAddress
   ) private view {
     // Step 1: Verify SystemConfig
@@ -580,11 +573,8 @@ contract L1ContractVerification is
     * @param _proxyAdmin The address of the claimed proxy admin
     * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
     */
-    function _verifyProxyOwner(address _proxyAddress, address _proxyAdmin) private view returns (bool) {
-
-        IProxyAdmin proxyAdminContract = IProxyAdmin(_proxyAdmin);
-
-        address actualAdmin = proxyAdminContract.getProxyAdmin(payable(_proxyAddress));
-        return actualAdmin == _proxyAdmin;
+    function _verifyProxyOwner(address _proxyAddress, IProxyAdmin _proxyAdmin) private view returns (bool) {
+        address actualAdmin = _proxyAdmin.getProxyAdmin(payable(_proxyAddress));
+        return actualAdmin == address(_proxyAdmin);
     }
 }
