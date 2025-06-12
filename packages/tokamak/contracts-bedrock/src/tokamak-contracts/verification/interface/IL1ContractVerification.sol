@@ -77,8 +77,7 @@ interface IL1ContractVerification {
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash,
-    uint256 _ownersCount
+    bytes32 _proxyCodehash
   ) external;
 
   function setBridgeRegistryAddress(address _bridgeRegistry) external;

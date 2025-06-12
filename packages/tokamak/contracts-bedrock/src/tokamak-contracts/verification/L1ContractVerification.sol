@@ -179,20 +179,17 @@ contract L1ContractVerification is
    * @param _threshold The required threshold for the safe wallet
    * @param _implementationCodehash The codehash of the implementation contract
    * @param _proxyCodehash The codehash of the proxy contract
-   * @param _ownersCount The number of owners allowed for the safe wallet
    */
   function setSafeConfig(
     address _tokamakDAO,
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash,
-    uint256 _ownersCount
+    bytes32 _proxyCodehash
   ) external onlyRole(ADMIN_ROLE) {
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
     require(_threshold > 0, 'Threshold must be greater than zero');
-    require(_ownersCount == 3, 'Owners must be 3');
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -201,7 +198,7 @@ contract L1ContractVerification is
       implementationCodehash: _implementationCodehash,
       proxyCodehash: _proxyCodehash,
       requiredThreshold: _threshold,
-      ownersCount: _ownersCount
+      ownersCount: 3
     });
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);

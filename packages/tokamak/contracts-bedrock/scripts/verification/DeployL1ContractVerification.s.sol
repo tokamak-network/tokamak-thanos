@@ -94,8 +94,7 @@ contract SetupL1ContractVerification is Script {
       _foundation,
       _SAFE_THRESHOLD,
       implementation.codehash,
-      safeWalletAddress.codehash,
-      3 // _ownersCount
+      safeWalletAddress.codehash
     );
 
     // Set bridge registry address

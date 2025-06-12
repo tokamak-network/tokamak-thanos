@@ -260,8 +260,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementation.codehash,
-      proxyCodehash,
-      3
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user so they can verify
@@ -312,8 +311,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementation.codehash,
-      proxyCodehash,
-      3
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user so they can verify
@@ -384,8 +382,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementation.codehash,
-      proxyCodehash,
-      3 // ownersCount from safeWallet constructor
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user so they can verify and register
@@ -452,8 +449,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementationCodehash, // _implementationCodehash
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -500,8 +496,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementationCodehash, // _implementationCodehash
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     MockProxyAdmin differentProxyAdmin = new MockProxyAdmin(owner);
@@ -581,8 +576,7 @@ contract L1ContractVerificationTest is Test {
         foundation,
         3, // threshold from safeWallet constructor
         implementationCodehash,
-        proxyCodehash,
-        3 // ownersCount from safeWallet constructor
+        proxyCodehash
     );
 
     vm.stopPrank();
@@ -627,8 +621,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementationCodehash, // _implementationCodehash
-      proxyCodehash,
-      3 // _ownersCount
+    proxyCodehash
     );
 
     // Deploy a different SystemConfig implementation with different addresses
@@ -684,8 +677,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Create a new proxy that points to the original implementation
@@ -745,8 +737,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Deploy a different L1StandardBridge implementation
@@ -803,8 +794,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Deploy a different L1CrossDomainMessenger implementation
@@ -861,8 +851,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Deploy a different OptimismPortal implementation
@@ -918,8 +907,7 @@ contract L1ContractVerificationTest is Test {
       makeAddr('wrongFoundation'), // Different foundation address
       3, // _threshold
       implementationCodehash, // _implementationCodehash
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -963,8 +951,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1008,8 +995,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1046,8 +1032,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       0, // Zero threshold should cause revert
       implementationCodehash, // _implementationCodehash
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     vm.stopPrank();
@@ -1076,8 +1061,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1124,8 +1108,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1174,8 +1157,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       bytes32(0),
-      bytes32(0),
-      3 // _ownersCount
+    bytes32(0)
     );
 
     vm.expectRevert(expectedError);
@@ -1357,8 +1339,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+      proxyCodehash
     );
 
     // Use existing variables where possible
@@ -1403,8 +1384,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount
+       proxyCodehash
     );
     newVerifier.setVerificationPossible(true);
 
@@ -1502,8 +1482,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // _ownersCount - this is expected to be 3, but the large safe has 20 owners
+      proxyCodehash
     );
 
     // Grant ADMIN_ROLE to the user
@@ -1712,8 +1691,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       0, // threshold from safeWallet constructor
       implementationCodehash,
-      proxyCodehash,
-      3 // ownersCount from safeWallet constructor
+      proxyCodehash
     );
 
     vm.stopPrank();
@@ -1804,8 +1782,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       safe1.masterCopy().codehash, // _implementationCodehash
-      address(safe1).codehash, // _proxyCodehash
-      3 // _ownersCount
+      address(safe1).codehash // _proxyCodehash
     );
 
     // Grant admin roles
@@ -1899,8 +1876,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3,
       maliciousSafe.masterCopy().codehash,
-      address(maliciousSafe).codehash,
-      3
+      address(maliciousSafe).codehash
     );
 
     // Grant admin roles
@@ -1953,8 +1929,7 @@ contract L1ContractVerificationTest is Test {
       foundation,
       3,
       implementationCodehash,
-      proxyCodehash,
-      3
+      proxyCodehash
     );
 
     // Deploy a caller contract
