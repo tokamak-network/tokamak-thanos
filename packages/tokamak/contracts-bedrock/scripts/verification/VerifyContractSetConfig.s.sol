@@ -6,6 +6,7 @@ import 'forge-std/console.sol';
 import 'src/tokamak-contracts/verification/L1ContractVerification.sol';
 import '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol';
 import '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
+import 'src/tokamak-contracts/verification/interface/IProxyAdmin.sol';
 
 interface IMultiSigWallet {
     function submitTransaction(
@@ -51,7 +52,7 @@ contract VerifyContractSetConfig is Script {
         // Create reference to the deployed proxy
         L1ContractVerification verifier = L1ContractVerification(_proxyAddress);
 
-        verifier.verifyL1Contracts(_systemConfigProxy, _l1ProxyAdmin, _safeWalletAddress);
+        verifier.verifyL1Contracts(_systemConfigProxy, IProxyAdmin(_l1ProxyAdmin), _safeWalletAddress);
 
         console.log('L1 contracts verification completed successfully');
         vm.stopBroadcast();

@@ -13,6 +13,7 @@ import './mock-contracts/MockProxyAdmin.sol';
 import './mock-contracts/MockSystemConfig.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol';
+import {IProxyAdmin} from 'src/tokamak-contracts/verification/interface/IProxyAdmin.sol';
 
 /**
  * @title L1ContractVerificationTest
@@ -244,7 +245,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -273,11 +274,19 @@ contract L1ContractVerificationTest is Test {
     // Verification should succeed
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
     // Verification should succeed
+    verifier.verifyAndRegisterRollupConfig(
+      address(systemConfigProxy),
+      IProxyAdmin(address(mockProxyAdmin)),
+      2,
+      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
+      'Test Rollup',
+      address(safeWallet)
+    );
 
     vm.stopPrank();
   }
@@ -288,7 +297,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -317,7 +326,7 @@ contract L1ContractVerificationTest is Test {
     // Verification should succeed
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -333,7 +342,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: fallback handler should be set to ZERO address');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
     fallbackHandler = safeWallet.getFallbackHandler();
@@ -343,7 +352,7 @@ contract L1ContractVerificationTest is Test {
     safeWallet.setFallbackHandler(address(0));
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -360,7 +369,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -389,7 +398,7 @@ contract L1ContractVerificationTest is Test {
     // Verification and registration should succeed
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       2, // TON token
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup',
@@ -430,7 +439,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -461,7 +470,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert("ProxyAdmin verification failed: invalid codehash");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(wrongProxyAdmin),
+      IProxyAdmin(address(wrongProxyAdmin)),
       address(safeWallet)
     );
 
@@ -478,7 +487,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -542,7 +551,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(differentProxyAdmin), // Using different proxy admin
+      IProxyAdmin(address(differentProxyAdmin)), // Using different proxy admin
       address(safeWallet)
     );
 
@@ -559,7 +568,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
         address(systemConfigProxy),
-        address(mockProxyAdmin)
+        IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -585,7 +594,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Invalid proxy admin address');
     verifier.verifyL1Contracts(
         address(systemConfigProxy),
-        address(mockProxyAdmin),
+        IProxyAdmin(address(mockProxyAdmin)),
         makeAddr("differentSafeWallet") // Use a different address than the one configured
     );
 
@@ -605,7 +614,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -642,7 +651,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('SystemConfig verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -662,7 +671,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information with the original SystemConfig proxy
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -702,7 +711,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
     verifier.verifyL1Contracts(
       address(differentProxy), // Using different proxy with correct implementation
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -723,7 +732,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -760,7 +769,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('L1StandardBridge verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -781,7 +790,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -818,7 +827,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('L1CrossDomainMessenger verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -839,7 +848,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -876,7 +885,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('OptimismPortal verification failed');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -896,7 +905,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -924,7 +933,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: missing required owners');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -941,7 +950,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Sets wrong implementation codehash
@@ -969,7 +978,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -986,7 +995,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Sets wrong proxy codehash
@@ -1014,7 +1023,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Safe wallet verification failed: invalid proxy codehash');
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
 
@@ -1054,7 +1063,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -1082,7 +1091,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Registration allowed only for TON tokens');
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       1, // Invalid token type
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup',
@@ -1102,7 +1111,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Get codehashes for safe wallet
@@ -1132,7 +1141,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Provided L2 TON Token address is not correct');
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       2, // Valid token type
       invalidL2TON, // Invalid L2TON address
       'TestRollup',
@@ -1335,7 +1344,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Reuse existing variables instead of declaring new ones
@@ -1388,7 +1397,7 @@ contract L1ContractVerificationTest is Test {
 
     // Setup the new verifier
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
-    newVerifier.setLogicContractInfo(address(systemConfigProxy), address(mockProxyAdmin));
+    newVerifier.setLogicContractInfo(address(systemConfigProxy), IProxyAdmin(address(mockProxyAdmin)));
     newVerifier.setSafeConfig(
       tokamakDAO,
       foundation,
@@ -1403,7 +1412,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('The native token you are using is not TON');
     newVerifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       2,
       address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'TestRollup',
@@ -1423,7 +1432,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Create a large set of owners (20 addresses)
@@ -1484,7 +1493,7 @@ contract L1ContractVerificationTest is Test {
     // Setup all contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(largeProxyAdmin)
+      IProxyAdmin(address(largeProxyAdmin))
     );
 
     // Set safe wallet configuration
@@ -1508,7 +1517,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert("Safe wallet verification failed: wrong number of owners");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(largeProxyAdmin),
+      IProxyAdmin(address(largeProxyAdmin)),
       address(largeSafe) // Use largeSafe instead of safeWallet
     );
 
@@ -1720,7 +1729,7 @@ contract L1ContractVerificationTest is Test {
     // Setup contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Create first safe wallet and proxy admin
@@ -1808,7 +1817,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin1),
+      IProxyAdmin(address(proxyAdmin1)),
       address(safe1)
     );
     vm.stopPrank();
@@ -1817,7 +1826,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin2),
+      IProxyAdmin(address(proxyAdmin2)),
       address(safe2)
     );
     vm.stopPrank();
@@ -1827,7 +1836,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert("Invalid proxy admin address");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(proxyAdmin2),
+      IProxyAdmin(address(proxyAdmin2)),
       address(safe1)
     );
     vm.stopPrank();
@@ -1843,7 +1852,7 @@ contract L1ContractVerificationTest is Test {
     // Setup contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Create a safe wallet with a module
@@ -1915,7 +1924,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert("Safe wallet verification failed: unauthorized modules");
     verifier.verifyL1Contracts(
       address(systemConfigProxy),
-      address(safeProxyAdmin),
+      IProxyAdmin(address(safeProxyAdmin)),
       address(maliciousSafe)
     );
     vm.stopPrank();
@@ -1931,7 +1940,7 @@ contract L1ContractVerificationTest is Test {
     // Setup contract information
     verifier.setLogicContractInfo(
       address(systemConfigProxy),
-      address(mockProxyAdmin)
+      IProxyAdmin(address(mockProxyAdmin))
     );
 
     // Store the actual codehashes of the deployed safe wallet
@@ -1961,7 +1970,7 @@ contract L1ContractVerificationTest is Test {
     vm.expectRevert('Calls from contract accounts not allowed for verification');
     callerContract.callVerify(
       address(systemConfigProxy),
-      address(mockProxyAdmin),
+      IProxyAdmin(address(mockProxyAdmin)),
       address(safeWallet)
     );
   }
@@ -1977,7 +1986,7 @@ contract ContractCaller {
 
     function callVerify(
         address systemConfigProxy,
-        address proxyAdmin,
+        IProxyAdmin proxyAdmin,
         address safeWalletAddress
     ) external {
         verifier.verifyL1Contracts(
