@@ -390,7 +390,7 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification and registration should succeed
-    bool result = verifier.verifyAndRegisterRollupConfig(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       address(mockProxyAdmin),
       2, // TON token
@@ -398,9 +398,6 @@ contract L1ContractVerificationTest is Test {
       'TestRollup',
       address(safeWallet) // Pass safe wallet address
     );
-
-    // Verification and registration should succeed
-    assertTrue(result);
 
     vm.stopPrank();
   }

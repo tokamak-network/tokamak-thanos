@@ -88,7 +88,7 @@ interface IL1ContractVerification {
     address _l2TON,
     string calldata _name,
     address _safeWalletAddress
-  ) external returns (bool);
+  ) external;
 
   function setVerificationPossible(bool _isVerificationPossible) external;
 
