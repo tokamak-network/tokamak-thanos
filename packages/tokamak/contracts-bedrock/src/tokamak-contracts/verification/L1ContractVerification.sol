@@ -272,7 +272,6 @@ contract L1ContractVerification is
    * @param _l2TON The address of the L2 TON token
    * @param _name The name of the rollup configuration
    * @param _safeWalletAddress The address of the safe wallet to verify for
-   * @return Returns true if verification and registration succeeds, otherwise reverts
    * @dev Performs verification and additionally registers the rollup with the bridge registry
    */
   function verifyAndRegisterRollupConfig(
@@ -282,7 +281,7 @@ contract L1ContractVerification is
     address _l2TON,
     string calldata _name,
     address _safeWalletAddress
-  ) external returns (bool) {
+  ) external {
     require(isVerificationPossible, 'Contract not registered as registerant');
     require(
       _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
@@ -345,7 +344,6 @@ contract L1ContractVerification is
     );
 
     emit RegistrationSuccess(_safeWalletAddress);
-    return true;
   }
 
   /**
