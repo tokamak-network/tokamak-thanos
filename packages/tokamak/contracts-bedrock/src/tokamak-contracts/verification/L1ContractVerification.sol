@@ -48,6 +48,10 @@ contract L1ContractVerification is
   // Flag to control if verification is possible
   bool public isVerificationPossible;
 
+  address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
+
+  uint8 internal constant TYPE = 2;
+
   // Logic contract information storage
   LogicContractInfo public systemConfig;
   LogicContractInfo public l1StandardBridge;
@@ -259,8 +263,6 @@ contract L1ContractVerification is
    * @notice Verify L1 contracts and register rollup configuration
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin
-   * @param _type Token type (must be 2 for TON)
-   * @param _l2TON The address of the L2 TON token
    * @param _name The name of the rollup configuration
    * @param _safeWalletAddress The address of the safe wallet to verify for
    * @dev Performs verification and additionally registers the rollup with the bridge registry
@@ -268,18 +270,10 @@ contract L1ContractVerification is
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
-    uint8 _type,
-    address _l2TON,
     string calldata _name,
     address _safeWalletAddress
   ) external {
     require(isVerificationPossible, 'Contract not registered as registerant');
-    require(
-      _l2TON == address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
-      'Provided L2 TON Token address is not correct'
-    );
-    require(_type == 2, 'Registration allowed only for TON tokens');
-
     // Additional security check: Ensure no delegate calls are allowed
     require(
         msg.sender.code.length == 0,
@@ -319,7 +313,7 @@ contract L1ContractVerification is
     // Check if the bridge registry is available for registration
     bool isAvailable = bridgeRegistry.availableForRegistration(
       _systemConfigProxy,
-      _type
+      TYPE
     );
     require(
       isAvailable,
@@ -328,8 +322,8 @@ contract L1ContractVerification is
 
     bridgeRegistry.registerRollupConfig(
       _systemConfigProxy,
-      _type,
-      _l2TON,
+      TYPE,
+      L2_TON_ADDRESS,
       _name
     );
 
