@@ -85,8 +85,6 @@ interface IL1ContractVerification {
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
-    uint8 _type,
-    address _l2TON,
     string calldata _name,
     address _safeWalletAddress
   ) external;
