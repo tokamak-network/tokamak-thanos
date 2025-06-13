@@ -281,8 +281,6 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      2,
-      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'Test Rollup',
       address(safeWallet)
     );
@@ -396,8 +394,6 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      2, // TON token
-      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
       'TestRollup',
       address(safeWallet) // Pass safe wallet address
     );
@@ -1039,102 +1035,6 @@ contract L1ContractVerificationTest is Test {
   }
 
   /**
-   * @notice Test verification failure with invalid token type
-   * @dev Attempts registration with an invalid token type
-   */
-  function testVerifyAndRegisterRollupConfigFailInvalidType() public {
-    vm.startPrank(owner);
-
-    // Setup all contract information
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      IProxyAdmin(address(mockProxyAdmin))
-    );
-
-    // Get codehashes for safe wallet
-    bytes32 implementationCodehash = address(safeWallet).codehash;
-    bytes32 proxyCodehash = address(safeWallet).codehash;
-
-    // Setup safe wallet info
-    verifier.setSafeConfig(
-      tokamakDAO,
-      foundation,
-      3, // threshold from safeWallet constructor
-      implementationCodehash,
-      proxyCodehash
-    );
-
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
-
-    vm.stopPrank();
-
-    vm.startPrank(user);
-
-    // Verification should fail due to invalid token type
-    vm.expectRevert('Registration allowed only for TON tokens');
-    verifier.verifyAndRegisterRollupConfig(
-      address(systemConfigProxy),
-      IProxyAdmin(address(mockProxyAdmin)),
-      1, // Invalid token type
-      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000), //L2 Ton address
-      'TestRollup',
-      address(safeWallet) // Pass safe wallet address
-    );
-
-    vm.stopPrank();
-  }
-
-  /**
-   * @notice Test verification failure with invalid L2 TON address
-   * @dev Attempts registration with an incorrect L2 TON address
-   */
-  function testVerifyAndRegisterRollupConfigFailInvalidL2TON() public {
-    vm.startPrank(owner);
-
-    // Setup all contract information
-    verifier.setLogicContractInfo(
-      address(systemConfigProxy),
-      IProxyAdmin(address(mockProxyAdmin))
-    );
-
-    // Get codehashes for safe wallet
-    bytes32 implementationCodehash = address(safeWallet).codehash;
-    bytes32 proxyCodehash = address(safeWallet).codehash;
-
-    // Setup safe wallet info
-    verifier.setSafeConfig(
-      tokamakDAO,
-      foundation,
-      3, // threshold from safeWallet constructor
-      implementationCodehash,
-      proxyCodehash
-    );
-
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
-
-    vm.stopPrank();
-
-    vm.startPrank(user);
-
-    address invalidL2TON = makeAddr('invalidL2TON');
-
-    // Verification should fail due to invalid L2 TON token address
-    vm.expectRevert('Provided L2 TON Token address is not correct');
-    verifier.verifyAndRegisterRollupConfig(
-      address(systemConfigProxy),
-      IProxyAdmin(address(mockProxyAdmin)),
-      2, // Valid token type
-      invalidL2TON, // Invalid L2TON address
-      'TestRollup',
-      address(safeWallet) // Pass safe wallet address
-    );
-
-    vm.stopPrank();
-  }
-
-  /**
    * @notice Test access controls for admin functions
    * @dev Attempts to call admin functions from a non-admin account
    */
@@ -1393,8 +1293,6 @@ contract L1ContractVerificationTest is Test {
     newVerifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      2,
-      address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000),
       'TestRollup',
       address(safeWallet) // Pass safe wallet address
     );
