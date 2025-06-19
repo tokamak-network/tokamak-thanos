@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IProxyAdmin} from "./IProxyAdmin.sol";
+
 interface IGnosisSafe {
   function getThreshold() external view returns (uint256);
   function getOwners() external view returns (address[] memory);
@@ -67,7 +69,7 @@ interface IL1ContractVerification {
   // Functions
   function setLogicContractInfo(
     address _systemConfigProxy,
-    address _proxyAdmin
+    IProxyAdmin _proxyAdmin
   ) external;
 
   function setSafeConfig(
@@ -75,26 +77,23 @@ interface IL1ContractVerification {
     address _foundation,
     uint256 _threshold,
     bytes32 _implementationCodehash,
-    bytes32 _proxyCodehash,
-    uint256 _ownersCount
+    bytes32 _proxyCodehash
   ) external;
 
   function setBridgeRegistryAddress(address _bridgeRegistry) external;
 
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
-    address _proxyAdmin,
-    uint8 _type,
-    address _l2TON,
+    IProxyAdmin _proxyAdmin,
     string calldata _name,
     address _safeWalletAddress
-  ) external returns (bool);
+  ) external;
 
   function setVerificationPossible(bool _isVerificationPossible) external;
 
   function verifyL1Contracts(
     address systemConfigProxy,
-    address proxyAdmin,
+    IProxyAdmin proxyAdmin,
     address safeWalletAddress
-  ) external view returns (bool);
+  ) external view;
 }

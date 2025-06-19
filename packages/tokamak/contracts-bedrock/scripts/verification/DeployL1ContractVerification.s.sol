@@ -78,10 +78,10 @@ contract SetupL1ContractVerification is Script {
     L1ContractVerification verifier = L1ContractVerification(address(proxy));
 
     // Set logic contract info
-    verifier.setLogicContractInfo(_systemConfigProxy, _l1ProxyAdmin);
+    verifier.setLogicContractInfo(_systemConfigProxy, IProxyAdmin(_l1ProxyAdmin));
 
     // Get the safe wallet address from the proxy admin
-    IProxyAdmin proxyAdminContract = IProxyAdmin(address(_l1ProxyAdmin));
+    IProxyAdmin proxyAdminContract = IProxyAdmin(_l1ProxyAdmin);
     address safeWalletAddress = proxyAdminContract.owner();
 
     console.log('Safe wallet address:', safeWalletAddress);
@@ -94,8 +94,7 @@ contract SetupL1ContractVerification is Script {
       _foundation,
       _SAFE_THRESHOLD,
       implementation.codehash,
-      safeWalletAddress.codehash,
-      3 // _ownersCount
+      safeWalletAddress.codehash
     );
 
     // Set bridge registry address
