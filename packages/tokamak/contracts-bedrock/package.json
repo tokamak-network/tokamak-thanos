@@ -57,10 +57,10 @@
     "lint": "pnpm lint:fix && pnpm lint:check"
   },
   "devDependencies": {
+    "@eth-optimism/contracts-bedrock": "workspace:*",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.5",
-    "@eth-optimism/contracts-bedrock": "workspace:*"
+    "typescript": "^5.4.5"
   }
 }
