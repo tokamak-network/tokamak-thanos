@@ -90,10 +90,4 @@ interface IL1ContractVerification {
   ) external;
 
   function setVerificationPossible(bool _isVerificationPossible) external;
-
-  function verifyL1Contracts(
-    address systemConfigProxy,
-    IProxyAdmin proxyAdmin,
-    address safeWalletAddress
-  ) external view;
 }

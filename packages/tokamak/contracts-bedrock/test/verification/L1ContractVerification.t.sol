@@ -271,13 +271,6 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should succeed
-    verifier.verifyL1Contracts(
-      address(systemConfigProxy),
-      IProxyAdmin(address(mockProxyAdmin)),
-      address(safeWallet)
-    );
-
-    // Verification should succeed
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
@@ -320,9 +313,10 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     // Verification should succeed
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -336,9 +330,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Safe wallet verification failed: fallback handler should be set to ZERO address');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
     fallbackHandler = safeWallet.getFallbackHandler();
@@ -346,9 +341,10 @@ contract L1ContractVerificationTest is Test {
 
     // change it back to 0 and should succeed
     safeWallet.setFallbackHandler(address(0));
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -460,9 +456,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail with ProxyAdmin verification error
     vm.expectRevert("ProxyAdmin verification failed: invalid codehash");
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(wrongProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -540,9 +537,10 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     vm.expectRevert('Invalid proxy admin address');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      IProxyAdmin(address(differentProxyAdmin)), // Using different proxy admin
+      IProxyAdmin(address(differentProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -582,10 +580,11 @@ contract L1ContractVerificationTest is Test {
     // Verification should fail because we're providing a different safe wallet address
     // than what's configured as the owner in the proxy admin, Failing on the ProxyAdmin verification because the owner is different
     vm.expectRevert('Invalid proxy admin address');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
         address(systemConfigProxy),
         IProxyAdmin(address(mockProxyAdmin)),
-        makeAddr("differentSafeWallet") // Use a different address than the one configured
+        "Test Rollup",
+        makeAddr("differentSafeWallet")
     );
 
     vm.stopPrank();
@@ -638,9 +637,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('SystemConfig verification failed');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -697,9 +697,10 @@ contract L1ContractVerificationTest is Test {
     vm.startPrank(user);
 
     vm.expectRevert('Failed to call getProxyImplementation on ProxyAdmin');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(differentProxy), // Using different proxy with correct implementation
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -754,9 +755,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('L1StandardBridge verification failed');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -811,9 +813,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('L1CrossDomainMessenger verification failed');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -868,9 +871,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('OptimismPortal verification failed');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -915,9 +919,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail due to missing required owners
     vm.expectRevert('Safe wallet verification failed: missing required owners');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -959,9 +964,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Safe wallet verification failed: invalid implementation codehash');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -1003,9 +1009,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail
     vm.expectRevert('Safe wallet verification failed: invalid proxy codehash');
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      "Test Rollup",
       address(safeWallet)
     );
 
@@ -1392,9 +1399,10 @@ contract L1ContractVerificationTest is Test {
 
     // Verification should fail due to large number of owners
     vm.expectRevert("Safe wallet verification failed: wrong number of owners");
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(largeProxyAdmin)),
+      "Test Rollup",
       address(largeSafe) // Use largeSafe instead of safeWallet
     );
 
@@ -1690,18 +1698,20 @@ contract L1ContractVerificationTest is Test {
 
     // Test verification with first safe wallet
     vm.startPrank(user);
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin1)),
+      "Test Rollup",
       address(safe1)
     );
     vm.stopPrank();
 
     // Test verification with second safe wallet
     vm.startPrank(user);
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin2)),
+      "Test Rollup 2",
       address(safe2)
     );
     vm.stopPrank();
@@ -1709,9 +1719,10 @@ contract L1ContractVerificationTest is Test {
     // Test that first safe wallet cannot use second safe wallet's proxy admin
     vm.startPrank(user);
     vm.expectRevert("Invalid proxy admin address");
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin2)),
+      "Test Rollup 3",
       address(safe1)
     );
     vm.stopPrank();
@@ -1796,9 +1807,10 @@ contract L1ContractVerificationTest is Test {
     // Test that verification fails when modules are present
     vm.startPrank(user);
     vm.expectRevert("Safe wallet verification failed: unauthorized modules");
-    verifier.verifyL1Contracts(
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(safeProxyAdmin)),
+      "Test Rollup",
       address(maliciousSafe)
     );
     vm.stopPrank();
@@ -1862,9 +1874,10 @@ contract ContractCaller {
         IProxyAdmin proxyAdmin,
         address safeWalletAddress
     ) external {
-        verifier.verifyL1Contracts(
+        verifier.verifyAndRegisterRollupConfig(
             systemConfigProxy,
             proxyAdmin,
+            "Test Rollup",
             safeWalletAddress
         );
     }
