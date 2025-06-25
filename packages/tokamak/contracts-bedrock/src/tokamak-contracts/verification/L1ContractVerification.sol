@@ -225,41 +225,6 @@ contract L1ContractVerification is
   }
 
   /**
-   * @notice Verify L1 contracts for a specific safe wallet
-   * @param systemConfigProxy The address of the SystemConfig proxy
-   * @param proxyAdmin The address of the ProxyAdmin
-   * @param safeWalletAddress The address of the safe wallet to verify
-   */
-  function verifyL1Contracts(
-    address systemConfigProxy,
-    IProxyAdmin proxyAdmin,
-    address safeWalletAddress
-  ) external view  {
-    require(isVerificationPossible, 'Contract not registered as registerant');
-    require(
-      ISystemConfig(systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
-      'The native token you are using is not TON'
-    );
-
-    require(
-      safeWalletAddress != address(0),
-      'Safe wallet address cannot be zero'
-    );
-
-    // Additional security check: Ensure no delegate calls are allowed
-    require(
-        msg.sender.code.length == 0,
-       'Calls from contract accounts not allowed for verification'
-    );
-
-    // Verify proxy admin
-    _verifyProxyAdmin(proxyAdmin, safeWalletAddress);
-
-        // Verify L1 contracts
-    _verifyL1Contracts(systemConfigProxy, proxyAdmin, safeWalletAddress);
-  }
-
-  /**
    * @notice Verify L1 contracts and register rollup configuration
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin
