@@ -239,11 +239,6 @@ contract L1ContractVerification is
     address _safeWalletAddress
   ) external {
     require(isVerificationPossible, 'Contract not registered as registerant');
-    // Additional security check: Ensure no delegate calls are allowed
-    require(
-        msg.sender.code.length == 0,
-       'Calls from contract accounts not allowed for verification'
-    );
 
     // Verify native token first
     require(
