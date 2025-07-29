@@ -446,6 +446,12 @@ contract L1ContractVerification is
       'SystemConfig verification failed'
     );
 
+    // Verify proxy admin relationship for SystemConfig
+    require(
+      _verifyProxyOwner(_systemConfigProxy, _proxyAdmin),
+      'ProxyAdmin is not the admin of SystemConfig'
+    );
+
     // Get contract addresses from SystemConfig
     address l1StandardBridgeAddress = ISystemConfig(_systemConfigProxy).l1StandardBridge();
     address l1CrossDomainMessengerAddress = ISystemConfig(_systemConfigProxy).l1CrossDomainMessenger();
