@@ -240,12 +240,6 @@ contract L1ContractVerification is
   ) external {
     require(isVerificationPossible, 'Contract not registered as registerant');
 
-    // Verify native token first
-    require(
-      ISystemConfig(_systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
-      'The native token you are using is not TON'
-    );
-
     // Get operator's safe wallet address
     require(
       _safeWalletAddress != address(0),
@@ -265,6 +259,13 @@ contract L1ContractVerification is
       address(_proxyAdmin),
       block.timestamp
     );
+
+        // Verify native token first
+    require(
+      ISystemConfig(_systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
+      'The native token you are using is not TON'
+    );
+
 
     IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
       l1BridgeRegistryAddress
@@ -370,6 +371,12 @@ contract L1ContractVerification is
       'Safe wallet verification failed: address mismatch'
     );
 
+    // Check if the proxy codehash is the same as the expected proxy codehash
+    require(
+      safeWalletAddress.codehash == safeWalletConfig.proxyCodehash,
+      'Safe wallet verification failed: invalid proxy codehash'
+    );
+
     // Get the implementation from the masterCopy function of the safe wallet
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
@@ -381,12 +388,6 @@ contract L1ContractVerification is
 
     // Check if the modules are not set
     require(IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 1).length == 0, "Safe wallet verification failed: unauthorized modules");
-
-    // Check if the proxy codehash is the same as the expected proxy codehash
-    require(
-      safeWalletAddress.codehash == safeWalletConfig.proxyCodehash,
-      'Safe wallet verification failed: invalid proxy codehash'
-    );
 
     // verify fallback handler
     require(IGnosisSafe(safeWalletAddress).getFallbackHandler() == address(0), "Safe wallet verification failed: fallback handler should be set to ZERO address");
