@@ -93,7 +93,7 @@ contract L1ContractVerification is
    * @param _admin The address to grant the admin role to
    * @dev Only callable by existing admins
    */
-  function addAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
+  function addAdmin(address _admin) external {
     grantRole(ADMIN_ROLE, _admin);
   }
 
@@ -114,7 +114,7 @@ contract L1ContractVerification is
    * @param _admin The address to revoke the admin role from
    * @dev Only callable by existing admins
    */
-  function removeAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
+  function removeAdmin(address _admin) external {
     revokeRole(ADMIN_ROLE, _admin);
   }
 
