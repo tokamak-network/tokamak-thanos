@@ -77,8 +77,10 @@ contract L1ContractVerification is
     address _tokenAddress,
     address _initialAdmin
   ) public initializer {
-    __AccessControl_init();
+    require(_tokenAddress != address(0), 'Token address cannot be zero');
+    require(_initialAdmin != address(0), 'Initial admin cannot be zero');
 
+    __AccessControl_init();
     // Set up roles
     _setupRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
     _setupRole(ADMIN_ROLE, _initialAdmin);
