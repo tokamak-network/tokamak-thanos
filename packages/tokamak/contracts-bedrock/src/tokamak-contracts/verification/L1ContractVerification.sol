@@ -272,8 +272,8 @@ contract L1ContractVerification is
     // Verify L1 contracts
     _verifyL1Contracts(_systemConfigProxy, _proxyAdmin, _safeWalletAddress);
 
-    // Emit verification success event
-    emit VerificationSuccess(
+    // Emit verification completed event
+    emit VerificationCompleted(
       _safeWalletAddress,
       _systemConfigProxy,
       address(_proxyAdmin),
@@ -302,7 +302,7 @@ contract L1ContractVerification is
       _name
     );
 
-    emit RegistrationSuccess(_safeWalletAddress);
+    emit RegistrationCompleted(_safeWalletAddress);
   }
 
   /**
