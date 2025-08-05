@@ -63,6 +63,10 @@ contract L1ContractVerification is
 
   address internal constant SENTINEL_MODULES = address(0x1);
 
+  // Safe wallet configuration constants
+  uint256 internal constant REQUIRED_SAFE_THRESHOLD = 3;
+  uint256 internal constant REQUIRED_SAFE_OWNERS_COUNT = 3;
+
   // The expected native token (TON) address
   address public expectedNativeToken;
 
@@ -219,7 +223,7 @@ contract L1ContractVerification is
   ) external onlyRole(ADMIN_ROLE) {
     if (_tokamakDAO == address(0)) revert ZeroAddress("tokamakDAO");
     if (_foundation == address(0)) revert ZeroAddress("foundation");
-    if (_threshold != 3) revert InvalidThreshold();
+    if (_threshold != REQUIRED_SAFE_THRESHOLD) revert InvalidThreshold();
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -228,7 +232,7 @@ contract L1ContractVerification is
       implementationCodehash: _implementationCodehash,
       proxyCodehash: _proxyCodehash,
       requiredThreshold: _threshold,
-      ownersCount: 3
+      ownersCount: REQUIRED_SAFE_OWNERS_COUNT
     });
 
     emit SafeConfigSet(_tokamakDAO, _foundation, _threshold, _implementationCodehash, _proxyCodehash);
