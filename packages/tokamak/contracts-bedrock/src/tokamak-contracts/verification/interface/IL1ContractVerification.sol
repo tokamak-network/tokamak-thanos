@@ -50,6 +50,12 @@ interface IL1ContractVerification {
 
   // Events
   event ConfigurationSet(string indexed contractName);
+  event LogicContractConfigured(
+    string indexed contractType,
+    address indexed proxyAddress,
+    address implementationAddress,
+    bytes32 proxyCodehash
+  );
   event VerificationSuccess(
     address indexed safeWalletAddress,
     address indexed systemConfigProxy,
