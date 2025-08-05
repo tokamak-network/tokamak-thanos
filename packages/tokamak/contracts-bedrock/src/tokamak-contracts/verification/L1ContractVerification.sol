@@ -193,7 +193,7 @@ contract L1ContractVerification is
   ) external onlyRole(ADMIN_ROLE) {
     require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
     require(_foundation != address(0), 'Foundation address cannot be zero');
-    require(_threshold == 3, 'Threshold must be greater than zero');
+    require(_threshold == 3, 'Threshold must be 3');
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
