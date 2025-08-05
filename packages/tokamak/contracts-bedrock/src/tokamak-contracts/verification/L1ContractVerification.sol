@@ -45,7 +45,6 @@ contract L1ContractVerification is
   error SafeWalletInvalidThreshold();
   error SafeWalletWrongOwnerCount();
   error SafeWalletMissingRequiredOwners();
-  error SafeWalletVerificationFailed();
   error SystemConfigVerificationFailed();
   error ProxyAdminNotSystemConfigAdmin();
   error ProxyAdminNotOptimismPortalAdmin();
@@ -365,12 +364,12 @@ contract L1ContractVerification is
    * @notice Verify the Safe wallet for a specific operator
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _safeWalletAddress The safe wallet address for the operator
-   * @return Returns true if verification succeeds, otherwise reverts with a specific error message
+   * @dev Reverts with specific error messages if verification fails
    */
   function _verifySafe(
     IProxyAdmin _proxyAdmin,
     address _safeWalletAddress
-  ) private view returns (bool) {
+  ) private view {
     // Get safe wallet address from ProxyAdmin.owner()
     address safeWalletAddress = _proxyAdmin.owner();
 
@@ -412,8 +411,6 @@ contract L1ContractVerification is
 
     // Both tokamakDAO and foundation must be present
     if (!foundTokamakDAO || !foundFoundation) revert SafeWalletMissingRequiredOwners();
-
-    return true;
   }
 
   /**
@@ -480,7 +477,7 @@ contract L1ContractVerification is
       ) || !_verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash)) revert OptimismPortalVerificationFailed();
 
     // Step 5: Verify Safe wallet
-    if (!_verifySafe(_proxyAdmin, _safeWalletAddress)) revert SafeWalletVerificationFailed();
+    _verifySafe(_proxyAdmin, _safeWalletAddress);
   }
 
   function _setProxyAdminCodehash(address _proxyAdmin) private {
