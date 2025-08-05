@@ -27,6 +27,34 @@ contract L1ContractVerification is
   Initializable,
   AccessControlUpgradeable
 {
+  // Custom errors for gas optimization
+  error ZeroAddress(string parameter);
+  error InvalidThreshold();
+  error ContractNotRegistered();
+  error NoSafeWalletConfigured();
+  error NativeTokenNotTON();
+  error RollupConfigNotAvailable();
+  error ProxyAdminInvalidCodehash();
+  error InvalidProxyAdminAddress();
+  error GetProxyImplementationFailed();
+  error SafeWalletAddressMismatch();
+  error SafeWalletInvalidProxyCodehash();
+  error SafeWalletInvalidImplCodehash();
+  error SafeWalletUnauthorizedModules();
+  error SafeWalletInvalidFallbackHandler();
+  error SafeWalletInvalidThreshold();
+  error SafeWalletWrongOwnerCount();
+  error SafeWalletMissingRequiredOwners();
+  error SafeWalletVerificationFailed();
+  error SystemConfigVerificationFailed();
+  error ProxyAdminNotSystemConfigAdmin();
+  error ProxyAdminNotOptimismPortalAdmin();
+  error ProxyAdminNotL1StandardBridgeAdmin();
+  error ProxyAdminNotL1CrossDomainMessengerAdmin();
+  error L1StandardBridgeVerificationFailed();
+  error L1CrossDomainMessengerVerificationFailed();
+  error OptimismPortalVerificationFailed();
+  error ProxyAdminCodehashZero();
   // Role definitions
   /**
    * @notice Admin role for managing configuration and performing operations
@@ -77,8 +105,8 @@ contract L1ContractVerification is
     address _tokenAddress,
     address _initialAdmin
   ) public initializer {
-    require(_tokenAddress != address(0), 'Token address cannot be zero');
-    require(_initialAdmin != address(0), 'Initial admin cannot be zero');
+    if (_tokenAddress == address(0)) revert ZeroAddress("tokenAddress");
+    if (_initialAdmin == address(0)) revert ZeroAddress("initialAdmin");
 
     __AccessControl_init();
     // Set up roles
@@ -130,11 +158,8 @@ contract L1ContractVerification is
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin
   ) external onlyRole(ADMIN_ROLE) {
-    require(
-      _systemConfigProxy != address(0),
-      'SystemConfig proxy address cannot be zero'
-    );
-    require(address(_proxyAdmin) != address(0), 'ProxyAdmin address cannot be zero');
+    if (_systemConfigProxy == address(0)) revert ZeroAddress("systemConfigProxy");
+    if (address(_proxyAdmin) == address(0)) revert ZeroAddress("proxyAdmin");
 
     // Set Proxy Admin Codehash
     _setProxyAdminCodehash(address(_proxyAdmin));
@@ -193,9 +218,9 @@ contract L1ContractVerification is
     bytes32 _implementationCodehash,
     bytes32 _proxyCodehash
   ) external onlyRole(ADMIN_ROLE) {
-    require(_tokamakDAO != address(0), 'TokamakDAO address cannot be zero');
-    require(_foundation != address(0), 'Foundation address cannot be zero');
-    require(_threshold == 3, 'Threshold must be 3');
+    if (_tokamakDAO == address(0)) revert ZeroAddress("tokamakDAO");
+    if (_foundation == address(0)) revert ZeroAddress("foundation");
+    if (_threshold != 3) revert InvalidThreshold();
 
     // Set common safe wallet configuration
     safeWalletConfig = SafeWalletInfo({
@@ -218,10 +243,7 @@ contract L1ContractVerification is
   function setBridgeRegistryAddress(
     address _bridgeRegistry
   ) external onlyRole(ADMIN_ROLE) {
-    require(
-      _bridgeRegistry != address(0),
-      'Bridge registry address cannot be zero'
-    );
+    if (_bridgeRegistry == address(0)) revert ZeroAddress("bridgeRegistry");
     l1BridgeRegistryAddress = _bridgeRegistry;
     emit BridgeRegistryUpdated(_bridgeRegistry);
   }
@@ -240,13 +262,10 @@ contract L1ContractVerification is
     string calldata _name,
     address _safeWalletAddress
   ) external {
-    require(isVerificationPossible, 'Contract not registered as registerant');
+    if (!isVerificationPossible) revert ContractNotRegistered();
 
     // Get operator's safe wallet address
-    require(
-      _safeWalletAddress != address(0),
-      'No safe wallet configured for operator'
-    );
+    if (_safeWalletAddress == address(0)) revert ZeroAddress("safeWalletAddress");
 
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
@@ -263,10 +282,7 @@ contract L1ContractVerification is
     );
 
         // Verify native token first
-    require(
-      ISystemConfig(_systemConfigProxy).nativeTokenAddress() == expectedNativeToken,
-      'The native token you are using is not TON'
-    );
+    if (ISystemConfig(_systemConfigProxy).nativeTokenAddress() != expectedNativeToken) revert NativeTokenNotTON();
 
 
     IL1BridgeRegistry bridgeRegistry = IL1BridgeRegistry(
@@ -278,10 +294,7 @@ contract L1ContractVerification is
       _systemConfigProxy,
       TYPE
     );
-    require(
-      isAvailable,
-      'Rollup configuration already registered or not available for registration'
-    );
+    if (!isAvailable) revert RollupConfigNotAvailable();
 
     bridgeRegistry.registerRollupConfig(
       _systemConfigProxy,
@@ -304,18 +317,12 @@ contract L1ContractVerification is
     address _safeWalletAddress
   ) private view {
     // 1. Verify that ProxyAdmin contract has the expected codehash
-    require(
-      address(_proxyAdmin).codehash == proxyAdminCodehash,
-      'ProxyAdmin verification failed: invalid codehash'
-    );
+    if (address(_proxyAdmin).codehash != proxyAdminCodehash) revert ProxyAdminInvalidCodehash();
 
     // 2. Verify the ProxyAdmin is owned by the operator's safe wallet
     address ownerAddress = _proxyAdmin.owner();
 
-    require(
-      ownerAddress == _safeWalletAddress,
-      'Invalid proxy admin address'
-    );
+    if (ownerAddress != _safeWalletAddress) revert InvalidProxyAdminAddress();
   }
 
   /**
@@ -336,7 +343,7 @@ contract L1ContractVerification is
     ) {
       return fetchedImpl == _expectedImplementation;
     } catch {
-      revert("Failed to call getProxyImplementation on ProxyAdmin");
+      revert GetProxyImplementationFailed();
     }
   }
 
@@ -368,46 +375,31 @@ contract L1ContractVerification is
     address safeWalletAddress = _proxyAdmin.owner();
 
     // Check if the safe wallet address is the same as the expected safe wallet address
-    require(
-      safeWalletAddress == _safeWalletAddress,
-      'Safe wallet verification failed: address mismatch'
-    );
+    if (safeWalletAddress != _safeWalletAddress) revert SafeWalletAddressMismatch();
 
     // Check if the proxy codehash is the same as the expected proxy codehash
-    require(
-      safeWalletAddress.codehash == safeWalletConfig.proxyCodehash,
-      'Safe wallet verification failed: invalid proxy codehash'
-    );
+    if (safeWalletAddress.codehash != safeWalletConfig.proxyCodehash) revert SafeWalletInvalidProxyCodehash();
 
     // Get the implementation from the masterCopy function of the safe wallet
     address implementation = IGnosisSafe(safeWalletAddress).masterCopy();
 
     // Check if the implementation codehash is the same as the expected implementation codehash
-    require(
-      implementation.codehash == safeWalletConfig.implementationCodehash,
-      'Safe wallet verification failed: invalid implementation codehash'
-    );
+    if (implementation.codehash != safeWalletConfig.implementationCodehash) revert SafeWalletInvalidImplCodehash();
 
     // Check if the modules are not set
-    require(IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 1).length == 0, "Safe wallet verification failed: unauthorized modules");
+    if (IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 1).length != 0) revert SafeWalletUnauthorizedModules();
 
     // verify fallback handler
-    require(IGnosisSafe(safeWalletAddress).getFallbackHandler() == address(0), "Safe wallet verification failed: fallback handler should be set to ZERO address");
+    if (IGnosisSafe(safeWalletAddress).getFallbackHandler() != address(0)) revert SafeWalletInvalidFallbackHandler();
 
     // Verify threshold
-    require(
-      IGnosisSafe(safeWalletAddress).getThreshold() == safeWalletConfig.requiredThreshold,
-      'Safe wallet verification failed: invalid threshold'
-    );
+    if (IGnosisSafe(safeWalletAddress).getThreshold() != safeWalletConfig.requiredThreshold) revert SafeWalletInvalidThreshold();
 
     // Verify owners (tokamakDAO, foundation must be included)
     address[] memory owners = IGnosisSafe(safeWalletAddress).getOwners();
 
     // Verify number of owners doesn't exceed the maximum
-    require(
-      owners.length == safeWalletConfig.ownersCount,
-      'Safe wallet verification failed: wrong number of owners'
-    );
+    if (owners.length != safeWalletConfig.ownersCount) revert SafeWalletWrongOwnerCount();
 
     bool foundTokamakDAO;
     bool foundFoundation;
@@ -419,10 +411,7 @@ contract L1ContractVerification is
     }
 
     // Both tokamakDAO and foundation must be present
-    require(
-      foundTokamakDAO && foundFoundation,
-      'Safe wallet verification failed: missing required owners'
-    );
+    if (!foundTokamakDAO || !foundFoundation) revert SafeWalletMissingRequiredOwners();
 
     return true;
   }
@@ -439,20 +428,14 @@ contract L1ContractVerification is
     address _safeWalletAddress
   ) private view {
     // Step 1: Verify SystemConfig
-    require(
-      _verifyImplementation(
+    if (!_verifyImplementation(
         _systemConfigProxy,
         systemConfig.logicAddress,
         _proxyAdmin
-      ) && _verifyProxyHash(_systemConfigProxy, systemConfig.proxyCodehash),
-      'SystemConfig verification failed'
-    );
+      ) || !_verifyProxyHash(_systemConfigProxy, systemConfig.proxyCodehash)) revert SystemConfigVerificationFailed();
 
     // Verify proxy admin relationship for SystemConfig
-    require(
-      _verifyProxyOwner(_systemConfigProxy, _proxyAdmin),
-      'ProxyAdmin is not the admin of SystemConfig'
-    );
+    if (!_verifyProxyOwner(_systemConfigProxy, _proxyAdmin)) revert ProxyAdminNotSystemConfigAdmin();
 
     // Get contract addresses from SystemConfig
     address l1StandardBridgeAddress = ISystemConfig(_systemConfigProxy).l1StandardBridge();
@@ -460,69 +443,48 @@ contract L1ContractVerification is
     address optimismPortalAddress = ISystemConfig(_systemConfigProxy).optimismPortal();
 
         // Verify proxy admin relationship for OptimismPortal
-    require(
-        _verifyProxyOwner(optimismPortalAddress, _proxyAdmin),
-        'ProxyAdmin is not the admin of OptimismPortal'
-    );
+    if (!_verifyProxyOwner(optimismPortalAddress, _proxyAdmin)) revert ProxyAdminNotOptimismPortalAdmin();
 
     // Verify proxy admin relationship for L1StandardBridge
-    require(
-        _verifyProxyOwner(l1StandardBridgeAddress, _proxyAdmin),
-        'ProxyAdmin is not the admin of L1StandardBridge'
-    );
+    if (!_verifyProxyOwner(l1StandardBridgeAddress, _proxyAdmin)) revert ProxyAdminNotL1StandardBridgeAdmin();
 
     // Verify proxy admin relationship for L1CrossDomainMessenger
-    require(
-        _verifyProxyOwner(l1CrossDomainMessengerAddress, _proxyAdmin),
-        'ProxyAdmin is not the admin of L1CrossDomainMessenger'
-    );
+    if (!_verifyProxyOwner(l1CrossDomainMessengerAddress, _proxyAdmin)) revert ProxyAdminNotL1CrossDomainMessengerAdmin();
 
 
     // Step 2: Verify L1StandardBridge
-    require(
-      _verifyImplementation(
+    if (!_verifyImplementation(
         l1StandardBridgeAddress,
         l1StandardBridge.logicAddress,
         _proxyAdmin
-      ) &&
-        _verifyProxyHash(
+      ) || !_verifyProxyHash(
           l1StandardBridgeAddress,
           l1StandardBridge.proxyCodehash
-        ),
-      'L1StandardBridge verification failed'
-    );
+        )) revert L1StandardBridgeVerificationFailed();
 
     // Step 3: Verify L1CrossDomainMessenger
-    require(
-      _verifyImplementation(
+    if (!_verifyImplementation(
         l1CrossDomainMessengerAddress,
         l1CrossDomainMessenger.logicAddress,
         _proxyAdmin
-      ) &&
-        _verifyProxyHash(
+      ) || !_verifyProxyHash(
           l1CrossDomainMessengerAddress,
           l1CrossDomainMessenger.proxyCodehash
-        ),
-      'L1CrossDomainMessenger verification failed'
-    );
+        )) revert L1CrossDomainMessengerVerificationFailed();
 
     // Step 4: Verify OptimismPortal
-    require(
-      _verifyImplementation(
+    if (!_verifyImplementation(
         optimismPortalAddress,
         optimismPortal.logicAddress,
         _proxyAdmin
-      ) &&
-        _verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash),
-      'OptimismPortal verification failed'
-    );
+      ) || !_verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash)) revert OptimismPortalVerificationFailed();
 
     // Step 5: Verify Safe wallet
-    require(_verifySafe(_proxyAdmin, _safeWalletAddress), 'Safe wallet verification failed');
+    if (!_verifySafe(_proxyAdmin, _safeWalletAddress)) revert SafeWalletVerificationFailed();
   }
 
   function _setProxyAdminCodehash(address _proxyAdmin) private {
-    require(_proxyAdmin.codehash != bytes32(0), 'ProxyAdmin codehash cannot be zero');
+    if (_proxyAdmin.codehash == bytes32(0)) revert ProxyAdminCodehashZero();
     proxyAdminCodehash = _proxyAdmin.codehash;
   }
 
