@@ -67,7 +67,9 @@ interface IL1ContractVerification {
   event SafeConfigSet(
     address indexed tokamakDAO,
     address indexed foundation,
-    uint256 indexed threshold
+    uint256 indexed threshold,
+    bytes32 implementationCodehash,
+    bytes32 proxyCodehash
   );
   event NativeTokenSet(address indexed tokenAddress);
   event ProxyAdminCodehashSet(bytes32 indexed codehash);

@@ -207,7 +207,7 @@ contract L1ContractVerification is
       ownersCount: 3
     });
 
-    emit SafeConfigSet(_tokamakDAO, _foundation, _threshold);
+    emit SafeConfigSet(_tokamakDAO, _foundation, _threshold, _implementationCodehash, _proxyCodehash);
   }
 
   /**
