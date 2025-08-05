@@ -486,12 +486,15 @@ contract L1ContractVerification is
   }
 
     /**
-    * @notice Verifies that the provided proxy admin is the actual admin of a proxy contract
-    * @param _proxyAddress The address of the proxy contract to check
-    * @param _proxyAdmin The address of the claimed proxy admin
-    * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
-    */
+     * @notice Verifies that the provided proxy admin is the actual admin of a proxy contract
+     * @param _proxyAddress The address of the proxy contract to check
+     * @param _proxyAdmin The address of the claimed proxy admin
+     * @return Returns true if the _proxyAdmin is the admin of _proxyAddress
+     * @dev CRITICAL SECURITY DEPENDENCY: This function MUST only be called after _verifyProxyAdmin
+     *      has been executed to validate the ProxyAdmin contract's codehash and ownership.
+     */
     function _verifyProxyOwner(address _proxyAddress, IProxyAdmin _proxyAdmin) private view returns (bool) {
+        // SECURITY: This function assumes _proxyAdmin has been validated by _verifyProxyAdmin
         address actualAdmin = _proxyAdmin.getProxyAdmin(payable(_proxyAddress));
         return actualAdmin == address(_proxyAdmin);
     }
