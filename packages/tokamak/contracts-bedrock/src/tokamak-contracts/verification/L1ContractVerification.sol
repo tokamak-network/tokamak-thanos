@@ -54,6 +54,7 @@ contract L1ContractVerification is
   error L1CrossDomainMessengerVerificationFailed();
   error OptimismPortalVerificationFailed();
   error ProxyAdminCodehashZero();
+  error BridgeRegistryNotConfigured();
   // Role definitions
   /**
    * @notice Admin role for managing configuration and performing operations
@@ -266,6 +267,9 @@ contract L1ContractVerification is
     address _safeWalletAddress
   ) external {
     if (!isVerificationPossible) revert ContractNotRegistered();
+
+    // Validate bridge registry address is configured
+    if (l1BridgeRegistryAddress == address(0)) revert BridgeRegistryNotConfigured();
 
     // Get operator's safe wallet address
     if (_safeWalletAddress == address(0)) revert ZeroAddress("safeWalletAddress");
