@@ -157,6 +157,11 @@ contract L1ContractVerification is
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin
    * @dev This function records implementation addresses and codehashes for all key contracts
+   *
+   *      CRITICAL: The _proxyAdmin parameter MUST be an OpenZeppelin v4.9.x ProxyAdmin contract or earlier.
+   *      OpenZeppelin v5.x ProxyAdmin contracts do not support getProxyImplementation and will
+   *      cause this function to revert with ProxyAdminIncompatibleVersion error.
+
    */
   function setLogicContractInfo(
     address _systemConfigProxy,
