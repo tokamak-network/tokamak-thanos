@@ -172,10 +172,10 @@ contract L1ContractVerification is
 
     // Emit events
     emit ProxyAdminCodehashSet(proxyAdminCodehash);
-    emit ConfigurationSet('SystemConfig');
-    emit ConfigurationSet('L1StandardBridge');
-    emit ConfigurationSet('L1CrossDomainMessenger');
-    emit ConfigurationSet('OptimismPortal');
+    emit LogicContractConfigured('SystemConfig', _systemConfigProxy, systemConfig.logicAddress, systemConfig.proxyCodehash);
+    emit LogicContractConfigured('L1StandardBridge', l1StandardBridgeAddress, l1StandardBridge.logicAddress, l1StandardBridge.proxyCodehash);
+    emit LogicContractConfigured('L1CrossDomainMessenger', l1CrossDomainMessengerAddress, l1CrossDomainMessenger.logicAddress, l1CrossDomainMessenger.proxyCodehash);
+    emit LogicContractConfigured('OptimismPortal', optimismPortalAddress, optimismPortal.logicAddress, optimismPortal.proxyCodehash);
   }
 
   /**
