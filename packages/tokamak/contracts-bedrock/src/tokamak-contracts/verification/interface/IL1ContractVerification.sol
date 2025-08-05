@@ -56,13 +56,13 @@ interface IL1ContractVerification {
     address implementationAddress,
     bytes32 proxyCodehash
   );
-  event VerificationSuccess(
+  event VerificationCompleted(
     address indexed safeWalletAddress,
     address indexed systemConfigProxy,
     address indexed proxyAdmin,
     uint256 timestamp
   );
-  event RegistrationSuccess(address indexed safeWalletAddress);
+  event RegistrationCompleted(address indexed safeWalletAddress);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
     address indexed tokamakDAO,
