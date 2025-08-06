@@ -62,6 +62,7 @@ contract L1ContractVerification is
    */
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
+  // Sentinel value (0x1) used by Gnosis Safe as the head pointer in the linked list of enabled modules
   address internal constant SENTINEL_MODULES = address(0x1);
 
   // Safe wallet configuration constants
@@ -82,6 +83,7 @@ contract L1ContractVerification is
 
   address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
 
+  // The type of rollup configuration is hardcoded to 2 as only rolltype 2 is required by l1bridgeRegistry
   uint8 internal constant TYPE = 2;
 
   // Logic contract information storage
