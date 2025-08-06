@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 import {Script, console} from 'forge-std/Script.sol';
 import {L1ContractVerification} from '../../src/tokamak-contracts/verification/L1ContractVerification.sol';

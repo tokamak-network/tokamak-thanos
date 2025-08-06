@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
@@ -55,6 +55,7 @@ contract L1ContractVerification is
   error OptimismPortalVerificationFailed();
   error ProxyAdminCodehashZero();
   error BridgeRegistryNotConfigured();
+  error SystemConfigAddressMismatch();
   // Role definitions
   /**
    * @notice Admin role for managing configuration and performing operations
@@ -92,6 +93,12 @@ contract L1ContractVerification is
 
   // Common safe wallet configuration
   SafeWalletInfo public safeWalletConfig;
+
+  // Expected proxy addresses from SystemConfig (to prevent front-running)
+  address public expectedSystemConfigProxy;
+  address public expectedL1StandardBridgeProxy;
+  address public expectedL1CrossDomainMessengerProxy;
+  address public expectedOptimismPortalProxy;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -204,6 +211,12 @@ contract L1ContractVerification is
     );
     optimismPortal.proxyCodehash = optimismPortalAddress.codehash;
 
+    // Store expected proxy addresses to prevent front-running attacks
+    expectedSystemConfigProxy = _systemConfigProxy;
+    expectedL1StandardBridgeProxy = l1StandardBridgeAddress;
+    expectedL1CrossDomainMessengerProxy = l1CrossDomainMessengerAddress;
+    expectedOptimismPortalProxy = optimismPortalAddress;
+
     // Emit events
     emit ProxyAdminCodehashSet(proxyAdminCodehash);
     emit LogicContractConfigured('SystemConfig', _systemConfigProxy, systemConfig.logicAddress, systemConfig.proxyCodehash);
@@ -278,6 +291,9 @@ contract L1ContractVerification is
 
     // Get operator's safe wallet address
     if (_safeWalletAddress == address(0)) revert ZeroAddress("safeWalletAddress");
+
+    // SECURITY FIX: Validate that provided SystemConfig proxy matches expected address
+    if (_systemConfigProxy != expectedSystemConfigProxy) revert SystemConfigAddressMismatch();
 
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
