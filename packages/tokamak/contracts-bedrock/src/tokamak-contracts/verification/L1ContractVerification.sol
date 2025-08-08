@@ -96,6 +96,8 @@ contract L1ContractVerification is
   // Common safe wallet configuration
   SafeWalletInfo public safeWalletConfig;
 
+  // Only whitelisted addresses can call the verification functions
+  mapping(address => bool) public callerWhitelist;
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
@@ -144,6 +146,16 @@ contract L1ContractVerification is
   ) external onlyRole(ADMIN_ROLE) {
     isVerificationPossible = _isVerificationPossible;
     emit VerificationPossibleSet(_isVerificationPossible);
+  }
+
+  /**
+   * @notice Set the caller whitelist status
+   * @param _caller The address to update
+   * @param _isWhitelisted Boolean flag to enable/disable whitelisting
+   * @dev Only callable by admins
+   */
+  function setCallersWhitelist(address _caller, bool _isWhitelisted) external onlyRole(ADMIN_ROLE) {
+    callerWhitelist[_caller] = _isWhitelisted;
   }
 
   /**
@@ -278,6 +290,7 @@ contract L1ContractVerification is
     address _optimismPortalProxyAddress
 
   ) external {
+    require(callerWhitelist[msg.sender], "Caller not whitelisted");
     if (!isVerificationPossible) revert ContractNotRegistered();
 
     // Validate bridge registry address is configured
@@ -294,6 +307,8 @@ contract L1ContractVerification is
     require(_l1CrossDomainMessengerProxyAddress == l1CrossDomainMessengerProxyAddress, "L1CrossDomainMessengerProxyAddress mismatch");
     require(_l1StandardBridgeProxyAddress == l1StandardBridgeProxyAddress, "L1StandardBridgeProxyAddress mismatch");
     require(_optimismPortalProxyAddress == optimismPortalProxyAddress, "OptimismPortalProxyAddress mismatch");
+
+    callerWhitelist[msg.sender] = false;
 
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
