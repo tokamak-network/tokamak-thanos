@@ -55,6 +55,7 @@ contract L1ContractVerification is
   error OptimismPortalVerificationFailed();
   error ProxyAdminCodehashZero();
   error BridgeRegistryNotConfigured();
+  error SystemConfigAddressMismatch();
   // Role definitions
   /**
    * @notice Admin role for managing configuration and performing operations
@@ -271,7 +272,11 @@ contract L1ContractVerification is
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
     string calldata _name,
-    address _safeWalletAddress
+    address _safeWalletAddress,
+    address _l1CrossDomainMessengerProxyAddress,
+    address _l1StandardBridgeProxyAddress,
+    address _optimismPortalProxyAddress
+
   ) external {
     if (!isVerificationPossible) revert ContractNotRegistered();
 
@@ -280,6 +285,15 @@ contract L1ContractVerification is
 
     // Get operator's safe wallet address
     if (_safeWalletAddress == address(0)) revert ZeroAddress("safeWalletAddress");
+
+    address l1CrossDomainMessengerProxyAddress = ISystemConfig(_systemConfigProxy).l1CrossDomainMessenger();
+    address l1StandardBridgeProxyAddress = ISystemConfig(_systemConfigProxy).l1StandardBridge();
+    address optimismPortalProxyAddress = ISystemConfig(_systemConfigProxy).optimismPortal();
+
+    // SECURITY FIX: Validate that provided SystemConfig proxy matches expected address
+    require(_l1CrossDomainMessengerProxyAddress == l1CrossDomainMessengerProxyAddress, "L1CrossDomainMessengerProxyAddress mismatch");
+    require(_l1StandardBridgeProxyAddress == l1StandardBridgeProxyAddress, "L1StandardBridgeProxyAddress mismatch");
+    require(_optimismPortalProxyAddress == optimismPortalProxyAddress, "OptimismPortalProxyAddress mismatch");
 
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
