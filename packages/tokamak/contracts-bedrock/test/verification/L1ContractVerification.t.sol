@@ -263,19 +263,18 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user so they can verify
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should succeed
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      'Test Rollup',
-      address(safeWallet)
+      'Test Rollup'
     );
 
     vm.stopPrank();
@@ -305,19 +304,18 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user so they can verify
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should succeed
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     // Verification should succeed
@@ -333,8 +331,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
     fallbackHandler = safeWallet.getFallbackHandler();
     assertEq(fallbackHandler, address(0x123));
@@ -344,8 +341,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -379,19 +375,18 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user so they can verify and register
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify and register
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification and registration should succeed
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      'TestRollup',
-      address(safeWallet) // Pass safe wallet address
+      'TestRollup'
     );
 
     vm.stopPrank();
@@ -444,23 +439,29 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
-    // Passing a different contract so that verification fails
-    MockL1StandardBridge wrongProxyAdmin = new MockL1StandardBridge();
+    // Create a proxy admin that's owned by a different safe wallet
+    MockProxyAdmin differentProxyAdmin = new MockProxyAdmin(owner);
+    // Create a different safe wallet
+    address[] memory differentOwners = new address[](3);
+    differentOwners[0] = makeAddr('differentDAO');
+    differentOwners[1] = makeAddr('differentFoundation');
+    differentOwners[2] = makeAddr('differentOperator');
+    MockGnosisSafe differentSafe = new MockGnosisSafe(differentOwners, 3);
+    differentProxyAdmin.setOwner(address(differentSafe));
 
-    // Verification should fail with ProxyAdmin verification error
-    vm.expectRevert(L1ContractVerification.ProxyAdminInvalidCodehash.selector);
+    // Verification should fail because the different safe wallet doesn't have the required owners
+    vm.expectRevert(L1ContractVerification.SafeWalletMissingRequiredOwners.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      IProxyAdmin(address(wrongProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      IProxyAdmin(address(differentProxyAdmin)),
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -534,22 +535,21 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
-    vm.expectRevert(L1ContractVerification.InvalidProxyAdminAddress.selector);
+    vm.expectRevert(L1ContractVerification.SafeWalletInvalidProxyCodehash.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(differentProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
   }
 
   /**
-   * @notice Test verification failure when safe wallet address doesn't match proxy admin owner
-   * @dev Verifies that verification fails if the provided safe wallet address doesn't match proxy admin owner
+   * @notice Test verification failure when caller is not the operator
+   * @dev Verifies that verification fails if the caller is not the operator of the safe wallet
    */
   function testVerifyL1ContractsFailMismatchedSafeWalletAddress() public {
     vm.startPrank(owner);
@@ -577,14 +577,12 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(user);
 
-    // Verification should fail because we're providing a different safe wallet address
-    // than what's configured as the owner in the proxy admin, Failing on the ProxyAdmin verification because the owner is different
-    vm.expectRevert(L1ContractVerification.InvalidProxyAdminAddress.selector);
+    // Verification should fail because user is not the operator of the safe wallet
+    vm.expectRevert("Caller must be the operator");
     verifier.verifyAndRegisterRollupConfig(
         address(systemConfigProxy),
         IProxyAdmin(address(mockProxyAdmin)),
-        "Test Rollup",
-        makeAddr("differentSafeWallet")
+        "Test Rollup"
     );
 
     vm.stopPrank();
@@ -628,20 +626,19 @@ contract L1ContractVerificationTest is Test {
       address(differentSystemConfigImpl)
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.SystemConfigVerificationFailed.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -689,19 +686,18 @@ contract L1ContractVerificationTest is Test {
         )
       );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     vm.expectRevert(L1ContractVerification.GetProxyImplementationFailed.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(differentProxy), // Using different proxy with correct implementation
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -746,20 +742,19 @@ contract L1ContractVerificationTest is Test {
       address(differentL1StandardBridgeImpl)
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.L1StandardBridgeVerificationFailed.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -804,20 +799,19 @@ contract L1ContractVerificationTest is Test {
       address(differentL1CrossDomainMessengerImpl)
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.L1CrossDomainMessengerVerificationFailed.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -862,20 +856,19 @@ contract L1ContractVerificationTest is Test {
       address(differentOptimismPortalImpl)
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.OptimismPortalVerificationFailed.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -910,20 +903,19 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail due to missing required owners
     vm.expectRevert(L1ContractVerification.SafeWalletMissingRequiredOwners.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -955,20 +947,19 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.SafeWalletInvalidImplCodehash.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -1000,20 +991,19 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the user
-    verifier.addAdmin(user);
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail
     vm.expectRevert(L1ContractVerification.SafeWalletInvalidProxyCodehash.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      "Test Rollup",
-      address(safeWallet)
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -1241,7 +1231,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Create and setup new verifier in a more optimized way
     L1ContractVerification newVerifier = L1ContractVerification(
@@ -1252,7 +1242,7 @@ contract L1ContractVerificationTest is Test {
           abi.encodeWithSelector(
             L1ContractVerification.initialize.selector,
             nativeToken,
-            user
+            thirdOwner
           )
         )
       )
@@ -1275,8 +1265,7 @@ contract L1ContractVerificationTest is Test {
     newVerifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      'TestRollup',
-      address(safeWallet) // Pass safe wallet address
+      'TestRollup'
     );
 
     vm.stopPrank();
@@ -1377,8 +1366,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(largeProxyAdmin)),
-      "Test Rollup",
-      address(largeSafe) // Use largeSafe instead of safeWallet
+      "Test Rollup"
     );
 
     vm.stopPrank();
@@ -1666,39 +1654,38 @@ contract L1ContractVerificationTest is Test {
       address(safe1).codehash // _proxyCodehash
     );
 
-    // Grant admin roles
-    verifier.addAdmin(user);
+    // Grant admin roles to the operators
+    verifier.addAdmin(thirdOwner);
+    verifier.addAdmin(makeAddr('differentOwner'));
 
     vm.stopPrank();
 
     // Test verification with first safe wallet
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin1)),
-      "Test Rollup",
-      address(safe1)
+      "Test Rollup"
     );
     vm.stopPrank();
 
     // Test verification with second safe wallet
-    vm.startPrank(user);
+    vm.startPrank(makeAddr('differentOwner'));
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin2)),
-      "Test Rollup 2",
-      address(safe2)
+      "Test Rollup 2"
     );
     vm.stopPrank();
 
-    // Test that first safe wallet cannot use second safe wallet's proxy admin
-    vm.startPrank(user);
-    vm.expectRevert(L1ContractVerification.InvalidProxyAdminAddress.selector);
+    // Test that first safe wallet's operator cannot use second safe wallet's proxy admin
+    // This should fail because thirdOwner is not the operator of the second safe wallet
+    vm.startPrank(thirdOwner);
+    vm.expectRevert("Caller must be the operator");
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin2)),
-      "Test Rollup 3",
-      address(safe1)
+      "Test Rollup 3"
     );
     vm.stopPrank();
   }
@@ -1785,15 +1772,14 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(safeProxyAdmin)),
-      "Test Rollup",
-      address(maliciousSafe)
+      "Test Rollup"
     );
     vm.stopPrank();
   }
 
   /**
-   * @notice Test verification success when called from a contract
-   * @dev Creates a caller contract to test that contract calls are allowed
+   * @notice Test verification success when called from the operator
+   * @dev Tests that the operator can call the verification function
    */
   function testVerifyL1ContractsFailContractCall() public {
     vm.startPrank(owner);
@@ -1817,42 +1803,21 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Deploy a caller contract
-    ContractCaller callerContract = new ContractCaller(address(verifier));
-
-    // Grant ADMIN_ROLE to the caller contract
-    verifier.addAdmin(address(callerContract));
+    // Grant ADMIN_ROLE to the thirdOwner (operator)
+    verifier.addAdmin(thirdOwner);
     verifier.setVerificationPossible(true);
 
     vm.stopPrank();
 
-    // Call verify through the caller contract - this should succeed
-    callerContract.callVerify(
+    // Call verify as the operator - this should succeed
+    vm.startPrank(thirdOwner);
+    verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
-      address(safeWallet)
+      "Test Rollup"
     );
+    vm.stopPrank();
   }
 }
 
-// Helper contract to test contract calls
-contract ContractCaller {
-    IL1ContractVerification private verifier;
 
-    constructor(address _verifier) {
-        verifier = IL1ContractVerification(_verifier);
-    }
-
-    function callVerify(
-        address systemConfigProxy,
-        IProxyAdmin proxyAdmin,
-        address safeWalletAddress
-    ) external {
-        verifier.verifyAndRegisterRollupConfig(
-            systemConfigProxy,
-            proxyAdmin,
-            "Test Rollup",
-            safeWalletAddress
-        );
-    }
-}
