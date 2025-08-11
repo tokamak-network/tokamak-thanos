@@ -264,22 +264,20 @@ contract L1ContractVerification is
    * @param _systemConfigProxy The address of the SystemConfig proxy
    * @param _proxyAdmin The address of the ProxyAdmin
    * @param _name The name of the rollup configuration
-   * @param _safeWalletAddress The address of the safe wallet to verify for
    * @dev Performs verification and additionally registers the rollup with the bridge registry
    */
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
-    string calldata _name,
-    address _safeWalletAddress
+    string calldata _name
   ) external {
     if (!isVerificationPossible) revert ContractNotRegistered();
 
     // Validate bridge registry address is configured
     if (l1BridgeRegistryAddress == address(0)) revert BridgeRegistryNotConfigured();
 
-    // Get operator's safe wallet address
-    if (_safeWalletAddress == address(0)) revert ZeroAddress("safeWalletAddress");
+    address _safeWalletAddress = _proxyAdmin.owner();
+    _verifySafe(_proxyAdmin, _safeWalletAddress);
 
     // Verify proxy admin
     _verifyProxyAdmin(_proxyAdmin, _safeWalletAddress);
@@ -418,15 +416,24 @@ contract L1ContractVerification is
 
     bool foundTokamakDAO;
     bool foundFoundation;
+    address operatorAddress;
 
-    for (uint i = 0; i < owners.length; i++) {
-      if (owners[i] == safeWalletConfig.tokamakDAO) foundTokamakDAO = true;
-      if (owners[i] == safeWalletConfig.foundation) foundFoundation = true;
-      if (foundTokamakDAO && foundFoundation) break;
+    for (uint256 i = 0; i < owners.length; i++) {
+      address owner = owners[i];
+      if (owner == safeWalletConfig.tokamakDAO) {
+        foundTokamakDAO = true;
+      } else if (owner == safeWalletConfig.foundation) {
+        foundFoundation = true;
+      } else {
+        operatorAddress = owner;
+      }
     }
 
     // Both tokamakDAO and foundation must be present
     if (!foundTokamakDAO || !foundFoundation) revert SafeWalletMissingRequiredOwners();
+
+    // The third owner is the operator and must be the caller
+    require(msg.sender == operatorAddress, "Caller must be the operator");
   }
 
   /**
@@ -491,9 +498,6 @@ contract L1ContractVerification is
         optimismPortal.logicAddress,
         _proxyAdmin
       ) || !_verifyProxyHash(optimismPortalAddress, optimismPortal.proxyCodehash)) revert OptimismPortalVerificationFailed();
-
-    // Step 5: Verify Safe wallet
-    _verifySafe(_proxyAdmin, _safeWalletAddress);
   }
 
   function _setProxyAdminCodehash(address _proxyAdmin) private {
