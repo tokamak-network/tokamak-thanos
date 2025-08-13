@@ -9,7 +9,7 @@ jobs:
     container:
       image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.49.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Workaround to prevent slither-action from trying to install JS deps.
       # Without this step, it detects the `package.json`, and since there is no

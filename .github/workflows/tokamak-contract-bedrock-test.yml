@@ -13,7 +13,7 @@ jobs:
       image: tokamaknetwork/thanos-ci-builder:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v5
 
       # Declares the repository safe and not under dubious ownership.
       - name: Add repository to git safe directories

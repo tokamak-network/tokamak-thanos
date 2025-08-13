@@ -13,7 +13,7 @@ jobs:
         run: lscpu && echo
 
       - name: Checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v5
 
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE

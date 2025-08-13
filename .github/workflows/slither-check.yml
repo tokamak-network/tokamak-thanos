@@ -12,7 +12,7 @@ jobs:
     steps:
       # Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Add the repository to safe directories
       - name: Add repo to git safe directories
