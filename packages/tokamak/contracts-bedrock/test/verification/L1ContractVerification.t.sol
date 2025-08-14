@@ -85,7 +85,7 @@ contract L1ContractVerificationTest is Test {
         // Initialize the randomUser
     randomUser = makeAddr('randomUser');
 
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Deploy proxy admin
     mockProxyAdmin = new MockProxyAdmin(owner);
@@ -168,8 +168,14 @@ contract L1ContractVerificationTest is Test {
     (bool success, ) = address(systemConfigProxy).call(initData);
     require(success, 'SystemConfig initialization failed');
 
-    // Verify the addresses were set correctly
+    // Set the owner to the caller (thirdOwner) since the proxy initialization sets owner to proxy address
     MockSystemConfig config = MockSystemConfig(address(systemConfigProxy));
+    config.setOwner(thirdOwner);
+
+    // Verify the owner was set correctly
+    require(config.owner() == thirdOwner, 'Owner not set correctly');
+
+    // Verify the addresses were set correctly
     require(
       config.l1StandardBridge() == address(l1StandardBridgeProxy),
       'L1StandardBridge not set correctly'
@@ -204,11 +210,14 @@ contract L1ContractVerificationTest is Test {
     // The proxy admin to manage the proxy
     verifierProxyAdmin = new ProxyAdmin();
 
+    // Transfer ownership to the owner account
+    verifierProxyAdmin.transferOwnership(owner);
+
     // The initialization data
     bytes memory verifierInitData = abi.encodeWithSelector(
       L1ContractVerification.initialize.selector,
       nativeToken,
-      owner
+      thirdOwner
     );
 
     // Deploy the proxy with the implementation
@@ -227,6 +236,13 @@ contract L1ContractVerificationTest is Test {
     // Set the verification possible to true for tests
     verifier.setVerificationPossible(true);
 
+    // Grant ADMIN_ROLE to both owner and thirdOwner so they can perform admin operations
+    verifier.addAdmin(owner);
+    verifier.addAdmin(thirdOwner);
+
+    // Grant DEFAULT_ADMIN_ROLE to owner so they can grant roles to others
+    verifier.grantRole(verifier.DEFAULT_ADMIN_ROLE(), owner);
+
     // Set the owner of the proxy admin to the safe wallet for verification
     mockProxyAdmin.setOwner(address(safeWallet));
 
@@ -240,7 +256,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Sets up contract info and safe wallet info, then verifies all contracts
    */
   function testVerifyL1ContractsSuccess() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -263,9 +279,6 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify
-    verifier.addAdmin(thirdOwner);
-
     vm.stopPrank();
 
     vm.startPrank(thirdOwner);
@@ -274,6 +287,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       'Test Rollup'
     );
 
@@ -281,7 +295,7 @@ contract L1ContractVerificationTest is Test {
   }
 
   function testFallbackHandler() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -304,9 +318,6 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify
-    verifier.addAdmin(thirdOwner);
-
     vm.stopPrank();
 
     vm.startPrank(thirdOwner);
@@ -315,6 +326,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -331,6 +343,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
     fallbackHandler = safeWallet.getFallbackHandler();
@@ -341,6 +354,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -352,7 +366,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Verifies L1 contracts and registers a rollup configuration
    */
   function testVerifyAndRegisterRollupConfig() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -375,9 +389,6 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator) so they can verify and register
-    verifier.addAdmin(thirdOwner);
-
     vm.stopPrank();
 
     vm.startPrank(thirdOwner);
@@ -386,6 +397,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       'TestRollup'
     );
 
@@ -418,7 +430,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Attempts verification with a contract that's not the expected ProxyAdmin
    */
   function testVerifyL1ContractsFailInvalidProxyAdminContract() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -439,8 +451,8 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -461,6 +473,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(differentProxyAdmin)),
+      address(differentSafe),
       "Test Rollup"
     );
 
@@ -472,7 +485,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Sets up a different proxy admin than what's expected in the safe wallet config
    */
   function testVerifyL1ContractsFailInvalidProxyAdminAddress() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -494,8 +507,8 @@ contract L1ContractVerificationTest is Test {
     );
 
     MockProxyAdmin differentProxyAdmin = new MockProxyAdmin(owner);
-    // Set the owner of the different proxy admin to the safe wallet
-    differentProxyAdmin.setOwner(address(mockProxyAdmin));
+    // Set the owner of the different proxy admin to a different safe wallet
+    differentProxyAdmin.setOwner(makeAddr('differentSafeWallet'));
 
     // Set implementations for the different proxy admin
     differentProxyAdmin.setImplementation(
@@ -537,10 +550,11 @@ contract L1ContractVerificationTest is Test {
 
     vm.startPrank(thirdOwner);
 
-    vm.expectRevert(L1ContractVerification.SafeWalletInvalidProxyCodehash.selector);
+    vm.expectRevert(L1ContractVerification.SafeWalletAddressMismatch.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(differentProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -552,7 +566,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Verifies that verification fails if the caller is not the operator of the safe wallet
    */
   function testVerifyL1ContractsFailMismatchedSafeWalletAddress() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -573,15 +587,19 @@ contract L1ContractVerificationTest is Test {
         proxyCodehash
     );
 
+    // Grant ADMIN_ROLE to the user so they can call the verification function
+    verifier.addAdmin(user);
+
     vm.stopPrank();
 
     vm.startPrank(user);
 
-    // Verification should fail because user is not the operator of the safe wallet
-    vm.expectRevert("Caller must be the operator");
+    // Verification should fail because user is not the deployer of the system config proxy
+    vm.expectRevert(L1ContractVerification.CallerNotDeployer.selector);
     verifier.verifyAndRegisterRollupConfig(
         address(systemConfigProxy),
         IProxyAdmin(address(mockProxyAdmin)),
+        address(safeWallet),
         "Test Rollup"
     );
 
@@ -596,7 +614,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Modifies the SystemConfig implementation to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidSystemConfig() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -614,7 +632,7 @@ contract L1ContractVerificationTest is Test {
       foundation, // _foundation
       3, // _threshold
       implementationCodehash, // _implementationCodehash
-    proxyCodehash
+      proxyCodehash
     );
 
     // Deploy a different SystemConfig implementation with different addresses
@@ -626,8 +644,8 @@ contract L1ContractVerificationTest is Test {
       address(differentSystemConfigImpl)
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -638,6 +656,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -652,7 +671,7 @@ contract L1ContractVerificationTest is Test {
   function testVerifyL1ContractsFailWrongSystemConfigProxyWithCorrectImplementation()
     public
   {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information with the original SystemConfig proxy
     verifier.setLogicContractInfo(
@@ -686,8 +705,8 @@ contract L1ContractVerificationTest is Test {
         )
       );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -697,6 +716,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(differentProxy), // Using different proxy with correct implementation
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -712,7 +732,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Modifies the L1StandardBridge implementation to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidL1StandardBridge() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -742,8 +762,8 @@ contract L1ContractVerificationTest is Test {
       address(differentL1StandardBridgeImpl)
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -754,6 +774,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -769,7 +790,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Modifies the L1CrossDomainMessenger implementation to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidL1CrossDomainMessenger() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -799,8 +820,8 @@ contract L1ContractVerificationTest is Test {
       address(differentL1CrossDomainMessengerImpl)
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -811,6 +832,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -826,7 +848,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Modifies the OptimismPortal implementation to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidOptimismPortal() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -856,8 +878,8 @@ contract L1ContractVerificationTest is Test {
       address(differentOptimismPortalImpl)
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -868,6 +890,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -882,7 +905,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Creates a safe wallet with incorrect owners to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidSafeOwner() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -903,8 +926,8 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -915,6 +938,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -926,7 +950,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Sets wrong implementation codehash to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidSafeImplementationCodehash() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -948,7 +972,7 @@ contract L1ContractVerificationTest is Test {
     );
 
     // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -959,6 +983,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -970,7 +995,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Sets wrong proxy codehash to trigger verification failure
    */
   function testVerifyL1ContractsFailInvalidSafeProxyCodehash() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -991,8 +1016,8 @@ contract L1ContractVerificationTest is Test {
       proxyCodehash
     );
 
-    // Grant ADMIN_ROLE to the thirdOwner (operator)
-    verifier.addAdmin(thirdOwner);
+    // Grant ADMIN_ROLE to the owner (deployer)
+    verifier.addAdmin(owner);
 
     vm.stopPrank();
 
@@ -1003,6 +1028,7 @@ contract L1ContractVerificationTest is Test {
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
 
@@ -1229,9 +1255,10 @@ contract L1ContractVerificationTest is Test {
     );
     require(success, 'SystemConfig re-initialization failed');
 
-    vm.stopPrank();
+    // Set owner to thirdOwner after re-initialization
+    MockSystemConfig(address(systemConfigProxy)).setOwner(thirdOwner);
 
-    vm.startPrank(thirdOwner);
+    vm.stopPrank();
 
     // Create and setup new verifier in a more optimized way
     L1ContractVerification newVerifier = L1ContractVerification(
@@ -1242,13 +1269,14 @@ contract L1ContractVerificationTest is Test {
           abi.encodeWithSelector(
             L1ContractVerification.initialize.selector,
             nativeToken,
-            thirdOwner
+            owner
           )
         )
       )
     );
 
-    // Setup the new verifier
+    // Setup the new verifier as owner
+    vm.startPrank(owner);
     newVerifier.setBridgeRegistryAddress(address(bridgeRegistry));
     newVerifier.setLogicContractInfo(address(systemConfigProxy), IProxyAdmin(address(mockProxyAdmin)));
     newVerifier.setSafeConfig(
@@ -1260,14 +1288,20 @@ contract L1ContractVerificationTest is Test {
     );
     newVerifier.setVerificationPossible(true);
 
-    // Test the verification
+    // Grant admin role to owner and thirdOwner so they can call the function
+    newVerifier.addAdmin(owner);
+    newVerifier.addAdmin(thirdOwner);
+    vm.stopPrank();
+
+    // Test the verification - call as thirdOwner since thirdOwner owns the system config proxy
+    vm.startPrank(thirdOwner);
     vm.expectRevert(L1ContractVerification.NativeTokenNotTON.selector);
     newVerifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       'TestRollup'
     );
-
     vm.stopPrank();
   }
 
@@ -1276,7 +1310,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Creates a safe with many owners to test the verification works with large owner sets
    */
   function testVerifyL1ContractsWithLargeOwnerSet() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup all contract information
     verifier.setLogicContractInfo(
@@ -1359,13 +1393,14 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    vm.startPrank(user);
+    vm.startPrank(thirdOwner);
 
     // Verification should fail due to large number of owners
     vm.expectRevert(L1ContractVerification.SafeWalletWrongOwnerCount.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(largeProxyAdmin)),
+      address(largeSafe),
       "Test Rollup"
     );
 
@@ -1418,7 +1453,7 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    // Simulate multisig wallet call
+    // Simulate multisig wallet call - the safe wallet itself should be able to call upgrade
     vm.prank(address(safeWallet));
 
     // Upgrade to new implementation
@@ -1645,7 +1680,7 @@ contract L1ContractVerificationTest is Test {
     proxyAdmin2.setAdmin(address(l1CrossDomainMessengerProxy), address(proxyAdmin2));
     proxyAdmin2.setAdmin(address(optimismPortalProxy), address(proxyAdmin2));
 
-    // Set safe wallet configurations
+    // Set safe wallet configurations for first safe wallet
     verifier.setSafeConfig(
       tokamakDAO, // _tokamakDAO
       foundation, // _foundation
@@ -1660,34 +1695,100 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    // Test verification with first safe wallet
+    // Test verification with first safe wallet - call as thirdOwner since thirdOwner owns the system config proxy
+    vm.startPrank(owner);
+    // Set safe wallet configuration for safe1
+    verifier.setSafeConfig(
+      tokamakDAO, // _tokamakDAO
+      foundation, // _foundation
+      3, // _threshold
+      safe1.masterCopy().codehash, // _implementationCodehash
+      address(safe1).codehash // _proxyCodehash
+    );
+    vm.stopPrank();
+
     vm.startPrank(thirdOwner);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(proxyAdmin1)),
+      address(safe1),
       "Test Rollup"
+    );
+
+    // Test verification with second safe wallet - call as thirdOwner since thirdOwner owns the system config proxy
+    vm.startPrank(owner);
+    // Set safe wallet configuration for safe2
+    verifier.setSafeConfig(
+      tokamakDAO, // _tokamakDAO
+      foundation, // _foundation
+      3, // _threshold
+      safe2.masterCopy().codehash, // _implementationCodehash
+      address(safe2).codehash // _proxyCodehash
     );
     vm.stopPrank();
 
-    // Test verification with second safe wallet
+    // Update mockProxyAdmin to be owned by safe2 for this test
+    vm.startPrank(owner);
+    mockProxyAdmin.setOwner(address(safe2));
+    vm.stopPrank();
+
+    // Transfer ownership of SystemConfig to the operator of safe2
+    vm.startPrank(thirdOwner);
+    MockSystemConfig(address(systemConfigProxy)).setOwner(makeAddr('differentOwner'));
+    vm.stopPrank();
+
     vm.startPrank(makeAddr('differentOwner'));
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
-      IProxyAdmin(address(proxyAdmin2)),
+      IProxyAdmin(address(mockProxyAdmin)),
+      address(safe2),
       "Test Rollup 2"
     );
     vm.stopPrank();
 
-    // Test that first safe wallet's operator cannot use second safe wallet's proxy admin
-    // This should fail because thirdOwner is not the operator of the second safe wallet
+    // Now test with the second proxy admin by setting up a new system config proxy owned by it
+    vm.startPrank(owner);
+
+    // Create a new system config proxy owned by proxyAdmin2
+    TransparentUpgradeableProxy systemConfigProxy2 = new TransparentUpgradeableProxy(
+      address(systemConfigImpl),
+      address(proxyAdmin2),
+      abi.encodeWithSelector(
+        MockSystemConfig.initialize.selector,
+        address(l1StandardBridgeProxy),
+        address(l1CrossDomainMessengerProxy),
+        address(optimismPortalProxy),
+        nativeToken
+      )
+    );
+
+    // Set up implementations for proxyAdmin2 to match the new systemConfigProxy2
+    proxyAdmin2.setImplementation(
+      address(systemConfigProxy2),
+      address(systemConfigImpl)
+    );
+    proxyAdmin2.setAdmin(address(systemConfigProxy2), address(proxyAdmin2));
+
+    // Set up the logic contract info for the new proxy
+    verifier.setLogicContractInfo(
+      address(systemConfigProxy2),
+      IProxyAdmin(address(proxyAdmin2))
+    );
+
+    vm.stopPrank();
+
+    // Now test that thirdOwner cannot use the second proxy admin with the second system config proxy
     vm.startPrank(thirdOwner);
-    vm.expectRevert("Caller must be the operator");
+    vm.expectRevert(L1ContractVerification.CallerNotDeployer.selector);
     verifier.verifyAndRegisterRollupConfig(
-      address(systemConfigProxy),
+      address(systemConfigProxy2),
       IProxyAdmin(address(proxyAdmin2)),
+      address(safe2),
       "Test Rollup 3"
     );
     vm.stopPrank();
+
+
   }
 
   /**
@@ -1695,7 +1796,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Verifies that a safe wallet with modules will fail verification
    */
   function testVerifyL1ContractsFailWithModules() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup contract information
     verifier.setLogicContractInfo(
@@ -1766,12 +1867,13 @@ contract L1ContractVerificationTest is Test {
       abi.encode(modules, address(1))
     );
 
-    // Test that verification fails when modules are present
-    vm.startPrank(user);
+    // Test that verification fails when modules are present - call as thirdOwner since thirdOwner owns the system config proxy
+    vm.startPrank(thirdOwner);
     vm.expectRevert(L1ContractVerification.SafeWalletUnauthorizedModules.selector);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(safeProxyAdmin)),
+      address(maliciousSafe),
       "Test Rollup"
     );
     vm.stopPrank();
@@ -1782,7 +1884,7 @@ contract L1ContractVerificationTest is Test {
    * @dev Tests that the operator can call the verification function
    */
   function testVerifyL1ContractsFailContractCall() public {
-    vm.startPrank(owner);
+    vm.startPrank(thirdOwner);
 
     // Setup contract information
     verifier.setLogicContractInfo(
@@ -1809,11 +1911,12 @@ contract L1ContractVerificationTest is Test {
 
     vm.stopPrank();
 
-    // Call verify as the operator - this should succeed
+    // Call verify as the thirdOwner - this should succeed since thirdOwner owns the system config proxy
     vm.startPrank(thirdOwner);
     verifier.verifyAndRegisterRollupConfig(
       address(systemConfigProxy),
       IProxyAdmin(address(mockProxyAdmin)),
+      address(safeWallet),
       "Test Rollup"
     );
     vm.stopPrank();
