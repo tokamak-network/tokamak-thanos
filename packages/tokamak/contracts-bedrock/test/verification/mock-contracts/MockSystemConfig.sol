@@ -6,6 +6,11 @@ contract MockSystemConfig {
   address public l1CrossDomainMessenger;
   address public optimismPortal;
   address public nativeTokenAddress;
+  address public _owner;
+
+  constructor() {
+    // Constructor is not called when using TransparentUpgradeableProxy
+  }
 
   function setNativeTokenAddress(address _nativeTokenAddress) external {
     nativeTokenAddress = _nativeTokenAddress;
@@ -22,5 +27,18 @@ contract MockSystemConfig {
     l1CrossDomainMessenger = _l1CrossDomainMessenger;
     optimismPortal = _optimismPortal;
     nativeTokenAddress = _nativeTokenAddress;
+
+    // Set the owner to msg.sender (the caller through the proxy)
+    _owner = msg.sender;
+  }
+
+  // Implement owner function for the verification contract
+  function owner() external view returns (address) {
+    return _owner;
+  }
+
+  // Function to set owner for testing purposes
+  function setOwner(address newOwner) external {
+    _owner = newOwner;
   }
 }

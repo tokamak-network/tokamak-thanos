@@ -46,6 +46,7 @@ contract L1ContractVerification is
   error SafeWalletWrongOwnerCount();
   error SafeWalletMissingRequiredOwners();
   error SystemConfigVerificationFailed();
+  error CallerNotOperator();
   error ProxyAdminNotSystemConfigAdmin();
   error ProxyAdminNotOptimismPortalAdmin();
   error ProxyAdminNotL1StandardBridgeAdmin();
@@ -55,6 +56,8 @@ contract L1ContractVerification is
   error OptimismPortalVerificationFailed();
   error ProxyAdminCodehashZero();
   error BridgeRegistryNotConfigured();
+  error CallerNotDeployer();
+
   // Role definitions
   /**
    * @notice Admin role for managing configuration and performing operations
@@ -269,6 +272,7 @@ contract L1ContractVerification is
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
+    address _safeWalletAddress,
     string calldata _name
   ) external {
     if (!isVerificationPossible) revert ContractNotRegistered();
@@ -276,7 +280,9 @@ contract L1ContractVerification is
     // Validate bridge registry address is configured
     if (l1BridgeRegistryAddress == address(0)) revert BridgeRegistryNotConfigured();
 
-    address _safeWalletAddress = _proxyAdmin.owner();
+    address deployer = IOwnable(_systemConfigProxy).owner();
+    if (deployer != msg.sender) revert CallerNotDeployer();
+
     _verifySafe(_proxyAdmin, _safeWalletAddress);
 
     // Verify proxy admin
@@ -433,7 +439,7 @@ contract L1ContractVerification is
     if (!foundTokamakDAO || !foundFoundation) revert SafeWalletMissingRequiredOwners();
 
     // The third owner is the operator and must be the caller
-    require(msg.sender == operatorAddress, "Caller must be the operator");
+    if (msg.sender != operatorAddress) revert CallerNotOperator();
   }
 
   /**
