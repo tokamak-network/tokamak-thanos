@@ -405,8 +405,9 @@ contract L1ContractVerification is
     if (implementation.codehash != safeWalletConfig.implementationCodehash) revert SafeWalletInvalidImplCodehash();
 
     // Check if the modules are not set
-    (address[] memory modules, address next) = IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 1);
-    if (modules.length != 0 || next != address(0)) revert SafeWalletUnauthorizedModules();
+    // Next check will make sure that even after 100 pages, no new modules are added and next is always pointing to SENTINEL_MODULES
+    (address[] memory modules, address next) = IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 100);
+    if (modules.length != 0 || next != SENTINEL_MODULES) revert SafeWalletUnauthorizedModules();
 
     // verify fallback handler
     if (IGnosisSafe(safeWalletAddress).getFallbackHandler() != address(0)) revert SafeWalletInvalidFallbackHandler();
