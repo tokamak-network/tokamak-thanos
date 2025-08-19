@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 import {IProxyAdmin} from "./IProxyAdmin.sol";
 
@@ -7,7 +7,7 @@ interface IGnosisSafe {
   function getThreshold() external view returns (uint256);
   function getOwners() external view returns (address[] memory);
   function masterCopy() external view returns (address);
-  function getModulesPaginated(address, uint256) external view returns (address[] memory);
+  function getModulesPaginated(address, uint256) external view returns (address[] memory,address);
   function getFallbackHandler() external view returns (address);
 }
 
@@ -50,18 +50,26 @@ interface IL1ContractVerification {
 
   // Events
   event ConfigurationSet(string indexed contractName);
-  event VerificationSuccess(
+  event LogicContractConfigured(
+    string indexed contractType,
+    address indexed proxyAddress,
+    address implementationAddress,
+    bytes32 proxyCodehash
+  );
+  event VerificationCompleted(
     address indexed safeWalletAddress,
     address indexed systemConfigProxy,
     address indexed proxyAdmin,
     uint256 timestamp
   );
-  event RegistrationSuccess(address indexed safeWalletAddress);
+  event RegistrationCompleted(address indexed safeWalletAddress);
   event BridgeRegistryUpdated(address indexed bridgeRegistry);
   event SafeConfigSet(
     address indexed tokamakDAO,
     address indexed foundation,
-    uint256 indexed threshold
+    uint256 indexed threshold,
+    bytes32 implementationCodehash,
+    bytes32 proxyCodehash
   );
   event NativeTokenSet(address indexed tokenAddress);
   event ProxyAdminCodehashSet(bytes32 indexed codehash);
@@ -85,9 +93,13 @@ interface IL1ContractVerification {
   function verifyAndRegisterRollupConfig(
     address _systemConfigProxy,
     IProxyAdmin _proxyAdmin,
-    string calldata _name,
-    address _safeWalletAddress
+    address _safeWalletAddress,
+    string calldata _name
   ) external;
 
   function setVerificationPossible(bool _isVerificationPossible) external;
+}
+
+interface IOwnable {
+    function owner() external view returns (address);
 }

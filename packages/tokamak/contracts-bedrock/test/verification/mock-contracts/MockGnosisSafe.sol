@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 contract MockGnosisSafe {
   address[] private owners;
@@ -36,8 +36,8 @@ contract MockGnosisSafe {
     return address(this);
   }
 
-  function getModulesPaginated(address, uint256) external view returns (address[] memory) {
-    return modules; // Returns an empty array by default
+  function getModulesPaginated(address, uint256) external view returns (address[] memory, address) {
+    return (modules, address(0)); // Returns an empty array and address(0) by default
   }
 
   function addModule(address _module) external {
