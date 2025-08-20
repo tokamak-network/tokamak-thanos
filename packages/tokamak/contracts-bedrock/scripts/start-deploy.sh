@@ -5,6 +5,10 @@ environement=
 chainID=
 deployResultFile=
 
+# Build configuration
+MAX_RETRIES=3
+RETRY_DELAY=5
+BUILD_TIMEOUT=300
 
 OPTSTRING=":c:e:"
 
@@ -60,6 +64,60 @@ updateSystem() {
   echo "Update system"
   apt update
   DEBIAN_FRONTEND=noninteractive apt install git curl wget cmake jq build-essential -y
+}
+
+# Helper functions for robust building
+waitForFileSystem() {
+  echo "Waiting for file system to sync..."
+  sleep 2
+  sync
+}
+
+verifyForgeArtifacts() {
+  local artifacts_dir="$1"
+  local max_wait=30
+  local wait_count=0
+
+  echo "Verifying forge artifacts in $artifacts_dir..."
+
+  while [ $wait_count -lt $max_wait ]; do
+    if [ -d "$artifacts_dir" ] && [ -n "$(ls -A "$artifacts_dir" 2>/dev/null)" ]; then
+      echo "Forge artifacts verified successfully"
+      return 0
+    fi
+
+    echo "Waiting for forge artifacts... ($((wait_count + 1))/$max_wait)"
+    sleep 1
+    wait_count=$((wait_count + 1))
+  done
+
+  echo "Error: Forge artifacts not found after $max_wait seconds"
+  return 1
+}
+
+retryCommand() {
+  local command="$1"
+  local description="$2"
+  local max_retries=${3:-$MAX_RETRIES}
+  local retry_count=0
+
+  echo "Executing: $description"
+
+  while [ $retry_count -lt $max_retries ]; do
+    echo "Attempt $((retry_count + 1)) of $max_retries..."
+
+    if eval "$command"; then
+      echo "$description completed successfully!"
+      return 0
+    else
+      echo "$description failed. Retrying..."
+      retry_count=$((retry_count + 1))
+      sleep $RETRY_DELAY
+    fi
+  done
+
+  echo "Error: $description failed after $max_retries attempts"
+  return 1
 }
 
 # checkScriptInput() {
@@ -122,18 +180,58 @@ installFoundry() {
 }
 
 buildSource() {
-  echo "Start buiding source code"
+  echo "Start building source code"
   source ~/.bashrc
   export PATH=$PATH:/usr/local/go/bin
   cd $projectRoot
-  pnpm install
-  make submodules
-  make cannon-prestate
-  make op-node
-  cd $projectRoot/packages/tokamak/contracts-bedrock && pnpm build
-  cd $projectRoot/packages/tokamak/core-utils && pnpm build
-  cd $projectRoot/packages/tokamak/sdk && pnpm build
+
+  # Install dependencies
+  retryCommand "pnpm install" "Installing dependencies" || return 1
+
+  # Initialize submodules
+  retryCommand "make submodules" "Initializing submodules" || return 1
+
+  # Build cannon prestate
+  retryCommand "make cannon-prestate" "Building cannon prestate" || return 1
+
+  # Build op-node
+  retryCommand "make op-node" "Building op-node" || return 1
+
+  # Build contracts-bedrock
+  echo "Building contracts-bedrock..."
+  cd $projectRoot/packages/tokamak/contracts-bedrock
+
+  # Ensure forge is available
+  if ! command -v forge &> /dev/null; then
+    echo "Error: forge command not found. Please install Foundry first."
+    return 1
+  fi
+
+  # Clean and build contracts with retry logic
+  retryCommand "forge clean && forge build" "Building contracts" || return 1
+
+  # Verify forge artifacts exist and wait if necessary
+  verifyForgeArtifacts "forge-artifacts" || return 1
+
+  # Wait for file system sync before building TypeScript packages
+  waitForFileSystem
+
+  # Build TypeScript packages in dependency order
+  echo "Building core-utils..."
+  cd $projectRoot/packages/tokamak/core-utils
+  retryCommand "pnpm build" "Building core-utils" || return 1
+
+  echo "Building SDK..."
+  cd $projectRoot/packages/tokamak/sdk
+
+  # Additional wait to ensure all artifacts are properly synced
+  waitForFileSystem
+
+  # Build SDK with retry logic
+  retryCommand "pnpm build" "Building SDK" || return 1
+
   cd $currentPWD
+  echo "All source code built successfully!"
 }
 
 deployContracts() {
