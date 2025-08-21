@@ -21,7 +21,7 @@ export const getDAOMembers = (chainid: number): [string, string] => {
   } else if (chainid === Chains.Sepolia) {
     // Sepolia
     return [
-      '0xeefb04f3a4406363b399a1c3d194d75ca81a2d1b', // Foundation
+      '0xeEfb04f3A4406363b399A1c3d194d75ca81A2d1B', // Foundation
       '0xA2101482b28E3D99ff6ced517bA41EFf4971a386', // TokamakDAO
     ]
   } else if (chainid === Chains.LocalDevnet) {
