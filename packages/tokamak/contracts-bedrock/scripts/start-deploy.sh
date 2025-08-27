@@ -219,12 +219,18 @@ buildSource() {
   # Build TypeScript packages in dependency order
   echo "Building core-utils..."
   cd $projectRoot/packages/tokamak/core-utils
+
+  # Additional wait to ensure modules are properly synced
+  waitForFileSystem
+
+  # Build core-utils with retry logic
   retryCommand "pnpm build" "Building core-utils" || return 1
 
+  # Build SDK
   echo "Building SDK..."
   cd $projectRoot/packages/tokamak/sdk
 
-  # Additional wait to ensure all artifacts are properly synced
+  # Additional wait to ensure modules are properly synced
   waitForFileSystem
 
   # Build SDK with retry logic
