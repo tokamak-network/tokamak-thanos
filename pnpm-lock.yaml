@@ -4,7 +4,7 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-pnpmfileChecksum: sha256-waSOtZf8m+0ygPybreudUhDGIvgkM3Al/Hx6tT8qR58=
+pnpmfileChecksum: vipskp6rjsbh4jjdio2kmcz6ye
 
 importers:
 
@@ -285,10 +285,6 @@ importers:
         version: 3.22.4
 
   packages/tokamak/contracts-bedrock:
-    dependencies:
-      '@openzeppelin/contracts':
-        specifier: ^5.2.0
-        version: 5.2.0
     devDependencies:
       '@eth-optimism/contracts-bedrock':
         specifier: workspace:*
@@ -1639,9 +1635,6 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
-
-  '@openzeppelin/contracts@5.2.0':
-    resolution: {integrity: sha512-bxjNie5z89W1Ea0NZLZluFh8PrFNn9DH8DQlujEok2yjsOlraUPKID5p1Wk3qdNbf6XkQ1Os2RvfiHrrXLHWKA==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -8471,8 +8464,6 @@ snapshots:
 
   '@nx/nx-win32-x64-msvc@18.2.2':
     optional: true
-
-  '@openzeppelin/contracts@5.2.0': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
