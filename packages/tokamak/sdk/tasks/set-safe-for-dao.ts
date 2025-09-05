@@ -4,6 +4,19 @@ import { executeContractCallWithSigners } from '@tokamak-network/thanos-contract
 
 import { getDAOMembers } from '../src/utils/owners'
 
+interface CompatibleContract {
+  getAddress(): Promise<string>
+  interface: ethers.utils.Interface
+}
+
+/**
+ * Creates a compatibility wrapper to work with Safe v1.5.0 SDK
+ */
+const createCompatibleContract = (contract: ethers.Contract): CompatibleContract => ({
+  getAddress: async () => contract.address,
+  interface: contract.interface
+})
+
 /**
  * Adds the specified owner to the Gnosis Safe and verifies that the owner has been added.
  *
@@ -19,10 +32,12 @@ export const addOwnerAndVerify = async (
   signers: ethers.Signer[]
 ): Promise<void> => {
   try {
+    const compatibleContract = createCompatibleContract(safeContract)
+
     // Execute addOwnerWithThreshold
     const tx = await executeContractCallWithSigners(
-      safeContract,
-      safeContract,
+      compatibleContract,
+      compatibleContract,
       'addOwnerWithThreshold',
       [owner, threshold],
       signers
@@ -109,9 +124,11 @@ task('set-safe-wallet', 'Set Safe Wallet for the Tokamak DAO').setAction(
       ])
 
       // Change threshold to 3
+      const compatibleContract = createCompatibleContract(gnosisSafeContract)
+
       const txChangeThreshold = await executeContractCallWithSigners(
-        gnosisSafeContract,
-        gnosisSafeContract,
+        compatibleContract,
+        compatibleContract,
         'changeThreshold',
         [3],
         [signer]
