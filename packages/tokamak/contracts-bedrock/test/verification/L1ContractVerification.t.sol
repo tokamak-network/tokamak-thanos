@@ -1863,7 +1863,7 @@ contract L1ContractVerificationTest is Test {
     // Mock the getModulesPaginated function to return modules
     vm.mockCall(
       address(maliciousSafe),
-      abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 1),
+      abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 100),
       abi.encode(modules, address(1))
     );
 

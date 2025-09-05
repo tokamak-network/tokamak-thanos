@@ -4,12 +4,10 @@ pragma solidity 0.8.15;
 contract MockGnosisSafe {
   address[] private owners;
   uint256 private threshold;
-  address private fallbackHandler;
-  // Storage slot is defined in L1ContractVerification as:
-  // bytes32 private constant FALLBACK_HANDLER_STORAGE_SLOT = 0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
 
-  // We'll store the fallback handler directly in storage to match the real implementation
-  // rather than using a regular state variable
+  // Storage slot for fallback handler to match Safe v1.5.0
+  // bytes32 private constant FALLBACK_HANDLER_STORAGE_SLOT = 0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+  address private fallbackHandler;
 
   address[] private modules;
 
@@ -17,7 +15,7 @@ contract MockGnosisSafe {
     owners = _owners;
     threshold = _threshold;
     // Default fallback handler to address(0)
-    // We don't need to initialize the storage slot - it defaults to 0
+    fallbackHandler = address(0);
   }
 
   function setFallbackHandler(address _fallbackHandler) external {
@@ -37,7 +35,9 @@ contract MockGnosisSafe {
   }
 
   function getModulesPaginated(address, uint256) external view returns (address[] memory, address) {
-    return (modules, address(0)); // Returns an empty array and address(0) by default
+    // Return empty modules array and SENTINEL_MODULES as next address to match Safe expectations
+    // SENTINEL_MODULES = address(0x1) as defined in the verification contract
+    return (modules, address(0x1)); 
   }
 
   function addModule(address _module) external {
@@ -46,5 +46,19 @@ contract MockGnosisSafe {
 
   function getFallbackHandler() external view returns (address) {
     return fallbackHandler;
+  }
+
+  // New function to support Safe v1.5.0 storage access pattern
+  function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory) {
+    // Simple implementation for testing - in real Safe this reads from storage slots
+    if (offset == uint256(0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5) && length == 1) {
+      // Return the fallback handler address for the specific storage slot
+      bytes memory result = new bytes(32);
+      assembly {
+        mstore(add(result, 0x20), sload(fallbackHandler.slot))
+      }
+      return result;
+    }
+    return new bytes(length * 32);
   }
 }
