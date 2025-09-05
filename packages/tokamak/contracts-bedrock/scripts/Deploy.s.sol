@@ -7,10 +7,10 @@ import { Script } from "forge-std/Script.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
+import { Safe } from "safe-contracts/Safe.sol";
 import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
-import { GnosisSafeProxyFactory as SafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
-import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
+import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
+import { Enum as SafeOps } from "safe-contracts/libraries/Enum.sol";
 import { SafeExtender } from "src/Safe/SafeExtender.sol";
 import { Deployer } from "scripts/Deployer.sol";
 
