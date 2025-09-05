@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
-import { Guard as BaseGuard } from "safe-contracts/base/GuardManager.sol";
+import { Safe } from "safe-contracts/Safe.sol";
+import { GuardManager as BaseGuard } from "safe-contracts/base/GuardManager.sol";
 import { SafeSigners } from "src/Safe/SafeSigners.sol";
-import { Enum } from "safe-contracts/common/Enum.sol";
+import { Enum } from "safe-contracts/libraries/Enum.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 

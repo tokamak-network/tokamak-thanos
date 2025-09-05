@@ -3,9 +3,9 @@ pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 import { console } from "forge-std/console.sol";
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
-import { GnosisSafeProxy as SafeProxy } from "safe-contracts/proxies/GnosisSafeProxy.sol";
-import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
+import { Safe } from "safe-contracts/Safe.sol";
+import { SafeProxy } from "safe-contracts/proxies/SafeProxy.sol";
+import { Enum as SafeOps } from "safe-contracts/libraries/Enum.sol";
 import { SafeExtender } from "../../src/Safe/SafeExtender.sol";
 import { Vm } from "forge-std/Vm.sol";
 /**
