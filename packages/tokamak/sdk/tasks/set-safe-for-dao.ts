@@ -4,18 +4,114 @@ import { executeContractCallWithSigners } from '@tokamak-network/thanos-contract
 
 import { getDAOMembers } from '../src/utils/owners'
 
-interface CompatibleContract {
+// Types for Safe contract compatibility
+type SafeTransactionOverrides = {
+  gasLimit?: ethers.BigNumberish
+  gasPrice?: ethers.BigNumberish
+  value?: ethers.BigNumberish
+}
+
+interface BaseCompatibleSafe {
   getAddress(): Promise<string>
+  nonce(): Promise<ethers.BigNumber>
+  execTransaction(
+    to: string,
+    value: ethers.BigNumberish,
+    data: string,
+    operation: number,
+    safeTxGas: ethers.BigNumberish,
+    baseGas: ethers.BigNumberish,
+    gasPrice: ethers.BigNumberish,
+    gasToken: string,
+    refundReceiver: string,
+    signatures: string,
+    overrides?: SafeTransactionOverrides
+  ): Promise<ethers.ContractTransaction>
+}
+
+interface CompatibleContract extends BaseCompatibleSafe {
   interface: ethers.utils.Interface
 }
 
+interface CompatibleSigner extends ethers.Signer {
+  signTypedData(
+    domain: { verifyingContract: string; chainId: number },
+    types: Record<string, Array<{ name: string; type: string }>>,
+    value: Record<string, unknown>
+  ): Promise<string>
+}
+
 /**
- * Creates a compatibility wrapper to work with Safe v1.5.0 SDK
+ * Creates the base compatibility methods shared between Safe and Contract wrappers
  */
-const createCompatibleContract = (contract: ethers.Contract): CompatibleContract => ({
-  getAddress: async () => contract.address,
-  interface: contract.interface
+const createBaseCompatibilityMethods = (contract: ethers.Contract) => ({
+  getAddress: async (): Promise<string> => contract.address,
+  nonce: async (): Promise<ethers.BigNumber> => contract.nonce(),
+  execTransaction: async (
+    to: string,
+    value: ethers.BigNumberish,
+    data: string,
+    operation: number,
+    safeTxGas: ethers.BigNumberish,
+    baseGas: ethers.BigNumberish,
+    gasPrice: ethers.BigNumberish,
+    gasToken: string,
+    refundReceiver: string,
+    signatures: string,
+    overrides: SafeTransactionOverrides = {}
+  ): Promise<ethers.ContractTransaction> => {
+    return contract.execTransaction(
+      to,
+      value,
+      data,
+      operation,
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      refundReceiver,
+      signatures,
+      overrides
+    )
+  },
 })
+
+/**
+ * Creates a compatibility wrapper for Safe contract instances
+ */
+const createCompatibleSafe = (contract: ethers.Contract): BaseCompatibleSafe =>
+  createBaseCompatibilityMethods(contract)
+
+/**
+ * Creates a compatibility wrapper for contract instances with interface
+ */
+const createCompatibleContract = (
+  contract: ethers.Contract
+): CompatibleContract => ({
+  ...createBaseCompatibilityMethods(contract),
+  interface: contract.interface,
+})
+
+/**
+ * Creates a compatible signer wrapper
+ */
+const createCompatibleSigner = (signer: ethers.Signer): CompatibleSigner => {
+  if ((signer as any).signTypedData) {
+    return signer as CompatibleSigner
+  }
+
+  const compatibleSigner = Object.create(signer) as CompatibleSigner
+
+  if ((signer as any)._signTypedData) {
+    compatibleSigner.signTypedData = async (domain, types, value) => {
+      return (signer as any)._signTypedData(domain, types, value)
+    }
+  } else {
+    throw new Error('Signer does not support typed data signing')
+  }
+
+  return compatibleSigner
+}
 
 /**
  * Adds the specified owner to the Gnosis Safe and verifies that the owner has been added.
@@ -24,6 +120,7 @@ const createCompatibleContract = (contract: ethers.Contract): CompatibleContract
  * @param owner - The owner address to add
  * @param threshold - The threshold value to apply
  * @param signers - An array of signers (typically a single signer)
+ * @throws Error if the transaction fails or verification fails
  */
 export const addOwnerAndVerify = async (
   safeContract: ethers.Contract,
@@ -32,15 +129,17 @@ export const addOwnerAndVerify = async (
   signers: ethers.Signer[]
 ): Promise<void> => {
   try {
+    const compatibleSafe = createCompatibleSafe(safeContract)
     const compatibleContract = createCompatibleContract(safeContract)
+    const compatibleSigners = signers.map(createCompatibleSigner)
 
     // Execute addOwnerWithThreshold
     const tx = await executeContractCallWithSigners(
-      compatibleContract,
+      compatibleSafe,
       compatibleContract,
       'addOwnerWithThreshold',
       [owner, threshold],
-      signers
+      compatibleSigners
     )
     console.log(`Tx Hash for adding owner ${owner}:`, tx.hash)
 
@@ -124,14 +223,16 @@ task('set-safe-wallet', 'Set Safe Wallet for the Tokamak DAO').setAction(
       ])
 
       // Change threshold to 3
+      const compatibleSafe = createCompatibleSafe(gnosisSafeContract)
       const compatibleContract = createCompatibleContract(gnosisSafeContract)
+      const compatibleSigners = [signer].map(createCompatibleSigner)
 
       const txChangeThreshold = await executeContractCallWithSigners(
-        compatibleContract,
+        compatibleSafe,
         compatibleContract,
         'changeThreshold',
         [3],
-        [signer]
+        compatibleSigners
       )
       console.log('Tx Hash for changing threshold:', txChangeThreshold.hash)
       const receiptChangeThreshold = await txChangeThreshold.wait()
