@@ -205,7 +205,7 @@ contract Deploy is Deployer {
 
         // These are the standard create2 deployed contracts. First we'll check if they are deployed,
         // if not we'll deploy new ones, though not at these addresses.
-        address safeProxyFactory = 0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2;
+        address safeProxyFactory = 0x14F2982D601c9458F93bd70B218933A6f8165e7b;
 
         safeProxyFactory.code.length == 0
             ? safeProxyFactory_ = new SafeProxyFactory()
