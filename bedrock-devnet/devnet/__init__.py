@@ -1,6 +1,7 @@
 import argparse
 import concurrent.futures
 import datetime
+import glob
 import gzip
 import http.client
 import json
@@ -8,8 +9,10 @@ import logging
 import os
 import shutil
 import socket
+import ssl
 import subprocess
 import time
+import urllib.parse
 from collections import namedtuple
 from multiprocessing import Process, Queue
 
