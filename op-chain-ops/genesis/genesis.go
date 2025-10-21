@@ -158,6 +158,9 @@ func NewL1Genesis(config *DeployConfig) (*core.Genesis, error) {
 			Epoch:  30000,
 		}
 		extraData = append(append(make([]byte, 32), config.CliqueSignerAddress[:]...), make([]byte, crypto.SignatureLength)...)
+		// Enable Shanghai and Cancun for blob support even with Clique
+		chainConfig.ShanghaiTime = u64ptr(0)
+		chainConfig.CancunTime = u64ptr(0)
 	} else {
 		chainConfig.MergeNetsplitBlock = big.NewInt(0)
 		chainConfig.TerminalTotalDifficulty = big.NewInt(0)

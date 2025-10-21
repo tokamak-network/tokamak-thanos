@@ -185,6 +185,12 @@ def init_admin_geth(paths):
     genesis = read_json(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
 
     genesis["config"]["chainId"] = 900
+    # Enable Shanghai and Cancun for EIP-4844 blob transactions
+    genesis["config"]["shanghaiTime"] = 0
+    genesis["config"]["cancunTime"] = 0
+
+    # Set initial base fee to 1 Gwei (1,000,000,000 wei = 0x3b9aca00)
+    genesis["baseFeePerGas"] = "0x3b9aca00"
 
     alloc = genesis['alloc']
     alloc[admin_address] = {
