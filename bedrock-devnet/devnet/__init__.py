@@ -190,7 +190,7 @@ def init_admin_geth(paths):
     genesis["config"]["cancunTime"] = 0
 
     # Set initial base fee to 1 Gwei (1,000,000,000 wei = 0x3b9aca00)
-    genesis["baseFeePerGas"] = "0x3b9aca00"
+    genesis["0x79"] = "0x3b9aca00"
 
     alloc = genesis['alloc']
     alloc[admin_address] = {
