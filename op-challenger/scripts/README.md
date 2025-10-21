@@ -29,6 +29,11 @@ Please read these documents before deployment:
 ## 🚀 Quick Start
 
 ```bash
+# 0. Clone & Checkout
+git clone https://github.com/tokamak-network/tokamak-thanos.git
+cd tokamak-thanos
+git checkout feature/challenger-analysis
+
 # 1. Complete cleanup
 ./op-challenger/scripts/cleanup.sh
 
@@ -39,7 +44,7 @@ Please read these documents before deployment:
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
-./deploy-full-stack.sh --mode local
+./op-challenger/scripts/deploy-full-stack.sh --mode local
 
 # → Takes about 5-10 minutes
 

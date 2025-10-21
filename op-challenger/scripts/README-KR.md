@@ -29,14 +29,18 @@ Sequencer 스택:                 Challenger 스택 (독립적!):
 ## 🚀 빠른 시작
 
 ```bash
+# 0. 클론 & 체크아웃
+git clone https://github.com/tokamak-network/tokamak-thanos.git
+cd tokamak-thanos
+git checkout feature/challenger-analysis
+
 # 1. 완전 초기화
 ./op-challenger/scripts/cleanup.sh
 
-# 1. 전체 자동 배포 (처음 배포 시)
+# 2. 전체 자동 배포 (처음 배포 시)
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
 
-or
-
+# 또는 커스텀 게임 설정
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
@@ -44,10 +48,10 @@ PROPOSAL_INTERVAL=30s \
 
 # → 약 5-10분 소요
 
-# 2. 배포 상태 확인
+# 3. 배포 상태 확인
 ./op-challenger/scripts/health-check.sh
 
-# 3. 상세 모니터링 (게임 통계, 동기화 상태 등)
+# 4. 상세 모니터링 (게임 통계, 동기화 상태 등)
 ./op-challenger/scripts/monitor-challenger.sh
 ```
 
