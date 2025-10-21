@@ -2,33 +2,33 @@
 set -euo pipefail
 
 ##############################################################################
-# L2 시스템 완전 배포 스크립트 (독립적인 Challenger 스택 포함)
+# Complete L2 System Deployment Script (with Independent Challenger Stack)
 #
-# 이 스크립트는 다음을 배포합니다:
-# - L1 Ethereum (로컬 또는 원격)
-# - Sequencer 스택: sequencer-op-node, sequencer-l2, op-batcher, op-proposer
-# - Challenger 스택: challenger-op-node, challenger-l2, op-challenger (⭐ 독립적!)
+# This script deploys:
+# - L1 Ethereum (local or remote)
+# - Sequencer stack: sequencer-op-node, sequencer-l2, op-batcher, op-proposer
+# - Challenger stack: challenger-op-node, challenger-l2, op-challenger (⭐ Independent!)
 #
-# 참고: /op-challenger/docs/l2-system-deployment-ko.md
+# Reference: /op-challenger/docs/l2-system-deployment-ko.md
 ##############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# 로그 파일 설정
+# Log file setup
 LOG_DIR="${PROJECT_ROOT}/.devnet/logs"
 mkdir -p "$LOG_DIR"
 DEPLOY_LOG="${LOG_DIR}/deploy-$(date +%Y%m%d-%H%M%S).log"
 CONFIG_TRACE_LOG="${LOG_DIR}/config-trace-$(date +%Y%m%d-%H%M%S).log"
 
-# 색상 정의
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 로그 함수 (콘솔 + 파일)
+# Log functions (console + file)
 log_info() {
     local msg="$1"
     echo -e "${BLUE}[INFO]${NC} $msg"
@@ -53,48 +53,48 @@ log_error() {
     echo "[ERROR] $(date '+%Y-%m-%d %H:%M:%S') $msg" >> "$DEPLOY_LOG"
 }
 
-# 설정 추적 로그 (config-trace.log 전용)
+# Config trace log (config-trace.log only)
 log_config() {
     local msg="$1"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" >> "$CONFIG_TRACE_LOG"
 }
 
-# 헬프 메시지
+# Help message
 usage() {
     cat << EOF
-L2 시스템 완전 배포 스크립트 (독립적인 Challenger 스택 포함)
+Complete L2 System Deployment Script (with Independent Challenger Stack)
 
-사용법:
-    $0 [옵션]
+Usage:
+    $0 [options]
 
-옵션:
-    --env-file FILE         환경 변수 파일 경로 (기본: .env)
-    --mode MODE             배포 모드: local|sepolia|mainnet (기본: local)
-    --skip-build            Docker 이미지 빌드 건너뛰기
-    --skip-l1               L1 배포 건너뛰기 (외부 RPC 사용 시)
-    --with-indexer          Indexer 스택도 함께 배포
-    --help                  이 도움말 표시
+Options:
+    --env-file FILE         Environment variable file path (default: .env)
+    --mode MODE             Deployment mode: local|sepolia|mainnet (default: local)
+    --skip-build            Skip Docker image build
+    --skip-l1               Skip L1 deployment (use external RPC)
+    --with-indexer          Deploy Indexer stack as well
+    --help                  Show this help
 
-환경 변수 (로컬 모드 전용):
-    FAULT_GAME_MAX_CLOCK_DURATION    게임 진행 최대 시간 (초) (기본: 1200 = 20분)
-    FAULT_GAME_WITHDRAWAL_DELAY      게임 종료 후 인출 대기 시간 (초) (기본: 604800 = 7일)
-    PROPOSAL_INTERVAL                Proposer 게임 생성 간격 (기본: 12s)
-    DG_TYPE                          게임 타입 (0=CANNON, 1=PERMISSIONED) (기본: 0)
+Environment Variables (local mode only):
+    FAULT_GAME_MAX_CLOCK_DURATION    Max game duration in seconds (default: 1200 = 20min)
+    FAULT_GAME_WITHDRAWAL_DELAY      Withdrawal delay after game ends (default: 604800 = 7days)
+    PROPOSAL_INTERVAL                Proposer game creation interval (default: 12s)
+    DG_TYPE                          Game type (0=CANNON, 1=PERMISSIONED) (default: 0)
 
-예시:
-    # 로컬 개발 환경 전체 배포
+Examples:
+    # Deploy full local development environment
     $0 --mode local
 
-    # 게임 진행 시간을 5분으로 설정하여 배포
+    # Deploy with 5-minute game duration
     FAULT_GAME_MAX_CLOCK_DURATION=300 $0 --mode local
 
-    # 게임 진행 1분, 인출 대기 1일, 제안 간격 30초로 빠른 테스트 환경 배포
+    # Fast test environment (1min game, 1day withdrawal, 30s interval)
     FAULT_GAME_MAX_CLOCK_DURATION=60 FAULT_GAME_WITHDRAWAL_DELAY=86400 PROPOSAL_INTERVAL=30s $0 --mode local
 
-    # Sepolia 테스트넷에 배포 (L1 건너뛰기)
+    # Deploy to Sepolia testnet (skip L1)
     $0 --mode sepolia --skip-l1
 
-    # Indexer 포함 배포
+    # Deploy with Indexer
     $0 --mode local --with-indexer
 
 EOF
@@ -136,7 +136,7 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         *)
-            log_error "알 수 없는 옵션: $1"
+            log_error "Unknown option: $1"
             usage
             ;;
     esac
@@ -146,12 +146,12 @@ done
 # 1. 사전 검증 및 초기화 상태 확인
 ##############################################################################
 
-log_info "배포 사전 검증을 시작합니다..."
+log_info "Starting pre-deployment validation..."
 
 # 필수 도구 확인
 check_command() {
     if ! command -v "$1" &> /dev/null; then
-        log_error "$1이(가) 설치되어 있지 않습니다."
+        log_error "$1 is not installed."
         exit 1
     fi
 }
@@ -163,17 +163,17 @@ check_command openssl
 # Docker Compose 버전 확인 (v1: docker-compose, v2: docker compose)
 if command -v docker-compose &> /dev/null; then
     DOCKER_COMPOSE="docker-compose"
-    log_info "docker-compose (v1) 사용"
+    log_info "Using docker-compose (v1)"
 elif docker compose version &> /dev/null; then
     DOCKER_COMPOSE="docker compose"
-    log_info "docker compose (v2) 사용"
+    log_info "Using docker compose (v2)"
 else
-    log_error "docker-compose 또는 docker compose가 설치되어 있지 않습니다."
-    log_info "Docker Desktop을 설치하거나 docker-compose를 설치하세요."
+    log_error "docker-compose or docker compose is not installed."
+    log_info "Please install Docker Desktop or docker-compose."
     exit 1
 fi
 
-log_success "필수 도구가 모두 설치되어 있습니다."
+log_success "All required tools are installed."
 
 ##############################################################################
 # 초기화 상태 확인 (컨테이너 정리)
@@ -188,10 +188,10 @@ log_success "Previous containers stopped"
 log_info "Note: Volumes will be checked and removed before each service starts to ensure Genesis consistency"
 echo ""
 
-# 환경 변수 파일 확인
+# Check environment variable file
 if [ ! -f "$ENV_FILE" ]; then
-    log_warn "환경 변수 파일이 없습니다: $ENV_FILE"
-    log_info "환경 변수를 자동으로 생성합니다..."
+    log_warn "Environment variable file not found: $ENV_FILE"
+    log_info "Automatically generating environment variables..."
     echo ""
 
     # setup-env.sh 자동 실행
@@ -213,12 +213,12 @@ fi
 
 # Docker Compose 파일 확인
 if [ ! -f "$DOCKER_COMPOSE_FILE" ]; then
-    log_error "Docker Compose 파일을 찾을 수 없습니다: $DOCKER_COMPOSE_FILE"
+    log_error "Docker Compose file not found: $DOCKER_COMPOSE_FILE"
     exit 1
 fi
 
-# 환경 변수 로드
-log_info "환경 변수를 로드합니다: $ENV_FILE"
+# Load environment variables
+log_info "Loading environment variables: $ENV_FILE"
 set -a
 source "$ENV_FILE"
 set +a
@@ -272,12 +272,12 @@ log_info "Contract addresses will be validated after Genesis generation"
 # 2. 배포 모드별 설정
 ##############################################################################
 
-log_info "배포 모드: $DEPLOY_MODE"
+log_info "Deployment mode: $DEPLOY_MODE"
 log_info "=========================================="
 echo ""
-log_info "📝 로그 파일:"
-log_info "  배포 로그: $DEPLOY_LOG"
-log_info "  설정 추적 로그: $CONFIG_TRACE_LOG"
+log_info "📝 Log files:"
+log_info "  Deployment log: $DEPLOY_LOG"
+log_info "  Config trace log: $CONFIG_TRACE_LOG"
 echo ""
 
 # 환경 변수 로그 기록
@@ -291,7 +291,7 @@ log_config "  DG_TYPE: ${DG_TYPE:-not set}"
 
 case $DEPLOY_MODE in
     local)
-        log_info "로컬 개발 환경으로 배포합니다."
+        log_info "Deploying to local development environment."
         export L1_RPC_URL="${L1_RPC_URL:-http://localhost:8545}"
         export L1_BEACON_URL="${L1_BEACON_URL:-}"
         SKIP_L1=false
@@ -300,38 +300,38 @@ case $DEPLOY_MODE in
         check_command cast
         ;;
     sepolia)
-        log_info "Sepolia 테스트넷에 배포합니다."
+        log_info "Deploying to Sepolia testnet."
         if [ -z "${L1_RPC_URL:-}" ]; then
-            log_error "Sepolia 배포 시 L1_RPC_URL이 필요합니다."
+            log_error "L1_RPC_URL is required for Sepolia deployment."
             exit 1
         fi
         if [ -z "${L1_BEACON_URL:-}" ]; then
-            log_error "Sepolia 배포 시 L1_BEACON_URL이 필요합니다."
+            log_error "L1_BEACON_URL is required for Sepolia deployment."
             exit 1
         fi
         SKIP_L1=true
         ;;
     mainnet)
-        log_info "Mainnet에 배포합니다."
-        log_warn "⚠️  프로덕션 환경입니다. 신중하게 진행하세요!"
-        read -p "계속하시겠습니까? (yes/no): " confirm
+        log_info "Deploying to Mainnet."
+        log_warn "⚠️  Production environment. Proceed with caution!"
+        read -p "Continue? (yes/no): " confirm
         if [ "$confirm" != "yes" ]; then
-            log_info "배포를 취소합니다."
+            log_info "Deployment cancelled."
             exit 0
         fi
         if [ -z "${L1_RPC_URL:-}" ]; then
-            log_error "Mainnet 배포 시 L1_RPC_URL이 필요합니다."
+            log_error "L1_RPC_URL is required for Mainnet deployment."
             exit 1
         fi
         if [ -z "${L1_BEACON_URL:-}" ]; then
-            log_error "Mainnet 배포 시 L1_BEACON_URL이 필요합니다."
+            log_error "L1_BEACON_URL is required for Mainnet deployment."
             exit 1
         fi
         SKIP_L1=true
         ;;
     *)
-        log_error "지원하지 않는 배포 모드: $DEPLOY_MODE"
-        log_info "사용 가능한 모드: local, sepolia, mainnet"
+        log_error "Unsupported deployment mode: $DEPLOY_MODE"
+        log_info "Available modes: local, sepolia, mainnet"
         exit 1
         ;;
 esac
@@ -340,7 +340,7 @@ esac
 # 3. 필수 파일 생성
 ##############################################################################
 
-log_info "필수 파일을 생성합니다..."
+log_info "Generating required files..."
 
 DEVNET_DIR="${PROJECT_ROOT}/.devnet"
 mkdir -p "$DEVNET_DIR"
@@ -348,26 +348,26 @@ mkdir -p "$DEVNET_DIR"
 # JWT 시크릿 생성 (없는 경우)
 JWT_SECRET="${DEVNET_DIR}/jwt-secret.txt"
 if [ ! -f "$JWT_SECRET" ]; then
-    log_info "JWT 시크릿을 생성합니다: $JWT_SECRET"
+    log_info "Generating JWT secret: $JWT_SECRET"
     openssl rand -hex 32 > "$JWT_SECRET"
-    log_success "JWT 시크릿 생성 완료"
+    log_success "JWT secret generated"
 else
-    log_info "기존 JWT 시크릿을 사용합니다: $JWT_SECRET"
+    log_info "Using existing JWT secret: $JWT_SECRET"
 fi
 
 # P2P 키 생성 (없는 경우)
 P2P_NODE_KEY="${DEVNET_DIR}/p2p-node-key.txt"
 if [ ! -f "$P2P_NODE_KEY" ]; then
-    log_info "P2P Node 키를 생성합니다: $P2P_NODE_KEY"
+    log_info "Generating P2P Node key: $P2P_NODE_KEY"
     openssl rand -hex 32 > "$P2P_NODE_KEY"
-    log_success "P2P Node 키 생성 완료"
+    log_success "P2P Node key generated"
 fi
 
 P2P_CHALLENGER_KEY="${DEVNET_DIR}/p2p-challenger-key.txt"
 if [ ! -f "$P2P_CHALLENGER_KEY" ]; then
-    log_info "P2P Challenger 키를 생성합니다: $P2P_CHALLENGER_KEY"
+    log_info "Generating P2P Challenger key: $P2P_CHALLENGER_KEY"
     openssl rand -hex 32 > "$P2P_CHALLENGER_KEY"
-    log_success "P2P Challenger 키 생성 완료"
+    log_success "P2P Challenger key generated"
 fi
 
 # Genesis 파일 확인 (로컬 모드인 경우 필수)
@@ -466,14 +466,68 @@ if [ "$DEPLOY_MODE" = "local" ]; then
 
         log_info "Automatically generating Genesis and contract files..."
         log_warn "This will:"
-        echo "  1. Configure game settings (if specified)"
-        echo "  2. Start devnet (make devnet-up)"
-        echo "  3. Deploy contracts and generate Genesis (~2-3 minutes)"
-        echo "  4. Stop devnet (make devnet-down)"
-        echo "  5. Continue with deployment"
+        echo "  1. Build Cannon VM and op-program (generate prestate)"
+        echo "  2. Configure game settings (if specified)"
+        echo "  3. Start devnet (make devnet-up)"
+        echo "  4. Deploy contracts and generate Genesis (~2-3 minutes)"
+        echo "  5. Stop devnet (make devnet-down)"
+        echo "  6. Continue with deployment"
         echo ""
 
         cd "${PROJECT_ROOT}"
+
+        # ⭐ CRITICAL: Build Cannon VM BEFORE deploying contracts
+        # This ensures the contract uses the correct prestate hash
+        log_info "=========================================="
+        log_info "Step 0: Build Cannon VM and op-program (for prestate)"
+        log_info "=========================================="
+        echo ""
+
+        OP_PROGRAM_BIN="${PROJECT_ROOT}/op-program/bin"
+        CANNON_BIN="${PROJECT_ROOT}/cannon/bin"
+        PRESTATE_PROOF_FILE="${OP_PROGRAM_BIN}/prestate-proof.json"
+
+        # Always rebuild for new deployment
+        log_info "[1/3] Building op-program... (approximately 2-5 minutes)"
+        if make op-program; then
+            log_success "op-program build completed"
+        else
+            log_error "op-program build failed"
+            exit 1
+        fi
+
+        log_info "[2/3] Building Cannon VM... (approximately 1-2 minutes)"
+        if make cannon; then
+            log_success "Cannon VM build completed"
+        else
+            log_error "Cannon VM build failed"
+            exit 1
+        fi
+
+        log_info "[3/3] Generating prestate for current environment..."
+        if make cannon-prestate; then
+            log_success "Prestate generation completed!"
+        else
+            log_error "Prestate generation failed"
+            exit 1
+        fi
+
+        # Get generated prestate hash
+        ABSOLUTE_PRESTATE=$(cat "$PRESTATE_PROOF_FILE" | jq -r '.pre' 2>/dev/null || echo "error")
+        if [ "$ABSOLUTE_PRESTATE" != "error" ] && [ -n "$ABSOLUTE_PRESTATE" ]; then
+            log_success "✅ Generated Absolute Prestate Hash:"
+            log_info "   $ABSOLUTE_PRESTATE"
+            log_config "Generated Absolute Prestate: $ABSOLUTE_PRESTATE"
+            echo ""
+        else
+            log_error "Failed to read prestate hash!"
+            exit 1
+        fi
+
+        # Set flag to skip redundant build in Section 4
+        PRESTATE_ALREADY_BUILT=true
+
+        echo ""
 
         # Configure game settings before deployment
         DEPLOY_CONFIG="${PROJECT_ROOT}/packages/tokamak/contracts-bedrock/deploy-config/devnetL1-template.json"
@@ -547,6 +601,28 @@ if [ "$DEPLOY_MODE" = "local" ]; then
             if [ -n "${PROPOSAL_INTERVAL:-}" ]; then
                 log_info "Proposal interval will be set to: ${PROPOSAL_INTERVAL}"
                 log_config "PROPOSAL_INTERVAL: ${PROPOSAL_INTERVAL}"
+            fi
+
+            # ⭐ Update template with generated prestate hash
+            if [ -n "$ABSOLUTE_PRESTATE" ] && [ "$ABSOLUTE_PRESTATE" != "error" ]; then
+                log_info "Updating template with generated prestate hash..."
+                log_config "Updating faultGameAbsolutePrestate: $ABSOLUTE_PRESTATE"
+
+                TEMP_CONFIG=$(mktemp)
+                jq ".faultGameAbsolutePrestate = \"${ABSOLUTE_PRESTATE}\"" "$DEPLOY_CONFIG" > "$TEMP_CONFIG"
+                mv "$TEMP_CONFIG" "$DEPLOY_CONFIG"
+
+                # Verify
+                NEW_PRESTATE=$(jq -r '.faultGameAbsolutePrestate' "$DEPLOY_CONFIG")
+                log_config "Verification: faultGameAbsolutePrestate = ${NEW_PRESTATE}"
+                if [ "$NEW_PRESTATE" = "$ABSOLUTE_PRESTATE" ]; then
+                    log_config "✅ faultGameAbsolutePrestate successfully updated"
+                    log_success "Template updated with generated prestate"
+                else
+                    log_config "❌ faultGameAbsolutePrestate update FAILED!"
+                    log_error "Failed to update template with prestate"
+                fi
+                CONFIG_MODIFIED=true
             fi
 
             if [ "$CONFIG_MODIFIED" = true ]; then
@@ -696,25 +772,30 @@ if [ "$DEPLOY_MODE" = "local" ]; then
 fi
 
 ##############################################################################
-# 4. Cannon VM 및 op-program 빌드 (현재 환경에 맞는 prestate 생성)
+# 4. Cannon VM 및 op-program 빌드 검증 (Genesis가 이미 있는 경우)
 ##############################################################################
 
-log_info "=========================================="
-log_info "Cannon VM 및 op-program 빌드"
-log_info "=========================================="
+# Skip if already built in Section 3
+if [ "${PRESTATE_ALREADY_BUILT:-false}" = "true" ]; then
+    log_info "Cannon VM and op-program already built (skipping Section 4)"
+    log_config "Section 4 skipped - prestate already built in Section 3"
+else
+    log_info "=========================================="
+    log_info "Cannon VM and op-program Verification"
+    log_info "=========================================="
 
-# op-program/bin 디렉토리 확인
-OP_PROGRAM_BIN="${PROJECT_ROOT}/op-program/bin"
-CANNON_BIN="${PROJECT_ROOT}/cannon/bin"
-PRESTATE_FILE="${OP_PROGRAM_BIN}/prestate.json"
-PRESTATE_PROOF_FILE="${OP_PROGRAM_BIN}/prestate-proof.json"
+    # op-program/bin 디렉토리 확인
+    OP_PROGRAM_BIN="${PROJECT_ROOT}/op-program/bin"
+    CANNON_BIN="${PROJECT_ROOT}/cannon/bin"
+    PRESTATE_FILE="${OP_PROGRAM_BIN}/prestate.json"
+    PRESTATE_PROOF_FILE="${OP_PROGRAM_BIN}/prestate-proof.json"
 
 # Genesis 해시 캐시 파일
 GENESIS_HASH_CACHE="${OP_PROGRAM_BIN}/.genesis-hash"
 
 # 기존 prestate 파일 확인
 if [ -f "$PRESTATE_FILE" ] && [ -f "$PRESTATE_PROOF_FILE" ]; then
-    log_info "기존 prestate 파일 발견:"
+    log_info "Existing prestate files found:"
     ls -lh "$PRESTATE_FILE" "$PRESTATE_PROOF_FILE" 2>/dev/null || true
 
     # Genesis 파일 내용 해시로 변경 감지 (로컬 모드인 경우)
@@ -728,19 +809,19 @@ if [ -f "$PRESTATE_FILE" ] && [ -f "$PRESTATE_PROOF_FILE" ]; then
             CACHED_GENESIS_HASH=$(cat "$GENESIS_HASH_CACHE")
 
             if [ "$CURRENT_GENESIS_HASH" = "$CACHED_GENESIS_HASH" ]; then
-                log_success "✅ Genesis 파일이 변경되지 않았습니다."
-                log_info "   현재 해시: ${CURRENT_GENESIS_HASH:0:16}..."
+                log_success "✅ Genesis file unchanged."
+                log_info "   Current hash: ${CURRENT_GENESIS_HASH:0:16}..."
                 REBUILD_PRESTATE=false
             else
-                log_warn "⚠️  Genesis 파일이 변경되었습니다!"
-                log_info "   이전 해시: ${CACHED_GENESIS_HASH:0:16}..."
-                log_info "   현재 해시: ${CURRENT_GENESIS_HASH:0:16}..."
-                log_info "   현재 환경에 맞는 새로운 prestate를 생성해야 합니다."
+                log_warn "⚠️  Genesis file has changed!"
+                log_info "   Previous hash: ${CACHED_GENESIS_HASH:0:16}..."
+                log_info "   Current hash: ${CURRENT_GENESIS_HASH:0:16}..."
+                log_info "   New prestate must be generated for current environment."
                 REBUILD_PRESTATE=true
             fi
         else
-            log_warn "Genesis 해시 캐시가 없습니다."
-            log_info "안전을 위해 prestate를 재생성하는 것을 권장합니다."
+            log_warn "Genesis hash cache not found."
+            log_info "Recommend regenerating prestate for safety."
             REBUILD_PRESTATE=true
         fi
 
@@ -753,78 +834,78 @@ if [ -f "$PRESTATE_FILE" ] && [ -f "$PRESTATE_PROOF_FILE" ]; then
             if [ -f "$ROLLUP_HASH_CACHE" ]; then
                 CACHED_ROLLUP_HASH=$(cat "$ROLLUP_HASH_CACHE")
                 if [ "$CURRENT_ROLLUP_HASH" != "$CACHED_ROLLUP_HASH" ]; then
-                    log_warn "⚠️  Rollup config가 변경되었습니다!"
+                    log_warn "⚠️  Rollup config has changed!"
                     REBUILD_PRESTATE=true
                 fi
             fi
         fi
     else
         # Genesis 파일 없으면 항상 재빌드
-        log_warn "Genesis 파일을 찾을 수 없거나 로컬 모드가 아닙니다."
+        log_warn "Genesis file not found or not in local mode."
         REBUILD_PRESTATE=true
     fi
 
     # 사용자에게 재빌드 여부 확인
     if [ "$REBUILD_PRESTATE" = true ]; then
-        log_warn "현재 환경에 맞는 prestate를 다시 생성하시겠습니까?"
-        log_info "이 작업은 약 5-10분 소요됩니다."
+        log_warn "Regenerate prestate for current environment?"
+        log_info "This will take approximately 5-10 minutes."
         read -p "Rebuild prestate? (yes/no) [yes]: " rebuild_confirm
         rebuild_confirm=${rebuild_confirm:-yes}
 
         if [ "$rebuild_confirm" != "yes" ]; then
-            log_info "기존 prestate를 사용합니다."
+            log_info "Using existing prestate."
             REBUILD_PRESTATE=false
         fi
     else
-        log_info "기존 prestate를 사용합니다. (변경 사항 없음)"
+        log_info "Using existing prestate. (No changes detected)"
         REBUILD_PRESTATE=false
     fi
 else
-    log_warn "prestate 파일이 없습니다. 새로 생성합니다."
+    log_warn "Prestate files not found. Generating new prestate."
     REBUILD_PRESTATE=true
 fi
 
 # prestate 빌드 실행
 if [ "$REBUILD_PRESTATE" = true ]; then
-    log_info "현재 환경에 맞는 Cannon VM 및 op-program을 빌드합니다..."
+    log_info "Building Cannon VM and op-program for current environment..."
     echo ""
 
     cd "${PROJECT_ROOT}"
 
-    # 1. op-program 빌드
-    log_info "[1/3] op-program 빌드 중... (약 2-5분)"
+    # 1. op-program build
+    log_info "[1/3] Building op-program... (approximately 2-5 minutes)"
     if make op-program; then
-        log_success "op-program 빌드 완료"
+        log_success "op-program build completed"
         echo ""
     else
-        log_error "op-program 빌드 실패"
-        log_info "수동으로 빌드를 시도하세요:"
+        log_error "op-program build failed"
+        log_info "Try building manually:"
         echo "  cd ${PROJECT_ROOT}"
         echo "  make op-program"
         exit 1
     fi
 
-    # 2. cannon 빌드
-    log_info "[2/3] Cannon VM 빌드 중... (약 1-2분)"
+    # 2. cannon build
+    log_info "[2/3] Building Cannon VM... (approximately 1-2 minutes)"
     if make cannon; then
-        log_success "Cannon VM 빌드 완료"
+        log_success "Cannon VM build completed"
         echo ""
     else
-        log_error "Cannon VM 빌드 실패"
-        log_info "수동으로 빌드를 시도하세요:"
+        log_error "Cannon VM build failed"
+        log_info "Try building manually:"
         echo "  cd ${PROJECT_ROOT}"
         echo "  make cannon"
         exit 1
     fi
 
-    # 3. prestate 생성
-    log_info "[3/3] 현재 환경에 맞는 prestate 생성 중... (약 10-30초)"
+    # 3. prestate generation
+    log_info "[3/3] Generating prestate for current environment... (approximately 10-30 seconds)"
     if make cannon-prestate; then
-        log_success "Prestate 생성 완료!"
+        log_success "Prestate generation completed!"
         echo ""
     else
-        log_error "Prestate 생성 실패"
-        log_info "수동으로 생성을 시도하세요:"
+        log_error "Prestate generation failed"
+        log_info "Try generating manually:"
         echo "  cd ${PROJECT_ROOT}"
         echo "  make cannon-prestate"
         exit 1
@@ -832,7 +913,7 @@ if [ "$REBUILD_PRESTATE" = true ]; then
 
     # 생성된 파일 확인
     if [ -f "$PRESTATE_FILE" ] && [ -f "$PRESTATE_PROOF_FILE" ]; then
-        log_success "생성된 파일:"
+        log_success "Generated files:"
         ls -lh "$PRESTATE_FILE" "$PRESTATE_PROOF_FILE" "$CANNON_BIN/cannon" "$OP_PROGRAM_BIN/op-program"
         echo ""
 
@@ -840,13 +921,15 @@ if [ "$REBUILD_PRESTATE" = true ]; then
         ABSOLUTE_PRESTATE=$(cat "$PRESTATE_PROOF_FILE" | jq -r '.pre' 2>/dev/null || echo "error")
         if [ "$ABSOLUTE_PRESTATE" != "error" ] && [ -n "$ABSOLUTE_PRESTATE" ]; then
             log_success "✅ Absolute Prestate Hash:"
-            echo "   $ABSOLUTE_PRESTATE"
+            log_info "   Generated: $ABSOLUTE_PRESTATE"
+            log_config "Generated Absolute Prestate: $ABSOLUTE_PRESTATE"
             echo ""
-            log_info "이 해시가 DisputeGameFactory의 absolute prestate와 일치해야 합니다."
-            log_info "op-challenger가 'Invalid prestate' 에러 없이 작동할 것입니다."
+            log_info "This hash must match DisputeGameFactory's absolute prestate."
+            log_info "op-challenger will operate without 'Invalid prestate' errors."
             echo ""
         else
-            log_warn "Absolute prestate hash를 읽을 수 없습니다."
+            log_warn "Cannot read absolute prestate hash."
+            log_config "❌ Failed to read absolute prestate hash"
         fi
 
         # Genesis 및 Rollup config 해시를 캐시에 저장
@@ -855,38 +938,41 @@ if [ "$REBUILD_PRESTATE" = true ]; then
                 CURRENT_GENESIS_HASH=$(shasum -a 256 "${DEVNET_DIR}/genesis-l2.json" 2>/dev/null | awk '{print $1}' || \
                                        sha256sum "${DEVNET_DIR}/genesis-l2.json" 2>/dev/null | awk '{print $1}')
                 echo "$CURRENT_GENESIS_HASH" > "$GENESIS_HASH_CACHE"
-                log_info "Genesis 해시 캐시 저장: .genesis-hash"
+                log_info "Saving Genesis hash cache: .genesis-hash"
             fi
 
             if [ -f "${DEVNET_DIR}/rollup.json" ]; then
                 CURRENT_ROLLUP_HASH=$(shasum -a 256 "${DEVNET_DIR}/rollup.json" 2>/dev/null | awk '{print $1}' || \
                                       sha256sum "${DEVNET_DIR}/rollup.json" 2>/dev/null | awk '{print $1}')
                 echo "$CURRENT_ROLLUP_HASH" > "${OP_PROGRAM_BIN}/.rollup-hash"
-                log_info "Rollup config 해시 캐시 저장: .rollup-hash"
+                log_info "Saving Rollup config hash cache: .rollup-hash"
             fi
             echo ""
         fi
     else
-        log_error "Prestate 파일이 생성되지 않았습니다!"
+        log_error "Prestate files were not generated!"
         exit 1
     fi
 
     cd "${SCRIPT_DIR}"
 else
-    log_info "기존 prestate 사용:"
+    log_info "Using existing prestate:"
 
     # 현재 absolute prestate hash 출력
     if [ -f "$PRESTATE_PROOF_FILE" ]; then
         ABSOLUTE_PRESTATE=$(cat "$PRESTATE_PROOF_FILE" | jq -r '.pre' 2>/dev/null || echo "error")
         if [ "$ABSOLUTE_PRESTATE" != "error" ] && [ -n "$ABSOLUTE_PRESTATE" ]; then
             log_info "Current Absolute Prestate Hash:"
-            echo "   $ABSOLUTE_PRESTATE"
+            log_info "   Existing: $ABSOLUTE_PRESTATE"
+            log_config "Using Existing Absolute Prestate: $ABSOLUTE_PRESTATE"
             echo ""
         fi
     fi
 fi
 
-log_success "Cannon VM 및 op-program 준비 완료"
+fi  # End of "if PRESTATE_ALREADY_BUILT = false"
+
+log_success "Cannon VM and op-program ready"
 echo ""
 
 ##############################################################################
@@ -894,14 +980,14 @@ echo ""
 ##############################################################################
 
 if [ "$SKIP_BUILD" = false ]; then
-    log_info "Docker 이미지를 빌드합니다..."
+    log_info "Building Docker images..."
 
     # docker-compose build 실행
     $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" build --parallel
 
-    log_success "Docker 이미지 빌드 완료"
+    log_success "Docker images built successfully"
 else
-    log_info "Docker 이미지 빌드를 건너뜁니다."
+    log_info "Skipping Docker image build."
 fi
 
 ##############################################################################
@@ -909,7 +995,7 @@ fi
 ##############################################################################
 
 if [ "$SKIP_L1" = false ]; then
-    log_info "L1 Ethereum을 시작합니다..."
+    log_info "Starting L1 Ethereum..."
 
     # CRITICAL: Remove L1 volume to ensure it initializes with the correct genesis
     # L1 geth will ignore genesis.json if it finds existing blockchain data
@@ -925,7 +1011,7 @@ if [ "$SKIP_L1" = false ]; then
 
     $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d l1
 
-    log_info "L1 RPC가 준비될 때까지 대기합니다..."
+    log_info "Waiting for L1 RPC to be ready..."
     timeout=120
     elapsed=0
     while ! curl -s -X POST -H "Content-Type: application/json" \
@@ -942,49 +1028,49 @@ if [ "$SKIP_L1" = false ]; then
     done
     echo ""
 
-    log_success "L1 Ethereum 시작 완료"
+    log_success "L1 Ethereum started successfully"
 
-    # 로컬 모드: 필수 계정에 L1 ETH 전송
+    # Local mode: Fund essential accounts with L1 ETH
     if [ "$DEPLOY_MODE" = "local" ]; then
-        log_info "필수 계정에 L1 ETH를 전송합니다..."
+        log_info "Funding essential accounts with L1 ETH..."
 
         # L1 dev 모드 기본 계정 (충분한 ETH 보유)
         DEV_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-        # Proposer에 ETH 전송
+        # Send ETH to Proposer
         if [ -n "${PROPOSER_ADDRESS:-}" ]; then
-            log_info "Proposer (${PROPOSER_ADDRESS})에 10 ETH 전송 중..."
+            log_info "Sending 10 ETH to Proposer (${PROPOSER_ADDRESS})..."
             if cast send "${PROPOSER_ADDRESS}" --value 10ether --private-key "${DEV_PRIVATE_KEY}" --rpc-url http://localhost:8545 > /dev/null 2>&1; then
-                log_success "Proposer에 ETH 전송 완료"
+                log_success "ETH sent to Proposer"
             else
-                log_warn "Proposer ETH 전송 실패 (계속 진행)"
+                log_warn "Failed to send ETH to Proposer (continuing)"
             fi
         fi
 
-        # Batcher에 ETH 전송
+        # Send ETH to Batcher
         if [ -n "${BATCHER_ADDRESS:-}" ]; then
-            log_info "Batcher (${BATCHER_ADDRESS})에 10 ETH 전송 중..."
+            log_info "Sending 10 ETH to Batcher (${BATCHER_ADDRESS})..."
             if cast send "${BATCHER_ADDRESS}" --value 10ether --private-key "${DEV_PRIVATE_KEY}" --rpc-url http://localhost:8545 > /dev/null 2>&1; then
-                log_success "Batcher에 ETH 전송 완료"
+                log_success "ETH sent to Batcher"
             else
-                log_warn "Batcher ETH 전송 실패 (계속 진행)"
+                log_warn "Failed to send ETH to Batcher (continuing)"
             fi
         fi
 
-        # Challenger에 ETH 전송
+        # Send ETH to Challenger
         if [ -n "${CHALLENGER_ADDRESS:-}" ]; then
-            log_info "Challenger (${CHALLENGER_ADDRESS})에 10 ETH 전송 중..."
+            log_info "Sending 10 ETH to Challenger (${CHALLENGER_ADDRESS})..."
             if cast send "${CHALLENGER_ADDRESS}" --value 10ether --private-key "${DEV_PRIVATE_KEY}" --rpc-url http://localhost:8545 > /dev/null 2>&1; then
-                log_success "Challenger에 ETH 전송 완료"
+                log_success "ETH sent to Challenger"
             else
-                log_warn "Challenger ETH 전송 실패 (계속 진행)"
+                log_warn "Failed to send ETH to Challenger (continuing)"
             fi
         fi
 
-        log_success "L1 계정 준비 완료"
+        log_success "L1 accounts funded successfully"
     fi
 else
-    log_info "L1 배포를 건너뜁니다 (외부 RPC 사용)"
+    log_info "Skipping L1 deployment (using external RPC)"
     log_info "L1 RPC URL: $L1_RPC_URL"
 fi
 
@@ -992,7 +1078,7 @@ fi
 # 7. Sequencer 스택 배포
 ##############################################################################
 
-log_info "Sequencer 스택을 배포합니다..."
+log_info "Deploying Sequencer stack..."
 
 # CRITICAL: Remove Sequencer L2 volume to ensure it initializes with the correct genesis
 if docker volume inspect scripts_sequencer_l2_data >/dev/null 2>&1; then
@@ -1003,11 +1089,11 @@ if docker volume inspect scripts_sequencer_l2_data >/dev/null 2>&1; then
     log_success "Sequencer L2 volume removed"
 fi
 
-# Sequencer L2 geth 시작
-log_info "Sequencer L2 op-geth를 시작합니다..."
+# Start Sequencer L2 geth
+log_info "Starting Sequencer L2 op-geth..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d sequencer-l2
 
-log_info "Sequencer L2 RPC가 준비될 때까지 대기합니다..."
+log_info "Waiting for Sequencer L2 RPC to be ready..."
 timeout=120
 elapsed=0
 while ! curl -s -X POST -H "Content-Type: application/json" \
@@ -1024,7 +1110,7 @@ while ! curl -s -X POST -H "Content-Type: application/json" \
 done
 echo ""
 
-log_success "Sequencer L2 op-geth 시작 완료"
+log_success "Sequencer L2 op-geth started successfully"
 
 # Remove Sequencer op-node safedb to ensure clean state
 if docker volume inspect scripts_sequencer_safedb_data >/dev/null 2>&1; then
@@ -1032,26 +1118,26 @@ if docker volume inspect scripts_sequencer_safedb_data >/dev/null 2>&1; then
     docker volume rm scripts_sequencer_safedb_data 2>/dev/null || true
 fi
 
-# Sequencer op-node 시작
-log_info "Sequencer op-node를 시작합니다..."
+# Start Sequencer op-node
+log_info "Starting Sequencer op-node..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d sequencer-op-node
 
-# op-batcher 시작
-log_info "op-batcher를 시작합니다..."
+# Start op-batcher
+log_info "Starting op-batcher..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d op-batcher
 
-# op-proposer 시작
-log_info "op-proposer를 시작합니다..."
+# Start op-proposer
+log_info "Starting op-proposer..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d op-proposer
 
-log_success "Sequencer 스택 배포 완료"
+log_success "Sequencer stack deployed successfully"
 
 ##############################################################################
 # 8. Challenger 스택 배포 (독립적!) ⭐
 ##############################################################################
 
 log_info "=========================================="
-log_info "독립적인 Challenger 스택을 배포합니다 ⭐"
+log_info "Deploying Independent Challenger Stack ⭐"
 log_info "=========================================="
 
 # CRITICAL: Remove Challenger L2 volume to ensure it initializes with the correct genesis
@@ -1063,11 +1149,11 @@ if docker volume inspect scripts_challenger_l2_data >/dev/null 2>&1; then
     log_success "Challenger L2 volume removed"
 fi
 
-# Challenger L2 geth 시작 (별도 데이터베이스!)
-log_info "Challenger L2 op-geth를 시작합니다 (별도 DB!)..."
+# Start Challenger L2 geth (separate database!)
+log_info "Starting Challenger L2 op-geth (separate DB!)..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d challenger-l2
 
-log_info "Challenger L2 RPC가 준비될 때까지 대기합니다..."
+log_info "Waiting for Challenger L2 RPC to be ready..."
 timeout=120
 elapsed=0
 while ! curl -s -X POST -H "Content-Type: application/json" \
@@ -1084,7 +1170,7 @@ while ! curl -s -X POST -H "Content-Type: application/json" \
 done
 echo ""
 
-log_success "Challenger L2 op-geth 시작 완료"
+log_success "Challenger L2 op-geth started successfully"
 
 # Remove Challenger op-node safedb to ensure clean state
 if docker volume inspect scripts_challenger_safedb_data >/dev/null 2>&1; then
@@ -1092,29 +1178,29 @@ if docker volume inspect scripts_challenger_safedb_data >/dev/null 2>&1; then
     docker volume rm scripts_challenger_safedb_data 2>/dev/null || true
 fi
 
-# Challenger op-node 시작 (Follower 모드)
-log_info "Challenger op-node를 시작합니다 (Follower 모드)..."
+# Start Challenger op-node (Follower mode)
+log_info "Starting Challenger op-node (Follower mode)..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d challenger-op-node
 
-# op-challenger 시작
-log_info "op-challenger를 시작합니다..."
+# Start op-challenger
+log_info "Starting op-challenger..."
 $DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" up -d op-challenger
 
-log_success "독립적인 Challenger 스택 배포 완료! ✅"
+log_success "Independent Challenger stack deployed successfully! ✅"
 
 ##############################################################################
 # 9. Indexer 배포 (선택사항)
 ##############################################################################
 
 if [ "$WITH_INDEXER" = true ]; then
-    log_info "Indexer 스택을 배포합니다..."
+    log_info "Deploying Indexer stack..."
 
     if [ -d "${PROJECT_ROOT}/indexer" ]; then
         cd "${PROJECT_ROOT}/indexer"
         $DOCKER_COMPOSE up -d
-        log_success "Indexer 스택 배포 완료"
+        log_success "Indexer stack deployed successfully"
     else
-        log_warn "Indexer 디렉토리를 찾을 수 없습니다: ${PROJECT_ROOT}/indexer"
+        log_warn "Indexer directory not found: ${PROJECT_ROOT}/indexer"
     fi
 fi
 
@@ -1122,14 +1208,14 @@ fi
 # 10. 헬스 체크
 ##############################################################################
 
-log_info "서비스 헬스 체크를 수행합니다..."
+log_info "Performing service health check..."
 sleep 5  # 서비스가 완전히 시작될 때까지 대기
 
 # 헬스 체크 스크립트 실행
 if [ -f "${SCRIPT_DIR}/health-check.sh" ]; then
     bash "${SCRIPT_DIR}/health-check.sh"
 else
-    log_warn "헬스 체크 스크립트를 찾을 수 없습니다: ${SCRIPT_DIR}/health-check.sh"
+    log_warn "Health check script not found: ${SCRIPT_DIR}/health-check.sh"
 fi
 
 ##############################################################################
@@ -1137,40 +1223,40 @@ fi
 ##############################################################################
 
 log_success "=========================================="
-log_success "L2 시스템 배포가 완료되었습니다!"
+log_success "L2 System Deployment Completed!"
 log_success "=========================================="
 
 echo ""
-log_info "📊 서비스 엔드포인트:"
+log_info "📊 Service Endpoints:"
 echo ""
 echo "  ┌─ L1 Ethereum"
 echo "  │  └─ RPC:                    http://localhost:8545"
 echo "  │"
-echo "  ┌─ Sequencer 스택"
-echo "  │  ├─ L2 RPC (사용자):        http://localhost:9545"
+echo "  ┌─ Sequencer Stack"
+echo "  │  ├─ L2 RPC (User):          http://localhost:9545"
 echo "  │  ├─ op-node RPC:            http://localhost:7545"
 echo "  │  ├─ op-batcher RPC:         http://localhost:6545"
 echo "  │  └─ op-proposer RPC:        http://localhost:6546"
 echo "  │"
-echo "  └─ Challenger 스택 ⭐ (독립적!)"
+echo "  └─ Challenger Stack ⭐ (Independent!)"
 echo "     ├─ Challenger L2 RPC:      http://localhost:9546"
 echo "     ├─ Challenger op-node RPC: http://localhost:7546"
-echo "     └─ op-challenger:          (백그라운드)"
+echo "     └─ op-challenger:          (background)"
 echo ""
 
-log_info "📝 다음 단계:"
-echo "  1. 로그 확인:"
+log_info "📝 Next Steps:"
+echo "  1. Check logs:"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml logs -f"
 echo ""
-echo "  2. 특정 서비스 로그:"
+echo "  2. Specific service logs:"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml logs -f sequencer-op-node"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml logs -f challenger-op-node"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml logs -f op-challenger"
 echo ""
-echo "  3. 헬스 체크:"
+echo "  3. Health check:"
 echo "     ${SCRIPT_DIR}/health-check.sh"
 echo ""
-echo "  4. 상태 모니터링:"
+echo "  4. Status monitoring:"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml ps"
 echo ""
 
@@ -1180,30 +1266,30 @@ if [ "$WITH_INDEXER" = true ]; then
     echo ""
 fi
 
-log_info "🛑 시스템 중지:"
+log_info "🛑 Stop system:"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml down"
 echo ""
-log_info "🗑️  데이터 삭제:"
+log_info "🗑️  Delete data:"
 echo "     ${DOCKER_COMPOSE} -f ${SCRIPT_DIR}/docker-compose-full.yml down -v"
 echo ""
 
-log_warn "⭐ 중요: Challenger 스택은 Sequencer와 완전히 독립적으로 작동합니다!"
-log_info "   - challenger-l2: 별도 데이터베이스로 L1에서 독립적으로 L2 재구성"
-log_info "   - challenger-op-node: Follower 모드로 L1 데이터 검증"
-log_info "   - op-challenger: 독립적으로 검증된 데이터로 챌린지 수행"
+log_warn "⭐ Important: Challenger stack operates completely independently from Sequencer!"
+log_info "   - challenger-l2: Independently reconstructs L2 from L1 with separate database"
+log_info "   - challenger-op-node: Verifies L1 data in Follower mode"
+log_info "   - op-challenger: Performs challenges with independently verified data"
 echo ""
 
 log_info "=========================================="
-log_info "📝 로그 파일 생성 완료"
+log_info "📝 Log Files Generated"
 log_info "=========================================="
-log_info "배포 로그: $DEPLOY_LOG"
-log_info "설정 추적 로그: $CONFIG_TRACE_LOG"
+log_info "Deployment log: $DEPLOY_LOG"
+log_info "Config trace log: $CONFIG_TRACE_LOG"
 echo ""
-log_info "설정값 적용 과정을 확인하려면:"
+log_info "To check configuration application process:"
 echo "    cat $CONFIG_TRACE_LOG"
 echo ""
 
-log_config "=== 스크립트 종료 ==="
+log_config "=== Script completed ==="
 log_config "Deployment completed successfully"
 
 exit 0
