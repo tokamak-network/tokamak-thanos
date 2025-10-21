@@ -1,0 +1,298 @@
+# 완전한 L2 시스템 (Challenger 스택 포함)
+# 참고: /op-challenger/docs/l2-system-deployment-ko.md
+
+volumes:
+  l1_data:
+  sequencer_l2_data:
+  challenger_l2_data:
+  challenger_safedb_data:
+  sequencer_safedb_data:
+  challenger_data:
+  op_log:
+
+services:
+  # ============================================
+  # L1 Ethereum (로컬 개발용)
+  # ============================================
+  l1:
+    build:
+      context: ${PROJECT_ROOT}/ops-bedrock
+      dockerfile: ${L1_DOCKER_FILE:-Dockerfile.l1}
+    ports:
+      - '8545:8545'   # HTTP RPC
+      - '8546:8546'   # WebSocket
+      - '7060:6060'   # Metrics
+    volumes:
+      - 'l1_data:/db'
+      - '${PROJECT_ROOT}/.devnet/genesis-l1.json:/genesis.json'
+      - '${PROJECT_ROOT}/.devnet/jwt-secret.txt:/config/test-jwt-secret.txt'
+    environment:
+      GETH_MINER_RECOMMIT: 100ms
+      BLOCK_NUMBER: ${BLOCK_NUMBER:-}
+      L1_RPC: ${L1_RPC:-}
+    networks:
+      - l2-network
+
+  # ============================================
+  # Sequencer 스택
+  # ============================================
+  sequencer-l2:
+    build:
+      context: ${PROJECT_ROOT}/ops-bedrock
+      dockerfile: Dockerfile.l2
+      args:
+        L2_IMAGE: ${L2_IMAGE:-}
+    ports:
+      - '9545:8545'   # L2 User RPC
+      - '8551:8551'   # Engine API (standard port)
+      - '8060:6060'   # Metrics
+    volumes:
+      - 'sequencer_l2_data:/db'
+      - '${PROJECT_ROOT}/.devnet/genesis-l2.json:/genesis.json'
+      - '${PROJECT_ROOT}/.devnet/jwt-secret.txt:/config/test-jwt-secret.txt'
+    entrypoint:
+      - '/bin/sh'
+      - '/entrypoint.sh'
+      - '--authrpc.jwtsecret=/config/test-jwt-secret.txt'
+      - '--authrpc.port=8551'
+    environment:
+      GETH_MINER_RECOMMIT: 100ms
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+
+  sequencer-op-node:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-node-target
+    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z l1 8545; do sleep 1; done; echo 'L1 준비 완료' &&
+      while ! nc -z sequencer-l2 8551; do sleep 1; done; echo 'Sequencer L2 준비 완료' &&
+      op-node
+      --l1=http://l1:8545
+      --l1.beacon=${L1_BEACON_URL:-}
+      --l2=http://sequencer-l2:8551
+      --l2.jwt-secret=/config/test-jwt-secret.txt
+      --sequencer.enabled=true
+      --sequencer.l1-confs=0
+      --verifier.l1-confs=0
+      --p2p.sequencer.key=8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
+      --rollup.config=/rollup.json
+      --rpc.addr=0.0.0.0
+      --rpc.port=8545
+      --p2p.listen.ip=0.0.0.0
+      --p2p.listen.tcp=9003
+      --p2p.listen.udp=9003
+      --p2p.priv.path=/config/p2p-node-key.txt
+      --metrics.enabled
+      --metrics.addr=0.0.0.0
+      --metrics.port=7300
+      --pprof.enabled
+      --rpc.enable-admin
+      --l1.trustrpc
+      --safedb.path=/db
+      --plasma.enabled=${PLASMA_ENABLED:-false}"
+    ports:
+      - '7545:8545'   # Sequencer op-node RPC
+      - '9003:9003'   # P2P
+      - '7300:7300'   # Metrics
+      - '6060:6060'   # pprof
+    volumes:
+      - 'sequencer_safedb_data:/db'
+      - '${PROJECT_ROOT}/.devnet/p2p-node-key.txt:/config/p2p-node-key.txt'
+      - '${PROJECT_ROOT}/.devnet/jwt-secret.txt:/config/test-jwt-secret.txt'
+      - '${PROJECT_ROOT}/.devnet/rollup.json:/rollup.json'
+      - 'op_log:/op_log'
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - sequencer-l2
+
+  op-batcher:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-batcher-target
+    image: tokamaknetwork/thanos-op-batcher:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z sequencer-op-node 8545; do sleep 1; done; echo 'Sequencer op-node 준비 완료' && op-batcher"
+    environment:
+      OP_BATCHER_L1_ETH_RPC: http://l1:8545
+      OP_BATCHER_L2_ETH_RPC: http://sequencer-l2:8545
+      OP_BATCHER_ROLLUP_RPC: http://sequencer-op-node:8545
+      OP_BATCHER_MAX_CHANNEL_DURATION: 1
+      OP_BATCHER_SUB_SAFETY_MARGIN: 4
+      OP_BATCHER_POLL_INTERVAL: 1s
+      OP_BATCHER_NUM_CONFIRMATIONS: 1
+      OP_BATCHER_PRIVATE_KEY: ${BATCHER_PRIVATE_KEY}
+      OP_BATCHER_PPROF_ENABLED: 'true'
+      OP_BATCHER_METRICS_ENABLED: 'true'
+      OP_BATCHER_RPC_ENABLE_ADMIN: 'true'
+      OP_BATCHER_BATCH_TYPE: ${BATCH_TYPE:-0}
+      OP_BATCHER_PLASMA_ENABLED: ${PLASMA_ENABLED:-false}
+      OP_BATCHER_PLASMA_DA_SERVICE: ${PLASMA_DA_SERVICE:-}
+      OP_BATCHER_PLASMA_DA_SERVER: ${PLASMA_DA_SERVER:-}
+    ports:
+      - '6545:8545'   # Batcher RPC
+      - '6061:6060'   # pprof
+      - '7301:7300'   # Metrics
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - sequencer-l2
+      - sequencer-op-node
+
+  op-proposer:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-proposer-target
+    image: tokamaknetwork/thanos-op-proposer:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z sequencer-op-node 8545; do sleep 1; done; echo 'Sequencer op-node 준비 완료' && op-proposer"
+    environment:
+      OP_PROPOSER_L1_ETH_RPC: http://l1:8545
+      OP_PROPOSER_ROLLUP_RPC: http://sequencer-op-node:8545
+      OP_PROPOSER_L2_ETH_RPC: http://sequencer-l2:8545
+      OP_PROPOSER_POLL_INTERVAL: 1s
+      OP_PROPOSER_NUM_CONFIRMATIONS: 1
+      OP_PROPOSER_PRIVATE_KEY: ${PROPOSER_PRIVATE_KEY}
+      OP_PROPOSER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
+      OP_PROPOSER_GAME_TYPE: ${DG_TYPE:-0}
+      OP_PROPOSER_PROPOSAL_INTERVAL: ${PROPOSAL_INTERVAL:-12s}
+      OP_PROPOSER_PPROF_ENABLED: 'true'
+      OP_PROPOSER_METRICS_ENABLED: 'true'
+      OP_PROPOSER_ALLOW_NON_FINALIZED: 'true'
+      OP_PROPOSER_RPC_ENABLE_ADMIN: 'true'
+    ports:
+      - '6546:8545'   # Proposer RPC
+      - '6062:6060'   # pprof
+      - '7302:7300'   # Metrics
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - sequencer-op-node
+
+  # ============================================
+  # Challenger 스택 (독립적!) ⭐
+  # ============================================
+  challenger-l2:
+    build:
+      context: ${PROJECT_ROOT}/ops-bedrock
+      dockerfile: Dockerfile.l2
+      args:
+        L2_IMAGE: ${L2_IMAGE:-}
+    ports:
+      - '9546:8545'   # Challenger L2 RPC (다른 포트!)
+      - '8552:8551'   # Engine API (different external port to avoid conflict)
+      - '8061:6060'   # Metrics
+    volumes:
+      - 'challenger_l2_data:/db'  # ⭐ 별도 데이터베이스!
+      - '${PROJECT_ROOT}/.devnet/genesis-l2.json:/genesis.json'
+      - '${PROJECT_ROOT}/.devnet/jwt-secret.txt:/config/test-jwt-secret.txt'
+    entrypoint:
+      - '/bin/sh'
+      - '/entrypoint.sh'
+      - '--authrpc.jwtsecret=/config/test-jwt-secret.txt'
+      - '--authrpc.port=8551'
+    environment:
+      GETH_MINER_RECOMMIT: 100ms
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+
+  challenger-op-node:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-node-target
+    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z l1 8545; do sleep 1; done; echo 'L1 준비 완료' &&
+      while ! nc -z challenger-l2 8551; do sleep 1; done; echo 'Challenger L2 준비 완료' &&
+      op-node
+      --l1=http://l1:8545
+      --l1.beacon=${L1_BEACON_URL:-}
+      --l2=http://challenger-l2:8551
+      --l2.jwt-secret=/config/test-jwt-secret.txt
+      --sequencer.enabled=false
+      --verifier.l1-confs=0
+      --rollup.config=/rollup.json
+      --rpc.addr=0.0.0.0
+      --rpc.port=8545
+      --p2p.listen.ip=0.0.0.0
+      --p2p.listen.tcp=9004
+      --p2p.listen.udp=9004
+      --p2p.priv.path=/config/p2p-challenger-key.txt
+      --p2p.bootnodes=${SEQUENCER_P2P_ENR:-}
+      --metrics.enabled
+      --metrics.addr=0.0.0.0
+      --metrics.port=7300
+      --pprof.enabled
+      --rpc.enable-admin
+      --l1.trustrpc
+      --safedb.path=/db"
+    ports:
+      - '7546:8545'   # Challenger op-node RPC (다른 포트!)
+      - '9004:9004'   # P2P
+      - '7303:7300'   # Metrics
+      - '6063:6060'   # pprof
+    volumes:
+      - 'challenger_safedb_data:/db'
+      - '${PROJECT_ROOT}/.devnet/p2p-challenger-key.txt:/config/p2p-challenger-key.txt'
+      - '${PROJECT_ROOT}/.devnet/jwt-secret.txt:/config/test-jwt-secret.txt'
+      - '${PROJECT_ROOT}/.devnet/rollup.json:/rollup.json'
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - challenger-l2
+
+  op-challenger:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-challenger-target
+    image: tokamaknetwork/thanos-op-challenger:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z challenger-op-node 8545; do sleep 1; done; echo 'Challenger op-node 준비 완료' && op-challenger"
+    volumes:
+      - 'challenger_data:/db'
+      - '${PROJECT_ROOT}/op-program/bin:/op-program'  # ⭐ 로컬 빌드 op-program
+      - '${PROJECT_ROOT}/cannon/bin:/cannon'          # ⭐ 로컬 빌드 cannon
+      - '${PROJECT_ROOT}/.devnet:/devnet'
+    environment:
+      OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
+      OP_CHALLENGER_L1_BEACON: ${L1_BEACON_URL:-unset}
+      OP_CHALLENGER_ROLLUP_RPC: http://challenger-op-node:8545  # ⭐ 자신의 op-node!
+      OP_CHALLENGER_L2_ETH_RPC: http://challenger-l2:8545        # ⭐ 자신의 L2 geth!
+      OP_CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE:-cannon}
+      OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
+      OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
+      OP_CHALLENGER_DATADIR: /db
+      OP_CHALLENGER_CANNON_ROLLUP_CONFIG: /devnet/rollup.json
+      OP_CHALLENGER_CANNON_L2_GENESIS: /devnet/genesis-l2.json
+      OP_CHALLENGER_CANNON_BIN: /cannon/cannon                   # ⭐ 로컬 빌드 cannon 바이너리
+      OP_CHALLENGER_CANNON_SERVER: /op-program/op-program        # ⭐ 로컬 빌드 op-program 바이너리
+      OP_CHALLENGER_CANNON_PRESTATE: /op-program/prestate.json   # ⭐ 로컬 빌드 prestate
+      OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}
+      OP_CHALLENGER_NUM_CONFIRMATIONS: 1
+    ports:
+      - '6547:8545'   # Challenger RPC (있는 경우)
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - challenger-op-node
+      - challenger-l2
+
+networks:
+  l2-network:
+    driver: bridge
