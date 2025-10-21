@@ -1,456 +1,456 @@
-# L2 시스템 배포 스크립트 (독립적인 Challenger 스택 포함)
+# L2 System Deployment Scripts (with Independent Challenger Stack)
 
-이 디렉토리는 Optimism L2 Rollup 시스템의 완전한 배포를 위한 스크립트들을 포함합니다.
+This directory contains scripts for complete deployment of the Optimism L2 Rollup system.
 
-## ⭐ 중요: 독립적인 Challenger 스택
+## ⭐ Important: Independent Challenger Stack
 
-이 배포 스크립트는 **문서에서 권장하는 완전히 독립적인 Challenger 스택**을 구현합니다:
+These deployment scripts implement **fully independent Challenger stack as recommended in the documentation**:
 
 ```
-Sequencer 스택:                 Challenger 스택 (독립적!):
-├─ sequencer-l2 (L2 geth)       ├─ challenger-l2 (별도 L2 geth!) ⭐
+Sequencer Stack:                Challenger Stack (Independent!):
+├─ sequencer-l2 (L2 geth)       ├─ challenger-l2 (separate L2 geth!) ⭐
 ├─ sequencer-op-node            ├─ challenger-op-node (Follower) ⭐
 ├─ op-batcher                   └─ op-challenger
 └─ op-proposer
 ```
 
-**왜 독립적이어야 하나요?**
-- Sequencer와 노드를 공유하면 Sequencer가 악의적일 때 Challenger도 속을 수 있음 ❌
-- 별도 DB로 L1에서 독립적으로 L2를 재구성해야 진정한 Fault Proof 가능 ✅
+**Why must it be independent?**
+- Sharing nodes with Sequencer means Challenger can be fooled when Sequencer is malicious ❌
+- True Fault Proof requires independent L2 reconstruction from L1 with separate DB ✅
 
-## 📚 참고 문서
+## 📚 Reference Documentation
 
-배포 전에 다음 문서를 반드시 읽어보시기 바랍니다:
+Please read these documents before deployment:
 
-- **[L2 시스템 배포 가이드](../docs/l2-system-deployment-ko.md)** - 전체 배포 아키텍처 및 상세 설명
-- **[L2 시스템 아키텍처](../docs/l2-system-architecture-ko.md)** - L2 시스템의 기본 구조
+- **[L2 System Deployment Guide](../docs/l2-system-deployment-ko.md)** - Full deployment architecture and details
+- **[L2 System Architecture](../docs/l2-system-architecture-ko.md)** - L2 system fundamentals
 
 
-## 🚀 빠른 시작
+## 🚀 Quick Start
 
 ```bash
-# 1. 완전 초기화
+# 1. Complete cleanup
 ./op-challenger/scripts/cleanup.sh
 
-# 1. 전체 자동 배포 (처음 배포 시)
+# 2. Full automated deployment (first time)
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
 
-or
-
+# Or with custom game settings
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
 ./deploy-full-stack.sh --mode local
 
-# → 약 5-10분 소요
+# → Takes about 5-10 minutes
 
-# 2. 배포 상태 확인
+# 3. Verify deployment status
 ./op-challenger/scripts/health-check.sh
 
-# 3. 상세 모니터링 (게임 통계, 동기화 상태 등)
+# 4. Detailed monitoring (game statistics, sync status, etc.)
 ./op-challenger/scripts/monitor-challenger.sh
 ```
 
 
-**⚠️ 중요:**
-- `deploy-full-stack.sh`는 `.env`와 Genesis를 자동 생성합니다
-- `cleanup.sh`는 기본값으로 모든 것을 삭제합니다 (`.env`, Genesis, volumes)
-- `.env`를 유지하려면: `./cleanup.sh --keep-env`
+**⚠️ Important:**
+- `deploy-full-stack.sh` automatically generates `.env` and Genesis files
+- `cleanup.sh` defaults to deleting everything (`.env`, Genesis, volumes)
+- To keep `.env`: `./cleanup.sh --keep-env`
 
-## 📋 스크립트 설명
+## 📋 Script Descriptions
 
 ### cleanup.sh
 
-배포된 시스템을 정리하고 초기화합니다.
+Cleanup and reset deployment state.
 
-**⚠️ 중요**: 기본 동작이 `--all`로 설정되어 있어 `.env`와 Genesis 파일도 함께 삭제됩니다.
+**⚠️ Important**: Default behavior is `--all`, which also deletes `.env` and Genesis files.
 
 ```bash
-# 사용법
-./cleanup.sh [옵션]
+# Usage
+./cleanup.sh [options]
 
-# 옵션
---all               # 모든 것 정리 (컨테이너, 볼륨, .devnet, .env) [기본값]
---all-containers    # 모든 관련 컨테이너 정리 (devnet, kurtosis 등 포함)
---keep-env          # 환경 변수 파일 (.env) 유지
---keep-genesis      # Genesis 파일 유지
---help              # 도움말 표시
+# Options
+--all               # Clean everything (containers, volumes, .devnet, .env) [default]
+--all-containers    # Clean all related containers (including devnet, kurtosis, etc.)
+--keep-env          # Keep environment variable file (.env)
+--keep-genesis      # Keep Genesis files
+--help              # Show help
 
-# 예시
+# Examples
 
-# 기본 정리 (.env와 Genesis 파일도 삭제됨)
+# Default cleanup (.env and Genesis files also deleted)
 ./cleanup.sh
 
-# .env는 유지하고 Genesis만 삭제
+# Keep .env, delete Genesis only
 ./cleanup.sh --keep-env
 
-# Genesis는 유지하고 .env만 삭제
+# Keep Genesis, delete .env only
 ./cleanup.sh --keep-genesis
 
-# 컨테이너와 볼륨만 삭제 (.env와 Genesis 모두 유지)
+# Delete containers and volumes only (keep both .env and Genesis)
 ./cleanup.sh --keep-env --keep-genesis
 
-# 완전 초기화 (모든 관련 컨테이너 포함)
+# Complete cleanup (including all related containers)
 ./cleanup.sh --all-containers
 ```
 
-**정리되는 항목:**
+**Items cleaned:**
 
-**기본 동작 (--all):**
-- scripts-* 컨테이너 (docker-compose-full.yml)
-- 관련 볼륨 및 네트워크
-- .env 파일
-- Genesis 파일 (genesis-*.json, rollup.json)
-- .devnet의 모든 allocation 파일
+**Default behavior (--all):**
+- scripts-* containers (docker-compose-full.yml)
+- Related volumes and networks
+- .env file
+- Genesis files (genesis-*.json, rollup.json)
+- All allocation files in .devnet
 
-**추가 옵션 (--all-containers):**
-- 위 항목 +
-- ops-bedrock-* 컨테이너 (devnet)
-- kurtosis-* 컨테이너
-- op-* 관련 모든 컨테이너
-- dangling 볼륨
+**Additional option (--all-containers):**
+- Above items +
+- ops-bedrock-* containers (devnet)
+- kurtosis-* containers
+- All op-* related containers
+- Dangling volumes
 
 ### setup-env.sh
 
-환경 변수와 배포에 필요한 지갑을 생성합니다.
+Generate environment variables and wallets required for deployment.
 
 ```bash
-# 사용법
-./setup-env.sh [옵션]
+# Usage
+./setup-env.sh [options]
 
-# 옵션
---mode MODE             # 배포 모드: local|sepolia|mainnet (기본: local)
---output FILE           # 환경 변수 파일 경로 (기본: .env)
---help                  # 도움말 표시
+# Options
+--mode MODE             # Deployment mode: local|sepolia|mainnet (default: local)
+--output FILE           # Environment variable file path (default: .env)
+--help                  # Show help
 
-# 예시
+# Examples
 ./setup-env.sh --mode local
 ./setup-env.sh --mode sepolia --output .env.sepolia
 ```
 
-**생성되는 지갑:**
-- Admin: 시스템 관리자 계정
-- Batcher: L1에 배치 데이터를 제출하는 계정
-- Proposer: L1에 Output을 제출하는 계정
-- Sequencer: L2 블록을 생성하는 계정
-- Challenger: 잘못된 Output에 대해 챌린지하는 계정
+**Generated wallets:**
+- Admin: System administrator account
+- Batcher: Account that submits batch data to L1
+- Proposer: Account that submits outputs to L1
+- Sequencer: Account that generates L2 blocks
+- Challenger: Account that challenges invalid outputs
 
 ### deploy-full-stack.sh
 
-전체 L2 시스템을 배포합니다.
+Deploy the complete L2 system.
 
-**✨ 자동 기능:**
-- 이전 배포의 컨테이너 자동 중지
-- Genesis 파일 자동 생성 (없는 경우)
-- Docker volumes 자동 정리 (Genesis 해시 일관성 보장)
-- Cannon VM 및 op-program 자동 빌드
-- L1 계정 자동 펀딩 (로컬 모드)
+**✨ Automated features:**
+- Automatically stop previous deployment containers
+- Automatically generate Genesis files (if missing)
+- Automatically cleanup Docker volumes (ensures Genesis consistency)
+- Automatically build Cannon VM and op-program
+- Automatically fund L1 accounts (local mode)
 
 ```bash
-# 사용법
-./deploy-full-stack.sh [옵션]
+# Usage
+./deploy-full-stack.sh [options]
 
-# 옵션
---env-file FILE         # 환경 변수 파일 경로 (기본: .env)
---mode MODE             # 배포 모드: local|sepolia|mainnet (기본: local)
---skip-build            # Docker 이미지 빌드 건너뛰기
---skip-l1               # L1 배포 건너뛰기 (외부 RPC 사용 시)
---with-indexer          # Indexer 스택도 함께 배포
---help                  # 도움말 표시
+# Options
+--env-file FILE         # Environment variable file path (default: .env)
+--mode MODE             # Deployment mode: local|sepolia|mainnet (default: local)
+--skip-build            # Skip Docker image build
+--skip-l1               # Skip L1 deployment (use external RPC)
+--with-indexer          # Deploy Indexer stack as well
+--help                  # Show help
 
-# 예시
+# Examples
 ./deploy-full-stack.sh --mode local
 ./deploy-full-stack.sh --mode sepolia --skip-l1
 ./deploy-full-stack.sh --mode local --with-indexer
 ```
 
-**배포 프로세스:**
+**Deployment process:**
 
-1. **사전 검증**: 필수 도구 확인 (docker, jq, openssl, cast)
-2. **컨테이너 정리**: 이전 배포 컨테이너 자동 중지
-3. **환경 변수**: 없으면 setup-env.sh 자동 실행
-4. **Genesis 생성**: 없으면 make devnet-up으로 자동 생성
-5. **Volumes 정리**: L1, L2 volumes 자동 삭제 (Genesis 일관성 보장)
-6. **Cannon VM 빌드**: op-program, cannon, prestate 자동 빌드
-7. **서비스 배포**: L1 → Sequencer → Challenger 순차 배포
-8. **헬스 체크**: 배포 완료 후 자동 상태 확인
+1. **Pre-validation**: Check required tools (docker, jq, openssl, cast)
+2. **Container cleanup**: Automatically stop previous deployment containers
+3. **Environment variables**: Auto-run setup-env.sh if missing
+4. **Genesis generation**: Auto-generate via make devnet-up if missing
+5. **Volume cleanup**: Auto-delete L1, L2 volumes (ensure Genesis consistency)
+6. **Cannon VM build**: Auto-build op-program, cannon, prestate
+7. **Service deployment**: Sequential deployment L1 → Sequencer → Challenger
+8. **Health check**: Automatic status verification after deployment
 
-**배포되는 컴포넌트:**
+**Deployed components:**
 
-**L1 스택:**
-- L1 geth (로컬 모드만, 또는 외부 RPC)
+**L1 Stack:**
+- L1 geth (local mode only, or external RPC)
 
-**Sequencer 스택:**
-- sequencer-l2 (L2 op-geth, Sequencer용)
-- sequencer-op-node (Sequencer 모드)
-- op-batcher (배치 제출)
-- op-proposer (Output 제출)
+**Sequencer Stack:**
+- sequencer-l2 (L2 op-geth, for Sequencer)
+- sequencer-op-node (Sequencer mode)
+- op-batcher (batch submission)
+- op-proposer (output submission)
 
-**Challenger 스택 (독립적!) ⭐:**
-- challenger-l2 (L2 op-geth, **별도 데이터베이스!**)
-- challenger-op-node (Follower 모드, **독립적 검증!**)
-- op-challenger (챌린지 수행)
+**Challenger Stack (Independent!) ⭐:**
+- challenger-l2 (L2 op-geth, **separate database!**)
+- challenger-op-node (Follower mode, **independent verification!**)
+- op-challenger (challenge execution)
 
-**선택사항:**
+**Optional:**
 - Indexer API
 - Grafana/Prometheus
 
 ### health-check.sh
 
-배포된 모든 서비스의 상태를 확인합니다.
+Verify the status of all deployed services.
 
 ```bash
-# 사용법
+# Usage
 ./health-check.sh
 
-# 확인 항목
-# - Docker 컨테이너 상태
-# - L1/L2 RPC 응답
-# - 동기화 상태
-# - 블록 높이
-# - 피어 수
-# - 에러 로그
+# Checks:
+# - Docker container status
+# - L1/L2 RPC responses
+# - Synchronization status
+# - Block heights
+# - Peer counts
+# - Error logs
 ```
 
-### monitor-challenger.sh ⭐ (신규)
+### monitor-challenger.sh ⭐ (New)
 
-Challenger의 실시간 활동, 게임 참여, 동기화 상태를 모니터링합니다.
+Monitor Challenger's real-time activity, game participation, and sync status.
 
 ```bash
-# 사용법
+# Usage
 ./monitor-challenger.sh [mode]
 
-# 모드
-summary   # 전체 대시보드 (기본값)
-sync      # 블록체인 동기화 상태만 표시
-logs      # 실시간 로그 (Ctrl+C로 종료)
-games     # 게임 참여 상세 정보
-errors    # 에러 분석
-metrics   # Prometheus 메트릭
+# Modes
+summary   # Full dashboard (default)
+config    # System configuration only
+sync      # Blockchain sync status only
+logs      # Real-time logs (Ctrl+C to exit)
+games     # Game participation details
+errors    # Error analysis
+metrics   # Prometheus metrics
 
-# 예시
-./monitor-challenger.sh              # 전체 대시보드
-./monitor-challenger.sh sync         # 동기화 상태만
-./monitor-challenger.sh logs         # 실시간 로그
-./monitor-challenger.sh games        # 게임 활동만
+# Examples
+./monitor-challenger.sh              # Full dashboard
+./monitor-challenger.sh config       # Configuration only
+./monitor-challenger.sh sync         # Sync status only
+./monitor-challenger.sh logs         # Real-time logs
+./monitor-challenger.sh games        # Game activity only
 ```
 
-**모니터링 항목:**
-- ✅ Challenger 컨테이너 상태
-- ✅ **시스템 설정 (게임 시간, Proposer 간격 등)** ⭐
-- ✅ L1/Sequencer/Challenger 블록 높이 비교 및 동기화 차이
-- ✅ L1 batch 제출 상태 (op-batcher)
-- ✅ Challenger 독립성 검증 (독립적인 op-node, L2 geth 사용 확인)
-- ✅ 게임 참여 통계 (감지, 진행 중, 완료)
-- ✅ Challenger 액션 로그 (Attack/Defend)
-- ✅ 에러 및 경고 분석
-- ✅ Prometheus 메트릭 (활성화 시)
+**Monitoring items:**
+- ✅ Challenger container status
+- ✅ **System configuration (game time, proposer interval, etc.)** ⭐
+- ✅ L1/Sequencer/Challenger block height comparison and sync differences
+- ✅ L1 batch submission status (op-batcher)
+- ✅ Challenger independence verification (using independent op-node, L2 geth)
+- ✅ Game participation statistics (detected, in progress, resolved)
+- ✅ Challenger action logs (Attack/Defend)
+- ✅ Error and warning analysis
+- ✅ Prometheus metrics (when enabled)
 
-**주요 기능:**
-- 색상 코딩으로 로그 가독성 향상 (에러=빨강, 경고=노랑, 액션=초록)
-- Sequencer와 Challenger의 동기화 차이 확인 (정상/지연 자동 판단)
-- L1 배치 제출 및 Challenger의 배치 읽기 상태 모니터링
-- 독립적인 스택 사용 검증 (Sequencer와 분리 확인)
-- **온체인 설정 확인 (실제 배포된 게임 설정 조회)** ⭐
+**Key features:**
+- Color-coded logs for readability (errors=red, warnings=yellow, actions=green)
+- Sequencer vs Challenger sync difference monitoring (auto-detect normal/delayed)
+- L1 batch submission and Challenger batch reading status
+- Independent stack usage verification (separation from Sequencer)
+- **On-chain configuration verification (query deployed game settings)** ⭐
 
-## ⚙️ 게임 설정
+## ⚙️ Game Settings
 
-### 기본 게임 설정 (devnetL1-template.json)
+### Default Game Settings (devnetL1-template.json)
 
 ```json
 {
-  "faultGameMaxClockDuration": 1200,        // 20분 (초 단위)
-  "faultGameClockExtension": 0,             // 클락 연장 시간
-  "faultGameMaxDepth": 50,                  // 최대 게임 깊이
-  "faultGameSplitDepth": 14,                // 분할 깊이
-  "faultGameWithdrawalDelay": 604800,       // 인출 지연 (7일)
-  "disputeGameFinalityDelaySeconds": 6,     // finality 지연 (6초)
+  "faultGameMaxClockDuration": 1200,        // 20 minutes (in seconds)
+  "faultGameClockExtension": 0,             // Clock extension time
+  "faultGameMaxDepth": 50,                  // Maximum game depth
+  "faultGameSplitDepth": 14,                // Split depth
+  "faultGameWithdrawalDelay": 604800,       // Withdrawal delay (7 days)
+  "disputeGameFinalityDelaySeconds": 6,     // Finality delay (6 seconds)
   "faultGameAbsolutePrestate": "0x03c7ae758795765c6664a5d39bf63841c71ff191e9189522bad8ebff5d4eca98",
   "faultGameGenesisOutputRoot": "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
 }
 ```
 
-**주요 설정:**
+**Key settings:**
 
-- **faultGameMaxClockDuration**: 1200초 (20분) - 각 팀의 최대 체스 클락 시간
-  - ⚠️ 최소값: 120초 (`preimageOracleChallengePeriod` 때문)
-- **faultGameWithdrawalDelay**: 604800초 (7일) - 게임 종료 후 인출 대기 시간
-- **faultGameSplitDepth**: 14 - 16,384 L2 블록 커버 (약 9.1시간)
-- **faultGameMaxDepth**: 50 - 최대 bisection 깊이 (687억 instructions)
+- **faultGameMaxClockDuration**: 1200s (20 min) - Maximum chess clock time per team
+  - ⚠️ Minimum value: 120s (due to `preimageOracleChallengePeriod`)
+- **faultGameWithdrawalDelay**: 604800s (7 days) - Withdrawal waiting time after game ends
+- **faultGameSplitDepth**: 14 - Covers 16,384 L2 blocks (~9.1 hours)
+- **faultGameMaxDepth**: 50 - Maximum bisection depth (68.7B instructions)
 
-**환경 변수로 빠른 테스트 환경 설정:**
+**Quick test environment via environment variables:**
 
 ```bash
-FAULT_GAME_MAX_CLOCK_DURATION=60 \
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
 ./deploy-full-stack.sh --mode local
 ```
 
-**설정값:**
-- 게임 진행: 1분
-- 인출 대기: 1시간
-- 제안 간격: 30초
+**Settings:**
+- Game duration: 2.5 minutes
+- Withdrawal delay: 1 hour
+- Proposal interval: 30 seconds
 
-**⚠️ 주의:** 이 설정들은 개발/테스트 전용입니다. 프로덕션에서는 충분한 시간을 설정하세요.
+**⚠️ Note:** These settings are for development/testing only. Use sufficient time for production.
 
 ---
 
-## 📊 서비스 엔드포인트
+## 📊 Service Endpoints
 
-배포 완료 후 다음 엔드포인트를 사용할 수 있습니다:
+Available endpoints after deployment:
 
-| 서비스 | 포트 | URL | 설명 |
-|--------|------|-----|------|
-| **L1 스택** ||||
+| Service | Port | URL | Description |
+|---------|------|-----|-------------|
+| **L1 Stack** ||||
 | L1 RPC | 8545 | http://localhost:8545 | L1 Ethereum RPC |
 | L1 WebSocket | 8546 | ws://localhost:8546 | L1 WebSocket |
-| **Sequencer 스택** ||||
-| Sequencer L2 RPC | 9545 | http://localhost:9545 | L2 사용자 RPC |
+| **Sequencer Stack** ||||
+| Sequencer L2 RPC | 9545 | http://localhost:9545 | L2 User RPC |
 | Sequencer op-node RPC | 7545 | http://localhost:7545 | Sequencer op-node RPC |
 | op-batcher RPC | 6545 | http://localhost:6545 | op-batcher RPC |
 | op-proposer RPC | 6546 | http://localhost:6546 | op-proposer RPC |
-| **Challenger 스택 ⭐** ||||
-| Challenger L2 RPC | 9546 | http://localhost:9546 | Challenger L2 RPC (독립적!) |
+| **Challenger Stack ⭐** ||||
+| Challenger L2 RPC | 9546 | http://localhost:9546 | Challenger L2 RPC (Independent!) |
 | Challenger op-node RPC | 7546 | http://localhost:7546 | Challenger op-node RPC (Follower) |
-| **선택사항** ||||
-| Indexer API | 8100 | http://localhost:8100 | Indexer API (선택) |
-| Grafana | 3000 | http://localhost:3000 | Grafana (선택) |
+| **Optional** ||||
+| Indexer API | 8100 | http://localhost:8100 | Indexer API (optional) |
+| Grafana | 3000 | http://localhost:3000 | Grafana (optional) |
 
-## 🔍 상태 확인 명령어
+## 🔍 Status Check Commands
 
 ```bash
-# 전체 서비스 상태
+# All service status
 docker-compose -f op-challenger/scripts/docker-compose-full.yml ps
 
-# 특정 서비스 로그
+# Specific service logs
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f sequencer-op-node
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f challenger-op-node
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f op-challenger
 
-# L1 블록 높이
+# L1 block height
 cast block-number --rpc-url http://localhost:8545
 
-# Sequencer L2 블록 높이
+# Sequencer L2 block height
 cast block-number --rpc-url http://localhost:9545
 
-# Challenger L2 블록 높이
+# Challenger L2 block height
 cast block-number --rpc-url http://localhost:9546
 
-# Sequencer op-node 동기화 상태
+# Sequencer op-node sync status
 curl -X POST -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' \
   http://localhost:7545
 
-# Challenger op-node 동기화 상태
+# Challenger op-node sync status
 curl -X POST -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' \
   http://localhost:7546
 ```
 
-## 🛑 시스템 중지 및 삭제
+## 🛑 System Stop and Cleanup
 
 ```bash
-# 서비스 중지
+# Stop services
 docker-compose -f op-challenger/scripts/docker-compose-full.yml down
 
-# 데이터까지 삭제
+# Delete data as well
 docker-compose -f op-challenger/scripts/docker-compose-full.yml down -v
 
-# 이미지까지 삭제
+# Delete images as well
 docker-compose -f op-challenger/scripts/docker-compose-full.yml down -v --rmi all
 ```
 
-## 🔧 트러블슈팅
+## 🔧 Troubleshooting
 
-### 1. Genesis 해시 불일치 (가장 흔한 문제)
+### 1. Genesis Hash Mismatch (Most Common Issue)
 
-**증상:**
+**Symptoms:**
 ```
 Error: incorrect L1 genesis block hash 0x..., expected 0x...
 ```
 
-**원인:**
-- 기존 Docker volumes에 이전 배포의 블록체인 데이터가 남아있음
-- geth는 기존 데이터가 있으면 genesis.json을 무시함
+**Cause:**
+- Existing Docker volumes contain blockchain data from previous deployment
+- Geth ignores genesis.json when existing data is found
 
-**해결:**
+**Solution:**
 ```bash
-# 1. 완전 초기화
+# 1. Complete cleanup
 ./op-challenger/scripts/cleanup.sh
 
-# 2. 재배포 (volumes 자동 정리됨)
+# 2. Redeploy (volumes automatically cleaned)
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
 ```
 
-**참고**: deploy-full-stack.sh는 자동으로 L1/L2 volumes를 정리하지만, 이전에 수동으로 생성한 volumes가 있다면 cleanup.sh를 먼저 실행하세요.
+**Note**: deploy-full-stack.sh automatically cleans L1/L2 volumes, but if you have manually created volumes, run cleanup.sh first.
 
-### 2. RPC 응답 없음
+### 2. No RPC Response
 
 ```bash
-# 컨테이너 상태 확인
+# Check container status
 docker ps -a
 
-# 로그 확인
+# Check logs
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f [service-name]
 
-# 재시작
+# Restart
 docker-compose -f op-challenger/scripts/docker-compose-full.yml restart [service-name]
 ```
 
-### 3. 동기화 문제
+### 3. Synchronization Issues
 
 ```bash
-# L2가 L1을 따라가지 못하는 경우
-# 1. Sequencer op-node 로그 확인
+# If L2 is not following L1
+# 1. Check Sequencer op-node logs
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f sequencer-op-node
 
-# 2. op-batcher 로그 확인 (배치 제출 여부)
+# 2. Check op-batcher logs (batch submission)
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f op-batcher
 
-# 3. L1 연결 상태 확인
+# 3. Check L1 connection status
 curl http://localhost:8545
 ```
 
-### 4. Challenger 문제
+### 4. Challenger Issues
 
 ```bash
-# Challenger 로그 확인
+# Check Challenger logs
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f op-challenger
 
-# Challenger가 독립적인 스택을 사용하는지 확인
+# Verify Challenger uses independent stack
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f challenger-op-node
 docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f challenger-l2
 
-# 네트워크 연결 상태 확인
-# 네트워크 이름 찾기 (실행 디렉토리에 따라 다를 수 있음)
+# Check network connection status
 docker network ls | grep l2-network
 
-# 찾은 네트워크 이름으로 상세 정보 확인
-docker network inspect <네트워크_이름>
-# 예: docker network inspect scripts_l2-network
+# Inspect network details (network name may vary by execution directory)
+docker network inspect <network_name>
+# Example: docker network inspect scripts_l2-network
 ```
 
-### 5. 포트 충돌
+### 5. Port Conflicts
 
 ```bash
-# 포트 사용 중인 프로세스 확인 (macOS)
+# Check processes using port (macOS)
 lsof -i :8545
 
-# 프로세스 종료
+# Kill process
 kill -9 [PID]
 
-# 또는 docker-compose-full.yml의 포트 변경
+# Or change ports in docker-compose-full.yml
 ```
 
-## 📚 추가 리소스
+## 📚 Additional Resources
 
-### 공식 문서
+### Official Documentation
 - [Optimism Specs](https://specs.optimism.io)
 - [OP Stack GitHub](https://github.com/ethereum-optimism/optimism)
 - [Optimism Docs](https://docs.optimism.io)
 
-### 프로젝트 문서
-- [Blob Pruning 위험 분석](../docs/blob-pruning-risk-analysis-ko.md)
-- [Challenge Game 취약점 분석](../docs/challenge-game-vulnerability-ko.md)
-- [DA 시스템 분석](../docs/data-availability-analysis-ko.md)
+### Project Documentation
+- [Blob Pruning Risk Analysis](../docs/blob-pruning-risk-analysis-ko.md)
+- [Challenge Game Vulnerability Analysis](../docs/challenge-game-vulnerability-ko.md)
+- [Data Availability Analysis](../docs/data-availability-analysis-ko.md)
