@@ -137,17 +137,23 @@ show_game_summary() {
         # Count in-progress games (all games minus resolved games)
         local games_in_progress=0
         if [ -n "$all_games" ]; then
-            games_in_progress=$(echo "$all_games" | grep -v -F -f <(echo "$resolved_games") | wc -l | tr -d ' ')
+            if [ -n "$resolved_games" ]; then
+                games_in_progress=$(echo "$all_games" | grep -v -F -f <(echo "$resolved_games") | wc -l | tr -d ' ')
+            else
+                # No resolved games, so all games are in progress
+                games_in_progress=$games_detected
+            fi
         fi
 
-        # Count moves made
-        local moves_made=$(docker logs "$container" 2>&1 | grep "Performing action" | wc -l | tr -d ' ')
+        # Count moves made (reuse all_logs)
+        local moves_made=$(echo "$all_logs" | grep "Performing action" | wc -l | tr -d ' ')
 
-        # Count errors
-        local errors=$(docker logs --tail=100 "$container" 2>&1 | grep "lvl=error" | wc -l | tr -d ' ')
+        # Count errors (last 100 lines of all_logs)
+        local recent_logs=$(echo "$all_logs" | tail -100)
+        local errors=$(echo "$recent_logs" | grep "lvl=error" | wc -l | tr -d ' ')
 
         # Count invalid prestate warnings
-        local invalid_prestate=$(docker logs --tail=100 "$container" 2>&1 | grep "Invalid prestate" | wc -l | tr -d ' ')
+        local invalid_prestate=$(echo "$recent_logs" | grep "Invalid prestate" | wc -l | tr -d ' ')
 
         # Verify totals
         local calculated_total=$((games_in_progress + games_resolved))
