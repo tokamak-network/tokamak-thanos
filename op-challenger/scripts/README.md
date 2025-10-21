@@ -34,6 +34,14 @@ Sequencer 스택:                 Challenger 스택 (독립적!):
 
 # 1. 전체 자동 배포 (처음 배포 시)
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
+
+or
+
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./deploy-full-stack.sh --mode local
+
 # → 약 5-10분 소요
 
 # 2. 배포 상태 확인
