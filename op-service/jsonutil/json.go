@@ -32,7 +32,8 @@ func LoadJSON[X any](inputPath string) (*X, error) {
 	return &state, nil
 }
 
-func WriteJSON[X any](outputPath string, value X, perm os.FileMode) error {
+// WriteJSONPath writes JSON to a file path (legacy function for backward compatibility)
+func WriteJSONPath(outputPath string, value any, perm os.FileMode) error {
 	if outputPath == "" {
 		return nil
 	}
@@ -62,6 +63,45 @@ func WriteJSON[X any](outputPath string, value X, perm os.FileMode) error {
 		return fmt.Errorf("failed to append new-line: %w", err)
 	}
 	if err := finish(); err != nil {
+		return fmt.Errorf("failed to finish write: %w", err)
+	}
+	return nil
+}
+
+// WriteJSON writes JSON using an OutputTarget (Optimism-compatible signature)
+func WriteJSON[X any](value X, target ioutil.OutputTarget) error {
+	return write(value, target, newJSONEncoder)
+}
+
+type EncoderFactory func(w io.Writer) Encoder
+
+type Encoder interface {
+	Encode(v any) error
+}
+
+func newJSONEncoder(w io.Writer) Encoder {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc
+}
+
+func write[X any](value X, target ioutil.OutputTarget, enc EncoderFactory) error {
+	out, closer, abort, err := target()
+	if err != nil {
+		return err
+	}
+	if out == nil {
+		return nil // No output stream selected so skip generating the content entirely
+	}
+	defer abort()
+	if err := enc(out).Encode(value); err != nil {
+		return fmt.Errorf("failed to encode: %w", err)
+	}
+	_, err = out.Write([]byte{'\n'})
+	if err != nil {
+		return fmt.Errorf("failed to append new-line: %w", err)
+	}
+	if err := closer.Close(); err != nil {
 		return fmt.Errorf("failed to finish write: %w", err)
 	}
 	return nil
