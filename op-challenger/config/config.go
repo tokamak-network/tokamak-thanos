@@ -10,6 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
 	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
@@ -140,6 +142,7 @@ type Config struct {
 	CannonInfoFreq                uint // Frequency of cannon progress log messages (in VM instructions)
 
 	// Specific to the asterisc trace provider
+	Asterisc                        vm.Config
 	AsteriscBin                     string   // Path to the asterisc executable to run when generating trace data
 	AsteriscServer                  string   // Path to the op-program executable that provides the pre-image oracle server
 	AsteriscAbsolutePreState        string   // File to load the absolute pre-state for Asterisc traces from
@@ -190,6 +193,17 @@ func NewConfig(
 		AsteriscSnapshotFreq: DefaultAsteriscSnapshotFreq,
 		AsteriscInfoFreq:     DefaultAsteriscInfoFreq,
 		GameWindow:           DefaultGameWindow,
+
+		Asterisc: vm.Config{
+			VmType:          types.TraceTypeAsterisc,
+			L1:              l1EthRpc,
+			L1Beacon:        l1BeaconApi,
+			L2s:             []string{l2EthRpc},
+			SnapshotFreq:    DefaultAsteriscSnapshotFreq,
+			InfoFreq:        DefaultAsteriscInfoFreq,
+			DebugInfo:       true,
+			BinarySnapshots: true,
+		},
 	}
 }
 
@@ -267,6 +281,9 @@ func (c Config) Check() error {
 		if c.AsteriscServer == "" {
 			return ErrMissingAsteriscServer
 		}
+		// Set vm.Config fields
+		c.Asterisc.VmBin = c.AsteriscBin
+		c.Asterisc.Server = c.AsteriscServer
 		if c.AsteriscNetwork == "" {
 			if c.AsteriscRollupConfigPath == "" {
 				return ErrMissingAsteriscRollupConfig
@@ -274,6 +291,8 @@ func (c Config) Check() error {
 			if c.AsteriscL2GenesisPath == "" {
 				return ErrMissingAsteriscL2Genesis
 			}
+			c.Asterisc.RollupConfigPaths = []string{c.AsteriscRollupConfigPath}
+			c.Asterisc.L2GenesisPaths = []string{c.AsteriscL2GenesisPath}
 		} else {
 			if c.AsteriscRollupConfigPath != "" {
 				return ErrAsteriscNetworkAndRollupConfig
@@ -284,6 +303,7 @@ func (c Config) Check() error {
 			if ch := chaincfg.ChainByName(c.AsteriscNetwork); ch == nil {
 				return fmt.Errorf("%w: %v", ErrAsteriscNetworkUnknown, c.AsteriscNetwork)
 			}
+			c.Asterisc.Networks = []string{c.AsteriscNetwork}
 		}
 		if c.AsteriscAbsolutePreState == "" && c.AsteriscAbsolutePreStateBaseURL == nil {
 			return ErrMissingAsteriscAbsolutePreState
@@ -296,6 +316,9 @@ func (c Config) Check() error {
 		}
 		if c.AsteriscInfoFreq == 0 {
 			return ErrMissingAsteriscInfoFreq
+		}
+		if err := c.Asterisc.Check(); err != nil {
+			return fmt.Errorf("asterisc config: %w", err)
 		}
 	}
 	if err := c.TxMgrConfig.Check(); err != nil {

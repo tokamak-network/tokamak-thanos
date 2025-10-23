@@ -57,6 +57,8 @@ type Metricer interface {
 	DecActiveExecutors()
 	IncIdleExecutors()
 	DecIdleExecutors()
+
+	ToTypedVmMetrics(vmType string) TypedVmMetricer
 }
 
 // Metrics implementation must implement RegistryMetricer to allow the metrics server to work.
@@ -70,6 +72,7 @@ type Metrics struct {
 	txmetrics.TxMetrics
 	*opmetrics.CacheMetrics
 	*contractMetrics.ContractMetrics
+	*VmMetrics
 
 	info prometheus.GaugeVec
 	up   prometheus.Gauge
@@ -117,6 +120,8 @@ func NewMetrics() *Metrics {
 		CacheMetrics: opmetrics.NewCacheMetrics(factory, Namespace, "provider_cache", "Provider cache"),
 
 		ContractMetrics: contractMetrics.MakeContractMetrics(Namespace, factory),
+
+		VmMetrics: NewVmMetrics(Namespace, factory),
 
 		info: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -284,6 +289,10 @@ func (m *Metrics) RecordCannonExecutionTime(t float64) {
 
 func (m *Metrics) RecordAsteriscExecutionTime(t float64) {
 	m.asteriscExecutionTime.Observe(t)
+}
+
+func (m *Metrics) ToTypedVmMetrics(vmType string) TypedVmMetricer {
+	return NewTypedVmMetrics(m, vmType)
 }
 
 func (m *Metrics) RecordClaimResolutionTime(t float64) {
