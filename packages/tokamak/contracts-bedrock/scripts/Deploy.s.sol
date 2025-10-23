@@ -40,6 +40,7 @@ import { DelayedWETH } from "src/dispute/weth/DelayedWETH.sol";
 import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
+import { RISCV } from "src/vendor/asterisc/RISCV.sol";
 import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
 import { ProtocolVersions, ProtocolVersion } from "src/L1/ProtocolVersions.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
@@ -389,6 +390,7 @@ contract Deploy is Deployer {
         setFastFaultGameImplementation({ _allowUpgrade: false });
         setCannonFaultGameImplementation({ _allowUpgrade: false });
         setPermissionedCannonFaultGameImplementation({ _allowUpgrade: false });
+        setAsteriscFaultGameImplementation({ _allowUpgrade: false });
 
         transferDisputeGameFactoryOwnership();
         transferDelayedWETHOwnership();
@@ -438,6 +440,7 @@ contract Deploy is Deployer {
 
         deployPreimageOracle();
         deployMips();
+        deployRiscv();
         // USDC bridge
         deployL1UsdcBridge();
     }
@@ -914,6 +917,23 @@ contract Deploy is Deployer {
         console.log("MIPS deployed at %s", address(mips));
 
         addr_ = address(mips);
+    }
+
+    /// @notice Deploy RISCV (Asterisc)
+    function deployRiscv() public broadcast returns (address addr_) {
+        console.log("Deploying RISCV implementation");
+        address preimageOracle = mustGetAddress("PreimageOracle");
+        bytes memory creationCode = abi.encodePacked(type(RISCV).creationCode, abi.encode(preimageOracle));
+        address riscvAddr;
+        bytes32 salt = _implSalt();
+        assembly {
+            riscvAddr := create2(0, add(creationCode, 0x20), mload(creationCode), salt)
+        }
+        require(riscvAddr != address(0), "RISCV deployment failed");
+        save("Riscv", riscvAddr);
+        console.log("RISCV deployed at %s", riscvAddr);
+
+        addr_ = riscvAddr;
     }
 
     /// @notice Deploy the AnchorStateRegistry
@@ -1798,6 +1818,24 @@ contract Deploy is Deployer {
         }
     }
 
+    /// @notice Loads the riscv absolute prestate from the prestate-proof for devnets otherwise
+    ///         from the config.
+    function loadRiscvAbsolutePrestate() internal returns (Claim riscvAbsolutePrestate_) {
+        if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
+            // For now, use the same prestate as MIPS for devnet testing
+            // TODO: Generate proper Asterisc prestate with `make asterisc-prestate`
+            console.log(
+                "[Asterisc Dispute Game] Using MIPS prestate as fallback (TODO: generate proper Asterisc prestate)"
+            );
+            riscvAbsolutePrestate_ = loadMipsAbsolutePrestate();
+        } else {
+            console.log(
+                "[Asterisc Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()
+            );
+            riscvAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+        }
+    }
+
     /// @notice Sets the implementation for the `CANNON` game type in the `DisputeGameFactory`
     function setCannonFaultGameImplementation(bool _allowUpgrade) public broadcast {
         console.log("Setting Cannon FaultDisputeGame implementation");
@@ -1886,6 +1924,28 @@ contract Deploy is Deployer {
                 maxGameDepth: cfg.faultGameSplitDepth() + 3 + 1,
                 maxClockDuration: Duration.wrap(0) // Resolvable immediately
              })
+        });
+    }
+
+    /// @notice Sets the implementation for the `ASTERISC` game type in the `DisputeGameFactory`
+    function setAsteriscFaultGameImplementation(bool _allowUpgrade) public broadcast {
+        console.log("Setting Asterisc FaultDisputeGame implementation");
+        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
+        DelayedWETH weth = DelayedWETH(mustGetAddress("DelayedWETHProxy"));
+
+        // Set the Asterisc FaultDisputeGame implementation in the factory.
+        _setFaultGameImplementation({
+            _factory: factory,
+            _allowUpgrade: _allowUpgrade,
+            _params: FaultDisputeGameParams({
+                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                weth: weth,
+                gameType: GameTypes.ASTERISC,
+                absolutePrestate: loadRiscvAbsolutePrestate(),
+                faultVm: IBigStepper(mustGetAddress("Riscv")),
+                maxGameDepth: cfg.faultGameMaxDepth(),
+                maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
+            })
         });
     }
 

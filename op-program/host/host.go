@@ -145,7 +145,11 @@ func PreimageServer(ctx context.Context, logger log.Logger, cfg *config.Config, 
 		if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
 			return fmt.Errorf("creating datadir: %w", err)
 		}
-		kv = kvstore.NewDiskKV(cfg.DataDir)
+		var err error
+		kv, err = kvstore.NewDiskKV(logger, cfg.DataDir, cfg.DataFormat)
+		if err != nil {
+			return fmt.Errorf("creating kvstore: %w", err)
+		}
 	}
 
 	var (

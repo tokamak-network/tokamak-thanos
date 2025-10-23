@@ -399,7 +399,7 @@ func Run(ctx *cli.Context) error {
 		}
 
 		if snapshotAt(state) {
-			if err := jsonutil.WriteJSON(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSONPath(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
 				return fmt.Errorf("failed to write state snapshot: %w", err)
 			}
 		}
@@ -429,7 +429,7 @@ func Run(ctx *cli.Context) error {
 				proof.OracleValue = witness.PreimageValue
 				proof.OracleOffset = witness.PreimageOffset
 			}
-			if err := jsonutil.WriteJSON(fmt.Sprintf(proofFmt, step), proof, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSONPath(fmt.Sprintf(proofFmt, step), proof, OutFilePerm); err != nil {
 				return fmt.Errorf("failed to write proof data: %w", err)
 			}
 		} else {
@@ -463,7 +463,7 @@ func Run(ctx *cli.Context) error {
 		us.Traceback()
 	}
 
-	if err := jsonutil.WriteJSON(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
+	if err := jsonutil.WriteJSONPath(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
 		return fmt.Errorf("failed to write state output: %w", err)
 	}
 	return nil

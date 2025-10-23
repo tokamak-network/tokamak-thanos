@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
 )
 
@@ -67,10 +68,10 @@ func LoadELF(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to compute program metadata: %w", err)
 	}
-	if err := jsonutil.WriteJSON[*mipsevm.Metadata](ctx.Path(LoadELFMetaFlag.Name), meta, OutFilePerm); err != nil {
+	if err := jsonutil.WriteJSON[*mipsevm.Metadata](meta, ioutil.ToStdOutOrFileOrNoop(ctx.Path(LoadELFMetaFlag.Name), OutFilePerm)); err != nil {
 		return fmt.Errorf("failed to output metadata: %w", err)
 	}
-	return jsonutil.WriteJSON[*mipsevm.State](ctx.Path(LoadELFOutFlag.Name), state, OutFilePerm)
+	return jsonutil.WriteJSON[*mipsevm.State](state, ioutil.ToStdOutOrFileOrNoop(ctx.Path(LoadELFOutFlag.Name), OutFilePerm))
 }
 
 var LoadELFCommand = &cli.Command{
