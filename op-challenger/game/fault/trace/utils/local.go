@@ -7,15 +7,21 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
 )
 
 type LocalGameInputs struct {
-	L1Head        common.Hash
-	L2Head        common.Hash
-	L2OutputRoot  common.Hash
-	L2Claim       common.Hash
+	L1Head           common.Hash
+	L2Head           common.Hash
+	L2OutputRoot     common.Hash
+	AgreedPreState   []byte
+	L2Claim          common.Hash
+	L2SequenceNumber *big.Int
+	L2BlockNumber    *big.Int // Kept for backward compatibility
+}
+
+type Proposal struct {
 	L2BlockNumber *big.Int
+	OutputRoot    common.Hash
 }
 
 type L2HeaderSource interface {
@@ -28,7 +34,7 @@ type L1HeadSource interface {
 
 type GameInputsSource interface {
 	L1HeadSource
-	GetProposals(ctx context.Context) (agreed contracts.Proposal, disputed contracts.Proposal, err error)
+	GetProposals(ctx context.Context) (agreed Proposal, disputed Proposal, err error)
 }
 
 func FetchLocalInputs(ctx context.Context, caller GameInputsSource, l2Client L2HeaderSource) (LocalGameInputs, error) {
@@ -44,7 +50,7 @@ func FetchLocalInputs(ctx context.Context, caller GameInputsSource, l2Client L2H
 	return FetchLocalInputsFromProposals(ctx, l1Head, l2Client, agreedOutput, claimedOutput)
 }
 
-func FetchLocalInputsFromProposals(ctx context.Context, l1Head common.Hash, l2Client L2HeaderSource, agreedOutput contracts.Proposal, claimedOutput contracts.Proposal) (LocalGameInputs, error) {
+func FetchLocalInputsFromProposals(ctx context.Context, l1Head common.Hash, l2Client L2HeaderSource, agreedOutput Proposal, claimedOutput Proposal) (LocalGameInputs, error) {
 	agreedHeader, err := l2Client.HeaderByNumber(ctx, agreedOutput.L2BlockNumber)
 	if err != nil {
 		return LocalGameInputs{}, fmt.Errorf("fetch L2 block header %v: %w", agreedOutput.L2BlockNumber, err)
@@ -52,10 +58,12 @@ func FetchLocalInputsFromProposals(ctx context.Context, l1Head common.Hash, l2Cl
 	l2Head := agreedHeader.Hash()
 
 	return LocalGameInputs{
-		L1Head:        l1Head,
-		L2Head:        l2Head,
-		L2OutputRoot:  agreedOutput.OutputRoot,
-		L2Claim:       claimedOutput.OutputRoot,
-		L2BlockNumber: claimedOutput.L2BlockNumber,
+		L1Head:           l1Head,
+		L2Head:           l2Head,
+		L2OutputRoot:     agreedOutput.OutputRoot,
+		AgreedPreState:   []byte{}, // Will be populated if needed
+		L2Claim:          claimedOutput.OutputRoot,
+		L2SequenceNumber: claimedOutput.L2BlockNumber,
+		L2BlockNumber:    claimedOutput.L2BlockNumber, // Backward compatibility
 	}, nil
 }
