@@ -15,6 +15,7 @@ import (
 	opnode "github.com/tokamak-network/tokamak-thanos/op-node"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-program/host/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/urfave/cli/v2"
 )
@@ -37,6 +38,8 @@ type Config struct {
 	// DataDir is the directory to read/write pre-image data from/to.
 	// If not set, an in-memory key-value store is used and fetching data must be enabled
 	DataDir string
+	// DataFormat specifies the format to use for on-disk storage. Only applies when DataDir is set.
+	DataFormat types.DataFormat
 
 	// L1Head is the block hash of the L1 chain head block
 	L1Head      common.Hash
@@ -129,6 +132,7 @@ func NewConfig(
 		L2Claim:             l2Claim,
 		L2ClaimBlockNumber:  l2ClaimBlockNum,
 		L1RPCKind:           sources.RPCKindStandard,
+		DataFormat:          types.DataFormatDirectory,
 		IsCustomChainConfig: isCustomConfig,
 	}
 }
@@ -186,6 +190,7 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 	return &Config{
 		Rollup:              rollupCfg,
 		DataDir:             ctx.String(flags.DataDir.Name),
+		DataFormat:          types.DataFormatDirectory,
 		L2URL:               ctx.String(flags.L2NodeAddr.Name),
 		L2ChainConfig:       l2ChainConfig,
 		L2Head:              l2Head,

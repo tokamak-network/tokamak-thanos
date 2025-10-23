@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
 )
 
@@ -125,7 +126,7 @@ var Subcommands = cli.Commands{
 				return err
 			}
 
-			return jsonutil.WriteJSON(ctx.String("outfile.l1"), l1Genesis, 0o666)
+			return jsonutil.WriteJSON(l1Genesis, ioutil.ToStdOutOrFileOrNoop(ctx.String("outfile.l1"), 0o666))
 		},
 	},
 	{
@@ -223,10 +224,10 @@ var Subcommands = cli.Commands{
 				return fmt.Errorf("generated rollup config does not pass validation: %w", err)
 			}
 
-			if err := jsonutil.WriteJSON(ctx.String("outfile.l2"), l2Genesis, 0o666); err != nil {
+			if err := jsonutil.WriteJSON(l2Genesis, ioutil.ToAtomicFile(ctx.String("outfile.l2"), 0o666)); err != nil {
 				return err
 			}
-			return jsonutil.WriteJSON(ctx.String("outfile.rollup"), rollupConfig, 0o666)
+			return jsonutil.WriteJSON(rollupConfig, ioutil.ToAtomicFile(ctx.String("outfile.rollup"), 0o666))
 		},
 	},
 }
