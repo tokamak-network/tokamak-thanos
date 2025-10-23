@@ -29,14 +29,43 @@ var (
 
 type preimageSource func(key common.Hash) ([]byte, error)
 
-type PreimageLoader struct {
-	getPreimage preimageSource
+type PreimageSource interface {
+	Get(key common.Hash) ([]byte, error)
+	Close() error
 }
 
-func NewPreimageLoader(getPreimage preimageSource) *PreimageLoader {
+type PreimageSourceCreator func() (PreimageSource, error)
+
+type PreimageLoader struct {
+	makeSource  PreimageSourceCreator
+	getPreimage preimageSource // Kept for backward compatibility
+}
+
+func NewPreimageLoader(makeSource PreimageSourceCreator) *PreimageLoader {
+	return &PreimageLoader{
+		makeSource: makeSource,
+	}
+}
+
+// Deprecated: Use NewPreimageLoader with PreimageSourceCreator
+func NewPreimageLoaderLegacy(getPreimage preimageSource) *PreimageLoader {
 	return &PreimageLoader{
 		getPreimage: getPreimage,
 	}
+}
+
+func (l *PreimageLoader) getPreimageData(key common.Hash) ([]byte, error) {
+	if l.getPreimage != nil {
+		// Legacy path
+		return l.getPreimage(key)
+	}
+	// New path using PreimageSource
+	source, err := l.makeSource()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create preimage source: %w", err)
+	}
+	defer source.Close()
+	return source.Get(key)
 }
 
 func (l *PreimageLoader) LoadPreimage(proof *ProofData) (*types.PreimageOracleData, error) {
@@ -57,7 +86,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 	// The key for a blob field element is a keccak hash of commitment++fieldElementIndex.
 	// First retrieve the preimage of the key as a keccak hash so we have the commitment and required field element
 	inputsKey := preimage.Keccak256Key(proof.OracleKey).PreimageKey()
-	inputs, err := l.getPreimage(inputsKey)
+	inputs, err := l.getPreimageData(inputsKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key preimage: %w", err)
 	}
@@ -74,7 +103,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 	for i := 0; i < params.BlobTxFieldElementsPerBlob; i++ {
 		binary.BigEndian.PutUint64(fieldElemKey[72:], uint64(i))
 		key := preimage.BlobKey(crypto.Keccak256(fieldElemKey)).PreimageKey()
-		fieldElement, err := l.getPreimage(key)
+		fieldElement, err := l.getPreimageData(key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load field element %v with key %v:  %w", i, common.Hash(key), err)
 		}
@@ -104,7 +133,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 
 func (l *PreimageLoader) loadPrecompilePreimage(proof *ProofData) (*types.PreimageOracleData, error) {
 	inputKey := preimage.Keccak256Key(proof.OracleKey).PreimageKey()
-	input, err := l.getPreimage(inputKey)
+	input, err := l.getPreimageData(inputKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key preimage: %w", err)
 	}

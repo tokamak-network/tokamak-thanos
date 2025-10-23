@@ -14,6 +14,7 @@ import (
 type NoopMetricsImpl struct {
 	txmetrics.NoopTxMetrics
 	contractMetrics.NoopMetrics
+	NoopVmMetrics
 }
 
 func (i *NoopMetricsImpl) StartBalanceMetrics(l log.Logger, client *ethclient.Client, account common.Address) io.Closer {
@@ -51,6 +52,10 @@ func (*NoopMetricsImpl) IncActiveExecutors() {}
 func (*NoopMetricsImpl) DecActiveExecutors() {}
 func (*NoopMetricsImpl) IncIdleExecutors()   {}
 func (*NoopMetricsImpl) DecIdleExecutors()   {}
+
+func (m *NoopMetricsImpl) ToTypedVmMetrics(vmType string) TypedVmMetricer {
+	return NewTypedVmMetrics(m, vmType)
+}
 
 func (*NoopMetricsImpl) CacheAdd(_ string, _ int, _ bool) {}
 func (*NoopMetricsImpl) CacheGet(_ string, _ bool)        {}

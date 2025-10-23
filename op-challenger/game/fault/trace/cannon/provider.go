@@ -17,6 +17,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-program/host/kvstore"
+	kvtypes "github.com/tokamak-network/tokamak-thanos/op-program/host/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 
 	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
@@ -43,12 +44,19 @@ type CannonTraceProvider struct {
 
 func NewTraceProvider(logger log.Logger, m CannonMetricer, cfg *config.Config, prestateProvider types.PrestateProvider, prestate string, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *CannonTraceProvider {
 	return &CannonTraceProvider{
-		logger:           logger,
-		dir:              dir,
-		prestate:         prestate,
-		generator:        NewExecutor(logger, m, cfg, prestate, localInputs),
-		gameDepth:        gameDepth,
-		preimageLoader:   utils.NewPreimageLoader(kvstore.NewDiskKV(utils.PreimageDir(dir)).Get),
+		logger:    logger,
+		dir:       dir,
+		prestate:  prestate,
+		generator: NewExecutor(logger, m, cfg, prestate, localInputs),
+		gameDepth: gameDepth,
+		preimageLoader: utils.NewPreimageLoaderLegacy(func(key common.Hash) ([]byte, error) {
+			kv, err := kvstore.NewDiskKV(logger, utils.PreimageDir(dir), kvtypes.DataFormatFile)
+			if err != nil {
+				return nil, err
+			}
+			defer kv.Close()
+			return kv.Get(key)
+		}),
 		PrestateProvider: prestateProvider,
 	}
 }
@@ -185,12 +193,19 @@ type CannonTraceProviderForTest struct {
 
 func NewTraceProviderForTest(logger log.Logger, m CannonMetricer, cfg *config.Config, localInputs utils.LocalGameInputs, dir string, gameDepth types.Depth) *CannonTraceProviderForTest {
 	p := &CannonTraceProvider{
-		logger:         logger,
-		dir:            dir,
-		prestate:       cfg.CannonAbsolutePreState,
-		generator:      NewExecutor(logger, m, cfg, cfg.CannonAbsolutePreState, localInputs),
-		gameDepth:      gameDepth,
-		preimageLoader: utils.NewPreimageLoader(kvstore.NewDiskKV(utils.PreimageDir(dir)).Get),
+		logger:    logger,
+		dir:       dir,
+		prestate:  cfg.CannonAbsolutePreState,
+		generator: NewExecutor(logger, m, cfg, cfg.CannonAbsolutePreState, localInputs),
+		gameDepth: gameDepth,
+		preimageLoader: utils.NewPreimageLoaderLegacy(func(key common.Hash) ([]byte, error) {
+			kv, err := kvstore.NewDiskKV(logger, utils.PreimageDir(dir), kvtypes.DataFormatFile)
+			if err != nil {
+				return nil, err
+			}
+			defer kv.Close()
+			return kv.Get(key)
+		}),
 	}
 	return &CannonTraceProviderForTest{p}
 }

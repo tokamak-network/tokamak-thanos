@@ -214,3 +214,21 @@ func NewInvalidL2BlockNumberProof(output *eth.OutputResponse, header *ethTypes.H
 		Header: header,
 	}
 }
+
+type TraceType string
+
+const (
+	TraceTypeAlphabet          TraceType = "alphabet"
+	TraceTypeFast              TraceType = "fast"
+	TraceTypeCannon            TraceType = "cannon"
+	TraceTypeAsterisc          TraceType = "asterisc"
+	TraceTypeAsteriscKona      TraceType = "asterisc-kona"
+	TraceTypePermissioned      TraceType = "permissioned"
+	TraceTypeSuperCannon       TraceType = "super-cannon"
+	TraceTypeSuperPermissioned TraceType = "super-permissioned"
+	TraceTypeSuperAsteriscKona TraceType = "super-asterisc-kona"
+)
+
+func (t TraceType) String() string {
+	return string(t)
+}

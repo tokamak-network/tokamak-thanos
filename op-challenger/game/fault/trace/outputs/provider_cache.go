@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/caching"
 )
@@ -14,7 +14,7 @@ type ProviderCache struct {
 	creator ProposalTraceProviderCreator
 }
 
-func (c *ProviderCache) GetOrCreate(ctx context.Context, localContext common.Hash, depth types.Depth, agreed contracts.Proposal, claimed contracts.Proposal) (types.TraceProvider, error) {
+func (c *ProviderCache) GetOrCreate(ctx context.Context, localContext common.Hash, depth types.Depth, agreed utils.Proposal, claimed utils.Proposal) (types.TraceProvider, error) {
 	provider, ok := c.cache.Get(localContext)
 	if ok {
 		return provider, nil

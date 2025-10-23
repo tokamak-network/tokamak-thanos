@@ -17,6 +17,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/outputs"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/prestates"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
 	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
@@ -254,7 +255,7 @@ func registerAsterisc(
 			if err != nil {
 				return nil, fmt.Errorf("failed to get asterisc prestate: %w", err)
 			}
-			accessor, err := outputs.NewOutputAsteriscTraceAccessor(logger, m, cfg, l2Client, prestateProvider, asteriscPrestate, rollupClient, dir, l1HeadID, splitDepth, prestateBlock, poststateBlock)
+			accessor, err := outputs.NewOutputAsteriscTraceAccessor(logger, m, cfg.Asterisc, vm.NewOpProgramServerExecutor(logger), l2Client, prestateProvider, asteriscPrestate, rollupClient, dir, l1HeadID, splitDepth, prestateBlock, poststateBlock)
 			if err != nil {
 				return nil, err
 			}
