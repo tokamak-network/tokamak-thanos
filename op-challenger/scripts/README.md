@@ -32,22 +32,24 @@ Please read these documents before deployment:
 # 0. Clone & Checkout
 git clone https://github.com/tokamak-network/tokamak-thanos.git
 cd tokamak-thanos
-git checkout feature/challenger-analysis
+git checkout feature/challenger-risc-gametype2
 
 # 1. Complete cleanup
 ./op-challenger/scripts/cleanup.sh
 
 # 2. Full automated deployment (first time)
-./op-challenger/scripts/deploy-full-stack.sh --mode local
 
-# GameType 2 (Asterisc - RISC-V VM) - New!
-DG_TYPE=2 CHALLENGER_TRACE_TYPE=asterisc ./op-challenger/scripts/deploy-full-stack.sh --mode local
+# GameType 0 (Cannon - MIPS VM) - default
+./op-challenger/scripts/deploy-modular.sh
 
-# Or with custom game settings
+# GameType 2 (Asterisc - RISC-V VM) - Auto-builds Asterisc VM! ⭐
+./op-challenger/scripts/deploy-modular.sh --dg-type 2
+
+# With custom game settings (GameType 2)
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
-./op-challenger/scripts/deploy-full-stack.sh --mode local
+./op-challenger/scripts/deploy-modular.sh --dg-type 2
 
 # → Takes about 5-10 minutes
 
@@ -60,11 +62,39 @@ PROPOSAL_INTERVAL=30s \
 
 
 **⚠️ Important:**
-- `deploy-full-stack.sh` automatically generates `.env` and Genesis files
 - `cleanup.sh` defaults to deleting everything (`.env`, Genesis, volumes)
 - To keep `.env`: `./cleanup.sh --keep-env`
 
 ## 📋 Script Descriptions
+
+### 🆕 deploy-modular.sh (New Modular Script) ⭐
+
+**Modularized deployment script with automatic VM build support for all GameTypes**
+
+```bash
+# Usage
+./deploy-modular.sh [options]
+
+# Options
+--dg-type TYPE          # GameType (0, 1, 2, 254, 255, default: 0)
+--mode MODE             # Deployment mode: local|existing (default: local)
+--help                  # Show help
+
+# Examples
+./deploy-modular.sh --dg-type 0    # GameType 0 (Cannon)
+./deploy-modular.sh --dg-type 2    # GameType 2 (Asterisc) - Auto-builds VM! ⭐
+```
+
+**Key Features:**
+- ✅ Automatic VM build (Cannon + Asterisc)
+- ✅ Modular structure (lib/ + modules/)
+- ✅ Automatic TraceType validation
+- ✅ Automatic prestate injection
+
+**📚 Detailed Documentation:**
+- [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - Full guide with module structure, usage, and examples
+
+---
 
 ### cleanup.sh
 
@@ -77,8 +107,8 @@ Cleanup and reset deployment state.
 ./cleanup.sh [options]
 
 # Options
---all               # Clean everything (containers, volumes, .devnet, .env) [default]
 --all-containers    # Clean all related containers (including devnet, kurtosis, etc.)
+--rebuild           # Remove Docker images and build cache (forces full rebuild) ⭐
 --keep-env          # Keep environment variable file (.env)
 --keep-genesis      # Keep Genesis files
 --help              # Show help
@@ -87,6 +117,9 @@ Cleanup and reset deployment state.
 
 # Default cleanup (.env and Genesis files also deleted)
 ./cleanup.sh
+
+# Full rebuild (remove Docker images and cache) ⭐
+./cleanup.sh --rebuild
 
 # Keep .env, delete Genesis only
 ./cleanup.sh --keep-env
@@ -99,6 +132,9 @@ Cleanup and reset deployment state.
 
 # Complete cleanup (including all related containers)
 ./cleanup.sh --all-containers
+
+# Complete cleanup + rebuild
+./cleanup.sh --all-containers --rebuild
 ```
 
 **Items cleaned:**
@@ -142,65 +178,7 @@ Generate environment variables and wallets required for deployment.
 - Sequencer: Account that generates L2 blocks
 - Challenger: Account that challenges invalid outputs
 
-### deploy-full-stack.sh
-
-Deploy the complete L2 system.
-
-**✨ Automated features:**
-- Automatically stop previous deployment containers
-- Automatically generate Genesis files (if missing)
-- Automatically cleanup Docker volumes (ensures Genesis consistency)
-- Automatically build Cannon VM and op-program
-- Automatically fund L1 accounts (local mode)
-
-```bash
-# Usage
-./deploy-full-stack.sh [options]
-
-# Options
---env-file FILE         # Environment variable file path (default: .env)
---mode MODE             # Deployment mode: local|sepolia|mainnet (default: local)
---skip-build            # Skip Docker image build
---skip-l1               # Skip L1 deployment (use external RPC)
---with-indexer          # Deploy Indexer stack as well
---help                  # Show help
-
-# Examples
-./deploy-full-stack.sh --mode local
-./deploy-full-stack.sh --mode sepolia --skip-l1
-./deploy-full-stack.sh --mode local --with-indexer
-```
-
-**Deployment process:**
-
-1. **Pre-validation**: Check required tools (docker, jq, openssl, cast)
-2. **Container cleanup**: Automatically stop previous deployment containers
-3. **Environment variables**: Auto-run setup-env.sh if missing
-4. **Genesis generation**: Auto-generate via make devnet-up if missing
-5. **Volume cleanup**: Auto-delete L1, L2 volumes (ensure Genesis consistency)
-6. **Cannon VM build**: Auto-build op-program, cannon, prestate
-7. **Service deployment**: Sequential deployment L1 → Sequencer → Challenger
-8. **Health check**: Automatic status verification after deployment
-
-**Deployed components:**
-
-**L1 Stack:**
-- L1 geth (local mode only, or external RPC)
-
-**Sequencer Stack:**
-- sequencer-l2 (L2 op-geth, for Sequencer)
-- sequencer-op-node (Sequencer mode)
-- op-batcher (batch submission)
-- op-proposer (output submission)
-
-**Challenger Stack (Independent!) ⭐:**
-- challenger-l2 (L2 op-geth, **separate database!**)
-- challenger-op-node (Follower mode, **independent verification!**)
-- op-challenger (challenge execution)
-
-**Optional:**
-- Indexer API
-- Grafana/Prometheus
+---
 
 ### health-check.sh
 
@@ -229,30 +207,32 @@ Monitor Challenger's real-time activity, game participation, and sync status.
 
 # Modes
 summary   # Full dashboard (default)
-config    # System configuration only
+config    # System configuration (GameType settings, Prestate verification, etc.) ⭐
 sync      # Blockchain sync status only
 logs      # Real-time logs (Ctrl+C to exit)
 games     # Game participation details
-errors    # Error analysis
+errors    # Error analysis (Prestate mismatch detection included)
 metrics   # Prometheus metrics
 
 # Examples
 ./monitor-challenger.sh              # Full dashboard
-./monitor-challenger.sh config       # Configuration only
+./monitor-challenger.sh config       # System config and Prestate verification ⭐
 ./monitor-challenger.sh sync         # Sync status only
 ./monitor-challenger.sh logs         # Real-time logs
 ./monitor-challenger.sh games        # Game activity only
+./monitor-challenger.sh errors       # Errors and Prestate verification
 ```
 
 **Monitoring items:**
 - ✅ Challenger container status
-- ✅ **System configuration (game time, proposer interval, etc.)** ⭐
+- ✅ **System configuration (GameType, game time, proposer interval, etc.)** ⭐
+- ✅ **Prestate verification (on-chain vs local Docker build comparison)** ⭐
 - ✅ L1/Sequencer/Challenger block height comparison and sync differences
 - ✅ L1 batch submission status (op-batcher)
 - ✅ Challenger independence verification (using independent op-node, L2 geth)
 - ✅ Game participation statistics (detected, in progress, resolved)
 - ✅ Challenger action logs (Attack/Defend)
-- ✅ Error and warning analysis
+- ✅ Error and warning analysis (Prestate mismatch detection)
 - ✅ Prometheus metrics (when enabled)
 
 **Key features:**
@@ -261,6 +241,8 @@ metrics   # Prometheus metrics
 - L1 batch submission and Challenger batch reading status
 - Independent stack usage verification (separation from Sequencer)
 - **On-chain configuration verification (query deployed game settings)** ⭐
+- **Prestate verification (on-chain absolute prestate vs local build prestate auto-comparison)** ⭐
+- **Prestate mismatch error auto-detection and solution guide** ⭐
 
 ## ⚙️ Game Settings
 
@@ -293,7 +275,7 @@ metrics   # Prometheus metrics
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
-./deploy-full-stack.sh --mode local
+./deploy-modular.sh --dg-type 0  # or --dg-type 2 for Asterisc
 ```
 
 **Settings:**
@@ -388,11 +370,9 @@ Error: incorrect L1 genesis block hash 0x..., expected 0x...
 # 1. Complete cleanup
 ./op-challenger/scripts/cleanup.sh
 
-# 2. Redeploy (volumes automatically cleaned)
-./op-challenger/scripts/deploy-full-stack.sh --mode local
+# 2. Redeploy
+./op-challenger/scripts/deploy-modular.sh --dg-type 0  # or --dg-type 2 for Asterisc
 ```
-
-**Note**: deploy-full-stack.sh automatically cleans L1/L2 volumes, but if you have manually created volumes, run cleanup.sh first.
 
 ### 2. No RPC Response
 
