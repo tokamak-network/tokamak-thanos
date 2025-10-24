@@ -195,7 +195,7 @@ contract Deploy is Deployer {
     ////////////////////////////////////////////////////////////////
 
     /// @notice Gets the address of the SafeProxyFactory and Safe singleton for use in deploying a new GnosisSafe.
-        function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, SafeExtender safeSingleton_) {
+    function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, SafeExtender safeSingleton_) {
         if (getAddress("SafeProxyFactory") != address(0)) {
             // The SafeProxyFactory is already saved, we can just use it.
             safeProxyFactory_ = SafeProxyFactory(getAddress("SafeProxyFactory"));
@@ -1122,12 +1122,12 @@ contract Deploy is Deployer {
             } else {
                 // If we didn't deploy the DelayedWETH contract in initializeDelayedWETH(), deploy it here.
                 // if (load("DelayedWETH") == address(0)) {
-                    console.log("Implementation from JSON not found on-chain, deploying new one");
-                    delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
-                    require(delayedWETH != address(0), "DelayedWETH deployment failed");
-                    save("DelayedWETH", delayedWETH);
-                    console.log("DelayedWETH deployed at %s", delayedWETH);
-                    // Import from deployment
+                console.log("Implementation from JSON not found on-chain, deploying new one");
+                delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
+                require(delayedWETH != address(0), "DelayedWETH deployment failed");
+                save("DelayedWETH", delayedWETH);
+                console.log("DelayedWETH deployed at %s", delayedWETH);
+                // Import from deployment
                 // }
                 // else {
                 //     delayedWETH = mustGetAddress("DelayedWETH");
@@ -1217,7 +1217,7 @@ contract Deploy is Deployer {
                 console.log("AnchorStateRegistry deployed at %s", anchorStateRegistry);
             }
         } else {
-             anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
+            anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
         }
 
         _upgradeAndCallViaSafe({
