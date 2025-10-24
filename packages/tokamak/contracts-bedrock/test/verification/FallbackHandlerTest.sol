@@ -12,6 +12,7 @@ import { Vm } from "forge-std/Vm.sol";
  * @title MockFallbackHandler
  * @dev Simple mock contract to serve as a fallback handler
  */
+
 contract MockFallbackHandler {
     event FallbackCalled(address caller, bytes data);
 
@@ -88,18 +89,18 @@ contract FallbackHandlerTest is Test {
         // Initialize the Safe with setup
         bytes memory setupData = abi.encodeWithSelector(
             Safe.setup.selector,
-            safeOwners,        // owners
-            1,                 // threshold
-            address(0),        // to
-            bytes(""),         // data
+            safeOwners, // owners
+            1, // threshold
+            address(0), // to
+            bytes(""), // data
             address(fallbackHandler), // fallbackHandler
-            address(0),        // paymentToken
-            0,                 // payment
-            address(0)         // paymentReceiver
+            address(0), // paymentToken
+            0, // payment
+            address(0) // paymentReceiver
         );
 
         // Direct call to the proxy
-        (bool success, ) = address(safeProxy).call(setupData);
+        (bool success,) = address(safeProxy).call(setupData);
         require(success, "Safe setup failed");
         assertEq(safeInstance.getFallbackHandler(), address(fallbackHandler), "Fallback handler not set correctly");
         vm.stopPrank();
@@ -114,13 +115,13 @@ contract FallbackHandlerTest is Test {
         // Execute call through the proxy which should trigger the fallback mechanism
         vm.recordLogs();
         vm.prank(owner);
-        (bool success, ) = address(safeProxy).call(callData);
+        (bool success,) = address(safeProxy).call(callData);
 
         assertTrue(success, "Fallback handler call failed");
 
         Vm.Log[] memory entries = vm.getRecordedLogs();
         bool eventFound = false;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             // FallbackCalled event has the signature: FallbackCalled(address,bytes)
             if (entries[i].topics[0] == keccak256("FallbackCalled(address,bytes)")) {
                 // Check it came from the expected handler contract
@@ -141,15 +142,15 @@ contract FallbackHandlerTest is Test {
         // Get transaction hash for signature
         bytes32 txHash = safeInstance.getTransactionHash(
             address(safeInstance), // to: self-call to change fallback handler
-            0,                     // value
-            data,                  // data
+            0, // value
+            data, // data
             SafeOps.Operation.Call, // operation
-            0,                     // safeTxGas
-            0,                     // baseGas
-            0,                     // gasPrice
-            address(0),            // gasToken
-            payable(address(0)),   // refundReceiver
-            safeInstance.nonce()   // nonce
+            0, // safeTxGas
+            0, // baseGas
+            0, // gasPrice
+            address(0), // gasToken
+            payable(address(0)), // refundReceiver
+            safeInstance.nonce() // nonce
         );
 
         // Sign transaction with owner
@@ -159,16 +160,16 @@ contract FallbackHandlerTest is Test {
         // Execute transaction
         vm.prank(owner);
         bool success = safeInstance.execTransaction(
-            address(safeInstance),  // to
-            0,                     // value
-            data,                  // data
+            address(safeInstance), // to
+            0, // value
+            data, // data
             SafeOps.Operation.Call, // operation
-            0,                     // safeTxGas
-            0,                     // baseGas
-            0,                     // gasPrice
-            address(0),            // gasToken
-            payable(address(0)),   // refundReceiver
-            signature              // signature
+            0, // safeTxGas
+            0, // baseGas
+            0, // gasPrice
+            address(0), // gasToken
+            payable(address(0)), // refundReceiver
+            signature // signature
         );
 
         assertTrue(success, "Failed to change fallback handler");
@@ -177,7 +178,7 @@ contract FallbackHandlerTest is Test {
         bytes memory callData = abi.encodeWithSignature("handle()");
         vm.recordLogs();
         vm.prank(owner);
-        (success, ) = address(safeProxy).call(callData);
+        (success,) = address(safeProxy).call(callData);
 
         assertTrue(success, "Call to new fallback handler failed");
     }

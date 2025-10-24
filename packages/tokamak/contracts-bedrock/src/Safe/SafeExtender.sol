@@ -10,7 +10,6 @@ import { FallbackManager } from "safe-contracts/base/FallbackManager.sol";
  * @notice This contract is only meant to be used as a minimal extension for Safe to expose the fallback handler
  */
 contract SafeExtender is Safe {
-
     /**
      * @notice Gets the fallback handler for the Safe
      * @return The address of the current fallback handler
