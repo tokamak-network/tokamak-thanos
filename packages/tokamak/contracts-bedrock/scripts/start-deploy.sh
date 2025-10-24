@@ -226,6 +226,15 @@ buildSource() {
   # Build core-utils with retry logic
   retryCommand "pnpm build" "Building core-utils" || return 1
 
+  # Verify core-utils build output
+  if [ ! -f "dist/index.js" ]; then
+    echo "Error: core-utils build output not found at dist/index.js"
+    echo "Listing dist directory:"
+    ls -la dist/ 2>/dev/null || echo "dist directory does not exist"
+    return 1
+  fi
+  echo "✅ core-utils build verified: dist/index.js exists"
+
   # Build SDK
   echo "Building SDK..."
   cd $projectRoot/packages/tokamak/sdk
@@ -233,8 +242,40 @@ buildSource() {
   # Additional wait to ensure modules are properly synced
   waitForFileSystem
 
+  # Reinstall SDK dependencies to ensure workspace symlinks are correct
+  echo "Ensuring SDK workspace dependencies are properly linked..."
+  retryCommand "pnpm install --prefer-offline" "Reinstalling SDK dependencies" || return 1
+
   # Build SDK with retry logic
   retryCommand "pnpm build" "Building SDK" || return 1
+
+  # Verify SDK build output and workspace symlinks
+  if [ ! -f "dist/index.js" ]; then
+    echo "Error: SDK build output not found at dist/index.js"
+    echo "Listing dist directory:"
+    ls -la dist/ 2>/dev/null || echo "dist directory does not exist"
+    return 1
+  fi
+
+  # Verify core-utils symlink in SDK node_modules
+  if [ ! -e "node_modules/@tokamak-network/core-utils/dist/index.js" ]; then
+    echo "Warning: core-utils symlink not properly set in SDK node_modules"
+    echo "Checking symlink target:"
+    ls -la node_modules/@tokamak-network/core-utils/ 2>/dev/null || echo "core-utils not found in node_modules"
+
+    # Try to fix by reinstalling
+    echo "Attempting to fix workspace symlinks..."
+    cd $projectRoot
+    retryCommand "pnpm install --force" "Force reinstalling all dependencies" || return 1
+
+    # Verify again
+    cd $projectRoot/packages/tokamak/sdk
+    if [ ! -e "node_modules/@tokamak-network/core-utils/dist/index.js" ]; then
+      echo "Error: Failed to restore core-utils symlink after force reinstall"
+      return 1
+    fi
+  fi
+  echo "✅ SDK build verified: dist/index.js exists and workspace symlinks are correct"
 
   cd $currentPWD
   echo "All source code built successfully!"
