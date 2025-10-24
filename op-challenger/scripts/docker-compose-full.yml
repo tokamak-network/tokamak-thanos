@@ -267,6 +267,7 @@ services:
       - 'challenger_data:/db'
       - '${PROJECT_ROOT}/op-program/bin:/op-program'  # ⭐ 로컬 빌드 op-program
       - '${PROJECT_ROOT}/cannon/bin:/cannon'          # ⭐ 로컬 빌드 cannon
+      - '${ASTERISC_BIN:-${PROJECT_ROOT}/asterisc/bin}:/asterisc'  # ⭐ Asterisc 바이너리 (GameType 2)
       - '${PROJECT_ROOT}/.devnet:/devnet'
     environment:
       OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
@@ -277,11 +278,18 @@ services:
       OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
       OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
       OP_CHALLENGER_DATADIR: /db
+      # Cannon (GameType 0, 1) 설정
       OP_CHALLENGER_CANNON_ROLLUP_CONFIG: /devnet/rollup.json
       OP_CHALLENGER_CANNON_L2_GENESIS: /devnet/genesis-l2.json
       OP_CHALLENGER_CANNON_BIN: /cannon/cannon                   # ⭐ 로컬 빌드 cannon 바이너리
       OP_CHALLENGER_CANNON_SERVER: /op-program/op-program        # ⭐ 로컬 빌드 op-program 바이너리
       OP_CHALLENGER_CANNON_PRESTATE: /op-program/prestate.json   # ⭐ 로컬 빌드 prestate
+      # Asterisc (GameType 2) 설정
+      OP_CHALLENGER_ASTERISC_ROLLUP_CONFIG: /devnet/rollup.json
+      OP_CHALLENGER_ASTERISC_L2_GENESIS: /devnet/genesis-l2.json
+      OP_CHALLENGER_ASTERISC_BIN: /asterisc/asterisc             # ⭐ Asterisc 바이너리
+      OP_CHALLENGER_ASTERISC_SERVER: /op-program/op-program      # ⭐ op-program 서버
+      OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ Asterisc prestate
       OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}
       OP_CHALLENGER_NUM_CONFIRMATIONS: 1
     ports:

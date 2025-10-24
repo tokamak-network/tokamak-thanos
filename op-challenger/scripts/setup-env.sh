@@ -317,8 +317,25 @@ PLASMA_GENERIC_DA=false
 # ============================================================================
 # Fault Proof Configuration
 # ============================================================================
+# GameType 선택:
+#   0 = CANNON (MIPS VM) - Default
+#   1 = PERMISSIONED_CANNON (Permissioned MIPS VM)
+#   2 = ASTERISC (RISC-V VM) - New!
+#   254 = FAST (Test only)
+#   255 = ALPHABET (Test only)
 DG_TYPE=0
+
+# Trace Type (challenger가 사용할 VM):
+#   cannon = MIPS VM (GameType 0, 1)
+#   asterisc = RISC-V VM (GameType 2)
+#   alphabet = Alphabet VM (GameType 255)
+CHALLENGER_TRACE_TYPE=cannon
+
 PROPOSAL_INTERVAL=12s
+
+# Asterisc 관련 경로 (GameType 2 사용 시)
+# ASTERISC_BIN=./asterisc/bin
+# ASTERISC_PRESTATE=./asterisc/prestate.json
 
 EOF
 
