@@ -44,6 +44,19 @@ bedrock-devnet/data
 
 .devnet
 
+# VM build artifacts (Cannon, Asterisc)
+.asterisc-src/
+asterisc/bin/
+cannon/bin/
+op-program/bin/
+/prestate.json
+
+# Backup files
+*.old.sh
+
+# Test files
+/test.go
+
 # Ignore local fuzzing results
 **/testdata/fuzz/
 
