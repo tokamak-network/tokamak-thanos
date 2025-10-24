@@ -38,9 +38,14 @@ git checkout feature/challenger-analysis
 ./op-challenger/scripts/cleanup.sh
 
 # 2. 전체 자동 배포 (처음 배포 시)
+
+# 2-1. GameType 0 (Cannon - MIPS VM) - 기본값
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
 
-# 또는 커스텀 게임 설정
+# 2-2. GameType 2 (Asterisc - RISC-V VM) - 새로운 기능!
+DG_TYPE=2 CHALLENGER_TRACE_TYPE=asterisc ./op-challenger/scripts/deploy-full-stack.sh --mode local
+
+# 2-3. 커스텀 게임 설정 (GameType 0)
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
 PROPOSAL_INTERVAL=30s \
@@ -198,6 +203,55 @@ PROPOSAL_INTERVAL=30s \
 **선택사항:**
 - Indexer API
 - Grafana/Prometheus
+
+---
+
+## 🎮 GameType 선택 가이드
+
+### 지원하는 GameType
+
+| GameType | 이름 | VM | 용도 | 상태 |
+|----------|------|-----|------|------|
+| **0** | CANNON | MIPS | 프로덕션 (기본값) | ✅ 안정 |
+| **1** | PERMISSIONED_CANNON | MIPS (권한형) | 프로덕션 | ✅ 안정 |
+| **2** | ASTERISC | **RISC-V** | 프로덕션 (신규!) | ✅ **통합 완료** |
+| 254 | FAST | Simple | 테스트 전용 | ⚠️ 테스트만 |
+| 255 | ALPHABET | Alphabet | 테스트 전용 | ⚠️ 테스트만 |
+
+### GameType 0 (Cannon) - 기본값
+
+```bash
+# 기본 설정
+./deploy-full-stack.sh --mode local
+```
+
+**특징**: MIPS VM 기반, 가장 안정적, 프로덕션 검증됨
+
+### GameType 2 (Asterisc) - RISC-V 신규!
+
+```bash
+# GameType 2로 배포
+DG_TYPE=2 CHALLENGER_TRACE_TYPE=asterisc ./deploy-full-stack.sh --mode local
+```
+
+**특징**: RISC-V VM 기반, Optimism 최신 아키텍처, 400+ 테스트 통과
+
+**필수 준비**:
+```bash
+# Asterisc 바이너리 빌드 (GameType 2 사용 전)
+make asterisc-prestate
+```
+
+### 환경 변수 설명
+
+```bash
+DG_TYPE                  # GameType (0, 1, 2, 254, 255)
+CHALLENGER_TRACE_TYPE    # Trace type (cannon, asterisc, alphabet)
+ASTERISC_BIN            # Asterisc 바이너리 경로 (GameType 2)
+ASTERISC_PRESTATE       # Asterisc prestate 파일 (GameType 2)
+```
+
+---
 
 ### health-check.sh
 

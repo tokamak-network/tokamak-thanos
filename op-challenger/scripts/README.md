@@ -40,6 +40,9 @@ git checkout feature/challenger-analysis
 # 2. Full automated deployment (first time)
 ./op-challenger/scripts/deploy-full-stack.sh --mode local
 
+# GameType 2 (Asterisc - RISC-V VM) - New!
+DG_TYPE=2 CHALLENGER_TRACE_TYPE=asterisc ./op-challenger/scripts/deploy-full-stack.sh --mode local
+
 # Or with custom game settings
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \

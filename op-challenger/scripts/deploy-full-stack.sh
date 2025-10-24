@@ -79,11 +79,15 @@ Environment Variables (local mode only):
     FAULT_GAME_MAX_CLOCK_DURATION    Max game duration in seconds (default: 1200 = 20min)
     FAULT_GAME_WITHDRAWAL_DELAY      Withdrawal delay after game ends (default: 604800 = 7days)
     PROPOSAL_INTERVAL                Proposer game creation interval (default: 12s)
-    DG_TYPE                          Game type (0=CANNON, 1=PERMISSIONED) (default: 0)
+    DG_TYPE                          Game type (0=CANNON, 1=PERMISSIONED, 2=ASTERISC) (default: 0)
+    CHALLENGER_TRACE_TYPE            Trace type (cannon, asterisc, alphabet) (default: cannon)
 
 Examples:
-    # Deploy full local development environment
+    # Deploy full local development environment (GameType 0 - Cannon)
     $0 --mode local
+
+    # Deploy with GameType 2 (Asterisc)
+    DG_TYPE=2 CHALLENGER_TRACE_TYPE=asterisc $0 --mode local
 
     # Deploy with 5-minute game duration
     FAULT_GAME_MAX_CLOCK_DURATION=300 $0 --mode local
@@ -237,6 +241,10 @@ export CHALLENGER_TRACE_TYPE="${CHALLENGER_TRACE_TYPE:-cannon}"
 export DG_TYPE="${DG_TYPE:-0}"
 export PROPOSAL_INTERVAL="${PROPOSAL_INTERVAL:-12s}"
 
+# Asterisc 관련 환경 변수 (GameType 2 사용 시)
+export ASTERISC_BIN="${ASTERISC_BIN:-./asterisc/bin}"
+export ASTERISC_PRESTATE="${ASTERISC_PRESTATE:-./asterisc/prestate.json}"
+
 # Define paths for contract addresses (will be loaded after Genesis generation)
 ADDRESSES_FILE="${PROJECT_ROOT}/.devnet/addresses.json"
 ZERO_ADDRESS="0x0000000000000000000000000000000000000000"
@@ -288,6 +296,46 @@ log_config "  FAULT_GAME_MAX_CLOCK_DURATION: ${FAULT_GAME_MAX_CLOCK_DURATION:-no
 log_config "  FAULT_GAME_WITHDRAWAL_DELAY: ${FAULT_GAME_WITHDRAWAL_DELAY:-not set}"
 log_config "  PROPOSAL_INTERVAL: ${PROPOSAL_INTERVAL:-not set}"
 log_config "  DG_TYPE: ${DG_TYPE:-not set}"
+log_config "  CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE:-not set}"
+
+# GameType 검증 및 설정
+case "$DG_TYPE" in
+    0)
+        log_info "GameType: 0 (CANNON - MIPS VM)"
+        if [ "$CHALLENGER_TRACE_TYPE" != "cannon" ] && [ "$CHALLENGER_TRACE_TYPE" != "alphabet" ]; then
+            log_warn "DG_TYPE=0 requires CHALLENGER_TRACE_TYPE=cannon, but got: $CHALLENGER_TRACE_TYPE"
+            log_info "Setting CHALLENGER_TRACE_TYPE=cannon"
+            export CHALLENGER_TRACE_TYPE="cannon"
+        fi
+        ;;
+    1)
+        log_info "GameType: 1 (PERMISSIONED_CANNON - Permissioned MIPS VM)"
+        if [ "$CHALLENGER_TRACE_TYPE" != "cannon" ]; then
+            log_warn "DG_TYPE=1 requires CHALLENGER_TRACE_TYPE=cannon, but got: $CHALLENGER_TRACE_TYPE"
+            log_info "Setting CHALLENGER_TRACE_TYPE=cannon"
+            export CHALLENGER_TRACE_TYPE="cannon"
+        fi
+        ;;
+    2)
+        log_info "GameType: 2 (ASTERISC - RISC-V VM)"
+        if [ "$CHALLENGER_TRACE_TYPE" != "asterisc" ]; then
+            log_warn "DG_TYPE=2 requires CHALLENGER_TRACE_TYPE=asterisc, but got: $CHALLENGER_TRACE_TYPE"
+            log_info "Setting CHALLENGER_TRACE_TYPE=asterisc"
+            export CHALLENGER_TRACE_TYPE="asterisc"
+        fi
+        ;;
+    254)
+        log_info "GameType: 254 (FAST - Test only)"
+        ;;
+    255)
+        log_info "GameType: 255 (ALPHABET - Test only)"
+        export CHALLENGER_TRACE_TYPE="alphabet"
+        ;;
+    *)
+        log_error "Invalid DG_TYPE: $DG_TYPE (must be 0, 1, 2, 254, or 255)"
+        exit 1
+        ;;
+esac
 
 case $DEPLOY_MODE in
     local)
