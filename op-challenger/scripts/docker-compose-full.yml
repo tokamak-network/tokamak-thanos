@@ -256,6 +256,7 @@ services:
       - challenger-l2
 
   op-challenger:
+    platform: linux/amd64  # Required for x86_64 binaries (asterisc, cannon, op-program)
     build:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile

@@ -50,6 +50,7 @@ Usage:
 
 Options:
     --all-containers    Clean ALL related containers (including devnet, kurtosis, etc.)
+    --rebuild           Remove Docker images and build cache (forces full rebuild)
     --keep-env          Keep environment variable file (.env)
     --keep-genesis      Keep Genesis files in .devnet
     --help              Show this help message
@@ -65,6 +66,9 @@ Examples:
     # Clean everything (default)
     $0
 
+    # Clean and force rebuild (removes images and cache)
+    $0 --rebuild
+
     # Clean but keep .env file
     $0 --keep-env
 
@@ -73,6 +77,9 @@ Examples:
 
     # Clean ALL containers (this script + devnet + kurtosis)
     $0 --all-containers
+
+    # Full clean with rebuild
+    $0 --all-containers --rebuild
 
     # Keep both .env and Genesis
     $0 --keep-env --keep-genesis
@@ -85,6 +92,7 @@ EOF
 CLEAN_ENV=true
 CLEAN_GENESIS=true
 CLEAN_ALL_CONTAINERS=false
+REBUILD=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -96,6 +104,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --all-containers)
             CLEAN_ALL_CONTAINERS=true
+            shift
+            ;;
+        --rebuild)
+            REBUILD=true
             shift
             ;;
         --keep-env)
@@ -132,6 +144,11 @@ if [ "$CLEAN_ALL_CONTAINERS" = true ]; then
 fi
 echo "  - Docker volumes"
 echo "  - Docker networks"
+if [ "$REBUILD" = true ]; then
+    echo "  - Docker images (tokamaknetwork/thanos-*, ops-bedrock-*)"
+    echo "  - Dangling images (<none>)"
+    echo "  - Docker build cache (all unused cache)"
+fi
 if [ "$CLEAN_ENV" = true ]; then
     echo "  - Environment variable file (.env)"
 fi
@@ -235,7 +252,60 @@ else
 fi
 
 ##############################################################################
-# 3. Clean environment variable file
+# 3. Clean Docker images and build cache (if --rebuild)
+##############################################################################
+
+if [ "$REBUILD" = true ]; then
+    log_info "=========================================="
+    log_info "Removing Docker images and build cache..."
+    log_info "=========================================="
+    echo ""
+
+    # Remove tokamaknetwork/thanos images
+    log_info "Removing tokamaknetwork/thanos-* images..."
+    docker images --format '{{.Repository}}:{{.Tag}}' | grep '^tokamaknetwork/thanos-' | while read image; do
+        log_info "  Removing image: $image"
+        docker rmi "$image" 2>/dev/null || true
+    done
+
+    # Remove ops-bedrock images (devnet L1/L2)
+    log_info "Removing ops-bedrock-* images..."
+    docker images --format '{{.Repository}}:{{.Tag}}' | grep 'ops-bedrock' | while read image; do
+        log_info "  Removing image: $image"
+        docker rmi "$image" 2>/dev/null || true
+    done
+
+    # Remove dangling images (<none>)
+    log_info "Removing dangling images (<none>)..."
+    docker images -f "dangling=true" -q | while read image_id; do
+        if [ -n "$image_id" ]; then
+            log_info "  Removing dangling image: $image_id"
+            docker rmi "$image_id" 2>/dev/null || true
+        fi
+    done
+
+    # Remove builder cache for op-challenger and related services
+    log_info "Pruning Docker build cache..."
+    docker builder prune -f --filter "label=stage=op-challenger-builder" 2>/dev/null || true
+    docker builder prune -f --filter "label=stage=op-node-builder" 2>/dev/null || true
+    docker builder prune -f --filter "label=stage=op-batcher-builder" 2>/dev/null || true
+    docker builder prune -f --filter "label=stage=op-proposer-builder" 2>/dev/null || true
+
+    # Additional aggressive cache pruning (removes all unused build cache)
+    log_warn "Removing ALL unused build cache (aggressive)..."
+    docker builder prune -af 2>/dev/null || true
+
+    log_success "Docker images and build cache removed"
+    log_success "  ✓ tokamaknetwork/thanos-* images"
+    log_success "  ✓ ops-bedrock-* images (devnet)"
+    log_success "  ✓ Dangling images (<none>)"
+    log_success "  ✓ All build cache"
+    log_success "Next deployment will rebuild everything from source"
+    echo ""
+fi
+
+##############################################################################
+# 4. Clean environment variable file
 ##############################################################################
 
 if [ "$CLEAN_ENV" = true ]; then
@@ -248,7 +318,7 @@ if [ "$CLEAN_ENV" = true ]; then
 fi
 
 ##############################################################################
-# 4. Summary
+# 5. Summary
 ##############################################################################
 
 echo ""
@@ -282,5 +352,18 @@ fi
 echo "  3. Deploy L2 system:"
 echo "     ${SCRIPT_DIR}/deploy-full-stack.sh --mode local"
 echo ""
+
+if [ "$REBUILD" = true ]; then
+    log_info "=========================================="
+    log_info "Rebuild Mode Enabled"
+    log_info "=========================================="
+    echo ""
+    log_success "✅ Docker images and build cache removed"
+    log_success "✅ Next deployment will rebuild all services from source"
+    echo ""
+    log_warn "Note: First build after --rebuild will take longer (5-10 minutes)"
+    log_warn "      but ensures all code changes are properly compiled"
+    echo ""
+fi
 
 exit 0
