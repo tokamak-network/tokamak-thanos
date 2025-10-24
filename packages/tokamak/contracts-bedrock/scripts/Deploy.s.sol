@@ -1822,12 +1822,23 @@ contract Deploy is Deployer {
     ///         from the config.
     function loadRiscvAbsolutePrestate() internal returns (Claim riscvAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
-            // For now, use the same prestate as MIPS for devnet testing
-            // TODO: Generate proper Asterisc prestate with `make asterisc-prestate`
+            // Fetch the absolute prestate dump from Asterisc Docker reproducible build
+            string memory filePath = string.concat(vm.projectRoot(), "/../../../asterisc/bin/prestate-proof.json");
+            string[] memory commands = new string[](3);
+            commands[0] = "bash";
+            commands[1] = "-c";
+            commands[2] = string.concat("[[ -f ", filePath, " ]] && echo \"present\"");
+            if (Process.run(commands).length == 0) {
+                revert("Asterisc prestate dump not found, generate it with `make asterisc` and build RISC-V prestate in the monorepo root.");
+            }
+            // Read stateHash directly from prestate-proof.json (Docker build output)
+            // Note: Asterisc uses .stateHash field (not .pre like Cannon)
+            commands[2] = string.concat("cat ", filePath, " | jq -r .stateHash");
+            riscvAbsolutePrestate_ = Claim.wrap(abi.decode(Process.run(commands), (bytes32)));
             console.log(
-                "[Asterisc Dispute Game] Using MIPS prestate as fallback (TODO: generate proper Asterisc prestate)"
+                "[Asterisc Dispute Game] Using devnet RISC-V Absolute prestate: %s",
+                vm.toString(Claim.unwrap(riscvAbsolutePrestate_))
             );
-            riscvAbsolutePrestate_ = loadMipsAbsolutePrestate();
         } else {
             console.log(
                 "[Asterisc Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()

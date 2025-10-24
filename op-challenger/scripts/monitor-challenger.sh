@@ -59,6 +59,44 @@ check_challenger_running() {
     echo "$container"
 }
 
+get_game_type_name() {
+    local game_type="$1"
+    case "$game_type" in
+        0) echo "CANNON" ;;
+        1) echo "PERMISSIONED_CANNON" ;;
+        2) echo "ASTERISC" ;;
+        254) echo "FAST" ;;
+        255) echo "ALPHABET" ;;
+        *) echo "UNKNOWN($game_type)" ;;
+    esac
+}
+
+get_game_type_color() {
+    local game_type="$1"
+    case "$game_type" in
+        0|1) echo "${BLUE}" ;;      # CANNON - Blue
+        2) echo "${CYAN}" ;;         # ASTERISC - Cyan
+        254) echo "${YELLOW}" ;;     # FAST - Yellow
+        255) echo "${GREEN}" ;;      # ALPHABET - Green
+        *) echo "${NC}" ;;
+    esac
+}
+
+# Query GameType from game contract
+get_game_type() {
+    local game_address="$1"
+    local l1_rpc="http://localhost:8545"
+
+    # Call gameType() function (function selector: 0xbbdc02db)
+    local result=$(cast call "$game_address" "gameType()(uint32)" --rpc-url "$l1_rpc" 2>/dev/null || echo "")
+
+    if [ -n "$result" ]; then
+        echo "$result"
+    else
+        echo ""
+    fi
+}
+
 ##############################################################################
 # Main monitoring functions
 ##############################################################################
@@ -186,6 +224,9 @@ show_game_summary() {
             echo ""
             log_warn "Invalid Prestate Warnings: $invalid_prestate"
             echo "     └─ This may indicate prestate mismatch with DisputeGameFactory"
+            echo ""
+            log_info "💡 Check prestate status with:"
+            echo "     ./op-challenger/scripts/monitor-challenger.sh config"
         fi
     fi
     echo ""
@@ -205,14 +246,25 @@ show_active_games() {
             local status=$(echo "$line" | sed -n 's/.*status="\([^"]*\)".*/\1/p' || echo "")
 
             if [ -n "$game" ]; then
+                # Get GameType for this game
+                local game_type=$(get_game_type "$game")
+                local game_type_name=$(get_game_type_name "$game_type")
+                local game_type_color=$(get_game_type_color "$game_type")
+
+                # Format GameType badge
+                local type_badge=""
+                if [ -n "$game_type" ]; then
+                    type_badge="[${game_type_color}${game_type_name}${NC}] "
+                fi
+
                 if [ "$status" = "In Progress" ]; then
-                    echo -e "  ${CYAN}$game${NC} - Claims: $claims - ${YELLOW}$status${NC}"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - Claims: $claims - ${YELLOW}$status${NC}"
                 elif [ "$status" = "Challenger Wins" ]; then
-                    echo -e "  ${CYAN}$game${NC} - Claims: $claims - ${GREEN}$status${NC}"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - Claims: $claims - ${GREEN}$status${NC}"
                 elif [ "$status" = "Defender Wins" ]; then
-                    echo -e "  ${CYAN}$game${NC} - Claims: $claims - ${RED}$status${NC}"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - Claims: $claims - ${RED}$status${NC}"
                 else
-                    echo -e "  ${CYAN}$game${NC} - Claims: $claims - $status"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - Claims: $claims - $status"
                 fi
             fi
         done
@@ -237,12 +289,23 @@ show_resolved_games() {
             local time_short=$(echo "$timestamp" | sed 's/\+.*//' | sed 's/T/ /')
 
             if [ -n "$game" ]; then
+                # Get GameType for this game
+                local game_type=$(get_game_type "$game")
+                local game_type_name=$(get_game_type_name "$game_type")
+                local game_type_color=$(get_game_type_color "$game_type")
+
+                # Format GameType badge
+                local type_badge=""
+                if [ -n "$game_type" ]; then
+                    type_badge="[${game_type_color}${game_type_name}${NC}] "
+                fi
+
                 if [ "$status" = "Challenger Won" ]; then
-                    echo -e "  ${CYAN}$game${NC} - ${GREEN}✓ $status${NC} - $time_short"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - ${GREEN}✓ $status${NC} - $time_short"
                 elif [ "$status" = "Defender Won" ]; then
-                    echo -e "  ${CYAN}$game${NC} - ${BLUE}✓ $status${NC} - $time_short"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - ${BLUE}✓ $status${NC} - $time_short"
                 else
-                    echo -e "  ${CYAN}$game${NC} - ✓ $status - $time_short"
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - ✓ $status - $time_short"
                 fi
             fi
         done
@@ -262,10 +325,23 @@ show_actions() {
             local action=$(echo "$line" | sed -n 's/.*action=\([a-z]*\).*/\1/p' || echo "")
             local attack=$(echo "$line" | sed -n 's/.*is_attack=\(true\|false\).*/\1/p' || echo "")
 
-            if [ "$attack" = "true" ]; then
-                echo -e "  ${CYAN}$game${NC} - ${RED}Attack${NC} ($action)"
-            else
-                echo -e "  ${CYAN}$game${NC} - ${GREEN}Defend${NC} ($action)"
+            if [ -n "$game" ]; then
+                # Get GameType for this game
+                local game_type=$(get_game_type "$game")
+                local game_type_name=$(get_game_type_name "$game_type")
+                local game_type_color=$(get_game_type_color "$game_type")
+
+                # Format GameType badge
+                local type_badge=""
+                if [ -n "$game_type" ]; then
+                    type_badge="[${game_type_color}${game_type_name}${NC}] "
+                fi
+
+                if [ "$attack" = "true" ]; then
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - ${RED}Attack${NC} ($action)"
+                else
+                    echo -e "  ${type_badge}${CYAN}$game${NC} - ${GREEN}Defend${NC} ($action)"
+                fi
             fi
         done
     fi
@@ -285,6 +361,39 @@ show_errors() {
             echo "$error_lines" | while IFS= read -r line; do
                 echo -e "${RED}$line${NC}"
             done
+
+            # Check for prestate-related errors
+            local prestate_errors=$(echo "$error_lines" | grep -i "prestate\|witness" | wc -l | tr -d ' ')
+            if [ "$prestate_errors" -gt 0 ]; then
+                echo ""
+                log_warn "⚠️  Detected $prestate_errors prestate/witness related errors"
+                echo ""
+                log_title "Prestate Verification Status"
+
+                # Show Cannon prestate status
+                local cannon_prestate_file="${PROJECT_ROOT}/op-program/bin/prestate-proof.json"
+                if [ -f "$cannon_prestate_file" ]; then
+                    local cannon_hash=$(cat "$cannon_prestate_file" | jq -r '.pre' 2>/dev/null || echo "")
+                    echo "  Cannon (GameType 0):"
+                    echo "    Local:  ${cannon_hash:0:18}...${cannon_hash: -6}"
+                else
+                    echo "  Cannon (GameType 0): ${RED}⚠️  Local prestate file not found${NC}"
+                fi
+
+                # Show Asterisc prestate status
+                local asterisc_prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+                if [ -f "$asterisc_prestate_file" ]; then
+                    local asterisc_hash=$(cat "$asterisc_prestate_file" | jq -r '.stateHash' 2>/dev/null || echo "")
+                    echo "  Asterisc (GameType 2):"
+                    echo "    Local:  ${asterisc_hash:0:18}...${asterisc_hash: -6}"
+                else
+                    echo "  Asterisc (GameType 2): ${RED}⚠️  Local prestate file not found${NC}"
+                fi
+
+                echo ""
+                log_info "💡 Compare with on-chain prestate using:"
+                echo "     ./op-challenger/scripts/monitor-challenger.sh config"
+            fi
         else
             log_success "No recent errors found!"
         fi
@@ -341,22 +450,35 @@ show_system_config() {
     echo "  DisputeGameFactory: $dgf_address"
     echo ""
 
-    # Get game implementation for type 0
-    local game_impl=$(cast call "$dgf_address" "gameImpls(uint32)(address)" 0 --rpc-url http://localhost:8545 2>/dev/null || echo "")
+    # Get game implementation for type 0 (CANNON)
+    local game_impl_0=$(cast call "$dgf_address" "gameImpls(uint32)(address)" 0 --rpc-url http://localhost:8545 2>/dev/null || echo "")
 
-    if [ -n "$game_impl" ] && [ "$game_impl" != "0x0000000000000000000000000000000000000000" ]; then
-        echo "  Game Type 0 (CANNON) Implementation:"
-        echo "    Address: $game_impl"
+    if [ -n "$game_impl_0" ] && [ "$game_impl_0" != "0x0000000000000000000000000000000000000000" ]; then
+        echo "  ┌─ GameType 0 (CANNON - MIPS VM)"
+        echo "  │  Address: $game_impl_0"
 
         # Get game configuration
-        local max_clock=$(cast call "$game_impl" "maxClockDuration()(uint64)" --rpc-url http://localhost:8545 2>/dev/null || echo "0")
+        local max_clock=$(cast call "$game_impl_0" "maxClockDuration()(uint64)" --rpc-url http://localhost:8545 2>/dev/null || echo "0")
         local max_clock_min=$((max_clock / 60))
-        local max_clock_hours=$((max_clock / 3600))
 
-        local absolute_prestate=$(cast call "$game_impl" "absolutePrestate()(bytes32)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
+        local absolute_prestate=$(cast call "$game_impl_0" "absolutePrestate()(bytes32)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
 
-        echo "    Max Clock Duration: ${max_clock}s (${max_clock_min} min)"
-        echo "    Absolute Prestate: ${absolute_prestate:0:18}...${absolute_prestate: -6}"
+        echo "  │  Max Clock Duration: ${max_clock}s (${max_clock_min} min)"
+        echo "  │  Absolute Prestate: ${absolute_prestate:0:18}...${absolute_prestate: -6}"
+
+        # Verify prestate matches local Docker build
+        local local_cannon_prestate_file="${PROJECT_ROOT}/op-program/bin/prestate-proof.json"
+        if [ -f "$local_cannon_prestate_file" ]; then
+            local local_cannon_prestate=$(cat "$local_cannon_prestate_file" | jq -r '.pre' 2>/dev/null || echo "")
+            if [ -n "$local_cannon_prestate" ] && [ "$local_cannon_prestate" != "null" ]; then
+                if [ "$absolute_prestate" = "$local_cannon_prestate" ]; then
+                    echo -e "  │  ${GREEN}✅ Matches local Docker build prestate${NC}"
+                else
+                    echo -e "  │  ${RED}⚠️  MISMATCH with local prestate!${NC}"
+                    echo "  │  Local: ${local_cannon_prestate:0:18}...${local_cannon_prestate: -6}"
+                fi
+            fi
+        fi
 
         # Get DelayedWETH address and withdrawal delay
         local delayed_weth=$(jq -r '.DelayedWETHProxy // .DelayedWETH' "$addresses_file" 2>/dev/null || echo "")
@@ -365,17 +487,50 @@ show_system_config() {
             if [ -n "$withdrawal_delay" ] && [ "$withdrawal_delay" != "0" ]; then
                 local withdrawal_days=$((withdrawal_delay / 86400))
                 local withdrawal_hours=$(( (withdrawal_delay % 86400) / 3600 ))
-                echo "    Withdrawal Delay: ${withdrawal_delay}s (${withdrawal_days}d ${withdrawal_hours}h)"
+                echo "  │  Withdrawal Delay: ${withdrawal_delay}s (${withdrawal_days}d ${withdrawal_hours}h)"
             fi
         fi
+    fi
 
-        # Get finality delay from DisputeGameFactory
-        local finality_delay=$(cast call "$dgf_address" "initBonds(uint32)(uint256)" 0 --rpc-url http://localhost:8545 2>/dev/null || echo "0")
-        if [ "$finality_delay" = "0" ]; then
-            # Try alternative method - check if there's a respectedGameType function
-            finality_delay="6s (default)"
-            echo "    Finality Delay: $finality_delay"
+    # Get game implementation for type 2 (ASTERISC) ⭐
+    local game_impl_2=$(cast call "$dgf_address" "gameImpls(uint32)(address)" 2 --rpc-url http://localhost:8545 2>/dev/null || echo "")
+
+    if [ -n "$game_impl_2" ] && [ "$game_impl_2" != "0x0000000000000000000000000000000000000000" ]; then
+        echo "  │"
+        echo "  └─ GameType 2 (ASTERISC - RISC-V VM) ⭐"
+        echo "     Address: $game_impl_2"
+
+        # Get RISCV VM address
+        local riscv_vm=$(cast call "$game_impl_2" "vm()(address)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
+        if [ -n "$riscv_vm" ] && [ "$riscv_vm" != "0x0000000000000000000000000000000000000000" ]; then
+            echo "     RISCV VM: $riscv_vm"
         fi
+
+        # Get game configuration
+        local max_clock_2=$(cast call "$game_impl_2" "maxClockDuration()(uint64)" --rpc-url http://localhost:8545 2>/dev/null || echo "0")
+        local max_clock_min_2=$((max_clock_2 / 60))
+
+        local absolute_prestate_2=$(cast call "$game_impl_2" "absolutePrestate()(bytes32)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
+
+        echo "     Max Clock Duration: ${max_clock_2}s (${max_clock_min_2} min)"
+        echo "     Absolute Prestate: ${absolute_prestate_2:0:18}...${absolute_prestate_2: -6}"
+
+        # Verify prestate matches local Docker build
+        local local_prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+        if [ -f "$local_prestate_file" ]; then
+            local local_prestate=$(cat "$local_prestate_file" | jq -r '.stateHash' 2>/dev/null || echo "")
+            if [ -n "$local_prestate" ] && [ "$local_prestate" != "null" ]; then
+                if [ "$absolute_prestate_2" = "$local_prestate" ]; then
+                    echo -e "     ${GREEN}✅ Matches local Docker build prestate${NC}"
+                else
+                    echo -e "     ${RED}⚠️  MISMATCH with local prestate!${NC}"
+                    echo "     Local: ${local_prestate:0:18}...${local_prestate: -6}"
+                fi
+            fi
+        fi
+    else
+        echo "  │"
+        echo "  └─ GameType 2 (ASTERISC - RISC-V VM): Not deployed ⭐"
     fi
 
     echo ""
@@ -384,10 +539,20 @@ show_system_config() {
     local proposer_container=$(docker ps --format '{{.Names}}' | grep "op-proposer" | head -1 || echo "")
     if [ -n "$proposer_container" ]; then
         echo "  Proposer Configuration:"
-        local game_type=$(docker inspect "$proposer_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_PROPOSER_GAME_TYPE" | cut -d= -f2 || echo "unknown")
+        local game_type=$(docker inspect "$proposer_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_PROPOSER_GAME_TYPE" | cut -d= -f2 || echo "0")
         local proposal_interval=$(docker inspect "$proposer_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_PROPOSER_PROPOSAL_INTERVAL" | cut -d= -f2 || echo "unknown")
 
-        echo "    Game Type: $game_type"
+        # Convert game type to name
+        local game_type_name="Unknown"
+        case "$game_type" in
+            0) game_type_name="CANNON (MIPS)" ;;
+            1) game_type_name="PERMISSIONED_CANNON" ;;
+            2) game_type_name="ASTERISC (RISC-V) ⭐" ;;
+            254) game_type_name="FAST (Test)" ;;
+            255) game_type_name="ALPHABET (Test)" ;;
+        esac
+
+        echo "    Game Type: $game_type ($game_type_name)"
         echo "    Proposal Interval: $proposal_interval"
     fi
 
@@ -397,6 +562,21 @@ show_system_config() {
     local challenger_container=$(docker ps --format '{{.Names}}' | grep "op-challenger" | head -1 || echo "")
     if [ -n "$challenger_container" ]; then
         echo "  Challenger Configuration:"
+
+        # Get trace type
+        local trace_type=$(docker inspect "$challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2 || echo "unknown")
+
+        # Convert trace type to display name
+        local trace_type_name="Unknown"
+        case "$trace_type" in
+            cannon) trace_type_name="Cannon (MIPS VM)" ;;
+            asterisc) trace_type_name="Asterisc (RISC-V VM) ⭐" ;;
+            alphabet) trace_type_name="Alphabet (Test)" ;;
+        esac
+
+        echo "    Trace Type: $trace_type ($trace_type_name)"
+
+        # Get challenger address
         local challenger_addr=$(docker inspect "$challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_PRIVATE_KEY" | cut -d= -f2 || echo "")
         if [ -n "$challenger_addr" ] && command -v cast >/dev/null 2>&1; then
             challenger_addr=$(cast wallet address "$challenger_addr" 2>/dev/null || echo "unknown")

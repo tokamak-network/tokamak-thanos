@@ -255,6 +255,78 @@ fi
 echo ""
 
 ##############################################################################
+# GameType Configuration Check
+##############################################################################
+
+log_info "━━━ GameType Configuration ━━━"
+
+# Load addresses
+ADDRESSES_FILE="${PROJECT_ROOT:-.}/.devnet/addresses.json"
+if [ -f "$ADDRESSES_FILE" ]; then
+    DGF_ADDRESS=$(jq -r '.DisputeGameFactoryProxy // .DisputeGameFactory' "$ADDRESSES_FILE" 2>/dev/null || echo "")
+
+    if [ -n "$DGF_ADDRESS" ] && [ "$DGF_ADDRESS" != "null" ]; then
+        log_info "DisputeGameFactory: $DGF_ADDRESS"
+
+        # Check GameType 0 (CANNON)
+        GT0_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 0 2>/dev/null || echo "")
+        if [ -n "$GT0_IMPL" ] && [ "$GT0_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_success "GameType 0 (CANNON) - Deployed: $GT0_IMPL"
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        else
+            log_warn "GameType 0 (CANNON) - Not deployed"
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        fi
+
+        # Check GameType 1 (PERMISSIONED_CANNON)
+        GT1_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 1 2>/dev/null || echo "")
+        if [ -n "$GT1_IMPL" ] && [ "$GT1_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_success "GameType 1 (PERMISSIONED_CANNON) - Deployed: $GT1_IMPL"
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        else
+            log_info "GameType 1 (PERMISSIONED_CANNON) - Not deployed (optional)"
+        fi
+
+        # Check GameType 2 (ASTERISC) ⭐
+        GT2_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 2 2>/dev/null || echo "")
+        if [ -n "$GT2_IMPL" ] && [ "$GT2_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_success "GameType 2 (ASTERISC/RISCV) - Deployed: $GT2_IMPL ⭐"
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+
+            # Get RISCV VM address
+            RISCV_VM=$(cast call --rpc-url "http://localhost:8545" "$GT2_IMPL" "vm()(address)" 2>/dev/null || echo "")
+            if [ -n "$RISCV_VM" ] && [ "$RISCV_VM" != "0x0000000000000000000000000000000000000000" ]; then
+                log_info "  └─ RISCV VM: $RISCV_VM"
+            fi
+        else
+            log_info "GameType 2 (ASTERISC/RISCV) - Not deployed (optional) ⭐"
+        fi
+
+        # Check GameType 254 (FAST)
+        GT254_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 254 2>/dev/null || echo "")
+        if [ -n "$GT254_IMPL" ] && [ "$GT254_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_info "GameType 254 (FAST) - Deployed: $GT254_IMPL"
+        fi
+
+        # Check GameType 255 (ALPHABET)
+        GT255_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 255 2>/dev/null || echo "")
+        if [ -n "$GT255_IMPL" ] && [ "$GT255_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_info "GameType 255 (ALPHABET) - Deployed: $GT255_IMPL"
+        fi
+    else
+        log_warn "DisputeGameFactory address not found in addresses.json"
+    fi
+else
+    log_warn "addresses.json not found: $ADDRESSES_FILE"
+fi
+
+echo ""
+
+##############################################################################
 # Collect additional information
 ##############################################################################
 

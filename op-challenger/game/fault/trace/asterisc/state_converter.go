@@ -3,10 +3,12 @@ package asterisc
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -15,14 +17,57 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
 )
 
-// The state struct will be read from json.
-// other fields included in json are specific to FPVM implementation, and not required for trace provider.
+// VMState represents Asterisc VM state
+// Supports both Hex (0x...) and Base64 encoding for witness field
 type VMState struct {
 	PC        uint64        `json:"pc"`
 	Exited    bool          `json:"exited"`
 	Step      uint64        `json:"step"`
-	Witness   hexutil.Bytes `json:"witness"`
+	Witness   hexutil.Bytes `json:"-"` // Custom unmarshal
 	StateHash common.Hash   `json:"stateHash"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for VMState
+// Handles both Base64 (prestate.json files) and Hex (asterisc witness command output)
+func (v *VMState) UnmarshalJSON(data []byte) error {
+	type Alias VMState
+	aux := &struct {
+		Witness interface{} `json:"witness"`
+		*Alias
+	}{
+		Alias: (*Alias)(v),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Handle witness field (can be Base64 string or Hex string)
+	if aux.Witness != nil {
+		switch w := aux.Witness.(type) {
+		case string:
+			// Check if it's Hex (starts with 0x) or Base64
+			if strings.HasPrefix(w, "0x") {
+				// Hex format (from asterisc witness command)
+				decoded, err := hexutil.Decode(w)
+				if err != nil {
+					return fmt.Errorf("failed to decode hex witness: %w", err)
+				}
+				v.Witness = decoded
+			} else {
+				// Base64 format (from prestate.json files)
+				decoded, err := base64.StdEncoding.DecodeString(w)
+				if err != nil {
+					return fmt.Errorf("failed to decode base64 witness: %w", err)
+				}
+				v.Witness = decoded
+			}
+		default:
+			return fmt.Errorf("witness field has unexpected type: %T", w)
+		}
+	}
+
+	return nil
 }
 
 type StateConverter struct {
