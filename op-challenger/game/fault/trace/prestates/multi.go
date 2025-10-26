@@ -1,6 +1,7 @@
 package prestates
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -29,7 +30,7 @@ func NewMultiPrestateProvider(baseUrl *url.URL, dataDir string) *MultiPrestatePr
 	}
 }
 
-func (m *MultiPrestateProvider) PrestatePath(hash common.Hash) (string, error) {
+func (m *MultiPrestateProvider) PrestatePath(ctx context.Context, hash common.Hash) (string, error) {
 	path := filepath.Join(m.dataDir, hash.Hex()+".json.gz")
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		if err := m.fetchPrestate(hash, path); err != nil {

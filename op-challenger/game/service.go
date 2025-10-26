@@ -226,7 +226,7 @@ func (s *Service) registerGameTypes(ctx context.Context, cfg *config.Config) err
 	gameTypeRegistry := registry.NewGameTypeRegistry()
 	oracles := registry.NewOracleRegistry()
 	caller := batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize)
-	closer, err := fault.RegisterGameTypes(ctx, s.systemClock, s.l1Clock, s.logger, s.metrics, cfg, gameTypeRegistry, oracles, s.rollupClient, s.txSender, s.factoryContract, caller, s.l1Client, cfg.SelectiveClaimResolution, s.claimants)
+	closer, err := fault.RegisterGameTypes(ctx, s.systemClock, s.l1Clock, s.logger, s.metrics, cfg, gameTypeRegistry, oracles, s.txSender, s.factoryContract, caller, s.l1Client, cfg.SelectiveClaimResolution, s.claimants)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,8 @@ package types
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"math/big"
 	"time"
 
@@ -18,13 +20,41 @@ var (
 	ErrL2BlockNumberValid = errors.New("l2 block number is valid")
 )
 
+// GameType is the type of dispute game (Optimism style)
+type GameType uint32
+
 const (
-	CannonGameType       uint32 = 0
-	PermissionedGameType uint32 = 1
-	AsteriscGameType     uint32 = 2
-	FastGameType         uint32 = 254
-	AlphabetGameType     uint32 = 255
+	CannonGameType       GameType = 0
+	PermissionedGameType GameType = 1
+	AsteriscGameType     GameType = 2
+	AsteriscKonaGameType GameType = 3
+	FastGameType         GameType = 254
+	AlphabetGameType     GameType = 255
+	UnknownGameType      GameType = math.MaxUint32
 )
+
+func (t GameType) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
+}
+
+func (t GameType) String() string {
+	switch t {
+	case CannonGameType:
+		return "cannon"
+	case PermissionedGameType:
+		return "permissioned"
+	case AsteriscGameType:
+		return "asterisc"
+	case AsteriscKonaGameType:
+		return "asterisc-kona"
+	case FastGameType:
+		return "fast"
+	case AlphabetGameType:
+		return "alphabet"
+	default:
+		return fmt.Sprintf("unknown(%d)", t)
+	}
+}
 
 type ClockReader interface {
 	Now() time.Time

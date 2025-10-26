@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 var ErrInvalidPrestate = errors.New("absolute prestate does not match")
@@ -41,7 +42,7 @@ func GameStatusFromUint8(i uint8) (GameStatus, error) {
 
 type GameMetadata struct {
 	Index     uint64
-	GameType  uint32
+	GameType  faultTypes.GameType
 	Timestamp uint64
 	Proxy     common.Address
 }

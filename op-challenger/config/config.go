@@ -50,6 +50,10 @@ var (
 	ErrAsteriscNetworkAndRollupConfig     = errors.New("only specify one of network or rollup config path")
 	ErrAsteriscNetworkAndL2Genesis        = errors.New("only specify one of network or l2 genesis path")
 	ErrAsteriscNetworkUnknown             = errors.New("unknown asterisc network")
+
+	ErrMissingAsteriscKonaAbsolutePreState = errors.New("missing asterisc kona absolute pre-state")
+	ErrMissingAsteriscKonaSnapshotFreq     = errors.New("missing asterisc kona snapshot freq")
+	ErrMissingAsteriscKonaInfoFreq         = errors.New("missing asterisc kona info freq")
 )
 
 type TraceType string
@@ -59,10 +63,11 @@ const (
 	TraceTypeFast         TraceType = "fast"
 	TraceTypeCannon       TraceType = "cannon"
 	TraceTypeAsterisc     TraceType = "asterisc"
+	TraceTypeAsteriscKona TraceType = "asterisc-kona"
 	TraceTypePermissioned TraceType = "permissioned"
 )
 
-var TraceTypes = []TraceType{TraceTypeAlphabet, TraceTypeCannon, TraceTypePermissioned, TraceTypeAsterisc, TraceTypeFast}
+var TraceTypes = []TraceType{TraceTypeAlphabet, TraceTypeCannon, TraceTypePermissioned, TraceTypeAsterisc, TraceTypeAsteriscKona, TraceTypeFast}
 
 func (t TraceType) String() string {
 	return string(t)
@@ -131,15 +136,16 @@ type Config struct {
 	L2Rpc string // L2 RPC Url
 
 	// Specific to the cannon trace provider
-	CannonBin                     string   // Path to the cannon executable to run when generating trace data
-	CannonServer                  string   // Path to the op-program executable that provides the pre-image oracle server
-	CannonAbsolutePreState        string   // File to load the absolute pre-state for Cannon traces from
-	CannonAbsolutePreStateBaseURL *url.URL // Base URL to retrieve absolute pre-states for Cannon traces from
-	CannonNetwork                 string
-	CannonRollupConfigPath        string
-	CannonL2GenesisPath           string
-	CannonSnapshotFreq            uint // Frequency of snapshots to create when executing cannon (in VM instructions)
-	CannonInfoFreq                uint // Frequency of cannon progress log messages (in VM instructions)
+	Cannon                        vm.Config // Optimism: unified config
+	CannonBin                     string    // Path to the cannon executable to run when generating trace data (legacy)
+	CannonServer                  string    // Path to the op-program executable that provides the pre-image oracle server (legacy)
+	CannonAbsolutePreState        string    // File to load the absolute pre-state for Cannon traces from
+	CannonAbsolutePreStateBaseURL *url.URL  // Base URL to retrieve absolute pre-states for Cannon traces from
+	CannonNetwork                 string    // Legacy
+	CannonRollupConfigPath        string    // Legacy
+	CannonL2GenesisPath           string    // Legacy
+	CannonSnapshotFreq            uint      // Frequency of snapshots to create when executing cannon (in VM instructions) (legacy)
+	CannonInfoFreq                uint      // Frequency of cannon progress log messages (in VM instructions) (legacy)
 
 	// Specific to the asterisc trace provider
 	Asterisc                        vm.Config
@@ -152,6 +158,11 @@ type Config struct {
 	AsteriscL2GenesisPath           string
 	AsteriscSnapshotFreq            uint // Frequency of snapshots to create when executing asterisc (in VM instructions)
 	AsteriscInfoFreq                uint // Frequency of asterisc progress log messages (in VM instructions)
+
+	// Specific to the asterisc-kona trace provider (following Optimism structure)
+	AsteriscKona                        vm.Config
+	AsteriscKonaAbsolutePreState        string   // File to load the absolute pre-state for AsteriscKona traces from
+	AsteriscKonaAbsolutePreStateBaseURL *url.URL // Base URL to retrieve absolute pre-states for AsteriscKona traces from
 
 	MaxPendingTx uint64 // Maximum number of pending transactions (0 == no limit)
 
@@ -194,8 +205,29 @@ func NewConfig(
 		AsteriscInfoFreq:     DefaultAsteriscInfoFreq,
 		GameWindow:           DefaultGameWindow,
 
+		// Optimism: unified Cannon config
+		Cannon: vm.Config{
+			VmType:          types.TraceTypeCannon,
+			L1:              l1EthRpc,
+			L1Beacon:        l1BeaconApi,
+			L2s:             []string{l2EthRpc},
+			SnapshotFreq:    DefaultCannonSnapshotFreq,
+			InfoFreq:        DefaultCannonInfoFreq,
+			DebugInfo:       true,
+			BinarySnapshots: true,
+		},
 		Asterisc: vm.Config{
 			VmType:          types.TraceTypeAsterisc,
+			L1:              l1EthRpc,
+			L1Beacon:        l1BeaconApi,
+			L2s:             []string{l2EthRpc},
+			SnapshotFreq:    DefaultAsteriscSnapshotFreq,
+			InfoFreq:        DefaultAsteriscInfoFreq,
+			DebugInfo:       true,
+			BinarySnapshots: true,
+		},
+		AsteriscKona: vm.Config{
+			VmType:          types.TraceTypeAsteriscKona,
 			L1:              l1EthRpc,
 			L1Beacon:        l1BeaconApi,
 			L2s:             []string{l2EthRpc},
@@ -243,6 +275,11 @@ func (c Config) Check() error {
 		if c.CannonServer == "" {
 			return ErrMissingCannonServer
 		}
+		// Optimism: Copy legacy fields to unified config
+		c.Cannon.VmBin = c.CannonBin
+		c.Cannon.Server = c.CannonServer
+		c.Cannon.SnapshotFreq = c.CannonSnapshotFreq
+		c.Cannon.InfoFreq = c.CannonInfoFreq
 		if c.CannonNetwork == "" {
 			if c.CannonRollupConfigPath == "" {
 				return ErrMissingCannonRollupConfig
@@ -250,6 +287,8 @@ func (c Config) Check() error {
 			if c.CannonL2GenesisPath == "" {
 				return ErrMissingCannonL2Genesis
 			}
+			c.Cannon.RollupConfigPaths = []string{c.CannonRollupConfigPath}
+			c.Cannon.L2GenesisPaths = []string{c.CannonL2GenesisPath}
 		} else {
 			if c.CannonRollupConfigPath != "" {
 				return ErrCannonNetworkAndRollupConfig
@@ -260,6 +299,7 @@ func (c Config) Check() error {
 			if ch := chaincfg.ChainByName(c.CannonNetwork); ch == nil {
 				return fmt.Errorf("%w: %v", ErrCannonNetworkUnknown, c.CannonNetwork)
 			}
+			c.Cannon.Networks = []string{c.CannonNetwork}
 		}
 		if c.CannonAbsolutePreState == "" && c.CannonAbsolutePreStateBaseURL == nil {
 			return ErrMissingCannonAbsolutePreState
@@ -321,6 +361,11 @@ func (c Config) Check() error {
 			return fmt.Errorf("asterisc config: %w", err)
 		}
 	}
+	if c.TraceTypeEnabled(TraceTypeAsteriscKona) {
+		if err := c.validateBaseAsteriscKonaOptions(); err != nil {
+			return err
+		}
+	}
 	if err := c.TxMgrConfig.Check(); err != nil {
 		return err
 	}
@@ -329,6 +374,22 @@ func (c Config) Check() error {
 	}
 	if err := c.PprofConfig.Check(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (c Config) validateBaseAsteriscKonaOptions() error {
+	if err := c.AsteriscKona.Check(); err != nil {
+		return fmt.Errorf("asterisc kona: %w", err)
+	}
+	if c.AsteriscKonaAbsolutePreState == "" && c.AsteriscKonaAbsolutePreStateBaseURL == nil {
+		return ErrMissingAsteriscKonaAbsolutePreState
+	}
+	if c.AsteriscKona.SnapshotFreq == 0 {
+		return ErrMissingAsteriscKonaSnapshotFreq
+	}
+	if c.AsteriscKona.InfoFreq == 0 {
+		return ErrMissingAsteriscKonaInfoFreq
 	}
 	return nil
 }

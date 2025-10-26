@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
+	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
@@ -196,7 +197,7 @@ func (f *DisputeGameFactoryContract) decodeGame(idx uint64, result *batching.Cal
 	proxy := result.GetAddress(2)
 	return types.GameMetadata{
 		Index:     idx,
-		GameType:  gameType,
+		GameType:  faultTypes.GameType(gameType),
 		Timestamp: timestamp,
 		Proxy:     proxy,
 	}
