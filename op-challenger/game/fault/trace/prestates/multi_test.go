@@ -1,6 +1,7 @@
 package prestates
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,7 @@ func TestDownloadPrestate(t *testing.T) {
 	defer server.Close()
 	provider := NewMultiPrestateProvider(parseURL(t, server.URL), dir)
 	hash := common.Hash{0xaa}
-	path, err := provider.PrestatePath(hash)
+	path, err := provider.PrestatePath(context.Background(), hash)
 	require.NoError(t, err)
 	in, err := ioutil.OpenDecompressed(path)
 	require.NoError(t, err)
@@ -41,7 +42,7 @@ func TestCreateDirectory(t *testing.T) {
 	defer server.Close()
 	provider := NewMultiPrestateProvider(parseURL(t, server.URL), dir)
 	hash := common.Hash{0xaa}
-	path, err := provider.PrestatePath(hash)
+	path, err := provider.PrestatePath(context.Background(), hash)
 	require.NoError(t, err)
 	in, err := ioutil.OpenDecompressed(path)
 	require.NoError(t, err)
@@ -59,7 +60,7 @@ func TestExistingPrestate(t *testing.T) {
 	err := ioutil.WriteCompressedBytes(expectedFile, []byte("expected content"), os.O_WRONLY|os.O_CREATE, 0o644)
 	require.NoError(t, err)
 
-	path, err := provider.PrestatePath(hash)
+	path, err := provider.PrestatePath(context.Background(), hash)
 	require.NoError(t, err)
 	require.Equal(t, expectedFile, path)
 	in, err := ioutil.OpenDecompressed(path)
@@ -78,7 +79,7 @@ func TestMissingPrestate(t *testing.T) {
 	defer server.Close()
 	provider := NewMultiPrestateProvider(parseURL(t, server.URL), dir)
 	hash := common.Hash{0xaa}
-	path, err := provider.PrestatePath(hash)
+	path, err := provider.PrestatePath(context.Background(), hash)
 	require.ErrorIs(t, err, ErrPrestateUnavailable)
 	_, err = os.Stat(path)
 	require.ErrorIs(t, err, os.ErrNotExist)

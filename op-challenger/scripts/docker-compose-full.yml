@@ -256,7 +256,7 @@ services:
       - challenger-l2
 
   op-challenger:
-    platform: linux/amd64  # Required for x86_64 binaries (asterisc, cannon, op-program)
+    platform: linux/amd64  # Required for x86_64 binaries (asterisc, cannon, op-program, kona-client)
     build:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
@@ -269,6 +269,7 @@ services:
       - '${PROJECT_ROOT}/op-program/bin:/op-program'  # ⭐ 로컬 빌드 op-program
       - '${PROJECT_ROOT}/cannon/bin:/cannon'          # ⭐ 로컬 빌드 cannon
       - '${ASTERISC_BIN:-${PROJECT_ROOT}/asterisc/bin}:/asterisc'  # ⭐ Asterisc 바이너리 (GameType 2)
+      - '${KONA_BIN:-${PROJECT_ROOT}/bin}:/kona'      # ✅ kona-client 바이너리 (GameType 3)
       - '${PROJECT_ROOT}/.devnet:/devnet'
     environment:
       OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
@@ -291,6 +292,12 @@ services:
       OP_CHALLENGER_ASTERISC_BIN: /asterisc/asterisc             # ⭐ Asterisc 바이너리
       OP_CHALLENGER_ASTERISC_SERVER: /op-program/op-program      # ⭐ op-program 서버
       OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ Asterisc prestate
+      # ✅ AsteriscKona (GameType 3) 설정
+      OP_CHALLENGER_ASTERISC_KONA_ROLLUP_CONFIG: /devnet/rollup.json
+      OP_CHALLENGER_ASTERISC_KONA_L2_GENESIS: /devnet/genesis-l2.json
+      OP_CHALLENGER_ASTERISC_KONA_BIN: /asterisc/asterisc        # ⭐ Asterisc 바이너리 (GameType 2와 동일)
+      OP_CHALLENGER_ASTERISC_KONA_SERVER: /kona/kona-client      # ✅ kona-client 바이너리
+      OP_CHALLENGER_ASTERISC_KONA_PRESTATE: ${KONA_PRESTATE:-/op-program/prestate-kona.json}  # ✅ kona prestate
       OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}
       OP_CHALLENGER_NUM_CONFIRMATIONS: 1
     ports:

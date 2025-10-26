@@ -391,6 +391,7 @@ contract Deploy is Deployer {
         setCannonFaultGameImplementation({ _allowUpgrade: false });
         setPermissionedCannonFaultGameImplementation({ _allowUpgrade: false });
         setAsteriscFaultGameImplementation({ _allowUpgrade: false });
+        setAsteriscKonaFaultGameImplementation({ _allowUpgrade: false });
 
         transferDisputeGameFactoryOwnership();
         transferDelayedWETHOwnership();
@@ -1179,7 +1180,7 @@ contract Deploy is Deployer {
         address anchorStateRegistryProxy = mustGetAddress("AnchorStateRegistryProxy");
         SuperchainConfig superchainConfig = SuperchainConfig(mustGetAddress("SuperchainConfigProxy"));
 
-        AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](5);
+        AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](6);
         roots[0] = AnchorStateRegistry.StartingAnchorRoot({
             gameType: GameTypes.CANNON,
             outputRoot: OutputRoot({
@@ -1195,14 +1196,14 @@ contract Deploy is Deployer {
             })
         });
         roots[2] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ALPHABET,
+            gameType: GameTypes.ASTERISC,
             outputRoot: OutputRoot({
                 root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
                 l2BlockNumber: cfg.faultGameGenesisBlock()
             })
         });
         roots[3] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ASTERISC,
+            gameType: GameTypes.ASTERISC_KONA,
             outputRoot: OutputRoot({
                 root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
                 l2BlockNumber: cfg.faultGameGenesisBlock()
@@ -1210,6 +1211,13 @@ contract Deploy is Deployer {
         });
         roots[4] = AnchorStateRegistry.StartingAnchorRoot({
             gameType: GameTypes.FAST,
+            outputRoot: OutputRoot({
+                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+                l2BlockNumber: cfg.faultGameGenesisBlock()
+            })
+        });
+        roots[5] = AnchorStateRegistry.StartingAnchorRoot({
+            gameType: GameTypes.ALPHABET,
             outputRoot: OutputRoot({
                 root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
                 l2BlockNumber: cfg.faultGameGenesisBlock()
@@ -1954,6 +1962,29 @@ contract Deploy is Deployer {
                 gameType: GameTypes.ASTERISC,
                 absolutePrestate: loadRiscvAbsolutePrestate(),
                 faultVm: IBigStepper(mustGetAddress("Riscv")),
+                maxGameDepth: cfg.faultGameMaxDepth(),
+                maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
+            })
+        });
+    }
+
+    /// @notice Sets the implementation for the `ASTERISC_KONA` game type in the `DisputeGameFactory`
+    function setAsteriscKonaFaultGameImplementation(bool _allowUpgrade) public broadcast {
+        console.log("Setting Asterisc-Kona FaultDisputeGame implementation");
+        DisputeGameFactory factory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
+        DelayedWETH weth = DelayedWETH(mustGetAddress("DelayedWETHProxy"));
+
+        // Set the Asterisc-Kona FaultDisputeGame implementation in the factory.
+        // Uses the same RISCV.sol as Asterisc (GameType 2), but with kona-client
+        _setFaultGameImplementation({
+            _factory: factory,
+            _allowUpgrade: _allowUpgrade,
+            _params: FaultDisputeGameParams({
+                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                weth: weth,
+                gameType: GameTypes.ASTERISC_KONA,
+                absolutePrestate: loadRiscvAbsolutePrestate(), // Same RISC-V prestate as Asterisc
+                faultVm: IBigStepper(mustGetAddress("Riscv")), // Same RISCV.sol as Asterisc
                 maxGameDepth: cfg.faultGameMaxDepth(),
                 maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
             })
