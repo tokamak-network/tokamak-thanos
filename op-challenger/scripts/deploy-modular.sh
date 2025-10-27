@@ -71,9 +71,9 @@ parse_arguments() {
                 echo "Usage: $0 [options]"
                 echo ""
                 echo "Options:"
-                echo "  --mode local|existing    Deployment mode (default: local)"
-                echo "  --dg-type 0|1|2|254|255  Dispute game type (default: 0)"
-                echo "  --help                   Show this help"
+                echo "  --mode local|existing      Deployment mode (default: local)"
+                echo "  --dg-type 0|1|2|3|254|255  Dispute game type (default: 0)"
+                echo "  --help                     Show this help"
                 echo ""
                 echo "Environment Variables:"
                 echo "  FAULT_GAME_MAX_CLOCK_DURATION    Max clock duration in seconds"
@@ -83,6 +83,7 @@ parse_arguments() {
                 echo "Examples:"
                 echo "  $0                              # Deploy with default settings (GameType 0)"
                 echo "  $0 --dg-type 2                  # Deploy with GameType 2 (Asterisc)"
+                echo "  $0 --dg-type 3                  # Deploy with GameType 3 (AsteriscKona)"
                 echo "  FAULT_GAME_MAX_CLOCK_DURATION=120 $0  # Custom clock duration"
                 exit 0
                 ;;
@@ -143,6 +144,45 @@ get_prestate_hash_for_gametype() {
                 # Do NOT fallback to Cannon prestate - return empty
             fi
             ;;
+        3)
+            # AsteriscKona (RISC-V + Rust) prestate
+            # Note: GameType 3 shares RISCV.sol with GameType 2 but uses kona-client
+            # First, try kona-specific prestate if it exists
+            local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+            if [ -f "$kona_prestate" ]; then
+                # Try reading .stateHash (kona format, same as Asterisc)
+                prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+                if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
+                    log_info "Using AsteriscKona (RISC-V + Rust) prestate: $prestate_hash" >&2
+                else
+                    # Try .pre format (alternative)
+                    prestate_hash=$(jq -r '.pre' "$kona_prestate" 2>/dev/null || echo "")
+                    if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
+                        log_info "Using AsteriscKona prestate (.pre format): $prestate_hash" >&2
+                    else
+                        log_error "Failed to extract prestate from $kona_prestate" >&2
+                    fi
+                fi
+            else
+                # Fallback to Asterisc prestate (same RISCV.sol)
+                log_warn "Kona-specific prestate not found: $kona_prestate" >&2
+                log_info "Falling back to Asterisc (RISC-V) prestate (same RISCV.sol)" >&2
+                local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+                if [ -f "$asterisc_prestate" ]; then
+                    prestate_hash=$(cat "$asterisc_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+                    if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
+                        log_info "Using Asterisc (RISC-V) prestate for GameType 3: $prestate_hash" >&2
+                    else
+                        log_error "Failed to extract .stateHash from $asterisc_prestate" >&2
+                    fi
+                else
+                    log_error "Neither kona nor asterisc prestate found for GameType 3!" >&2
+                    log_error "Please ensure either:" >&2
+                    log_error "  - op-program/bin/prestate-kona.json exists, or" >&2
+                    log_error "  - asterisc/bin/prestate-proof.json exists" >&2
+                fi
+            fi
+            ;;
     esac
 
     echo "$prestate_hash"
@@ -178,6 +218,7 @@ main() {
 
     local build_cannon="false"
     local build_asterisc="false"
+    local build_kona="false"
 
     case "$DG_TYPE" in
         0|1|254|255)
@@ -186,11 +227,30 @@ main() {
         2)
             build_asterisc="true"
             ;;
+        3)
+            build_asterisc="true"
+            build_kona="true"
+            ;;
     esac
 
     if ! build_vms "$build_cannon" "$build_asterisc"; then
         log_error "VM build failed"
         exit 1
+    fi
+
+    # Build kona-client and generate prestate if GameType 3
+    if [ "$build_kona" = "true" ]; then
+        log_info "Building kona-client for GameType 3..."
+        if ! build_kona_client; then
+            log_warn "kona-client build failed, but continuing with Asterisc VM"
+            log_warn "Make sure kona-client binary exists in bin/ directory"
+        fi
+
+        log_info "Generating kona prestate for GameType 3..."
+        if ! generate_kona_prestate; then
+            log_warn "kona prestate generation failed"
+            log_warn "Will fallback to Asterisc prestate (same RISCV.sol)"
+        fi
     fi
 
     # Get the correct prestate hash for this GameType

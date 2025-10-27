@@ -230,6 +230,7 @@ get_gametype_name() {
         0) echo "CANNON (MIPS VM)" ;;
         1) echo "PERMISSIONED_CANNON" ;;
         2) echo "ASTERISC (RISC-V VM)" ;;
+        3) echo "ASTERISC_KONA (RISC-V + Rust)" ;;
         254) echo "FAST (Test)" ;;
         255) echo "ALPHABET (Test)" ;;
         *) echo "UNKNOWN ($game_type)" ;;
@@ -254,6 +255,13 @@ validate_gametype_tracetype() {
                 log_warn "GameType 2 requires trace_type=asterisc, but got: $trace_type"
                 log_info "Auto-correcting to trace_type=asterisc"
                 export CHALLENGER_TRACE_TYPE="asterisc"
+            fi
+            ;;
+        3)
+            if [ "$trace_type" != "asterisc-kona" ]; then
+                log_warn "GameType 3 requires trace_type=asterisc-kona, but got: $trace_type"
+                log_info "Auto-correcting to trace_type=asterisc-kona"
+                export CHALLENGER_TRACE_TYPE="asterisc-kona"
             fi
             ;;
         255)

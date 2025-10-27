@@ -319,6 +319,181 @@ build_asterisc() {
 }
 
 ##############################################################################
+# Kona Client Build (Rust-based for GameType 3)
+##############################################################################
+
+build_kona_client() {
+    log_info "=========================================="
+    log_info "Building kona-client (Rust) for GameType 3"
+    log_info "=========================================="
+    echo ""
+
+    # Check if kona-client already exists
+    local kona_bin="${PROJECT_ROOT}/bin/kona-client"
+    if [ -f "$kona_bin" ]; then
+        log_success "kona-client binary already exists: $kona_bin"
+        log_info "To rebuild, delete the existing binary first"
+        return 0
+    fi
+
+    # Check for Rust/Cargo
+    if ! command -v cargo &> /dev/null; then
+        log_error "Rust/Cargo not installed!"
+        log_error ""
+        log_error "Please install Rust toolchain:"
+        log_error "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        log_error ""
+        log_error "Or skip kona build and provide kona-client binary manually to:"
+        log_error "  ${PROJECT_ROOT}/bin/kona-client"
+        return 1
+    fi
+
+    # Check for kona repository
+    local kona_dir="${KONA_DIR:-${PROJECT_ROOT}/../kona}"
+
+    if [ ! -d "$kona_dir" ]; then
+        log_warn "kona repository not found at: $kona_dir"
+        log_info "Attempting to clone kona repository..."
+
+        local parent_dir="$(dirname ${PROJECT_ROOT})"
+        cd "$parent_dir"
+
+        if git clone --depth 1 https://github.com/op-rs/kona.git; then
+            log_success "kona repository cloned successfully"
+            kona_dir="${parent_dir}/kona"
+        else
+            log_error "Failed to clone kona repository"
+            log_error ""
+            log_error "Please clone manually:"
+            log_error "  cd $(dirname ${PROJECT_ROOT})"
+            log_error "  git clone https://github.com/op-rs/kona.git"
+            return 1
+        fi
+
+        cd "${PROJECT_ROOT}"
+    fi
+
+    # Build kona-client
+    log_info "Building kona-client from source..."
+    log_info "Repository: $kona_dir"
+    log_info "(this may take 5-10 minutes on first build)"
+    echo ""
+
+    cd "$kona_dir"
+
+    if cargo build --release -p kona-client; then
+        log_success "kona-client build completed"
+
+        # Copy binary to expected location
+        ensure_dir "${PROJECT_ROOT}/bin"
+        cp target/release/kona-client "${PROJECT_ROOT}/bin/kona-client"
+        chmod +x "${PROJECT_ROOT}/bin/kona-client"
+
+        log_success "  ✓ Copied: kona-client -> ${PROJECT_ROOT}/bin/kona-client"
+
+        cd "${PROJECT_ROOT}"
+        return 0
+    else
+        log_error "kona-client build failed"
+        log_error ""
+        log_error "Common issues:"
+        log_error "  - Outdated Rust version (update with: rustup update)"
+        log_error "  - Missing dependencies (check kona README)"
+        log_error ""
+        log_error "You can still use GameType 3 if you provide kona-client binary manually"
+
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+}
+
+# Generate kona prestate
+generate_kona_prestate() {
+    log_info "=========================================="
+    log_info "Generating Kona Prestate for GameType 3"
+    log_info "=========================================="
+    echo ""
+
+    local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+
+    # Check if prestate already exists
+    if [ -f "$kona_prestate" ]; then
+        log_success "Kona prestate already exists: $kona_prestate"
+        log_info "To regenerate, delete the existing file first"
+        return 0
+    fi
+
+    # Check for asterisc binary (needed to generate prestate from ELF)
+    if [ ! -f "${ASTERISC_BIN}/asterisc" ]; then
+        log_error "Asterisc binary not found!"
+        log_error "Please build Asterisc VM first (it's needed to generate kona prestate)"
+        return 1
+    fi
+
+    # Check for kona repository
+    local kona_dir="${KONA_DIR:-${PROJECT_ROOT}/../kona}"
+    if [ ! -d "$kona_dir" ]; then
+        log_error "Kona repository not found at: $kona_dir"
+        log_error "Please run build_kona_client first to clone the repository"
+        return 1
+    fi
+
+    log_info "Building kona op-program-client (RISC-V target)..."
+    log_info "(this may take 10-15 minutes on first build)"
+    echo ""
+
+    cd "$kona_dir"
+
+    # Add RISC-V target if not installed
+    if ! rustup target list | grep -q "riscv64gc-unknown-linux-gnu (installed)"; then
+        log_info "Adding RISC-V target to rustup..."
+        rustup target add riscv64gc-unknown-linux-gnu
+    fi
+
+    # Build RISC-V op-program-client
+    if cargo build --release --target riscv64gc-unknown-linux-gnu -p op-program-client 2>/dev/null || \
+       make build-rv64 2>/dev/null; then
+        log_success "kona op-program-client (RISC-V) build completed"
+    else
+        log_error "Failed to build kona op-program-client"
+        log_error "This is needed to generate the kona prestate"
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+
+    # Generate prestate using asterisc
+    local rv_binary="target/riscv64gc-unknown-linux-gnu/release/op-program-client"
+    if [ ! -f "$rv_binary" ]; then
+        log_error "RISC-V binary not found: $rv_binary"
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+
+    log_info "Generating kona prestate from RISC-V ELF..."
+    cd "${PROJECT_ROOT}"
+
+    if "${ASTERISC_BIN}/asterisc" load-elf \
+        --path "${kona_dir}/${rv_binary}" \
+        --out "$kona_prestate"; then
+        log_success "✅ Kona prestate generated: $kona_prestate"
+
+        # Extract and display prestate hash
+        local prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+        if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
+            log_success "✅ Kona Absolute Prestate Hash:"
+            log_info "   $prestate_hash"
+            log_config "Kona Absolute Prestate: $prestate_hash"
+            export KONA_ABSOLUTE_PRESTATE="$prestate_hash"
+        fi
+
+        return 0
+    else
+        log_error "Failed to generate kona prestate"
+        return 1
+    fi
+}
+
+##############################################################################
 # Main Build Function
 ##############################################################################
 
