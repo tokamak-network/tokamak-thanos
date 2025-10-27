@@ -22,6 +22,7 @@ Sequencer 스택:                 Challenger 스택 (독립적!):
 
 배포 전에 다음 문서를 반드시 읽어보시기 바랍니다:
 
+- **[Challenger 시스템 아키텍처](../docs/challenger-system-architecture-ko.md)** ⭐ - 전체 시스템 구성 및 GameType별 아키텍처 상세 설명
 - **[L2 시스템 배포 가이드](../docs/l2-system-deployment-ko.md)** - 전체 배포 아키텍처 및 상세 설명
 - **[L2 시스템 아키텍처](../docs/l2-system-architecture-ko.md)** - L2 시스템의 기본 구조
 
@@ -45,11 +46,14 @@ git checkout feature/challenger-risc-gametype2
 # GameType 2 (Asterisc - RISC-V VM) - Asterisc VM 자동 빌드! ⭐
 ./op-challenger/scripts/deploy-modular.sh --dg-type 2
 
-# 커스텀 게임 설정 (GameType 2)
+# GameType 3 (AsteriscKona - RISC-V + Rust) - 신규! 🆕
+./op-challenger/scripts/deploy-modular.sh --dg-type 3
+
+# 커스텀 게임 설정 (GameType 2 또는 3)
 FAULT_GAME_MAX_CLOCK_DURATION=150 \
 FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \1
-./op-challenger/scripts/deploy-modular.sh --dg-type 2
+PROPOSAL_INTERVAL=30s \
+./op-challenger/scripts/deploy-modular.sh --dg-type 2  # 또는 --dg-type 3
 
 # → 약 5-10분 소요
 
@@ -76,7 +80,7 @@ PROPOSAL_INTERVAL=30s \1
 ./deploy-modular.sh [옵션]
 
 # 옵션
---dg-type TYPE          # GameType (0, 1, 2, 254, 255, 기본: 0)
+--dg-type TYPE          # GameType (0, 1, 2, 3, 254, 255, 기본: 0)
 --mode MODE             # 배포 모드: local|existing (기본: local)
 --help                  # 도움말 표시
 
@@ -87,16 +91,25 @@ PROPOSAL_INTERVAL=30s \1
 # GameType 2 (Asterisc) 배포 - Asterisc VM 자동 빌드! ⭐
 ./deploy-modular.sh --dg-type 2
 
+# GameType 3 (AsteriscKona) 배포 - Rust 기반 kona-client 사용! 🆕
+./deploy-modular.sh --dg-type 3
+
 # 커스텀 게임 설정과 함께 GameType 2 배포
 FAULT_GAME_MAX_CLOCK_DURATION=120 ./deploy-modular.sh --dg-type 2
+
+# 커스텀 게임 설정과 함께 GameType 3 배포
+FAULT_GAME_MAX_CLOCK_DURATION=120 ./deploy-modular.sh --dg-type 3
 ```
 
 **주요 기능:**
 - ✅ **Asterisc VM 자동 빌드** (GameType 2 선택 시)
   - GitHub에서 asterisc 소스 자동 클론 및 빌드
   - 빌드 실패 시 op-program 심볼릭 링크로 fallback
+- ✅ **GameType 3 (AsteriscKona) 지원** 🆕
+  - kona-client (Rust) 자동 감지
+  - Asterisc VM 재사용 (RISCV.sol 공유)
 - ✅ 모듈식 구조로 유지보수 용이 (lib/ + modules/)
-- ✅ GameType별 자동 VM 선택 (Cannon or Asterisc)
+- ✅ GameType별 자동 VM 선택 (Cannon, Asterisc, AsteriscKona)
 - ✅ TraceType 자동 검증 및 설정
 - ✅ Prestate hash 자동 주입
 
@@ -217,13 +230,14 @@ PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
 
 ### 지원하는 GameType
 
-| GameType | 이름 | VM | 용도 | 상태 |
-|----------|------|-----|------|------|
-| **0** | CANNON | MIPS | 프로덕션 (기본값) | ✅ 안정 |
-| **1** | PERMISSIONED_CANNON | MIPS (권한형) | 프로덕션 | ✅ 안정 |
-| **2** | ASTERISC | **RISC-V** | 프로덕션 (신규!) | ✅ **통합 완료** |
-| 254 | FAST | Simple | 테스트 전용 | ⚠️ 테스트만 |
-| 255 | ALPHABET | Alphabet | 테스트 전용 | ⚠️ 테스트만 |
+| GameType | 이름 | VM | 서버 | 용도 | 상태 |
+|----------|------|-----|------|------|------|
+| **0** | CANNON | MIPS | op-program (Go) | 프로덕션 (기본값) | ✅ 안정 |
+| **1** | PERMISSIONED_CANNON | MIPS (권한형) | op-program (Go) | 프로덕션 | ✅ 안정 |
+| **2** | ASTERISC | **RISC-V** | op-program (Go) | 프로덕션 | ✅ **통합 완료** |
+| **3** | ASTERISC_KONA | **RISC-V** | **kona-client (Rust)** | 프로덕션 (신규!) | 🆕 **통합 완료** |
+| 254 | FAST | Simple | - | 테스트 전용 | ⚠️ 테스트만 |
+| 255 | ALPHABET | Alphabet | - | 테스트 전용 | ⚠️ 테스트만 |
 
 ### GameType 0 (Cannon) - 기본값
 
@@ -234,24 +248,56 @@ PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
 
 **특징**: MIPS VM 기반, 가장 안정적, 프로덕션 검증됨
 
-### GameType 2 (Asterisc) - RISC-V 신규!
+### GameType 2 (Asterisc) - RISC-V
 
 ```bash
 # GameType 2로 배포
 ./deploy-modular.sh --dg-type 2
 ```
 
-**특징**: RISC-V VM 기반, Optimism 최신 아키텍처, 400+ 테스트 통과
+**특징**:
+- RISC-V VM 기반
+- Go 언어로 작성된 op-program 서버 사용
+- Optimism 최신 아키텍처
+- 400+ 테스트 통과
 
 **참고**: `deploy-modular.sh`가 Asterisc VM을 자동으로 빌드합니다 ⭐
+
+### GameType 3 (AsteriscKona) - RISC-V + Rust 🆕
+
+```bash
+# GameType 3로 배포
+./deploy-modular.sh --dg-type 3
+```
+
+**특징**:
+- RISC-V VM 기반 (GameType 2와 동일한 RISCV.sol 사용)
+- **Rust 언어로 작성된 kona-client 서버 사용** (Go 대비 ~80% 경량화)
+- ZK proof 시스템 통합 용이 (SP1, RISC Zero)
+- Optimism의 차세대 아키텍처
+
+**차이점 (vs GameType 2)**:
+- 온체인 VM: 동일 (RISCV.sol)
+- Server Binary: kona-client (Rust) vs op-program (Go)
+- 장점: 경량화, 최적화, ZK 통합 준비
+
+**참고**: kona-client 빌드가 필요합니다 (Rust 툴체인 필요)
 
 ### 환경 변수 설명
 
 ```bash
-DG_TYPE                  # GameType (0, 1, 2, 254, 255)
-CHALLENGER_TRACE_TYPE    # Trace type (cannon, asterisc, alphabet)
-ASTERISC_BIN            # Asterisc 바이너리 경로 (GameType 2)
-ASTERISC_PRESTATE       # Asterisc prestate 파일 (GameType 2)
+DG_TYPE                     # GameType (0, 1, 2, 3, 254, 255)
+CHALLENGER_TRACE_TYPE       # Trace type (cannon, asterisc, asterisc-kona, alphabet)
+
+# GameType 2 (Asterisc) 관련
+ASTERISC_BIN               # Asterisc 바이너리 경로
+ASTERISC_SERVER            # op-program 경로 (Go)
+ASTERISC_PRESTATE          # Asterisc prestate 파일
+
+# GameType 3 (AsteriscKona) 관련 🆕
+ASTERISC_KONA_BIN          # Asterisc 바이너리 경로 (GameType 2와 동일)
+ASTERISC_KONA_SERVER       # kona-client 경로 (Rust)
+ASTERISC_KONA_PRESTATE     # AsteriscKona prestate 파일
 ```
 
 ---
