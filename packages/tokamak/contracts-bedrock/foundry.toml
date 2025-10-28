@@ -34,7 +34,9 @@ libraries = ["src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:Si
 ast = true
 evm_version = "cancun"
 ignored_error_codes = ["transient-storage", "code-size", "init-code-size", "license"]
-ignored_warnings_from = ["src", "test"]
+ignored_warnings_from = ["src", "test", "scripts"]
+# Lint warnings should not fail the build in default profile
+deny_warnings = false
 
 # Test / Script Runner Settings
 ffi = true

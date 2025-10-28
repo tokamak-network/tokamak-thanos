@@ -186,16 +186,32 @@ buildSource() {
   cd $projectRoot
 
   # Install dependencies
-  retryCommand "pnpm install" "Installing dependencies" || return 1
+  echo "Installing dependencies..."
+  if ! retryCommand "pnpm install" "Installing dependencies"; then
+    echo "❌ Error: Failed to install dependencies after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Initialize submodules
-  retryCommand "make submodules" "Initializing submodules" || return 1
+  echo "Initializing submodules..."
+  if ! retryCommand "make submodules" "Initializing submodules"; then
+    echo "❌ Error: Failed to initialize submodules after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Build cannon prestate
-  retryCommand "make cannon-prestate" "Building cannon prestate" || return 1
+  echo "Building cannon prestate..."
+  if ! retryCommand "make cannon-prestate" "Building cannon prestate"; then
+    echo "❌ Error: Failed to build cannon prestate after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Build op-node
-  retryCommand "make op-node" "Building op-node" || return 1
+  echo "Building op-node..."
+  if ! retryCommand "make op-node" "Building op-node"; then
+    echo "❌ Error: Failed to build op-node after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Build contracts-bedrock
   echo "Building contracts-bedrock..."
@@ -203,15 +219,22 @@ buildSource() {
 
   # Ensure forge is available
   if ! command -v forge &> /dev/null; then
-    echo "Error: forge command not found. Please install Foundry first."
+    echo "❌ Error: forge command not found. Please install Foundry first."
     return 1
   fi
 
   # Clean and build contracts with retry logic
-  retryCommand "forge clean && forge build" "Building contracts" || return 1
+  echo "Cleaning and building Solidity contracts..."
+  if ! retryCommand "forge clean && forge build" "Building contracts"; then
+    echo "❌ Error: Failed to build contracts after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Verify forge artifacts exist and wait if necessary
-  verifyForgeArtifacts "forge-artifacts" || return 1
+  if ! verifyForgeArtifacts "forge-artifacts"; then
+    echo "❌ Error: Forge artifacts not found"
+    return 1
+  fi
 
   # Wait for file system sync before building TypeScript packages
   waitForFileSystem
@@ -224,11 +247,14 @@ buildSource() {
   waitForFileSystem
 
   # Build core-utils with retry logic
-  retryCommand "pnpm build" "Building core-utils" || return 1
+  if ! retryCommand "pnpm build" "Building core-utils"; then
+    echo "❌ Error: Failed to build core-utils after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Verify core-utils build output
   if [ ! -f "dist/index.js" ]; then
-    echo "Error: core-utils build output not found at dist/index.js"
+    echo "❌ Error: core-utils build output not found at dist/index.js"
     echo "Listing dist directory:"
     ls -la dist/ 2>/dev/null || echo "dist directory does not exist"
     return 1
@@ -244,14 +270,20 @@ buildSource() {
 
   # Reinstall SDK dependencies to ensure workspace symlinks are correct
   echo "Ensuring SDK workspace dependencies are properly linked..."
-  retryCommand "pnpm install --prefer-offline" "Reinstalling SDK dependencies" || return 1
+  if ! retryCommand "pnpm install --prefer-offline" "Reinstalling SDK dependencies"; then
+    echo "❌ Error: Failed to reinstall SDK dependencies after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Build SDK with retry logic
-  retryCommand "pnpm build" "Building SDK" || return 1
+  if ! retryCommand "pnpm build" "Building SDK"; then
+    echo "❌ Error: Failed to build SDK after $MAX_RETRIES attempts"
+    return 1
+  fi
 
   # Verify SDK build output and workspace symlinks
   if [ ! -f "dist/index.js" ]; then
-    echo "Error: SDK build output not found at dist/index.js"
+    echo "❌ Error: SDK build output not found at dist/index.js"
     echo "Listing dist directory:"
     ls -la dist/ 2>/dev/null || echo "dist directory does not exist"
     return 1
@@ -259,26 +291,30 @@ buildSource() {
 
   # Verify core-utils symlink in SDK node_modules
   if [ ! -e "node_modules/@tokamak-network/core-utils/dist/index.js" ]; then
-    echo "Warning: core-utils symlink not properly set in SDK node_modules"
+    echo "⚠️  Warning: core-utils symlink not properly set in SDK node_modules"
     echo "Checking symlink target:"
     ls -la node_modules/@tokamak-network/core-utils/ 2>/dev/null || echo "core-utils not found in node_modules"
 
     # Try to fix by reinstalling
     echo "Attempting to fix workspace symlinks..."
     cd $projectRoot
-    retryCommand "pnpm install --force" "Force reinstalling all dependencies" || return 1
+    if ! retryCommand "pnpm install --force" "Force reinstalling all dependencies"; then
+      echo "❌ Error: Failed to fix workspace symlinks after $MAX_RETRIES attempts"
+      return 1
+    fi
 
     # Verify again
     cd $projectRoot/packages/tokamak/sdk
     if [ ! -e "node_modules/@tokamak-network/core-utils/dist/index.js" ]; then
-      echo "Error: Failed to restore core-utils symlink after force reinstall"
+      echo "❌ Error: Failed to restore core-utils symlink after force reinstall"
       return 1
     fi
   fi
   echo "✅ SDK build verified: dist/index.js exists and workspace symlinks are correct"
 
   cd $currentPWD
-  echo "All source code built successfully!"
+  echo "✅ All source code built successfully!"
+  return 0
 }
 
 deployContracts() {
@@ -287,12 +323,26 @@ deployContracts() {
   export IMPL_SALT=$(openssl rand -hex 32)
   cd $projectRoot/packages/tokamak/contracts-bedrock
   unset DEPLOYMENT_OUTFILE
+
+  echo "Deploying contracts to L1..."
+  local deploy_result
   if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
     forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE
+    deploy_result=$?
   else
     forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive
+    deploy_result=$?
   fi
+
   cd $currentPWD
+
+  if [ $deploy_result -ne 0 ]; then
+    echo "❌ Error: Contract deployment failed with exit code $deploy_result"
+    return 1
+  fi
+
+  echo "✅ Contract deployment completed successfully"
+  return 0
 }
 
 resumeDeployContracts() {
@@ -300,17 +350,38 @@ resumeDeployContracts() {
   echo $DEPLOY_CONFIG_PATH
   cd $projectRoot/packages/tokamak/contracts-bedrock
 
+  echo "Resuming contract deployment..."
+  local deploy_result
   if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
     forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --with-gas-price $GAS_PRICE --resume
+    deploy_result=$?
   else
     forge script scripts/Deploy.s.sol:Deploy --private-key $GS_ADMIN_PRIVATE_KEY --broadcast --rpc-url $L1_RPC_URL --slow --legacy --non-interactive --resume
+    deploy_result=$?
   fi
+
   cd $currentPWD
+
+  if [ $deploy_result -ne 0 ]; then
+    echo "❌ Error: Resume contract deployment failed with exit code $deploy_result"
+    return 1
+  fi
+
+  echo "✅ Resume contract deployment completed successfully"
+  return 0
 }
 
 generateL2Genesis() {
   echo "Generate L2 genesis"
   deployResultFile=$projectRoot/packages/tokamak/contracts-bedrock/deployments/$(printf "%d-deploy.json" "$chainID")
+
+  # Check if deployment file exists
+  if [ ! -f "$deployResultFile" ]; then
+    echo "❌ Error: Deployment file not found: $deployResultFile"
+    return 1
+  fi
+
+  echo "Deployment file found: $deployResultFile"
   cat $deployResultFile
 
   export outdir=$projectRoot/build
@@ -322,17 +393,38 @@ generateL2Genesis() {
     echo "Directory '$outdir' already exists."
     rm -rf $outdir/*
   fi
-  cd $projectRoot
-  $projectRoot/op-node/bin/op-node genesis l2 \
-  --deploy-config $DEPLOY_CONFIG_PATH \
-  --l1-deployments $deployResultFile \
-  --outfile.l2 $outdir/genesis.json \
-  --outfile.rollup $outdir/rollup.json \
-  --l1-rpc $L1_RPC_URL
 
-  echo "Genesis file: $outdir/genesis.json"
-  echo "Rollup file: $outdir/rollup.json"
+  cd $projectRoot
+  echo "Generating L2 genesis and rollup configuration..."
+
+  if ! $projectRoot/op-node/bin/op-node genesis l2 \
+    --deploy-config $DEPLOY_CONFIG_PATH \
+    --l1-deployments $deployResultFile \
+    --outfile.l2 $outdir/genesis.json \
+    --outfile.rollup $outdir/rollup.json \
+    --l1-rpc $L1_RPC_URL; then
+    echo "❌ Error: Failed to generate L2 genesis and rollup configuration"
+    cd $currentPWD
+    return 1
+  fi
+
+  # Verify generated files
+  if [ ! -f "$outdir/genesis.json" ]; then
+    echo "❌ Error: Genesis file was not created: $outdir/genesis.json"
+    cd $currentPWD
+    return 1
+  fi
+
+  if [ ! -f "$outdir/rollup.json" ]; then
+    echo "❌ Error: Rollup file was not created: $outdir/rollup.json"
+    cd $currentPWD
+    return 1
+  fi
+
+  echo "✅ Genesis file: $outdir/genesis.json"
+  echo "✅ Rollup file: $outdir/rollup.json"
   cd $currentPWD
+  return 0
 }
 
 main() {
@@ -340,47 +432,61 @@ main() {
     install)
       echo "Install softwares..."
       updateSystem
-      installDependency
-      buildSource
+      installDependency || { echo "❌ Installation failed"; exit 1; }
+      buildSource || { echo "❌ Build failed"; exit 1; }
+      echo "✅ Installation completed successfully"
       ;;
     build)
       echo "Build..."
-      buildSource
+      buildSource || { echo "❌ Build failed"; exit 1; }
+      echo "✅ Build completed successfully"
       ;;
     deploy)
       echo "Deploying smart contracts..."
       shift
-      handleScriptInput "$@"
-      deployContracts
+      handleScriptInput "$@" || { echo "❌ Script input handling failed"; exit 1; }
+      deployContracts || { echo "❌ Contract deployment failed"; exit 1; }
+      echo "✅ Contract deployment completed successfully"
       ;;
     redeploy)
       echo "Redeploying smart contracts..."
       shift
-      handleScriptInput "$@"
-      resumeDeployContracts
+      handleScriptInput "$@" || { echo "❌ Script input handling failed"; exit 1; }
+      resumeDeployContracts || { echo "❌ Resume deployment failed"; exit 1; }
+      echo "✅ Resume deployment completed successfully"
       ;;
     generate)
       echo "Generate rollup and genesis config for L2..."
       shift
-      handleScriptInput "$@"
-      generateL2Genesis
+      handleScriptInput "$@" || { echo "❌ Script input handling failed"; exit 1; }
+      generateL2Genesis || { echo "❌ Genesis generation failed"; exit 1; }
+      echo "✅ Genesis generation completed successfully"
       ;;
     all)
       echo "Setup from scratch"
       updateSystem
       shift
-      handleScriptInput "$@"
-      installDependency
-      buildSource
-      deployContracts
-      generateL2Genesis
+      handleScriptInput "$@" || { echo "❌ Script input handling failed"; exit 1; }
+      installDependency || { echo "❌ Installation failed"; exit 1; }
+      buildSource || { echo "❌ Build failed"; exit 1; }
+      deployContracts || { echo "❌ Contract deployment failed"; exit 1; }
+      generateL2Genesis || { echo "❌ Genesis generation failed"; exit 1; }
+      echo "✅ All steps completed successfully"
       ;;
     *)
       echo "Usage: $0 {install|build|deploy|generate|all}"
       exit 1
       ;;
-esac
+  esac
 }
 
 main "$@"
-exit 0
+exit_code=$?
+
+if [ $exit_code -eq 0 ]; then
+  echo "✅ Script completed successfully"
+else
+  echo "❌ Script failed with exit code $exit_code"
+fi
+
+exit $exit_code
