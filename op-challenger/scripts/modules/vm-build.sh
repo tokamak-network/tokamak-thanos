@@ -68,14 +68,56 @@ build_cannon() {
 
     cd "${PROJECT_ROOT}"
 
+    # Patch op-program Dockerfile.repro to export cannon binary (if not already patched)
+    local dockerfile="${PROJECT_ROOT}/op-program/Dockerfile.repro"
+    if ! grep -q "COPY --from=builder /app/cannon/bin/cannon" "$dockerfile"; then
+        log_info "Patching Dockerfile.repro to export cannon binary..."
+        # Backup original
+        cp "$dockerfile" "${dockerfile}.bak"
+        # Add cannon to export-stage using awk
+        awk '/FROM scratch AS export-stage/ {print; print "COPY --from=builder /app/cannon/bin/cannon ."; next} 1' \
+            "${dockerfile}.bak" > "$dockerfile"
+        log_success "  ✓ Dockerfile.repro patched"
+    fi
+
+    # Patch op-program Makefile to add --platform linux/amd64 for Apple Silicon compatibility
+    local makefile="${PROJECT_ROOT}/op-program/Makefile"
+    if ! grep -q "platform linux/amd64" "$makefile"; then
+        log_info "Patching op-program Makefile to use linux/amd64 platform..."
+        # Backup original
+        cp "$makefile" "${makefile}.bak"
+        # Add --platform linux/amd64 to docker build command
+        sed -i.tmp 's/docker build --output/docker build --platform linux\/amd64 --output/g' "$makefile"
+        rm -f "${makefile}.tmp"
+        log_success "  ✓ op-program Makefile patched for linux/amd64"
+    fi
+
     log_info "Building op-program and Cannon using Docker (reproducible build)..."
     log_info "   This ensures Linux binaries compatible with Docker containers"
     log_info "   (approximately 3-5 minutes)"
     echo ""
 
     # Use Docker reproducible build (generates Linux binaries)
+    # Note: make reproducible-prestate runs in op-program directory
+    # Docker export goes to op-program/bin/
     if make reproducible-prestate; then
         log_success "Cannon reproducible prestate build completed"
+
+        # Check if cannon binary was exported to op-program/bin/
+        local cannon_binary=""
+        if [ -f "op-program/bin/cannon" ]; then
+            cannon_binary="op-program/bin/cannon"
+        else
+            log_error "Cannon binary not found in op-program/bin/ after Docker build"
+            log_error "Dockerfile patch may have failed"
+            return 1
+        fi
+
+        # Copy cannon binary to expected location
+        ensure_dir "${CANNON_BIN}"
+        cp "$cannon_binary" "${CANNON_BIN}/cannon"
+        chmod +x "${CANNON_BIN}/cannon"
+        log_success "  ✓ Copied: cannon binary from Docker export"
 
         # Verify generated files
         if [ -f "${OP_PROGRAM_BIN}/prestate-proof.json" ] && \
@@ -146,6 +188,16 @@ build_asterisc_from_source() {
         log_info "Cloning Asterisc repository..."
         if git clone --depth 1 "$ASTERISC_REPO" "$asterisc_src_dir"; then
             log_success "Asterisc repository cloned"
+
+            # Initialize submodules (required for op-program)
+            log_info "Initializing Asterisc submodules..."
+            cd "$asterisc_src_dir"
+            if git submodule update --init --recursive --depth 1; then
+                log_success "Submodules initialized"
+            else
+                log_error "Failed to initialize submodules"
+                return 1
+            fi
         else
             log_error "Failed to clone Asterisc repository"
             return 1
@@ -154,6 +206,10 @@ build_asterisc_from_source() {
         log_info "Asterisc repository already exists, pulling latest..."
         cd "$asterisc_src_dir"
         git pull || log_warn "Failed to pull latest changes (continuing with existing)"
+
+        # Update submodules
+        log_info "Updating submodules..."
+        git submodule update --init --recursive --depth 1 || log_warn "Failed to update submodules (continuing)"
     fi
 
     # Build Asterisc using Docker (reproducible build)
@@ -163,6 +219,28 @@ build_asterisc_from_source() {
     log_info "   (approximately 5-10 minutes)"
     echo ""
 
+    # Patch Dockerfile.repro to export asterisc binary (if not already patched)
+    if ! grep -q "COPY --from=builder /app/rvgo/bin/asterisc" Dockerfile.repro; then
+        log_info "Patching Dockerfile.repro to export asterisc binary..."
+        # Backup original
+        cp Dockerfile.repro Dockerfile.repro.bak
+        # Add asterisc to export-stage using awk
+        awk '/FROM scratch AS export-stage/ {print; print "COPY --from=builder /app/rvgo/bin/asterisc ."; next} 1' \
+            Dockerfile.repro.bak > Dockerfile.repro
+        log_success "  ✓ Dockerfile.repro patched"
+    fi
+
+    # Patch Makefile to add --platform linux/amd64 for reproducible builds
+    if ! grep -q "platform linux/amd64" Makefile; then
+        log_info "Patching Makefile to use linux/amd64 platform..."
+        # Backup original
+        cp Makefile Makefile.bak
+        # Add --platform linux/amd64 to docker build command
+        sed -i.tmp 's/docker build --output/docker build --platform linux\/amd64 --output/g' Makefile
+        rm -f Makefile.tmp
+        log_success "  ✓ Makefile patched for linux/amd64"
+    fi
+
     # Use Docker reproducible build (generates Linux binaries + prestate)
     if make reproducible-prestate; then
         log_success "Asterisc reproducible prestate build completed"
@@ -170,18 +248,20 @@ build_asterisc_from_source() {
         # Copy generated files to expected location
         ensure_dir "$ASTERISC_BIN"
 
-        # IMPORTANT: Only use Docker reproducible build output (bin/)
-        # Docker build should export asterisc binary to bin/
-        if [ ! -f "bin/asterisc" ]; then
+        # Check for asterisc binary (should be exported now)
+        local asterisc_binary=""
+        if [ -f "bin/asterisc" ]; then
+            asterisc_binary="bin/asterisc"
+            log_info "  Found asterisc in: bin/asterisc (Docker export)"
+        else
             log_error "Asterisc binary not found in bin/ after Docker build"
-            log_error "Docker reproducible build must generate asterisc binary"
-            log_error "Check Dockerfile.repro export-stage section"
+            log_error "Dockerfile patch may have failed"
             return 1
         fi
 
-        cp "bin/asterisc" "$ASTERISC_BIN/asterisc"
+        cp "$asterisc_binary" "$ASTERISC_BIN/asterisc"
         chmod +x "$ASTERISC_BIN/asterisc"
-        log_success "  ✓ Copied: asterisc binary from Docker reproducible build"
+        log_success "  ✓ Copied: asterisc binary from Docker export"
 
         # Verify it's a Linux ELF binary (required for Docker containers)
         if command -v file &> /dev/null; then
@@ -328,25 +408,8 @@ build_kona_client() {
     log_info "=========================================="
     echo ""
 
-    # Check if kona-client already exists
-    local kona_bin="${PROJECT_ROOT}/bin/kona-client"
-    if [ -f "$kona_bin" ]; then
-        log_success "kona-client binary already exists: $kona_bin"
-        log_info "To rebuild, delete the existing binary first"
-        return 0
-    fi
-
-    # Check for Rust/Cargo
-    if ! command -v cargo &> /dev/null; then
-        log_error "Rust/Cargo not installed!"
-        log_error ""
-        log_error "Please install Rust toolchain:"
-        log_error "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-        log_error ""
-        log_error "Or skip kona build and provide kona-client binary manually to:"
-        log_error "  ${PROJECT_ROOT}/bin/kona-client"
-        return 1
-    fi
+    # Always rebuild to ensure latest code changes are included
+    # (same behavior as GameType 2 Asterisc build)
 
     # Check for kona repository
     local kona_dir="${KONA_DIR:-${PROJECT_ROOT}/../kona}"
@@ -373,34 +436,79 @@ build_kona_client() {
         cd "${PROJECT_ROOT}"
     fi
 
-    # Build kona-client
-    log_info "Building kona-client from source..."
-    log_info "Repository: $kona_dir"
-    log_info "(this may take 5-10 minutes on first build)"
+    # Build kona-client using Docker (reproducible build)
+    log_info "Building kona-client using Docker (reproducible build)..."
+    log_info "   This ensures Linux binaries compatible with Docker containers"
+    log_info "   (approximately 5-10 minutes on first build)"
     echo ""
 
     cd "$kona_dir"
 
-    if cargo build --release -p kona-client; then
-        log_success "kona-client build completed"
+    # Create Dockerfile for kona-client if it doesn't exist
+    local dockerfile_kona="${kona_dir}/Dockerfile.kona-client"
+    if [ ! -f "$dockerfile_kona" ]; then
+        log_info "Creating Dockerfile for kona-client reproducible build..."
+        cat > "$dockerfile_kona" <<'EOF'
+# Multi-stage Docker build for kona-client
+FROM rust:1.82-bookworm AS builder
+
+WORKDIR /workspace
+
+# Copy the entire kona repository
+COPY . .
+
+# Build kona-client for Linux (release mode)
+RUN cargo build --release -p kona-client
+
+# Export stage - copy binaries to /out for easy extraction
+FROM scratch AS export
+COPY --from=builder /workspace/target/release/kona-client /kona-client
+EOF
+        log_success "Created: $dockerfile_kona"
+    fi
+
+    # Build using Docker (with platform specification for Apple Silicon compatibility)
+    log_info "Running Docker build for kona-client..."
+    if docker build --platform linux/amd64 -f "$dockerfile_kona" --target export --output type=local,dest=./bin-docker . ; then
+        log_success "Docker build completed successfully"
 
         # Copy binary to expected location
         ensure_dir "${PROJECT_ROOT}/bin"
-        cp target/release/kona-client "${PROJECT_ROOT}/bin/kona-client"
-        chmod +x "${PROJECT_ROOT}/bin/kona-client"
 
-        log_success "  ✓ Copied: kona-client -> ${PROJECT_ROOT}/bin/kona-client"
+        if [ -f "./bin-docker/kona-client" ]; then
+            cp "./bin-docker/kona-client" "${PROJECT_ROOT}/bin/kona-client"
+            chmod +x "${PROJECT_ROOT}/bin/kona-client"
+            log_success "  ✓ Copied: kona-client -> ${PROJECT_ROOT}/bin/kona-client"
 
-        cd "${PROJECT_ROOT}"
-        return 0
+            # Verify it's a Linux binary
+            if command -v file &> /dev/null; then
+                if file "${PROJECT_ROOT}/bin/kona-client" | grep -q "ELF"; then
+                    log_success "  ✓ Verified: Linux ELF binary (compatible with Docker)"
+                else
+                    log_warn "  ⚠️ Binary format: $(file ${PROJECT_ROOT}/bin/kona-client)"
+                fi
+            fi
+
+            # Cleanup Docker build artifacts
+            rm -rf ./bin-docker
+
+            cd "${PROJECT_ROOT}"
+            return 0
+        else
+            log_error "kona-client binary not found in Docker build output"
+            cd "${PROJECT_ROOT}"
+            return 1
+        fi
     else
-        log_error "kona-client build failed"
+        log_error "Docker build failed for kona-client"
         log_error ""
         log_error "Common issues:"
-        log_error "  - Outdated Rust version (update with: rustup update)"
-        log_error "  - Missing dependencies (check kona README)"
+        log_error "  - Docker not running"
+        log_error "  - Insufficient disk space"
+        log_error "  - Network issues (cargo dependencies)"
         log_error ""
-        log_error "You can still use GameType 3 if you provide kona-client binary manually"
+        log_error "You can provide kona-client binary manually to:"
+        log_error "  ${PROJECT_ROOT}/bin/kona-client"
 
         cd "${PROJECT_ROOT}"
         return 1
@@ -416,12 +524,8 @@ generate_kona_prestate() {
 
     local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
 
-    # Check if prestate already exists
-    if [ -f "$kona_prestate" ]; then
-        log_success "Kona prestate already exists: $kona_prestate"
-        log_info "To regenerate, delete the existing file first"
-        return 0
-    fi
+    # Always regenerate to ensure it matches the latest RISC-V binary
+    # (same behavior as GameType 2 Asterisc build)
 
     # Check for asterisc binary (needed to generate prestate from ELF)
     if [ ! -f "${ASTERISC_BIN}/asterisc" ]; then
@@ -438,43 +542,129 @@ generate_kona_prestate() {
         return 1
     fi
 
-    log_info "Building kona op-program-client (RISC-V target)..."
-    log_info "(this may take 10-15 minutes on first build)"
+    log_info "Building kona op-program-client (RISC-V target) using Docker..."
+    log_info "   This ensures reproducible RISC-V builds"
+    log_info "   (approximately 10-15 minutes on first build)"
     echo ""
 
     cd "$kona_dir"
 
-    # Add RISC-V target if not installed
-    if ! rustup target list | grep -q "riscv64gc-unknown-linux-gnu (installed)"; then
-        log_info "Adding RISC-V target to rustup..."
-        rustup target add riscv64gc-unknown-linux-gnu
-    fi
+    # Use kona's official asterisc-builder Docker image
+    # No need to create custom Dockerfile - use their proven build process
+    log_info "Using kona's official asterisc-builder for RISC-V build..."
+    log_info "   Image: ghcr.io/op-rs/kona/asterisc-builder:0.3.0"
 
-    # Build RISC-V op-program-client
-    if cargo build --release --target riscv64gc-unknown-linux-gnu -p op-program-client 2>/dev/null || \
-       make build-rv64 2>/dev/null; then
-        log_success "kona op-program-client (RISC-V) build completed"
+    # Build RISC-V binary using kona's official asterisc-builder
+    log_info "Running Docker build for RISC-V kona-client..."
+
+    # Use kona's official build command from justfile
+    if docker run --rm \
+        -v "$(pwd):/workdir" \
+        -w="/workdir" \
+        ghcr.io/op-rs/kona/asterisc-builder:0.3.0 \
+        cargo build -Zbuild-std=core,alloc -p kona-client --bin kona-client --profile release-client-lto; then
+
+        log_success "Docker build completed successfully"
+
+        # The binary is built in target/riscv64imac-unknown-none-elf/release-client-lto/kona-client
+        # Note: kona's asterisc-builder Docker image uses riscv64imac target (not riscv64gc)
+        local rv_binary="target/riscv64imac-unknown-none-elf/release-client-lto/kona-client"
+
+        if [ ! -f "$rv_binary" ]; then
+            log_error "RISC-V binary not found at expected location: $rv_binary"
+            log_error "Checking other possible locations..."
+            find target -name "kona-client" -type f 2>/dev/null || true
+            cd "${PROJECT_ROOT}"
+            return 1
+        fi
+
+        log_success "  ✓ Generated: RISC-V kona-client"
+        log_info "    Location: $rv_binary"
+
+        # Verify it's a RISC-V binary
+        if command -v file &> /dev/null; then
+            if file "$rv_binary" | grep -q "RISC-V"; then
+                log_success "  ✓ Verified: RISC-V ELF binary"
+            else
+                log_warn "  ⚠️ Binary format: $(file $rv_binary)"
+            fi
+        fi
     else
-        log_error "Failed to build kona op-program-client"
+        log_error "Failed to build kona-client using Docker"
         log_error "This is needed to generate the kona prestate"
         cd "${PROJECT_ROOT}"
         return 1
     fi
 
-    # Generate prestate using asterisc
-    local rv_binary="target/riscv64gc-unknown-linux-gnu/release/op-program-client"
-    if [ ! -f "$rv_binary" ]; then
-        log_error "RISC-V binary not found: $rv_binary"
-        cd "${PROJECT_ROOT}"
-        return 1
-    fi
-
-    log_info "Generating kona prestate from RISC-V ELF..."
+    # Generate prestate using asterisc (in Docker)
+    log_info "Generating kona prestate from RISC-V ELF using Docker..."
     cd "${PROJECT_ROOT}"
 
-    if "${ASTERISC_BIN}/asterisc" load-elf \
-        --path "${kona_dir}/${rv_binary}" \
-        --out "$kona_prestate"; then
+    ensure_dir "${PROJECT_ROOT}/op-program/bin"
+
+    # Use the RISC-V kona-client binary built above
+    # Note: kona's asterisc-builder uses riscv64imac target
+    local rv_binary_path="${kona_dir}/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client"
+
+    # Check if asterisc source directory exists (needed for Docker image)
+    local asterisc_src_dir="${PROJECT_ROOT}/.asterisc-src"
+    if [ ! -d "$asterisc_src_dir" ]; then
+        log_error "Asterisc source directory not found: $asterisc_src_dir"
+        log_error "This should have been created during Asterisc build"
+
+        # Fallback to Asterisc prestate
+        log_warn "Creating fallback: using Asterisc prestate for GameType 3"
+        local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+        if [ -f "$asterisc_prestate" ]; then
+            cp "$asterisc_prestate" "$kona_prestate"
+            local prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+            if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
+                log_info "   Prestate Hash: $prestate_hash"
+                export KONA_ABSOLUTE_PRESTATE="$prestate_hash"
+            fi
+            return 0
+        else
+            return 1
+        fi
+    fi
+
+    # Run asterisc load-elf in Docker (same environment as asterisc build)
+    # This ensures Linux binary compatibility
+    log_info "   Running asterisc load-elf in Docker container..."
+
+    if docker run --rm \
+        --platform linux/amd64 \
+        -v "${kona_dir}:/kona:ro" \
+        -v "${PROJECT_ROOT}/op-program/bin:/output" \
+        -v "${asterisc_src_dir}:/asterisc:ro" \
+        -w /asterisc \
+        golang:1.22-bookworm \
+        bash -c "
+            # Install required tools
+            apt-get update -qq && apt-get install -y -qq jq > /dev/null 2>&1
+
+            # Build asterisc from rvgo directory
+            cd /asterisc/rvgo
+            if [ -f Makefile ]; then
+                # Use Makefile build (simple go build)
+                make build 2>&1 | grep -v 'go: downloading' || true
+
+                # asterisc binary is in rvgo/bin/asterisc
+                if [ -f bin/asterisc ]; then
+                    # Generate prestate
+                    ./bin/asterisc load-elf \
+                        --path /kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
+                        --out /output/prestate-kona.json
+                else
+                    echo 'ERROR: asterisc binary not found after build'
+                    exit 1
+                fi
+            else
+                echo 'ERROR: Makefile not found in rvgo directory'
+                exit 1
+            fi
+        "; then
+
         log_success "✅ Kona prestate generated: $kona_prestate"
 
         # Extract and display prestate hash
@@ -488,7 +678,16 @@ generate_kona_prestate() {
 
         return 0
     else
-        log_error "Failed to generate kona prestate"
+        log_error "Failed to generate kona prestate using Docker"
+        log_error ""
+        log_error "GameType 3 requires proper Kona prestate!"
+        log_error "Cannot use Asterisc prestate as fallback - different binaries (op-program vs kona-client)"
+        log_error ""
+        log_error "Troubleshooting:"
+        log_error "  1. Check Docker has Go 1.22+ (asterisc requires go >= 1.22.0)"
+        log_error "  2. Verify asterisc source directory: ${asterisc_src_dir}"
+        log_error "  3. Verify kona RISC-V binary: ${rv_binary_path}"
+        log_error ""
         return 1
     fi
 }
@@ -572,6 +771,25 @@ build_vms() {
         else
             log_warn "    - Prestate: NOT GENERATED ❌"
             log_warn "    - GameType 2 will NOT work correctly!"
+        fi
+    fi
+
+    local kona_bin="${PROJECT_ROOT}/bin/kona-client"
+    if [ -f "$kona_bin" ]; then
+        log_info "  ✓ Kona (RISC-V + Rust):"
+        log_info "    - Binary: $kona_bin"
+
+        local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+        if [ -f "$kona_prestate" ]; then
+            local kona_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+            if [ -n "$kona_hash" ] && [ "$kona_hash" != "null" ]; then
+                log_info "    - Prestate: $kona_hash ✅"
+            else
+                log_warn "    - Prestate: MISSING ❌"
+            fi
+        else
+            log_warn "    - Prestate: NOT GENERATED ❌"
+            log_warn "    - GameType 3 will fallback to Asterisc prestate"
         fi
     fi
 

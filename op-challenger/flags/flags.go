@@ -14,6 +14,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	openum "github.com/tokamak-network/tokamak-thanos/op-service/enum"
@@ -30,6 +32,12 @@ func prefixEnvVars(name string) []string {
 }
 
 var (
+	// Fault dispute game VMs that use PreStatesURLFlag
+	faultDisputeVMs = []types.TraceType{
+		types.TraceTypeCannon,
+		types.TraceTypeAsterisc,
+		types.TraceTypeAsteriscKona,
+	}
 	// Required Flags
 	L1EthRpcFlag = &cli.StringFlag{
 		Name:    "l1-eth-rpc",
@@ -98,6 +106,15 @@ var (
 		Usage:   "List of addresses to claim bonds for, in addition to the configured transaction sender",
 		EnvVars: prefixEnvVars("ADDITIONAL_BOND_CLAIMANTS"),
 	}
+	// PreStatesURLFlag provides a generic prestates URL flag that can be used for all VM types
+	PreStatesURLFlag = NewVMFlag("prestates-url", EnvVarPrefix, faultDisputeVMs, func(name string, envVars []string, traceTypeInfo string) cli.Flag {
+		return &cli.StringFlag{
+			Name: name,
+			Usage: "Base URL to absolute prestates to use when generating trace data. " +
+				"Prestates in this directory should be named as <commitment>.json " + traceTypeInfo,
+			EnvVars: envVars,
+		}
+	})
 	CannonNetworkFlag = &cli.StringFlag{
 		Name:    "cannon-network",
 		Usage:   fmt.Sprintf("Deprecated: Use %v instead", flags.NetworkFlagName),
@@ -128,12 +145,7 @@ var (
 		Usage:   "Path to absolute prestate to use when generating trace data (cannon trace type only)",
 		EnvVars: prefixEnvVars("CANNON_PRESTATE"),
 	}
-	CannonPreStatesURLFlag = &cli.StringFlag{
-		Name: "cannon-prestates-url",
-		Usage: "Base URL to absolute prestates to use when generating trace data. " +
-			"Prestates in this directory should be name as <commitment>.json (cannon trace type only)",
-		EnvVars: prefixEnvVars("CANNON_PRESTATES_URL"),
-	}
+	// Note: CannonPreStatesURLFlag is now provided by PreStatesURLFlag (VM-specific flags)
 	CannonL2Flag = &cli.StringFlag{
 		Name:    "cannon-l2",
 		Usage:   fmt.Sprintf("Deprecated: Use %v instead", L2EthRpcFlag.Name),
@@ -176,17 +188,30 @@ var (
 		Usage:   "Path to executable to use as pre-image oracle server when generating trace data (asterisc trace type only)",
 		EnvVars: prefixEnvVars("ASTERISC_SERVER"),
 	}
+	AsteriscKonaServerFlag = &cli.StringFlag{
+		Name:    "asterisc-kona-server",
+		Usage:   "Path to kona executable to use as pre-image oracle server when generating trace data (asterisc-kona trace type only)",
+		EnvVars: prefixEnvVars("ASTERISC_KONA_SERVER"),
+	}
+	AsteriscKonaL2CustomFlag = &cli.BoolFlag{
+		Name: "asterisc-kona-l2-custom",
+		Usage: "Notify the kona-host that the L2 chain uses custom config to be loaded via the preimage oracle. " +
+			"WARNING: This is incompatible with on-chain testing and must only be used for testing purposes.",
+		EnvVars: prefixEnvVars("ASTERISC_KONA_L2_CUSTOM"),
+		Value:   false,
+		Hidden:  true,
+	}
 	AsteriscPreStateFlag = &cli.StringFlag{
 		Name:    "asterisc-prestate",
 		Usage:   "Path to absolute prestate to use when generating trace data (asterisc trace type only)",
 		EnvVars: prefixEnvVars("ASTERISC_PRESTATE"),
 	}
-	AsteriscPreStatesURLFlag = &cli.StringFlag{
-		Name: "asterisc-prestates-url",
-		Usage: "Base URL to absolute prestates to use when generating trace data. " +
-			"Prestates in this directory should be name as <commitment>.json (asterisc trace type only)",
-		EnvVars: prefixEnvVars("ASTERISC_PRESTATES_URL"),
+	AsteriscKonaPreStateFlag = &cli.StringFlag{
+		Name:    "asterisc-kona-prestate",
+		Usage:   "Path to absolute prestate to use when generating trace data (asterisc-kona trace type only)",
+		EnvVars: prefixEnvVars("ASTERISC_KONA_PRESTATE"),
 	}
+	// Note: AsteriscPreStatesURLFlag is now provided by PreStatesURLFlag (VM-specific flags)
 	AsteriscSnapshotFreqFlag = &cli.UintFlag{
 		Name:    "asterisc-snapshot-freq",
 		Usage:   "Frequency of asterisc snapshots to generate in VM steps (asterisc trace type only)",
@@ -244,7 +269,6 @@ var optionalFlags = []cli.Flag{
 	CannonBinFlag,
 	CannonServerFlag,
 	CannonPreStateFlag,
-	CannonPreStatesURLFlag,
 	CannonL2Flag,
 	CannonSnapshotFreqFlag,
 	CannonInfoFreqFlag,
@@ -254,9 +278,11 @@ var optionalFlags = []cli.Flag{
 	AsteriscBinFlag,
 	AsteriscServerFlag,
 	AsteriscPreStateFlag,
-	AsteriscPreStatesURLFlag,
 	AsteriscSnapshotFreqFlag,
 	AsteriscInfoFreqFlag,
+	AsteriscKonaServerFlag,
+	AsteriscKonaPreStateFlag,
+	AsteriscKonaL2CustomFlag,
 	GameWindowFlag,
 	SelectiveClaimResolutionFlag,
 	UnsafeAllowInvalidPrestate,
@@ -264,6 +290,7 @@ var optionalFlags = []cli.Flag{
 
 func init() {
 	optionalFlags = append(optionalFlags, oplog.CLIFlags(EnvVarPrefix)...)
+	optionalFlags = append(optionalFlags, PreStatesURLFlag.Flags()...)
 	optionalFlags = append(optionalFlags, txmgr.CLIFlagsWithDefaults(EnvVarPrefix, txmgr.DefaultChallengerFlagValues)...)
 	optionalFlags = append(optionalFlags, opmetrics.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, oppprof.CLIFlags(EnvVarPrefix)...)
@@ -300,8 +327,8 @@ func CheckCannonFlags(ctx *cli.Context) error {
 	if !ctx.IsSet(CannonServerFlag.Name) {
 		return fmt.Errorf("flag %s is required", CannonServerFlag.Name)
 	}
-	if !ctx.IsSet(CannonPreStateFlag.Name) && !ctx.IsSet(CannonPreStatesURLFlag.Name) {
-		return fmt.Errorf("flag %s or %s is required", CannonPreStatesURLFlag.Name, CannonPreStateFlag.Name)
+	if !PreStatesURLFlag.IsSet(ctx, types.TraceTypeCannon) && !ctx.IsSet(CannonPreStateFlag.Name) {
+		return fmt.Errorf("flag %s or %s is required", PreStatesURLFlag.EitherFlagName(types.TraceTypeCannon), CannonPreStateFlag.Name)
 	}
 	return nil
 }
@@ -332,8 +359,50 @@ func CheckAsteriscFlags(ctx *cli.Context) error {
 	if !ctx.IsSet(AsteriscServerFlag.Name) {
 		return fmt.Errorf("flag %s is required", AsteriscServerFlag.Name)
 	}
-	if !ctx.IsSet(AsteriscPreStateFlag.Name) && !ctx.IsSet(AsteriscPreStatesURLFlag.Name) {
-		return fmt.Errorf("flag %s or %s is required", AsteriscPreStatesURLFlag.Name, AsteriscPreStateFlag.Name)
+	if !PreStatesURLFlag.IsSet(ctx, types.TraceTypeAsterisc) && !ctx.IsSet(AsteriscPreStateFlag.Name) {
+		return fmt.Errorf("flag %s or %s is required", PreStatesURLFlag.EitherFlagName(types.TraceTypeAsterisc), AsteriscPreStateFlag.Name)
+	}
+	return nil
+}
+
+// checkOutputProviderFlags validates that the rollup RPC is set
+func checkOutputProviderFlags(ctx *cli.Context) error {
+	if !ctx.IsSet(RollupRpcFlag.Name) {
+		return fmt.Errorf("flag %v is required", RollupRpcFlag.Name)
+	}
+	return nil
+}
+
+// CheckAsteriscBaseFlags validates common Asterisc VM flags
+func CheckAsteriscBaseFlags(ctx *cli.Context, traceType types.TraceType) error {
+	if !ctx.IsSet(flags.NetworkFlagName) &&
+		!(ctx.IsSet(AsteriscRollupConfigFlag.Name) && ctx.IsSet(AsteriscL2GenesisFlag.Name)) {
+		return fmt.Errorf("flag %v or %v and %v is required",
+			flags.NetworkFlagName, AsteriscRollupConfigFlag.Name, AsteriscL2GenesisFlag.Name)
+	}
+	if ctx.IsSet(flags.NetworkFlagName) &&
+		(ctx.IsSet(AsteriscRollupConfigFlag.Name) || ctx.IsSet(AsteriscL2GenesisFlag.Name) || ctx.Bool(AsteriscKonaL2CustomFlag.Name)) {
+		return fmt.Errorf("flag %v can not be used with %v, %v or %v",
+			flags.NetworkFlagName, AsteriscRollupConfigFlag.Name, AsteriscL2GenesisFlag.Name, AsteriscKonaL2CustomFlag.Name)
+	}
+	if !ctx.IsSet(AsteriscBinFlag.Name) {
+		return fmt.Errorf("flag %s is required", AsteriscBinFlag.Name)
+	}
+	return nil
+}
+
+func CheckAsteriscKonaFlags(ctx *cli.Context) error {
+	if err := checkOutputProviderFlags(ctx); err != nil {
+		return err
+	}
+	if err := CheckAsteriscBaseFlags(ctx, types.TraceTypeAsteriscKona); err != nil {
+		return err
+	}
+	if !ctx.IsSet(AsteriscKonaServerFlag.Name) {
+		return fmt.Errorf("flag %s is required", AsteriscKonaServerFlag.Name)
+	}
+	if !PreStatesURLFlag.IsSet(ctx, types.TraceTypeAsteriscKona) && !ctx.IsSet(AsteriscKonaPreStateFlag.Name) {
+		return fmt.Errorf("flag %s or %s is required", PreStatesURLFlag.EitherFlagName(types.TraceTypeAsteriscKona), AsteriscKonaPreStateFlag.Name)
 	}
 	return nil
 }
@@ -356,6 +425,10 @@ func CheckRequired(ctx *cli.Context, traceTypes []config.TraceType) error {
 			}
 		case config.TraceTypeAsterisc:
 			if err := CheckAsteriscFlags(ctx); err != nil {
+				return err
+			}
+		case config.TraceTypeAsteriscKona:
+			if err := CheckAsteriscKonaFlags(ctx); err != nil {
 				return err
 			}
 		case config.TraceTypeAlphabet, config.TraceTypeFast:
@@ -470,22 +543,33 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 			claimants = append(claimants, claimant)
 		}
 	}
-	var cannonPrestatesURL *url.URL
-	if ctx.IsSet(CannonPreStatesURLFlag.Name) {
-		parsed, err := url.Parse(ctx.String(CannonPreStatesURLFlag.Name))
-		if err != nil {
-			return nil, fmt.Errorf("invalid cannon pre states url (%v): %w", ctx.String(CannonPreStatesURLFlag.Name), err)
+
+	// Helper function to get prestates URL for a specific trace type
+	getPrestatesUrl := func(traceType types.TraceType) (*url.URL, error) {
+		var preStatesURL *url.URL
+		if PreStatesURLFlag.IsSet(ctx, traceType) {
+			val := PreStatesURLFlag.String(ctx, traceType)
+			preStatesURL, err = url.Parse(val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid %v (%v): %w", PreStatesURLFlag.SourceFlagName(ctx, traceType), val, err)
+			}
 		}
-		cannonPrestatesURL = parsed
+		return preStatesURL, nil
 	}
-	var asteriscPreStatesURL *url.URL
-	if ctx.IsSet(AsteriscPreStatesURLFlag.Name) {
-		parsed, err := url.Parse(ctx.String(AsteriscPreStatesURLFlag.Name))
-		if err != nil {
-			return nil, fmt.Errorf("invalid asterisc pre states url (%v): %w", ctx.String(AsteriscPreStatesURLFlag.Name), err)
-		}
-		asteriscPreStatesURL = parsed
+
+	cannonPrestatesURL, err := getPrestatesUrl(types.TraceTypeCannon)
+	if err != nil {
+		return nil, err
 	}
+	asteriscPreStatesURL, err := getPrestatesUrl(types.TraceTypeAsterisc)
+	if err != nil {
+		return nil, err
+	}
+	asteriscKonaPreStatesURL, err := getPrestatesUrl(types.TraceTypeAsteriscKona)
+	if err != nil {
+		return nil, err
+	}
+
 	l2Rpc, err := getL2Rpc(ctx, logger)
 	if err != nil {
 		return nil, err
@@ -531,10 +615,27 @@ func NewConfigFromCLI(ctx *cli.Context, logger log.Logger) (*config.Config, erro
 		AsteriscAbsolutePreStateBaseURL: asteriscPreStatesURL,
 		AsteriscSnapshotFreq:            ctx.Uint(AsteriscSnapshotFreqFlag.Name),
 		AsteriscInfoFreq:                ctx.Uint(AsteriscInfoFreqFlag.Name),
-		TxMgrConfig:                     txMgrConfig,
-		MetricsConfig:                   metricsConfig,
-		PprofConfig:                     pprofConfig,
-		SelectiveClaimResolution:        ctx.Bool(SelectiveClaimResolutionFlag.Name),
-		AllowInvalidPrestate:            ctx.Bool(UnsafeAllowInvalidPrestate.Name),
+		// AsteriscKona (GameType 3) - uses asterisc VM with kona-client
+		AsteriscKona: vm.Config{
+			VmType:            types.TraceTypeAsteriscKona,
+			L1:                ctx.String(L1EthRpcFlag.Name),
+			L1Beacon:          ctx.String(L1BeaconFlag.Name),
+			L2s:               []string{l2Rpc},
+			VmBin:             ctx.String(AsteriscBinFlag.Name),
+			Server:            ctx.String(AsteriscKonaServerFlag.Name),
+			RollupConfigPaths: []string{ctx.String(AsteriscRollupConfigFlag.Name)},
+			L2GenesisPaths:    []string{ctx.String(AsteriscL2GenesisFlag.Name)},
+			L2Custom:          ctx.Bool(AsteriscKonaL2CustomFlag.Name),
+			SnapshotFreq:      ctx.Uint(AsteriscSnapshotFreqFlag.Name),
+			InfoFreq:          ctx.Uint(AsteriscInfoFreqFlag.Name),
+			BinarySnapshots:   true,
+		},
+		AsteriscKonaAbsolutePreState:        ctx.String(AsteriscKonaPreStateFlag.Name),
+		AsteriscKonaAbsolutePreStateBaseURL: asteriscKonaPreStatesURL,
+		TxMgrConfig:                         txMgrConfig,
+		MetricsConfig:                       metricsConfig,
+		PprofConfig:                         pprofConfig,
+		SelectiveClaimResolution:            ctx.Bool(SelectiveClaimResolutionFlag.Name),
+		AllowInvalidPrestate:                ctx.Bool(UnsafeAllowInvalidPrestate.Name),
 	}, nil
 }

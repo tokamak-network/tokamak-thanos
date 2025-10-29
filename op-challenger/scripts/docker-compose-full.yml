@@ -67,7 +67,7 @@ services:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-node-target
-    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-node:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z l1 8545; do sleep 1; done; echo 'L1 준비 완료' &&
       while ! nc -z sequencer-l2 8551; do sleep 1; done; echo 'Sequencer L2 준비 완료' &&
@@ -117,7 +117,7 @@ services:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-batcher-target
-    image: tokamaknetwork/thanos-op-batcher:${IMAGE_TAG:-latest}
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-batcher:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z sequencer-op-node 8545; do sleep 1; done; echo 'Sequencer op-node 준비 완료' && op-batcher"
     environment:
@@ -152,7 +152,7 @@ services:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-proposer-target
-    image: tokamaknetwork/thanos-op-proposer:${IMAGE_TAG:-latest}
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-proposer:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z sequencer-op-node 8545; do sleep 1; done; echo 'Sequencer op-node 준비 완료' && op-proposer"
     environment:
@@ -213,7 +213,7 @@ services:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-node-target
-    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-node:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z l1 8545; do sleep 1; done; echo 'L1 준비 완료' &&
       while ! nc -z challenger-l2 8551; do sleep 1; done; echo 'Challenger L2 준비 완료' &&
@@ -261,7 +261,7 @@ services:
       context: ${PROJECT_ROOT}
       dockerfile: ops/docker/op-stack-go/Dockerfile
       target: op-challenger-target
-    image: tokamaknetwork/thanos-op-challenger:${IMAGE_TAG:-latest}
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-challenger:${IMAGE_TAG:-latest}
     command: >
       /bin/sh -c "while ! nc -z challenger-op-node 8545; do sleep 1; done; echo 'Challenger op-node 준비 완료' && op-challenger"
     volumes:
@@ -276,7 +276,7 @@ services:
       OP_CHALLENGER_L1_BEACON: ${L1_BEACON_URL:-unset}
       OP_CHALLENGER_ROLLUP_RPC: http://challenger-op-node:8545  # ⭐ 자신의 op-node!
       OP_CHALLENGER_L2_ETH_RPC: http://challenger-l2:8545        # ⭐ 자신의 L2 geth!
-      OP_CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE:-cannon}
+      OP_CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE}  # Set by deploy script
       OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
       OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
       OP_CHALLENGER_DATADIR: /db
@@ -293,11 +293,10 @@ services:
       OP_CHALLENGER_ASTERISC_SERVER: /op-program/op-program      # ⭐ op-program 서버
       OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ Asterisc prestate
       # ✅ AsteriscKona (GameType 3) 설정
-      OP_CHALLENGER_ASTERISC_KONA_ROLLUP_CONFIG: /devnet/rollup.json
-      OP_CHALLENGER_ASTERISC_KONA_L2_GENESIS: /devnet/genesis-l2.json
-      OP_CHALLENGER_ASTERISC_KONA_BIN: /asterisc/asterisc        # ⭐ Asterisc 바이너리 (GameType 2와 동일)
-      OP_CHALLENGER_ASTERISC_KONA_SERVER: /kona/kona-client      # ✅ kona-client 바이너리
+      # Note: GameType 3 shares ASTERISC_BIN, ASTERISC_ROLLUP_CONFIG, ASTERISC_L2_GENESIS with GameType 2
+      OP_CHALLENGER_ASTERISC_KONA_SERVER: /kona/kona-client      # ✅ kona-client binary (Rust)
       OP_CHALLENGER_ASTERISC_KONA_PRESTATE: ${KONA_PRESTATE:-/op-program/prestate-kona.json}  # ✅ kona prestate
+      OP_CHALLENGER_ASTERISC_KONA_L2_CUSTOM: 'false'
       OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}
       OP_CHALLENGER_NUM_CONFIRMATIONS: 1
     ports:

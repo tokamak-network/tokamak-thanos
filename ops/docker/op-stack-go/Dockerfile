@@ -47,7 +47,8 @@ ARG GIT_DATE
 # 3) apk install cross-build gcc,
 #    and specify to go to use that, with the CC flag
 
-ARG TARGETOS TARGETARCH
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build the Go services, utilizing caches and share the many common packages.
 # The "id" defaults to the value of "target", the cache will thus be reused during this build.
@@ -56,6 +57,21 @@ FROM --platform=$BUILDPLATFORM builder as cannon-builder
 ARG CANNON_VERSION=v0.0.0
 RUN --mount=type=cache,target=/root/.cache/go-build cd cannon && make cannon  \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$CANNON_VERSION"
+
+# Build asterisc VM (RISC-V) for GameType 2 and 3
+FROM --platform=$BUILDPLATFORM builder as asterisc-builder
+ARG ASTERISC_VERSION=v0.0.0
+# Check if asterisc directory exists, if not create a dummy binary
+RUN if [ -d "/app/asterisc" ]; then \
+        cd asterisc && make asterisc \
+        GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$ASTERISC_VERSION"; \
+    else \
+        echo "asterisc directory not found, creating dummy binary"; \
+        mkdir -p /app/asterisc/bin && \
+        echo '#!/bin/sh' > /app/asterisc/bin/asterisc && \
+        echo 'echo "asterisc not available"' >> /app/asterisc/bin/asterisc && \
+        chmod +x /app/asterisc/bin/asterisc; \
+    fi
 
 FROM --platform=$BUILDPLATFORM builder as op-program-builder
 ARG OP_PROGRAM_VERSION=v0.0.0
@@ -136,6 +152,11 @@ ENV OP_CHALLENGER_CANNON_SERVER /usr/local/bin/op-program
 # Make the bundled cannon the default cannon executable
 COPY --from=cannon-builder /app/cannon/bin/cannon /usr/local/bin/
 ENV OP_CHALLENGER_CANNON_BIN /usr/local/bin/cannon
+# NOTE: Asterisc binary is provided via volume mount (see docker-compose-full.yml)
+# COPY --from=asterisc-builder /app/asterisc/bin/asterisc /usr/local/bin/
+# ENV OP_CHALLENGER_ASTERISC_BIN /usr/local/bin/asterisc
+# Asterisc uses op-program as server (same as cannon)
+ENV OP_CHALLENGER_ASTERISC_SERVER /usr/local/bin/op-program
 CMD ["op-challenger"]
 
 FROM --platform=$TARGETPLATFORM $TARGET_BASE_IMAGE as op-dispute-mon-target
