@@ -306,6 +306,27 @@ if [ -f "$ADDRESSES_FILE" ]; then
             log_info "GameType 2 (ASTERISC/RISCV) - Not deployed (optional) ⭐"
         fi
 
+        # Check GameType 3 (ASTERISC_KONA) 🆕
+        GT3_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 3 2>/dev/null || echo "")
+        if [ -n "$GT3_IMPL" ] && [ "$GT3_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
+            log_success "GameType 3 (ASTERISC_KONA/RISCV + Rust) - Deployed: $GT3_IMPL 🆕"
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+
+            # Get RISCV VM address (should be same as GameType 2)
+            RISCV_VM_GT3=$(cast call --rpc-url "http://localhost:8545" "$GT3_IMPL" "vm()(address)" 2>/dev/null || echo "")
+            if [ -n "$RISCV_VM_GT3" ] && [ "$RISCV_VM_GT3" != "0x0000000000000000000000000000000000000000" ]; then
+                log_info "  └─ RISCV VM: $RISCV_VM_GT3"
+
+                # Check if same as GameType 2
+                if [ -n "$RISCV_VM" ] && [ "$RISCV_VM" = "$RISCV_VM_GT3" ]; then
+                    log_info "  └─ ✅ Shares same RISCV.sol with GameType 2"
+                fi
+            fi
+        else
+            log_info "GameType 3 (ASTERISC_KONA) - Not deployed (optional) 🆕"
+        fi
+
         # Check GameType 254 (FAST)
         GT254_IMPL=$(cast call --rpc-url "http://localhost:8545" "$DGF_ADDRESS" "gameImpls(uint32)(address)" 254 2>/dev/null || echo "")
         if [ -n "$GT254_IMPL" ] && [ "$GT254_IMPL" != "0x0000000000000000000000000000000000000000" ]; then
