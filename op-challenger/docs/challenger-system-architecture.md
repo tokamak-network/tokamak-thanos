@@ -389,20 +389,20 @@ TraceType: cannon, asterisc, asterisc-kona
 │  │  Clone Kona source:                            │    │
 │  │  git clone github.com/op-rs/kona               │    │
 │  │                                                 │    │
-│  │  1. Build kona-client (Rust):                 │    │
-│  │     cargo build --release -p kona-client       │    │
-│  │     → kona-client binary                       │    │
+│  │  Docker Build (automated):                     │    │
+│  │  docker run ghcr.io/op-rs/kona/              │    │
+│  │    asterisc-builder:0.3.0                     │    │
+│  │    cargo build -Zbuild-std=core,alloc         │    │
+│  │      -p kona-client                            │    │
+│  │      --profile release-client-lto             │    │
+│  │  → target/riscv64imac-unknown-none-elf/       │    │
+│  │            release-client-lto/kona-client     │    │
 │  │                                                 │    │
-│  │  2. Build op-program-client (RISC-V):         │    │
-│  │     cargo build --release                      │    │
-│  │            --target riscv64gc-unknown-linux-   │    │
-│  │                     gnu -p op-program-client   │    │
-│  │     → RISC-V binary                            │    │
-│  │                                                 │    │
-│  │  3. Generate Prestate:                         │    │
-│  │     asterisc load-elf                          │    │
-│  │       --path op-program-client (RISC-V)       │    │
-│  │       --out prestate-kona.json                 │    │
+│  │  Prestate Generation (inside Docker):          │    │
+│  │  docker run golang:1.22-bookworm              │    │
+│  │    ./asterisc load-elf                         │    │
+│  │      --path /kona/.../kona-client             │    │
+│  │      --out prestate-kona.json                 │    │
 │  └────────────────────────────────────────────────┘    │
 │                                                          │
 │  File Structure (simplified):                           │
@@ -491,12 +491,9 @@ tokamak-projects/                        # Working directory
 │   │   └── ...
 │   │
 │   └── target/                          # Rust build artifacts
-│       ├── release/
-│       │   └── kona-client              # ← Native executable (for host)
-│       │
-│       └── riscv64gc-unknown-linux-gnu/ # ← RISC-V target build
-│           └── release/
-│               └── op-program-client    # ← RISC-V ELF (for prestate gen)
+│       └── riscv64imac-unknown-none-elf/  # ← RISC-V bare metal target
+│           └── release-client-lto/       # ← LTO optimization profile
+│               └── kona-client           # ← RISC-V ELF (for prestate + execution)
 │
 └── tokamak-thanos/                      # Project root
     ├── bin/                             # ← Created on GameType 3 deploy
@@ -513,31 +510,43 @@ tokamak-projects/                        # Working directory
             └── prestate-proof.json      # GameType 2 prestate
 ```
 
-**Build Method**:
+**Build Method (Automated)**:
 ```bash
-# 1. Clone kona repository (auto-executed by deploy-modular.sh)
-cd tokamak-projects/  # Same level as tokamak-thanos
+# Option 1: Download pre-built images (recommended, 2-3 min)
+./op-challenger/scripts/pull-vm-images.sh --tag latest
+# ✅ Automatically downloads and extracts kona-client
+
+# Option 2: Build directly (15-20 min)
+./op-challenger/scripts/deploy-modular.sh --dg-type 3
+# → Automatically performs the following:
+
+# 1. Clone kona repository
+cd tokamak-projects/
 git clone --depth 1 https://github.com/op-rs/kona.git
 
-# 2. Build kona-client (Rust)
-cd kona
-cargo build --release -p kona-client
-# → kona/target/release/kona-client
+# 2. Build RISC-V binary via Docker
+docker run ghcr.io/op-rs/kona/asterisc-builder:0.3.0 \
+  cargo build -Zbuild-std=core,alloc \
+    -p kona-client \
+    --bin kona-client \
+    --profile release-client-lto
+# → target/riscv64imac-unknown-none-elf/release-client-lto/kona-client
 
 # 3. Copy kona-client
-cp target/release/kona-client ../tokamak-thanos/bin/
+cp kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
+   tokamak-thanos/bin/
 
-# 4. Build RISC-V op-program-client (for prestate generation)
-rustup target add riscv64gc-unknown-linux-gnu
-cargo build --release --target riscv64gc-unknown-linux-gnu -p op-program-client
-# → kona/target/riscv64gc-unknown-linux-gnu/release/op-program-client
-
-# 5. Generate prestate using Asterisc VM
-cd ../tokamak-thanos
-./asterisc/bin/asterisc load-elf \
-  --path ../kona/target/riscv64gc-unknown-linux-gnu/release/op-program-client \
-  --out op-program/bin/prestate-kona.json
+# 4. Generate Prestate via Docker
+docker run golang:1.22-bookworm \
+  ./asterisc/bin/asterisc load-elf \
+    --path /kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
+    --out /output/prestate-kona.json
 ```
+
+**Important**:
+- Target: `riscv64imac-unknown-none-elf` (bare metal, no OS)
+- Profile: `release-client-lto` (LTO optimization)
+- All builds execute **inside Docker** (reproducible builds)
 
 ---
 
@@ -591,8 +600,9 @@ tokamak-thanos/                 tokamak-thanos/
 
 kona/ does not exist            ../kona/                    ← Cloned
                                 ├── bin/client/
-                                └── target/release/
-                                    └── kona-client
+                                └── target/riscv64imac-unknown-none-elf/
+                                    └── release-client-lto/
+                                        └── kona-client
 ```
 
 ---

@@ -453,6 +453,19 @@ kill -9 [PID]
 - [Optimism Docs](https://docs.optimism.io)
 
 ### Project Documentation
+
+**Deployment & Operations**:
+- [L2 System Deployment Guide](../docs/l2-system-deployment-ko.md) - Complete deployment architecture
+- [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - Module structure and usage
+- [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md) ⭐ - Prestate generation for all GameTypes
+- [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md) ⭐ - VM image management workflow
+
+**GameType & Architecture**:
+- [Challenger System Architecture](../docs/challenger-system-architecture.md) ⭐ - Detailed architecture per GameType
+- [RISC-V GameTypes Comparison](../docs/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 comparison
+- [Game Types and VMs](../docs/game-types-and-vms-ko.md) - VM architecture explanation
+
+**Security & Analysis**:
 - [Blob Pruning Risk Analysis](../docs/blob-pruning-risk-analysis-ko.md)
 - [Challenge Game Vulnerability Analysis](../docs/challenge-game-vulnerability-ko.md)
-- [Data Availability Analysis](../docs/data-availability-analysis-ko.md)
+- [DA System Analysis](../docs/data-availability-analysis-ko.md)
