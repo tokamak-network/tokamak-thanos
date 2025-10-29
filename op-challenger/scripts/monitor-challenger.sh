@@ -65,6 +65,7 @@ get_game_type_name() {
         0) echo "CANNON" ;;
         1) echo "PERMISSIONED_CANNON" ;;
         2) echo "ASTERISC" ;;
+        3) echo "ASTERISC_KONA" ;;
         254) echo "FAST" ;;
         255) echo "ALPHABET" ;;
         *) echo "UNKNOWN($game_type)" ;;
@@ -531,6 +532,50 @@ show_system_config() {
     else
         echo "  │"
         echo "  └─ GameType 2 (ASTERISC - RISC-V VM): Not deployed ⭐"
+    fi
+
+    # GameType 3: AsteriscKona (RISC-V + Rust)
+    local game_impl_3=$(cast call "$dgf_address" "gameImpls(uint32)(address)" 3 --rpc-url http://localhost:8545 2>/dev/null || echo "")
+    if [ -n "$game_impl_3" ] && [ "$game_impl_3" != "0x0000000000000000000000000000000000000000" ]; then
+        echo "  │"
+        echo "  └─ GameType 3 (ASTERISC_KONA - RISC-V + Rust) 🆕"
+        echo "     Address: $game_impl_3"
+
+        # Get RISCV VM address (same as GameType 2)
+        local riscv_vm_3=$(cast call "$game_impl_3" "vm()(address)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
+        if [ -n "$riscv_vm_3" ] && [ "$riscv_vm_3" != "0x0000000000000000000000000000000000000000" ]; then
+            echo "     RISCV VM: $riscv_vm_3"
+            if [ "$riscv_vm_3" = "$riscv_vm" ]; then
+                echo "     ✅ Shares same RISCV.sol with GameType 2"
+            fi
+        fi
+
+        # Get game configuration
+        local max_clock_3=$(cast call "$game_impl_3" "maxClockDuration()(uint64)" --rpc-url http://localhost:8545 2>/dev/null || echo "0")
+        local max_clock_min_3=$((max_clock_3 / 60))
+        local absolute_prestate_3=$(cast call "$game_impl_3" "absolutePrestate()(bytes32)" --rpc-url http://localhost:8545 2>/dev/null || echo "")
+
+        echo "     Max Clock Duration: ${max_clock_3}s (${max_clock_min_3} min)"
+        echo "     Absolute Prestate: ${absolute_prestate_3:0:18}...${absolute_prestate_3: -6}"
+
+        # Verify kona prestate matches
+        if [ -f "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" ]; then
+            local kona_hash=$(cat "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" | jq -r '.stateHash' 2>/dev/null || echo "")
+            if [ -n "$kona_hash" ]; then
+                echo "  Kona (GameType 3):"
+                echo "    Local:  ${kona_hash:0:18}...${kona_hash: -6}"
+                if [ "$kona_hash" = "$absolute_prestate_3" ]; then
+                    echo "    Status: ${GREEN}✓ Match (Docker reproducible build)${NC}"
+                else
+                    echo "    Status: ${YELLOW}⚠️  Mismatch - consider regenerating kona prestate${NC}"
+                fi
+            fi
+        else
+            echo "  Kona (GameType 3): ${RED}⚠️  Local prestate file not found${NC}"
+        fi
+    else
+        echo "  │"
+        echo "  └─ GameType 3 (ASTERISC_KONA - RISC-V + Rust): Not deployed 🆕"
     fi
 
     echo ""

@@ -49,10 +49,49 @@ export_docker_env_vars() {
 
     log_info "Exporting environment variables for Docker Compose..."
 
+    # Load contract addresses first (needed before docker-compose)
+    source "${SCRIPT_DIR}/modules/env-setup.sh"
+    load_contract_addresses || log_warn "Failed to load contract addresses"
+    load_private_keys || log_warn "Failed to load private keys"
+
     # Export common variables
     export PROJECT_ROOT
     export DG_TYPE="$dg_type"
-    export CHALLENGER_TRACE_TYPE
+
+    # Set CHALLENGER_TRACE_TYPE to support ALL trace types
+    # Note: Challenger must be able to respond to ANY game type, not just the one we're deploying
+    # The order matters - put the proposer's game type first for priority
+    case "$dg_type" in
+        0|1|254|255)
+            # Cannon-based games: prioritize cannon, but support all
+            export CHALLENGER_TRACE_TYPE="cannon,asterisc,asterisc-kona"
+            log_info "Proposer GameType $dg_type (Cannon): Challenger prioritizes cannon"
+            ;;
+        2)
+            # Asterisc game: prioritize asterisc, but support all
+            export CHALLENGER_TRACE_TYPE="asterisc,cannon,asterisc-kona"
+            log_info "Proposer GameType $dg_type (Asterisc): Challenger prioritizes asterisc"
+            ;;
+        3)
+            # AsteriscKona game: prioritize asterisc-kona, but support all
+            export CHALLENGER_TRACE_TYPE="asterisc-kona,asterisc,cannon"
+            log_info "Proposer GameType $dg_type (AsteriscKona): Challenger prioritizes asterisc-kona"
+            ;;
+        *)
+            # Default: support all with cannon priority
+            export CHALLENGER_TRACE_TYPE="cannon,asterisc,asterisc-kona"
+            log_info "Default: Challenger supports all trace types"
+            ;;
+    esac
+
+    log_info "Challenger configuration:"
+    log_info "  - Primary support: GameType $dg_type (proposer's choice)"
+    log_info "  - Also supports: ALL other game types"
+    log_info "  - Trace types order: $CHALLENGER_TRACE_TYPE"
+
+    # Debug: Verify export worked
+    log_info "DEBUG: Exported CHALLENGER_TRACE_TYPE=$CHALLENGER_TRACE_TYPE"
+    log_info "DEBUG: Exported DG_TYPE=$DG_TYPE"
 
     # Set Asterisc-specific paths if GameType 2
     if [ "$dg_type" = "2" ]; then
@@ -91,12 +130,29 @@ deploy_docker_services() {
     cd "${SCRIPT_DIR}"
 
     log_info "Starting Docker services..."
-    log_info "Compose file: $COMPOSE_FILE"
+    log_info "Compose file: docker-compose-full.yml"
+    echo ""
+
+    # Debug: Check environment variables before docker-compose
+    log_info "DEBUG: Environment variables before docker-compose:"
+    log_info "  CHALLENGER_TRACE_TYPE=$CHALLENGER_TRACE_TYPE"
+    log_info "  DG_TYPE=$DG_TYPE"
+    log_info "  GAME_FACTORY_ADDRESS=$GAME_FACTORY_ADDRESS"
+    log_info "  PROJECT_ROOT=$PROJECT_ROOT"
     echo ""
 
     if $DOCKER_COMPOSE -f docker-compose-full.yml up -d; then
         log_success "Services started successfully"
         echo ""
+
+        # Debug: Verify op-challenger received correct environment variables
+        log_info "DEBUG: Verifying op-challenger environment variables..."
+        if docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" > /dev/null; then
+            local actual_trace_type=$(docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2)
+            log_info "  Actual TRACE_TYPE in container: $actual_trace_type"
+        else
+            log_warn "  Could not verify TRACE_TYPE in container"
+        fi
     else
         log_error "Failed to start services"
         return 1

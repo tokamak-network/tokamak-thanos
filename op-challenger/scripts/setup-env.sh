@@ -320,16 +320,20 @@ PLASMA_GENERIC_DA=false
 # GameType 선택:
 #   0 = CANNON (MIPS VM) - Default
 #   1 = PERMISSIONED_CANNON (Permissioned MIPS VM)
-#   2 = ASTERISC (RISC-V VM) - New!
+#   2 = ASTERISC (RISC-V VM)
+#   3 = ASTERISC_KONA (RISC-V + Rust) - New!
 #   254 = FAST (Test only)
 #   255 = ALPHABET (Test only)
 DG_TYPE=0
 
 # Trace Type (challenger가 사용할 VM):
-#   cannon = MIPS VM (GameType 0, 1)
-#   asterisc = RISC-V VM (GameType 2)
-#   alphabet = Alphabet VM (GameType 255)
-CHALLENGER_TRACE_TYPE=cannon
+#   deploy-modular.sh가 DG_TYPE에 따라 자동으로 설정합니다:
+#   - GameType 0, 1     → cannon
+#   - GameType 2        → asterisc
+#   - GameType 3        → asterisc-kona
+#   - GameType 255      → alphabet
+# 수동 설정하려면 아래 주석을 해제하세요:
+# CHALLENGER_TRACE_TYPE=asterisc-kona
 
 PROPOSAL_INTERVAL=12s
 

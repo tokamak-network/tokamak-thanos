@@ -240,38 +240,62 @@ get_gametype_name() {
 # Validate GameType and TraceType compatibility
 validate_gametype_tracetype() {
     local game_type="${1:-0}"
-    local trace_type="${2:-cannon}"
+    local trace_type="${2:-}"  # Allow empty string to trigger auto-detection
 
+    # Auto-detect trace type based on GameType if not set or empty
+    if [ -z "$trace_type" ]; then
+        case "$game_type" in
+            0|1) trace_type="cannon" ;;
+            2) trace_type="asterisc" ;;
+            3) trace_type="asterisc-kona" ;;
+            254) trace_type="fast" ;;
+            255) trace_type="alphabet" ;;
+            *) trace_type="cannon" ;;  # Default fallback
+        esac
+        log_info "Auto-detected trace_type=$trace_type for GameType $game_type"
+    fi
+
+    # Validate and correct if needed
     case "$game_type" in
         0|1)
             if [ "$trace_type" != "cannon" ] && [ "$trace_type" != "alphabet" ]; then
                 log_warn "GameType $game_type requires trace_type=cannon, but got: $trace_type"
                 log_info "Auto-correcting to trace_type=cannon"
-                export CHALLENGER_TRACE_TYPE="cannon"
+                trace_type="cannon"
             fi
             ;;
         2)
             if [ "$trace_type" != "asterisc" ]; then
                 log_warn "GameType 2 requires trace_type=asterisc, but got: $trace_type"
                 log_info "Auto-correcting to trace_type=asterisc"
-                export CHALLENGER_TRACE_TYPE="asterisc"
+                trace_type="asterisc"
             fi
             ;;
         3)
             if [ "$trace_type" != "asterisc-kona" ]; then
-                log_warn "GameType 3 requires trace_type=asterisc-kona, but got: $trace_type"
-                log_info "Auto-correcting to trace_type=asterisc-kona"
-                export CHALLENGER_TRACE_TYPE="asterisc-kona"
+                log_warn "GameType 3 (AsteriscKona) requires trace_type=asterisc-kona, but got: $trace_type"
+                log_info "✅ Auto-correcting to trace_type=asterisc-kona"
+                trace_type="asterisc-kona"
+            fi
+            ;;
+        254)
+            if [ "$trace_type" != "fast" ]; then
+                log_warn "GameType 254 requires trace_type=fast, but got: $trace_type"
+                log_info "Auto-correcting to trace_type=fast"
+                trace_type="fast"
             fi
             ;;
         255)
             if [ "$trace_type" != "alphabet" ]; then
                 log_warn "GameType 255 requires trace_type=alphabet, but got: $trace_type"
                 log_info "Auto-correcting to trace_type=alphabet"
-                export CHALLENGER_TRACE_TYPE="alphabet"
+                trace_type="alphabet"
             fi
             ;;
     esac
+
+    # IMPORTANT: Always export the validated/corrected value
+    export CHALLENGER_TRACE_TYPE="$trace_type"
 }
 
 ##############################################################################
