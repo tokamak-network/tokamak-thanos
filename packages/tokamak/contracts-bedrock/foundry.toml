@@ -5,6 +5,7 @@
 [profile.default]
 
 # Compilation settings
+auto_detect_solc = true
 src = 'src'
 out = 'forge-artifacts'
 script = 'scripts'
@@ -32,6 +33,7 @@ build_info_path = 'artifacts/build-info'
 libraries = ["src/tokamak-contracts/USDC/L2/tokamak-USDC/v2/FiatTokenV2_2.sol:SignatureChecker:0x4200000000000000000000000000000000000776"]
 
 ast = true
+# Must use Cancun for transient storage support (EIP-1153) used in CrossL2Inbox, L2ToL2CrossDomainMessenger
 evm_version = "cancun"
 ignored_error_codes = ["transient-storage", "code-size", "init-code-size", "license"]
 ignored_warnings_from = ["src", "test", "scripts"]
