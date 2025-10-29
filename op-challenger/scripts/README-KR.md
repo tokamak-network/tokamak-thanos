@@ -456,6 +456,19 @@ kill -9 [PID]
 - [Optimism Docs](https://docs.optimism.io)
 
 ### 프로젝트 문서
+
+**배포 및 운영**:
+- [L2 시스템 배포 가이드](../docs/l2-system-deployment-ko.md) - 전체 배포 아키텍처
+- [스크립트 모듈화 요약](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - 모듈 구조 및 사용법
+- [Prestate 생성 가이드](../docs/prestate-generation-guide-ko.md) ⭐ - 모든 GameType의 prestate 생성 과정
+- [VM 이미지 빌드 및 공유](../docs/vm-image-build-and-share-guide.md) ⭐ - VM 이미지 관리 워크플로우
+
+**GameType 및 아키텍처**:
+- [Challenger 시스템 아키텍처](../docs/challenger-system-architecture-ko.md) ⭐ - GameType별 상세 아키텍처
+- [RISC-V GameType 비교](../docs/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 비교
+- [게임 타입 및 VM](../docs/game-types-and-vms-ko.md) - VM 아키텍처 설명
+
+**보안 및 분석**:
 - [Blob Pruning 위험 분석](../docs/blob-pruning-risk-analysis-ko.md)
 - [Challenge Game 취약점 분석](../docs/challenge-game-vulnerability-ko.md)
 - [DA 시스템 분석](../docs/data-availability-analysis-ko.md)

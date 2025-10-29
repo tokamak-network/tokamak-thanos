@@ -389,20 +389,20 @@ TraceType: cannon, asterisc, asterisc-kona
 │  │  Kona 소스 클론:                               │    │
 │  │  git clone github.com/op-rs/kona               │    │
 │  │                                                 │    │
-│  │  1. kona-client 빌드 (Rust):                  │    │
-│  │     cargo build --release -p kona-client       │    │
-│  │     → kona-client binary                       │    │
+│  │  Docker 빌드 (자동화됨):                      │    │
+│  │  docker run ghcr.io/op-rs/kona/              │    │
+│  │    asterisc-builder:0.3.0                     │    │
+│  │    cargo build -Zbuild-std=core,alloc         │    │
+│  │      -p kona-client                            │    │
+│  │      --profile release-client-lto             │    │
+│  │  → target/riscv64imac-unknown-none-elf/       │    │
+│  │            release-client-lto/kona-client     │    │
 │  │                                                 │    │
-│  │  2. op-program-client 빌드 (RISC-V):          │    │
-│  │     cargo build --release                      │    │
-│  │            --target riscv64gc-unknown-linux-   │    │
-│  │                     gnu -p op-program-client   │    │
-│  │     → RISC-V 바이너리                          │    │
-│  │                                                 │    │
-│  │  3. Prestate 생성:                             │    │
-│  │     asterisc load-elf                          │    │
-│  │       --path op-program-client (RISC-V)       │    │
-│  │       --out prestate-kona.json                 │    │
+│  │  Prestate 생성 (Docker 내부):                  │    │
+│  │  docker run golang:1.22-bookworm              │    │
+│  │    ./asterisc load-elf                         │    │
+│  │      --path /kona/.../kona-client             │    │
+│  │      --out prestate-kona.json                 │    │
 │  └────────────────────────────────────────────────┘    │
 │                                                          │
 │  파일 구조 (간략):                                      │
@@ -491,12 +491,9 @@ tokamak-projects/                        # 작업 디렉토리
 │   │   └── ...
 │   │
 │   └── target/                          # Rust 빌드 결과물
-│       ├── release/
-│       │   └── kona-client              # ← 네이티브 실행 파일 (host용)
-│       │
-│       └── riscv64gc-unknown-linux-gnu/ # ← RISC-V 타겟 빌드
-│           └── release/
-│               └── op-program-client    # ← RISC-V ELF (prestate 생성용)
+│       └── riscv64imac-unknown-none-elf/  # ← RISC-V bare metal 타겟
+│           └── release-client-lto/       # ← LTO 최적화 프로파일
+│               └── kona-client           # ← RISC-V ELF (prestate 생성 + 실행용)
 │
 └── tokamak-thanos/                      # 프로젝트 루트
     ├── bin/                             # ← GameType 3 배포 시 생성
@@ -513,31 +510,43 @@ tokamak-projects/                        # 작업 디렉토리
             └── prestate-proof.json      # GameType 2 prestate
 ```
 
-**빌드 방법**:
+**빌드 방법 (자동화됨)**:
 ```bash
-# 1. kona 저장소 클론 (deploy-modular.sh가 자동 실행)
-cd tokamak-projects/  # tokamak-thanos와 같은 레벨
+# 옵션 1: 사전 빌드 이미지 다운로드 (권장, 2-3분)
+./op-challenger/scripts/pull-vm-images.sh --tag latest
+# ✅ kona-client 자동 다운로드 및 추출
+
+# 옵션 2: 직접 빌드 (15-20분)
+./op-challenger/scripts/deploy-modular.sh --dg-type 3
+# → 자동으로 다음을 수행:
+
+# 1. kona 저장소 클론
+cd tokamak-projects/
 git clone --depth 1 https://github.com/op-rs/kona.git
 
-# 2. kona-client (Rust) 빌드
-cd kona
-cargo build --release -p kona-client
-# → kona/target/release/kona-client
+# 2. Docker로 RISC-V 바이너리 빌드
+docker run ghcr.io/op-rs/kona/asterisc-builder:0.3.0 \
+  cargo build -Zbuild-std=core,alloc \
+    -p kona-client \
+    --bin kona-client \
+    --profile release-client-lto
+# → target/riscv64imac-unknown-none-elf/release-client-lto/kona-client
 
 # 3. kona-client 복사
-cp target/release/kona-client ../tokamak-thanos/bin/
+cp kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
+   tokamak-thanos/bin/
 
-# 4. RISC-V op-program-client 빌드 (prestate 생성용)
-rustup target add riscv64gc-unknown-linux-gnu
-cargo build --release --target riscv64gc-unknown-linux-gnu -p op-program-client
-# → kona/target/riscv64gc-unknown-linux-gnu/release/op-program-client
-
-# 5. Asterisc VM으로 prestate 생성
-cd ../tokamak-thanos
-./asterisc/bin/asterisc load-elf \
-  --path ../kona/target/riscv64gc-unknown-linux-gnu/release/op-program-client \
-  --out op-program/bin/prestate-kona.json
+# 4. Docker로 Prestate 생성
+docker run golang:1.22-bookworm \
+  ./asterisc/bin/asterisc load-elf \
+    --path /kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
+    --out /output/prestate-kona.json
 ```
+
+**중요**:
+- 타겟: `riscv64imac-unknown-none-elf` (bare metal, no OS)
+- 프로파일: `release-client-lto` (LTO 최적화)
+- 모든 빌드는 **Docker 내부**에서 실행 (재현 가능한 빌드)
 
 ---
 
@@ -591,8 +600,9 @@ tokamak-thanos/                 tokamak-thanos/
 
 kona/ 없음                       ../kona/                    ← 클론됨
                                 ├── bin/client/
-                                └── target/release/
-                                    └── kona-client
+                                └── target/riscv64imac-unknown-none-elf/
+                                    └── release-client-lto/
+                                        └── kona-client
 ```
 
 ---
