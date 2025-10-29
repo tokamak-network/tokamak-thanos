@@ -22,77 +22,80 @@ Sequencer Stack:                Challenger Stack (Independent!):
 
 Please read these documents before deployment:
 
-- **[L2 System Deployment Guide](../docs/l2-system-deployment-ko.md)** - Full deployment architecture and details
+- **[Challenger System Architecture](../docs/challenger-system-architecture-ko.md)** ⭐ - Full system architecture and GameType details
+- **[L2 System Deployment Guide](../docs/l2-system-deployment-ko.md)** - Complete deployment architecture
 - **[L2 System Architecture](../docs/l2-system-architecture-ko.md)** - L2 system fundamentals
 
 
 ## 🚀 Quick Start
 
 ```bash
-# 0. Clone & Checkout
+# 1. Clone repository
 git clone https://github.com/tokamak-network/tokamak-thanos.git
 cd tokamak-thanos
-git checkout feature/challenger-risc-gametype2
+git checkout feature/challenger-gametype3
 
-# 1. Complete cleanup
+# 2. Download VM binaries (2-3 minutes)
+./op-challenger/scripts/pull-vm-images.sh --tag latest
+# ✅ Downloads: cannon, asterisc, op-program, kona-client
+
+# 3. Cleanup and deploy
 ./op-challenger/scripts/cleanup.sh
+./op-challenger/scripts/deploy-modular.sh --dg-type 3
 
-# 2. Full automated deployment (first time)
-
-# GameType 0 (Cannon - MIPS VM) - default
-./op-challenger/scripts/deploy-modular.sh
-
-# GameType 2 (Asterisc - RISC-V VM) - Auto-builds Asterisc VM! ⭐
-./op-challenger/scripts/deploy-modular.sh --dg-type 2
-
-# With custom game settings (GameType 2)
-FAULT_GAME_MAX_CLOCK_DURATION=150 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./op-challenger/scripts/deploy-modular.sh --dg-type 2
-
-# → Takes about 5-10 minutes
-
-# 3. Verify deployment status
+# 4. Check status
 ./op-challenger/scripts/health-check.sh
-
-# 4. Detailed monitoring (game statistics, sync status, etc.)
 ./op-challenger/scripts/monitor-challenger.sh
 ```
 
+**Total deployment time**: ~15-20 minutes
 
-**⚠️ Important:**
-- `cleanup.sh` defaults to deleting everything (`.env`, Genesis, volumes)
-- To keep `.env`: `./cleanup.sh --keep-env`
+**GameType selection**:
+```bash
+./deploy-modular.sh                    # GameType 0 (Cannon, default)
+./deploy-modular.sh --dg-type 2        # GameType 2 (Asterisc)
+./deploy-modular.sh --dg-type 3        # GameType 3 (AsteriscKona)
+```
+
+**Custom game settings**:
+```bash
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./deploy-modular.sh --dg-type 3
+```
+
+> 📚 **VM Image Build (for maintainers)**: [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md)
+> 📚 **Understanding Prestate**: [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md)
 
 ## 📋 Script Descriptions
 
-### 🆕 deploy-modular.sh (New Modular Script) ⭐
+### 🆕 deploy-modular.sh (Main Deployment Script)
 
-**Modularized deployment script with automatic VM build support for all GameTypes**
+Modularized L2 system deployment script with automatic GameType configuration and validation.
 
 ```bash
 # Usage
 ./deploy-modular.sh [options]
 
 # Options
---dg-type TYPE          # GameType (0, 1, 2, 254, 255, default: 0)
+--dg-type TYPE          # GameType (0, 1, 2, 3, 254, 255, default: 0)
 --mode MODE             # Deployment mode: local|existing (default: local)
---help                  # Show help
 
 # Examples
-./deploy-modular.sh --dg-type 0    # GameType 0 (Cannon)
-./deploy-modular.sh --dg-type 2    # GameType 2 (Asterisc) - Auto-builds VM! ⭐
+./deploy-modular.sh                    # GameType 0 (default)
+./deploy-modular.sh --dg-type 3        # GameType 3
+FAULT_GAME_MAX_CLOCK_DURATION=150 ./deploy-modular.sh --dg-type 3  # Custom settings
 ```
 
-**Key Features:**
-- ✅ Automatic VM build (Cannon + Asterisc)
+**Key features**:
+- ✅ Automatic VM and prestate validation per GameType
+- ✅ Auto-set respectedGameType (sync with OptimismPortal2)
+- ✅ Validate all GameType prestates (Challenger supports all types)
+- ✅ Pre-deployment configuration integrity check
 - ✅ Modular structure (lib/ + modules/)
-- ✅ Automatic TraceType validation
-- ✅ Automatic prestate injection
 
-**📚 Detailed Documentation:**
-- [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - Full guide with module structure, usage, and examples
+> 📚 **Details**: [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md)
 
 ---
 
@@ -100,26 +103,35 @@ PROPOSAL_INTERVAL=30s \
 
 Cleanup and reset deployment state.
 
-**⚠️ Important**: Default behavior is `--all`, which also deletes `.env` and Genesis files.
-
 ```bash
 # Usage
 ./cleanup.sh [options]
 
 # Options
---all-containers    # Clean all related containers (including devnet, kurtosis, etc.)
---rebuild           # Remove Docker images and build cache (forces full rebuild) ⭐
---keep-env          # Keep environment variable file (.env)
---keep-genesis      # Keep Genesis files
---help              # Show help
+--all-containers       # Clean all related containers (devnet, kurtosis, etc.)
+--rebuild              # Remove Docker images and cache (force full rebuild) ⭐
+--keep-env             # Keep environment file (.env)
+--keep-genesis         # Keep Genesis files
+--clean-vm-builds      # Remove VM binaries (default: protected) 🆕
+--clean-pulled-images  # Remove registry images (default: protected) 🆕
+--help                 # Show help
 
 # Examples
 
-# Default cleanup (.env and Genesis files also deleted)
+# Basic cleanup (VM binaries and pulled images are protected) ⭐
 ./cleanup.sh
 
-# Full rebuild (remove Docker images and cache) ⭐
+# Full rebuild (only removes local build images, protects ghcr.io images) ⭐
 ./cleanup.sh --rebuild
+
+# Remove VM binaries (including those from pull-vm-images.sh)
+./cleanup.sh --clean-vm-builds
+
+# Remove registry images (ghcr.io images)
+./cleanup.sh --clean-pulled-images
+
+# Complete removal (VM + images + containers)
+./cleanup.sh --clean-vm-builds --clean-pulled-images --all-containers --rebuild
 
 # Keep .env, delete Genesis only
 ./cleanup.sh --keep-env
@@ -129,29 +141,12 @@ Cleanup and reset deployment state.
 
 # Delete containers and volumes only (keep both .env and Genesis)
 ./cleanup.sh --keep-env --keep-genesis
-
-# Complete cleanup (including all related containers)
-./cleanup.sh --all-containers
-
-# Complete cleanup + rebuild
-./cleanup.sh --all-containers --rebuild
 ```
 
-**Items cleaned:**
-
-**Default behavior (--all):**
-- scripts-* containers (docker-compose-full.yml)
-- Related volumes and networks
-- .env file
-- Genesis files (genesis-*.json, rollup.json)
-- All allocation files in .devnet
-
-**Additional option (--all-containers):**
-- Above items +
-- ops-bedrock-* containers (devnet)
-- kurtosis-* containers
-- All op-* related containers
-- Dangling volumes
+**⭐ Default behavior (Important)**:
+- VM binaries **protected** (downloaded via pull-vm-images.sh)
+- Registry images **protected** (ghcr.io images)
+- Use explicit flags to remove: `--clean-vm-builds`, `--clean-pulled-images`
 
 ### setup-env.sh
 
@@ -163,7 +158,7 @@ Generate environment variables and wallets required for deployment.
 
 # Options
 --mode MODE             # Deployment mode: local|sepolia|mainnet (default: local)
---output FILE           # Environment variable file path (default: .env)
+--output FILE           # Environment file path (default: .env)
 --help                  # Show help
 
 # Examples
@@ -173,10 +168,70 @@ Generate environment variables and wallets required for deployment.
 
 **Generated wallets:**
 - Admin: System administrator account
-- Batcher: Account that submits batch data to L1
-- Proposer: Account that submits outputs to L1
-- Sequencer: Account that generates L2 blocks
-- Challenger: Account that challenges invalid outputs
+- Batcher: Submits batch data to L1
+- Proposer: Submits outputs to L1
+- Sequencer: Generates L2 blocks
+- Challenger: Challenges invalid outputs
+
+---
+
+## 🎮 GameType Selection Guide
+
+### Supported GameTypes
+
+| GameType | Name | VM | Server | Purpose | Status |
+|----------|------|-----|--------|---------|--------|
+| **0** | CANNON | MIPS | op-program (Go) | Production (default) | ✅ Stable |
+| **1** | PERMISSIONED_CANNON | MIPS (permissioned) | op-program (Go) | Production | ✅ Stable |
+| **2** | ASTERISC | **RISC-V** | op-program (Go) | Production | ✅ **Integrated** |
+| **3** | ASTERISC_KONA | **RISC-V** | **kona-client (Rust)** | Production (new!) | 🆕 **Integrated** |
+| 254 | FAST | Simple | - | Testing only | ⚠️ Test only |
+| 255 | ALPHABET | Alphabet | - | Testing only | ⚠️ Test only |
+
+### GameType 0 (Cannon) - Default
+- **VM**: MIPS
+- **Server**: op-program (Go)
+- **Features**: Most stable, production-proven
+
+```bash
+./deploy-modular.sh --dg-type 0  # or run without options
+```
+
+### GameType 2 (Asterisc) - RISC-V
+- **VM**: RISC-V
+- **Server**: op-program (Go)
+- **Features**: Latest Optimism architecture, 400+ tests passed
+
+```bash
+./deploy-modular.sh --dg-type 2
+```
+
+### GameType 3 (AsteriscKona) - RISC-V + Rust 🆕
+- **VM**: RISC-V (**same RISCV.sol as GameType 2**)
+- **Server**: kona-client (Rust, ~80% lighter)
+- **Features**: ZK proof integration ready, next-gen architecture
+- **Prestate Fallback**: Can automatically use Asterisc prestate (same VM)
+
+```bash
+./deploy-modular.sh --dg-type 3
+```
+
+> 📚 **Details**: [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md)
+
+### Custom Game Settings (Environment Variables)
+
+```bash
+# Settings for quick testing
+FAULT_GAME_MAX_CLOCK_DURATION=150    # Game duration (seconds)
+FAULT_GAME_WITHDRAWAL_DELAY=3600     # Withdrawal delay (seconds)
+PROPOSAL_INTERVAL=30s                 # Proposal interval
+
+# Usage example
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./deploy-modular.sh --dg-type 3
+```
 
 ---
 
@@ -211,7 +266,7 @@ config    # System configuration (GameType settings, Prestate verification, etc.
 sync      # Blockchain sync status only
 logs      # Real-time logs (Ctrl+C to exit)
 games     # Game participation details
-errors    # Error analysis (Prestate mismatch detection included)
+errors    # Error analysis (includes Prestate mismatch detection)
 metrics   # Prometheus metrics
 
 # Examples
@@ -229,7 +284,7 @@ metrics   # Prometheus metrics
 - ✅ **Prestate verification (on-chain vs local Docker build comparison)** ⭐
 - ✅ L1/Sequencer/Challenger block height comparison and sync differences
 - ✅ L1 batch submission status (op-batcher)
-- ✅ Challenger independence verification (using independent op-node, L2 geth)
+- ✅ Challenger independence verification (independent op-node, L2 geth)
 - ✅ Game participation statistics (detected, in progress, resolved)
 - ✅ Challenger action logs (Attack/Defend)
 - ✅ Error and warning analysis (Prestate mismatch detection)
@@ -243,47 +298,6 @@ metrics   # Prometheus metrics
 - **On-chain configuration verification (query deployed game settings)** ⭐
 - **Prestate verification (on-chain absolute prestate vs local build prestate auto-comparison)** ⭐
 - **Prestate mismatch error auto-detection and solution guide** ⭐
-
-## ⚙️ Game Settings
-
-### Default Game Settings (devnetL1-template.json)
-
-```json
-{
-  "faultGameMaxClockDuration": 1200,        // 20 minutes (in seconds)
-  "faultGameClockExtension": 0,             // Clock extension time
-  "faultGameMaxDepth": 50,                  // Maximum game depth
-  "faultGameSplitDepth": 14,                // Split depth
-  "faultGameWithdrawalDelay": 604800,       // Withdrawal delay (7 days)
-  "disputeGameFinalityDelaySeconds": 6,     // Finality delay (6 seconds)
-  "faultGameAbsolutePrestate": "0x03c7ae758795765c6664a5d39bf63841c71ff191e9189522bad8ebff5d4eca98",
-  "faultGameGenesisOutputRoot": "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
-}
-```
-
-**Key settings:**
-
-- **faultGameMaxClockDuration**: 1200s (20 min) - Maximum chess clock time per team
-  - ⚠️ Minimum value: 120s (due to `preimageOracleChallengePeriod`)
-- **faultGameWithdrawalDelay**: 604800s (7 days) - Withdrawal waiting time after game ends
-- **faultGameSplitDepth**: 14 - Covers 16,384 L2 blocks (~9.1 hours)
-- **faultGameMaxDepth**: 50 - Maximum bisection depth (68.7B instructions)
-
-**Quick test environment via environment variables:**
-
-```bash
-FAULT_GAME_MAX_CLOCK_DURATION=150 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./deploy-modular.sh --dg-type 0  # or --dg-type 2 for Asterisc
-```
-
-**Settings:**
-- Game duration: 2.5 minutes
-- Withdrawal delay: 1 hour
-- Proposal interval: 30 seconds
-
-**⚠️ Note:** These settings are for development/testing only. Use sufficient time for production.
 
 ---
 
@@ -371,7 +385,7 @@ Error: incorrect L1 genesis block hash 0x..., expected 0x...
 ./op-challenger/scripts/cleanup.sh
 
 # 2. Redeploy
-./op-challenger/scripts/deploy-modular.sh --dg-type 0  # or --dg-type 2 for Asterisc
+./op-challenger/scripts/deploy-modular.sh --dg-type 0  # or any GameType
 ```
 
 ### 2. No RPC Response
@@ -414,7 +428,7 @@ docker-compose -f op-challenger/scripts/docker-compose-full.yml logs -f challeng
 # Check network connection status
 docker network ls | grep l2-network
 
-# Inspect network details (network name may vary by execution directory)
+# Inspect network details
 docker network inspect <network_name>
 # Example: docker network inspect scripts_l2-network
 ```
