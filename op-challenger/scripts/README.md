@@ -50,22 +50,8 @@ git checkout feature/challenger-gametype3
 
 **Total deployment time**: ~15-20 minutes
 
-**GameType selection**:
-```bash
-./deploy-modular.sh                    # GameType 0 (Cannon, default)
-./deploy-modular.sh --dg-type 2        # GameType 2 (Asterisc)
-./deploy-modular.sh --dg-type 3        # GameType 3 (AsteriscKona)
-```
-
-**Custom game settings**:
-```bash
-FAULT_GAME_MAX_CLOCK_DURATION=150 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./deploy-modular.sh --dg-type 3
-```
-
-> 📚 **VM Image Build (for maintainers)**: [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md)
+> 📚 **GameType Selection**: [GameType Guide](#-gametype-selection-guide)
+> 📚 **VM Image Build**: [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md)
 > 📚 **Understanding Prestate**: [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md)
 
 ## 📋 Script Descriptions
@@ -177,61 +163,23 @@ Generate environment variables and wallets required for deployment.
 
 ## 🎮 GameType Selection Guide
 
-### Supported GameTypes
-
-| GameType | Name | VM | Server | Purpose | Status |
-|----------|------|-----|--------|---------|--------|
-| **0** | CANNON | MIPS | op-program (Go) | Production (default) | ✅ Stable |
-| **1** | PERMISSIONED_CANNON | MIPS (permissioned) | op-program (Go) | Production | ✅ Stable |
-| **2** | ASTERISC | **RISC-V** | op-program (Go) | Production | ✅ **Integrated** |
-| **3** | ASTERISC_KONA | **RISC-V** | **kona-client (Rust)** | Production (new!) | 🆕 **Integrated** |
-| 254 | FAST | Simple | - | Testing only | ⚠️ Test only |
-| 255 | ALPHABET | Alphabet | - | Testing only | ⚠️ Test only |
-
-### GameType 0 (Cannon) - Default
-- **VM**: MIPS
-- **Server**: op-program (Go)
-- **Features**: Most stable, production-proven
+| GameType | VM | Server | Features |
+|----------|-----|--------|----------|
+| **0** | MIPS | op-program (Go) | Stable (default) |
+| **2** | RISC-V | op-program (Go) | Latest architecture |
+| **3** | RISC-V | kona-client (Rust) | Lightweight (~80%), ZK ready 🆕 |
 
 ```bash
-./deploy-modular.sh --dg-type 0  # or run without options
-```
+./deploy-modular.sh                    # GameType 0 (default)
+./deploy-modular.sh --dg-type 2        # GameType 2
+./deploy-modular.sh --dg-type 3        # GameType 3
 
-### GameType 2 (Asterisc) - RISC-V
-- **VM**: RISC-V
-- **Server**: op-program (Go)
-- **Features**: Latest Optimism architecture, 400+ tests passed
-
-```bash
-./deploy-modular.sh --dg-type 2
-```
-
-### GameType 3 (AsteriscKona) - RISC-V + Rust 🆕
-- **VM**: RISC-V (**same RISCV.sol as GameType 2**)
-- **Server**: kona-client (Rust, ~80% lighter)
-- **Features**: ZK proof integration ready, next-gen architecture
-- **Prestate Fallback**: Can automatically use Asterisc prestate (same VM)
-
-```bash
+# Custom settings
+FAULT_GAME_MAX_CLOCK_DURATION=150 PROPOSAL_INTERVAL=30s \
 ./deploy-modular.sh --dg-type 3
 ```
 
-> 📚 **Details**: [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md)
-
-### Custom Game Settings (Environment Variables)
-
-```bash
-# Settings for quick testing
-FAULT_GAME_MAX_CLOCK_DURATION=150    # Game duration (seconds)
-FAULT_GAME_WITHDRAWAL_DELAY=3600     # Withdrawal delay (seconds)
-PROPOSAL_INTERVAL=30s                 # Proposal interval
-
-# Usage example
-FAULT_GAME_MAX_CLOCK_DURATION=150 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./deploy-modular.sh --dg-type 3
-```
+> 📚 **Detailed Comparison**: [Challenger System Architecture](../docs/challenger-system-architecture.md)
 
 ---
 
@@ -252,7 +200,7 @@ Verify the status of all deployed services.
 # - Error logs
 ```
 
-### monitor-challenger.sh ⭐ (New)
+### monitor-challenger.sh
 
 Monitor Challenger's real-time activity, game participation, and sync status.
 
@@ -260,44 +208,17 @@ Monitor Challenger's real-time activity, game participation, and sync status.
 # Usage
 ./monitor-challenger.sh [mode]
 
-# Modes
-summary   # Full dashboard (default)
-config    # System configuration (GameType settings, Prestate verification, etc.) ⭐
-sync      # Blockchain sync status only
-logs      # Real-time logs (Ctrl+C to exit)
-games     # Game participation details
-errors    # Error analysis (includes Prestate mismatch detection)
-metrics   # Prometheus metrics
-
+# Modes: summary | config | sync | logs | games | errors | metrics
 # Examples
 ./monitor-challenger.sh              # Full dashboard
 ./monitor-challenger.sh config       # System config and Prestate verification ⭐
-./monitor-challenger.sh sync         # Sync status only
-./monitor-challenger.sh logs         # Real-time logs
-./monitor-challenger.sh games        # Game activity only
-./monitor-challenger.sh errors       # Errors and Prestate verification
 ```
 
-**Monitoring items:**
-- ✅ Challenger container status
-- ✅ **System configuration (GameType, game time, proposer interval, etc.)** ⭐
-- ✅ **Prestate verification (on-chain vs local Docker build comparison)** ⭐
-- ✅ L1/Sequencer/Challenger block height comparison and sync differences
-- ✅ L1 batch submission status (op-batcher)
-- ✅ Challenger independence verification (independent op-node, L2 geth)
-- ✅ Game participation statistics (detected, in progress, resolved)
-- ✅ Challenger action logs (Attack/Defend)
-- ✅ Error and warning analysis (Prestate mismatch detection)
-- ✅ Prometheus metrics (when enabled)
-
-**Key features:**
-- Color-coded logs for readability (errors=red, warnings=yellow, actions=green)
-- Sequencer vs Challenger sync difference monitoring (auto-detect normal/delayed)
-- L1 batch submission and Challenger batch reading status
-- Independent stack usage verification (separation from Sequencer)
-- **On-chain configuration verification (query deployed game settings)** ⭐
-- **Prestate verification (on-chain absolute prestate vs local build prestate auto-comparison)** ⭐
-- **Prestate mismatch error auto-detection and solution guide** ⭐
+**Key monitoring items**:
+- Container status and sync
+- GameType settings and Prestate verification (on-chain vs local)
+- Game participation statistics and Challenger actions
+- Independent stack verification (Sequencer separation)
 
 ---
 
