@@ -510,43 +510,6 @@ tokamak-projects/                        # Working directory
             └── prestate-proof.json      # GameType 2 prestate
 ```
 
-**Build Method (Automated)**:
-```bash
-# Option 1: Download pre-built images (recommended, 2-3 min)
-./op-challenger/scripts/pull-vm-images.sh --tag latest
-# ✅ Automatically downloads and extracts kona-client
-
-# Option 2: Build directly (15-20 min)
-./op-challenger/scripts/deploy-modular.sh --dg-type 3
-# → Automatically performs the following:
-
-# 1. Clone kona repository
-cd tokamak-projects/
-git clone --depth 1 https://github.com/op-rs/kona.git
-
-# 2. Build RISC-V binary via Docker
-docker run ghcr.io/op-rs/kona/asterisc-builder:0.3.0 \
-  cargo build -Zbuild-std=core,alloc \
-    -p kona-client \
-    --bin kona-client \
-    --profile release-client-lto
-# → target/riscv64imac-unknown-none-elf/release-client-lto/kona-client
-
-# 3. Copy kona-client
-cp kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
-   tokamak-thanos/bin/
-
-# 4. Generate Prestate via Docker
-docker run golang:1.22-bookworm \
-  ./asterisc/bin/asterisc load-elf \
-    --path /kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
-    --out /output/prestate-kona.json
-```
-
-**Important**:
-- Target: `riscv64imac-unknown-none-elf` (bare metal, no OS)
-- Profile: `release-client-lto` (LTO optimization)
-- All builds execute **inside Docker** (reproducible builds)
 
 ---
 
@@ -828,105 +791,68 @@ kona/ does not exist            ../kona/                    ← Cloned
 
 ### Docker Compose Structure
 
+**Conceptual Structure** (actual configuration is more complex):
+
 ```yaml
 services:
-  # ============================================================
   # L1 Layer
-  # ============================================================
   l1:
-    image: ethereum/client-go
-    ports: ["8545:8545"]  # L1 RPC
+    ports: ["8545:8545"]
     volumes: [l1_data:/db]
 
   # ============================================================
   # Sequencer Stack
   # ============================================================
   sequencer-l2:
-    image: tokamaknetwork/thanos-l2geth
-    ports: ["9545:8545"]  # Sequencer L2 RPC
-    volumes: [sequencer_l2_data:/db]  # ← Independent DB
+    ports: ["9545:8545"]              # Sequencer L2 RPC
+    volumes: [sequencer_l2_data:/db]  # Sequencer DB
     environment:
-      - ROLLUP_CLIENT_HTTP=http://sequencer-op-node:8545
+      ROLLUP_CLIENT_HTTP: http://sequencer-op-node:8545
 
   sequencer-op-node:
-    image: tokamaknetwork/thanos-op-node
-    ports: ["7545:8545"]  # Sequencer op-node RPC
+    ports: ["7545:8545"]              # Sequencer op-node RPC
     environment:
-      - OP_NODE_L1_ETH_RPC=http://l1:8545
-      - OP_NODE_L2_ENGINE_RPC=http://sequencer-l2:8551
-      - OP_NODE_ROLLUP_CONFIG=/rollup.json
-      - OP_NODE_SEQUENCER_ENABLED=true  # ← Sequencer mode
+      OP_NODE_L1_ETH_RPC: http://l1:8545
+      OP_NODE_L2_ENGINE_RPC: http://sequencer-l2:8551
+      OP_NODE_SEQUENCER_ENABLED: true  # ← Sequencer mode
 
   op-batcher:
-    image: tokamaknetwork/thanos-op-batcher
     environment:
-      - OP_BATCHER_L1_ETH_RPC=http://l1:8545
-      - OP_BATCHER_ROLLUP_RPC=http://sequencer-op-node:8545
-      - OP_BATCHER_PRIVATE_KEY=${BATCHER_PRIVATE_KEY}
+      OP_BATCHER_ROLLUP_RPC: http://sequencer-op-node:8545
 
   op-proposer:
-    image: tokamaknetwork/thanos-op-proposer
     environment:
-      - OP_PROPOSER_L1_ETH_RPC=http://l1:8545
-      - OP_PROPOSER_ROLLUP_RPC=http://sequencer-op-node:8545
-      - OP_PROPOSER_PRIVATE_KEY=${PROPOSER_PRIVATE_KEY}
+      OP_PROPOSER_ROLLUP_RPC: http://sequencer-op-node:8545
 
   # ============================================================
-  # Challenger Stack (Independent!)
+  # Challenger Stack (Completely Independent!) ⭐
   # ============================================================
   challenger-l2:
-    image: tokamaknetwork/thanos-l2geth
-    ports: ["9546:8545"]  # Challenger L2 RPC
-    volumes: [challenger_l2_data:/db]  # ← Independent DB ⭐⭐
+    ports: ["9546:8545"]                  # Challenger L2 RPC (different port!)
+    volumes: [challenger_l2_data:/db]    # ← Independent DB ⭐⭐
     environment:
-      - ROLLUP_CLIENT_HTTP=http://challenger-op-node:8545
+      ROLLUP_CLIENT_HTTP: http://challenger-op-node:8545
 
   challenger-op-node:
-    image: tokamaknetwork/thanos-op-node
-    ports: ["7546:8545"]  # Challenger op-node RPC
+    ports: ["7546:8545"]                  # Challenger op-node RPC (different port!)
     environment:
-      - OP_NODE_L1_ETH_RPC=http://l1:8545  # ← Read directly from L1
-      - OP_NODE_L2_ENGINE_RPC=http://challenger-l2:8551
-      - OP_NODE_ROLLUP_CONFIG=/rollup.json
-      - OP_NODE_SEQUENCER_ENABLED=false  # ← Follower mode ⭐
+      OP_NODE_L1_ETH_RPC: http://l1:8545  # ← Read directly from L1
+      OP_NODE_L2_ENGINE_RPC: http://challenger-l2:8551
+      OP_NODE_SEQUENCER_ENABLED: false    # ← Follower mode ⭐
 
   op-challenger:
-    image: tokamaknetwork/thanos-op-challenger
     volumes:
-      # GameType-specific VM binaries
-      - ${PROJECT_ROOT}/cannon/bin:/cannon           # GameType 0/1
-      - ${PROJECT_ROOT}/asterisc/bin:/asterisc       # GameType 2
-      - ${PROJECT_ROOT}/bin:/kona                    # GameType 3
-      - ${PROJECT_ROOT}/op-program/bin:/op-program   # Prestate
+      # Mount all GameType VM binaries
+      - ${PROJECT_ROOT}/cannon/bin:/cannon        # GameType 0/1
+      - ${PROJECT_ROOT}/asterisc/bin:/asterisc    # GameType 2, 3
+      - ${PROJECT_ROOT}/bin:/kona                 # GameType 3 (kona-client)
+      - ${PROJECT_ROOT}/op-program/bin:/op-program
     environment:
-      - OP_CHALLENGER_L1_ETH_RPC=http://l1:8545
-      - OP_CHALLENGER_ROLLUP_RPC=http://challenger-op-node:8545
-      - OP_CHALLENGER_L2_ETH_RPC=http://challenger-l2:8545
-      - OP_CHALLENGER_TRACE_TYPE=${CHALLENGER_TRACE_TYPE}
-      - OP_CHALLENGER_GAME_FACTORY_ADDRESS=${GAME_FACTORY_ADDRESS}
-
-      # GameType 0/1 (Cannon)
-      - OP_CHALLENGER_CANNON_BIN=/cannon/cannon
-      - OP_CHALLENGER_CANNON_SERVER=/op-program/op-program
-      - OP_CHALLENGER_CANNON_PRESTATE=/op-program/prestate.json
-      - OP_CHALLENGER_CANNON_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_CANNON_L2_GENESIS=/devnet/genesis-l2.json
-
-      # GameType 2 (Asterisc)
-      - OP_CHALLENGER_ASTERISC_BIN=/asterisc/asterisc
-      - OP_CHALLENGER_ASTERISC_SERVER=/op-program/op-program
-      - OP_CHALLENGER_ASTERISC_PRESTATE=/asterisc/prestate.json  # Uses symbolic link
-      - OP_CHALLENGER_ASTERISC_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_ASTERISC_L2_GENESIS=/devnet/genesis-l2.json
-
-      # GameType 3 (AsteriscKona) 🆕
-      - OP_CHALLENGER_ASTERISC_KONA_BIN=/asterisc/asterisc
-      - OP_CHALLENGER_ASTERISC_KONA_SERVER=/kona/kona-client  # Rust!
-      - OP_CHALLENGER_ASTERISC_KONA_PRESTATE=/op-program/prestate-kona.json
-      - OP_CHALLENGER_ASTERISC_KONA_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_ASTERISC_KONA_L2_GENESIS=/devnet/genesis-l2.json
-
-      - OP_CHALLENGER_PRIVATE_KEY=${CHALLENGER_PRIVATE_KEY}
+      OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
+      OP_CHALLENGER_ROLLUP_RPC: http://challenger-op-node:8545  # ⭐ Own op-node
+      OP_CHALLENGER_L2_ETH_RPC: http://challenger-l2:8545        # ⭐ Own L2 geth
+      OP_CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE}  # Supports all GameTypes
+      # ... GameType-specific environment variables ...
 
 volumes:
   l1_data:
@@ -934,6 +860,15 @@ volumes:
   challenger_l2_data:     # ← Challenger L2 DB (independent!) ⭐⭐
   challenger_data:        # ← Challenger working directory
 ```
+
+**Key Points**:
+- ✅ Challenger uses **separate L2 geth** (`challenger-l2`)
+- ✅ Challenger uses **separate op-node** (`challenger-op-node`, Follower mode)
+- ✅ Challenger uses **separate DB** (`challenger_l2_data`)
+- ✅ Mounts all GameType VM binaries to **support all game types**
+- ✅ **0% sharing** with Sequencer → true independent verification
+
+> 📚 **Actual Docker Compose Configuration**: [docker-compose-full.yml](../scripts/docker-compose-full.yml)
 
 ### Port Mapping
 

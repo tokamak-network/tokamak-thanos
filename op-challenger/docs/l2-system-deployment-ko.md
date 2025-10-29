@@ -78,14 +78,14 @@
 │                        L1 Ethereum                         │
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
-│  ┌─────────────────┐  ┌──────────────────┐               │
-│  │ Batch Inbox     │  │ L2OutputOracle   │               │
-│  │ 0xff00...       │  │ (Output 저장)     │               │
-│  └────▲────────────┘  └────▲─────────────┘               │
+│  ┌─────────────────┐  ┌──────────────────────────┐        │
+│  │ Batch Inbox     │  │ DisputeGameFactory       │        │
+│  │ 0xff00...       │  │ (Fault Proof 게임 관리)   │        │
+│  └────▲────────────┘  └────▲─────────────────────┘        │
 │       │                    │                              │
 └───────┼────────────────────┼──────────────────────────────┘
         │                    │
-        │ write              │ write
+        │ write              │ write (게임 생성)
         │                    │
 ┌───────┴────────────────────┴──────────────────────────────┐
 │              Sequencer 스택                               │
@@ -93,7 +93,7 @@
 │                                                           │
 │  ┌──────────────┐              ┌──────────────┐          │
 │  │ op-batcher   │              │ op-proposer  │          │
-│  │ (L1에 쓰기)  │              │ (L1에 쓰기)  │          │
+│  │ (L1에 쓰기)  │              │ (게임 생성)  │          │
 │  └──────▲───────┘              └──────▲───────┘          │
 │         │                             │                  │
 │         │ read L2 blocks              │ read state       │
@@ -117,7 +117,7 @@
 │  │      op-challenger                      │             │
 │  │      (검증 & 챌린지)                     │             │
 │  └──────▲──────────────────────────────────┘             │
-│         │ read L2 state                                  │
+│         │ read L2 state + 게임 참여                      │
 │         │                                                │
 │  ┌──────┴──────────────────────────────────┐             │
 │  │      op-node (follower mode)            │             │
@@ -129,7 +129,7 @@
 └───────────────────┼──────────────────────────────────────┘
                     │
                     ▼
-        L1 Ethereum (읽기: Batch Inbox, Output Oracle)
+        L1 Ethereum (읽기: Batch Inbox, DisputeGameFactory)
 ```
 
 ### 왜 별도의 Challenger 스택이 필요한가?
@@ -194,11 +194,11 @@ services:
       - --sequencer.l1-confs=4
       - --rollup.config=/rollup.json
       - --rpc.addr=0.0.0.0
-      - --rpc.port=9545
+      - --rpc.port=8545                       # 내부 포트 8545
       - --p2p.listen.tcp=9003
       - --p2p.listen.udp=9003
     ports:
-      - "9545:9545"
+      - "7545:8545"  # 외부:내부
       - "9003:9003"
     volumes:
       - ./rollup.json:/rollup.json
@@ -237,7 +237,7 @@ services:
       - op-batcher
       - --l1-eth-rpc=http://l1-geth:8545           # ⭐ L1에 쓰기
       - --l2-eth-rpc=http://sequencer-op-geth:8545
-      - --rollup-rpc=http://sequencer-op-node:9545
+      - --rollup-rpc=http://sequencer-op-node:8545  # 내부 포트
       - --poll-interval=1s
       - --sub-safety-margin=6
       - --num-confirmations=1
@@ -257,11 +257,12 @@ services:
       - op-proposer
       - --l1-eth-rpc=http://l1-geth:8545           # ⭐ L1에 쓰기
       - --l2-eth-rpc=http://sequencer-op-geth:8545
-      - --rollup-rpc=http://sequencer-op-node:9545
+      - --rollup-rpc=http://sequencer-op-node:8545  # 내부 포트
       - --poll-interval=12s
       - --rpc.addr=0.0.0.0
-      - --rpc.port=8560
-      - --l2oo-address=${L2OO_ADDRESS}
+      - --rpc.port=8545                            # 내부 포트 8545
+      - --game-factory-address=${GAME_FACTORY_ADDRESS}  # DisputeGameFactory
+      - --proposal-interval=${PROPOSAL_INTERVAL:-30s}
       - --private-key=${PROPOSER_PRIVATE_KEY}
     depends_on:
       - l1-geth                                    # ⭐ L1 필요!
@@ -281,12 +282,12 @@ services:
       - --sequencer.enabled=false                  # Follower 모드
       - --rollup.config=/rollup.json
       - --rpc.addr=0.0.0.0
-      - --rpc.port=9545
+      - --rpc.port=8545                            # 내부 포트 8545
       - --p2p.listen.tcp=9004
       - --p2p.listen.udp=9004
       - --p2p.bootnodes=${SEQUENCER_P2P_ENR}       # P2P 연결
     ports:
-      - "9546:9545"  # 다른 포트
+      - "7546:8545"  # 외부:내부 (Sequencer와 다른 포트!)
       - "9004:9004"
     volumes:
       - ./rollup.json:/rollup.json
@@ -324,7 +325,7 @@ services:
       - --l1-eth-rpc=http://l1-geth:8545                  # ⭐ L1 읽기
       - --l1-beacon=http://l1-beacon:5052
       - --l2-eth-rpc=http://challenger-op-geth:8545       # ⭐ 자기 L2
-      - --rollup-rpc=http://challenger-op-node:9545       # ⭐ 자기 op-node
+      - --rollup-rpc=http://challenger-op-node:8545       # ⭐ 자기 op-node (내부 포트)
       - --game-factory-address=${GAME_FACTORY_ADDRESS}
       - --trace-type=${CHALLENGER_TRACE_TYPE}             # ⭐ 모든 GameType 지원
       - --datadir=/data
@@ -637,10 +638,12 @@ cat > .env << EOF
 BATCHER_PRIVATE_KEY=0x...
 PROPOSER_PRIVATE_KEY=0x...
 CHALLENGER_PRIVATE_KEY=0x...
-L2OO_ADDRESS=0x...
-GAME_FACTORY_ADDRESS=0x...
-SEQUENCER_P2P_ENR=enr://...
-INFURA_API_KEY=...
+GAME_FACTORY_ADDRESS=0x...      # DisputeGameFactory 주소
+CHALLENGER_TRACE_TYPE=cannon,asterisc,asterisc-kona  # 모든 GameType 지원
+DG_TYPE=0                       # Proposer가 사용할 GameType (0, 1, 2, 3)
+PROPOSAL_INTERVAL=30s            # 제안 간격
+SEQUENCER_P2P_ENR=enr://...     # Sequencer P2P (선택사항)
+INFURA_API_KEY=...              # 외부 RPC 사용 시
 EOF
 ```
 
