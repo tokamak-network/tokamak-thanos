@@ -44,11 +44,13 @@ bedrock-devnet/data
 
 .devnet
 
-# VM build artifacts (Cannon, Asterisc)
+# VM build artifacts (Cannon, Asterisc, Kona)
 .asterisc-src/
 asterisc/bin/
 cannon/bin/
 op-program/bin/
+bin/kona-client
+bin/*.elf
 /prestate.json
 
 # Backup files
