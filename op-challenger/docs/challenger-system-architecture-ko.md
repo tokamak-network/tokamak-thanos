@@ -510,45 +510,6 @@ tokamak-projects/                        # 작업 디렉토리
             └── prestate-proof.json      # GameType 2 prestate
 ```
 
-**빌드 방법 (자동화됨)**:
-```bash
-# 옵션 1: 사전 빌드 이미지 다운로드 (권장, 2-3분)
-./op-challenger/scripts/pull-vm-images.sh --tag latest
-# ✅ kona-client 자동 다운로드 및 추출
-
-# 옵션 2: 직접 빌드 (15-20분)
-./op-challenger/scripts/deploy-modular.sh --dg-type 3
-# → 자동으로 다음을 수행:
-
-# 1. kona 저장소 클론
-cd tokamak-projects/
-git clone --depth 1 https://github.com/op-rs/kona.git
-
-# 2. Docker로 RISC-V 바이너리 빌드
-docker run ghcr.io/op-rs/kona/asterisc-builder:0.3.0 \
-  cargo build -Zbuild-std=core,alloc \
-    -p kona-client \
-    --bin kona-client \
-    --profile release-client-lto
-# → target/riscv64imac-unknown-none-elf/release-client-lto/kona-client
-
-# 3. kona-client 복사
-cp kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
-   tokamak-thanos/bin/
-
-# 4. Docker로 Prestate 생성
-docker run golang:1.22-bookworm \
-  ./asterisc/bin/asterisc load-elf \
-    --path /kona/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client \
-    --out /output/prestate-kona.json
-```
-
-**중요**:
-- 타겟: `riscv64imac-unknown-none-elf` (bare metal, no OS)
-- 프로파일: `release-client-lto` (LTO 최적화)
-- 모든 빌드는 **Docker 내부**에서 실행 (재현 가능한 빌드)
-
----
 
 ### 핵심 차이점 정리
 
@@ -825,105 +786,68 @@ kona/ 없음                       ../kona/                    ← 클론됨
 
 ### Docker Compose 구조
 
+**개념적 구조** (실제 설정은 더 복잡합니다):
+
 ```yaml
 services:
-  # ============================================================
   # L1 Layer
-  # ============================================================
   l1:
-    image: ethereum/client-go
-    ports: ["8545:8545"]  # L1 RPC
+    ports: ["8545:8545"]
     volumes: [l1_data:/db]
 
   # ============================================================
   # Sequencer Stack
   # ============================================================
   sequencer-l2:
-    image: tokamaknetwork/thanos-l2geth
-    ports: ["9545:8545"]  # Sequencer L2 RPC
-    volumes: [sequencer_l2_data:/db]  # ← 독립 DB
+    ports: ["9545:8545"]              # Sequencer L2 RPC
+    volumes: [sequencer_l2_data:/db]  # Sequencer DB
     environment:
-      - ROLLUP_CLIENT_HTTP=http://sequencer-op-node:8545
+      ROLLUP_CLIENT_HTTP: http://sequencer-op-node:8545
 
   sequencer-op-node:
-    image: tokamaknetwork/thanos-op-node
-    ports: ["7545:8545"]  # Sequencer op-node RPC
+    ports: ["7545:8545"]              # Sequencer op-node RPC
     environment:
-      - OP_NODE_L1_ETH_RPC=http://l1:8545
-      - OP_NODE_L2_ENGINE_RPC=http://sequencer-l2:8551
-      - OP_NODE_ROLLUP_CONFIG=/rollup.json
-      - OP_NODE_SEQUENCER_ENABLED=true  # ← Sequencer 모드
+      OP_NODE_L1_ETH_RPC: http://l1:8545
+      OP_NODE_L2_ENGINE_RPC: http://sequencer-l2:8551
+      OP_NODE_SEQUENCER_ENABLED: true  # ← Sequencer 모드
 
   op-batcher:
-    image: tokamaknetwork/thanos-op-batcher
     environment:
-      - OP_BATCHER_L1_ETH_RPC=http://l1:8545
-      - OP_BATCHER_ROLLUP_RPC=http://sequencer-op-node:8545
-      - OP_BATCHER_PRIVATE_KEY=${BATCHER_PRIVATE_KEY}
+      OP_BATCHER_ROLLUP_RPC: http://sequencer-op-node:8545
 
   op-proposer:
-    image: tokamaknetwork/thanos-op-proposer
     environment:
-      - OP_PROPOSER_L1_ETH_RPC=http://l1:8545
-      - OP_PROPOSER_ROLLUP_RPC=http://sequencer-op-node:8545
-      - OP_PROPOSER_PRIVATE_KEY=${PROPOSER_PRIVATE_KEY}
+      OP_PROPOSER_ROLLUP_RPC: http://sequencer-op-node:8545
 
   # ============================================================
-  # Challenger Stack (독립적!)
+  # Challenger Stack (완전히 독립!) ⭐
   # ============================================================
   challenger-l2:
-    image: tokamaknetwork/thanos-l2geth
-    ports: ["9546:8545"]  # Challenger L2 RPC
-    volumes: [challenger_l2_data:/db]  # ← 독립 DB ⭐⭐
+    ports: ["9546:8545"]                  # Challenger L2 RPC (다른 포트!)
+    volumes: [challenger_l2_data:/db]    # ← 독립 DB ⭐⭐
     environment:
-      - ROLLUP_CLIENT_HTTP=http://challenger-op-node:8545
+      ROLLUP_CLIENT_HTTP: http://challenger-op-node:8545
 
   challenger-op-node:
-    image: tokamaknetwork/thanos-op-node
-    ports: ["7546:8545"]  # Challenger op-node RPC
+    ports: ["7546:8545"]                  # Challenger op-node RPC (다른 포트!)
     environment:
-      - OP_NODE_L1_ETH_RPC=http://l1:8545  # ← L1에서 직접 읽기
-      - OP_NODE_L2_ENGINE_RPC=http://challenger-l2:8551
-      - OP_NODE_ROLLUP_CONFIG=/rollup.json
-      - OP_NODE_SEQUENCER_ENABLED=false  # ← Follower 모드 ⭐
+      OP_NODE_L1_ETH_RPC: http://l1:8545  # ← L1에서 직접 읽기
+      OP_NODE_L2_ENGINE_RPC: http://challenger-l2:8551
+      OP_NODE_SEQUENCER_ENABLED: false    # ← Follower 모드 ⭐
 
   op-challenger:
-    image: tokamaknetwork/thanos-op-challenger
     volumes:
-      # GameType별 VM 바이너리
-      - ${PROJECT_ROOT}/cannon/bin:/cannon           # GameType 0/1
-      - ${PROJECT_ROOT}/asterisc/bin:/asterisc       # GameType 2
-      - ${PROJECT_ROOT}/bin:/kona                    # GameType 3
-      - ${PROJECT_ROOT}/op-program/bin:/op-program   # Prestate
+      # 모든 GameType의 VM 바이너리 마운트
+      - ${PROJECT_ROOT}/cannon/bin:/cannon        # GameType 0/1
+      - ${PROJECT_ROOT}/asterisc/bin:/asterisc    # GameType 2, 3
+      - ${PROJECT_ROOT}/bin:/kona                 # GameType 3 (kona-client)
+      - ${PROJECT_ROOT}/op-program/bin:/op-program
     environment:
-      - OP_CHALLENGER_L1_ETH_RPC=http://l1:8545
-      - OP_CHALLENGER_ROLLUP_RPC=http://challenger-op-node:8545
-      - OP_CHALLENGER_L2_ETH_RPC=http://challenger-l2:8545
-      - OP_CHALLENGER_TRACE_TYPE=${CHALLENGER_TRACE_TYPE}
-      - OP_CHALLENGER_GAME_FACTORY_ADDRESS=${GAME_FACTORY_ADDRESS}
-
-      # GameType 0/1 (Cannon)
-      - OP_CHALLENGER_CANNON_BIN=/cannon/cannon
-      - OP_CHALLENGER_CANNON_SERVER=/op-program/op-program
-      - OP_CHALLENGER_CANNON_PRESTATE=/op-program/prestate.json
-      - OP_CHALLENGER_CANNON_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_CANNON_L2_GENESIS=/devnet/genesis-l2.json
-
-      # GameType 2 (Asterisc)
-      - OP_CHALLENGER_ASTERISC_BIN=/asterisc/asterisc
-      - OP_CHALLENGER_ASTERISC_SERVER=/op-program/op-program
-      - OP_CHALLENGER_ASTERISC_PRESTATE=/asterisc/prestate.json  # 심볼릭 링크 사용
-      - OP_CHALLENGER_ASTERISC_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_ASTERISC_L2_GENESIS=/devnet/genesis-l2.json
-
-      # GameType 3 (AsteriscKona) 🆕
-      - OP_CHALLENGER_ASTERISC_KONA_BIN=/asterisc/asterisc
-      - OP_CHALLENGER_ASTERISC_KONA_SERVER=/kona/kona-client  # Rust!
-      - OP_CHALLENGER_ASTERISC_KONA_PRESTATE=/op-program/prestate-kona.json
-      - OP_CHALLENGER_ASTERISC_KONA_ROLLUP_CONFIG=/devnet/rollup.json
-      - OP_CHALLENGER_ASTERISC_KONA_L2_GENESIS=/devnet/genesis-l2.json
-
-      - OP_CHALLENGER_PRIVATE_KEY=${CHALLENGER_PRIVATE_KEY}
+      OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
+      OP_CHALLENGER_ROLLUP_RPC: http://challenger-op-node:8545  # ⭐ 자신의 op-node
+      OP_CHALLENGER_L2_ETH_RPC: http://challenger-l2:8545        # ⭐ 자신의 L2 geth
+      OP_CHALLENGER_TRACE_TYPE: ${CHALLENGER_TRACE_TYPE}  # 모든 GameType 지원
+      # ... GameType별 상세 환경 변수 ...
 
 volumes:
   l1_data:
@@ -931,6 +855,15 @@ volumes:
   challenger_l2_data:     # ← Challenger L2 DB (독립!) ⭐⭐
   challenger_data:        # ← Challenger 작업 디렉토리
 ```
+
+**핵심 포인트**:
+- ✅ Challenger는 **별도 L2 geth** (`challenger-l2`) 사용
+- ✅ Challenger는 **별도 op-node** (`challenger-op-node`, Follower 모드) 사용
+- ✅ Challenger는 **별도 DB** (`challenger_l2_data`) 사용
+- ✅ 모든 GameType의 VM 바이너리를 마운트하여 **모든 게임 타입 지원**
+- ✅ Sequencer와 **0% 공유** → 진정한 독립 검증
+
+> 📚 **실제 Docker Compose 설정**: [docker-compose-full.yml](../scripts/docker-compose-full.yml)
 
 ### 포트 매핑
 
@@ -1095,6 +1028,4 @@ docker exec challenger-l2 ls /db     # Challenger DB (다른 디렉토리!)
 - [OP Stack GitHub](https://github.com/ethereum-optimism/optimism)
 - [Fault Proof 문서](https://specs.optimism.io/fault-proof/index.html)
 - [배포 가이드](../scripts/README-KR.md)
-- [GameType 3 통합 계획](./gametype3-integration-plan-ko.md)
-
 ---
