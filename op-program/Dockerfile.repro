@@ -45,6 +45,7 @@ RUN mv /app/op-program/bin/0.json /app/op-program/bin/prestate-proof.json
 # Writing files to host requires buildkit to be enabled.
 # e.g. `BUILDKIT=1 docker build ...`
 FROM scratch AS export-stage
+COPY --from=builder /app/cannon/bin/cannon .
 COPY --from=builder /app/op-program/bin/op-program .
 COPY --from=builder /app/op-program/bin/op-program-client.elf .
 COPY --from=builder /app/op-program/bin/prestate.json .
