@@ -30,50 +30,49 @@ Sequencer 스택:                 Challenger 스택 (독립적!):
 ## 🚀 빠른 시작
 
 ```bash
-# 0. 클론 & 체크아웃
+# 1. 리포지토리 클론
 git clone https://github.com/tokamak-network/tokamak-thanos.git
 cd tokamak-thanos
-git checkout feature/challenger-risc-gametype2
+git checkout feature/challenger-gametype3
 
-# 1. 완전 초기화
+# 2. VM 바이너리 다운로드 (2-3분)
+./op-challenger/scripts/pull-vm-images.sh --tag latest
+# ✅ cannon, asterisc, op-program, kona-client 다운로드 완료
+
+# 3. 초기화 및 배포
 ./op-challenger/scripts/cleanup.sh
-
-# 2. 전체 자동 배포 (처음 배포 시)
-
-# GameType 0 (Cannon - MIPS VM) - 기본값
-./op-challenger/scripts/deploy-modular.sh
-
-# GameType 2 (Asterisc - RISC-V VM) - Asterisc VM 자동 빌드! ⭐
-./op-challenger/scripts/deploy-modular.sh --dg-type 2
-
-# GameType 3 (AsteriscKona - RISC-V + Rust) - 신규! 🆕
 ./op-challenger/scripts/deploy-modular.sh --dg-type 3
 
-# 커스텀 게임 설정 (GameType 2 또는 3)
-FAULT_GAME_MAX_CLOCK_DURATION=150 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./op-challenger/scripts/deploy-modular.sh --dg-type 2  # 또는 --dg-type 3
-
-# → 약 5-10분 소요
-
-# 3. 배포 상태 확인
+# 4. 상태 확인
 ./op-challenger/scripts/health-check.sh
-
-# 4. 상세 모니터링 (게임 통계, 동기화 상태 등)
 ./op-challenger/scripts/monitor-challenger.sh
 ```
 
+**총 배포 시간**: 약 15-20분
 
-**⚠️ 중요:**
-- `cleanup.sh`는 기본값으로 모든 것을 삭제합니다 (`.env`, Genesis, volumes)
-- `.env`를 유지하려면: `./cleanup.sh --keep-env`
+**GameType 선택**:
+```bash
+./deploy-modular.sh                    # GameType 0 (Cannon, 기본값)
+./deploy-modular.sh --dg-type 2        # GameType 2 (Asterisc)
+./deploy-modular.sh --dg-type 3        # GameType 3 (AsteriscKona)
+```
+
+**커스텀 게임 설정**:
+```bash
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./deploy-modular.sh --dg-type 3
+```
+
+> 📚 **VM 이미지 빌드 (담당자용)**: [VM 이미지 빌드 및 공유](../docs/vm-image-build-and-share-guide.md)
+> 📚 **Prestate 이해**: [Prestate 생성 가이드](../docs/prestate-generation-guide-ko.md)
 
 ## 📋 스크립트 설명
 
-### 🆕 deploy-modular.sh (새 모듈식 스크립트) ⭐
+### 🆕 deploy-modular.sh (메인 배포 스크립트)
 
-**GameType 2 (Asterisc) VM 자동 빌드를 포함한 모듈화된 배포 스크립트**
+모듈화된 L2 시스템 배포 스크립트. GameType별 자동 설정 및 검증을 수행합니다.
 
 ```bash
 # 사용법
@@ -82,63 +81,21 @@ PROPOSAL_INTERVAL=30s \
 # 옵션
 --dg-type TYPE          # GameType (0, 1, 2, 3, 254, 255, 기본: 0)
 --mode MODE             # 배포 모드: local|existing (기본: local)
---help                  # 도움말 표시
 
 # 예시
-# GameType 0 (Cannon) 배포
-./deploy-modular.sh --dg-type 0
-
-# GameType 2 (Asterisc) 배포 - Asterisc VM 자동 빌드! ⭐
-./deploy-modular.sh --dg-type 2
-
-# GameType 3 (AsteriscKona) 배포 - Rust 기반 kona-client 사용! 🆕
-./deploy-modular.sh --dg-type 3
-
-# 커스텀 게임 설정과 함께 GameType 2 배포
-FAULT_GAME_MAX_CLOCK_DURATION=120 ./deploy-modular.sh --dg-type 2
-
-# 커스텀 게임 설정과 함께 GameType 3 배포
-FAULT_GAME_MAX_CLOCK_DURATION=120 ./deploy-modular.sh --dg-type 3
+./deploy-modular.sh                    # GameType 0 (기본)
+./deploy-modular.sh --dg-type 3        # GameType 3
+FAULT_GAME_MAX_CLOCK_DURATION=150 ./deploy-modular.sh --dg-type 3  # 커스텀 설정
 ```
 
-**주요 기능:**
-- ✅ **Asterisc VM 자동 빌드** (GameType 2 선택 시)
-  - GitHub에서 asterisc 소스 자동 클론 및 빌드
-  - 빌드 실패 시 op-program 심볼릭 링크로 fallback
-- ✅ **GameType 3 (AsteriscKona) 지원** 🆕
-  - kona-client (Rust) 자동 감지
-  - Asterisc VM 재사용 (RISCV.sol 공유)
-- ✅ 모듈식 구조로 유지보수 용이 (lib/ + modules/)
-- ✅ GameType별 자동 VM 선택 (Cannon, Asterisc, AsteriscKona)
-- ✅ TraceType 자동 검증 및 설정
-- ✅ Prestate hash 자동 주입
+**주요 기능**:
+- ✅ GameType별 자동 VM 및 prestate 검증
+- ✅ respectedGameType 자동 설정 (OptimismPortal2와 동기화)
+- ✅ 모든 GameType의 prestate 검증 (Challenger는 모든 타입 지원)
+- ✅ 배포 전 설정 무결성 검증
+- ✅ 모듈식 구조 (lib/ + modules/)
 
-**모듈 구조:**
-```
-scripts/
-├── lib/
-│   └── common.sh           # 공통 라이브러리
-├── modules/
-│   ├── vm-build.sh         # VM 빌드 (Cannon + Asterisc 자동 빌드)
-│   └── genesis.sh          # Genesis 생성
-└── deploy-modular.sh       # 메인 오케스트레이터
-```
-
-**독립 실행 가능한 모듈:**
-```bash
-# Asterisc VM만 빌드
-./modules/vm-build.sh --asterisc-only
-
-# 모든 VM 빌드 (Cannon + Asterisc)
-./modules/vm-build.sh --all
-
-# Genesis만 재생성
-PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
-./modules/genesis.sh --prestate "$PRESTATE"
-```
-
-**관련 문서:**
-- [스크립트 모듈화 요약](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md)
+> 📚 **자세한 내용**: [스크립트 모듈화 요약](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md)
 
 ---
 
@@ -153,19 +110,30 @@ PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
 ./cleanup.sh [옵션]
 
 # 옵션
---all-containers    # 모든 관련 컨테이너 정리 (devnet, kurtosis 등 포함)
---rebuild           # Docker 이미지 및 빌드 캐시 제거 (완전 재빌드 강제) ⭐
---keep-env          # 환경 변수 파일 (.env) 유지
---keep-genesis      # Genesis 파일 유지
---help              # 도움말 표시
+--all-containers       # 모든 관련 컨테이너 정리 (devnet, kurtosis 등 포함)
+--rebuild              # Docker 이미지 및 빌드 캐시 제거 (완전 재빌드 강제) ⭐
+--keep-env             # 환경 변수 파일 (.env) 유지
+--keep-genesis         # Genesis 파일 유지
+--clean-vm-builds      # VM 바이너리 삭제 (기본: 보호됨) 🆕
+--clean-pulled-images  # Registry에서 다운로드한 이미지 삭제 (기본: 보호됨) 🆕
+--help                 # 도움말 표시
 
 # 예시
 
-# 기본 정리 (.env와 Genesis 파일도 삭제됨)
+# 기본 정리 (VM 바이너리와 pulled 이미지는 보호됨) ⭐
 ./cleanup.sh
 
-# 완전 재빌드 (Docker 이미지 및 캐시 제거) ⭐
+# 완전 재빌드 (로컬 빌드 이미지만 삭제, ghcr.io 이미지는 보호) ⭐
 ./cleanup.sh --rebuild
+
+# VM 바이너리까지 삭제 (pull-vm-images.sh로 다운로드한 것도 삭제)
+./cleanup.sh --clean-vm-builds
+
+# Registry 이미지까지 삭제 (ghcr.io 이미지 삭제)
+./cleanup.sh --clean-pulled-images
+
+# 완전 삭제 (VM + 이미지 + 컨테이너)
+./cleanup.sh --clean-vm-builds --clean-pulled-images --all-containers --rebuild
 
 # .env는 유지하고 Genesis만 삭제
 ./cleanup.sh --keep-env
@@ -175,29 +143,12 @@ PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
 
 # 컨테이너와 볼륨만 삭제 (.env와 Genesis 모두 유지)
 ./cleanup.sh --keep-env --keep-genesis
-
-# 완전 초기화 (모든 관련 컨테이너 포함)
-./cleanup.sh --all-containers
-
-# 완전 초기화 + 재빌드
-./cleanup.sh --all-containers --rebuild
 ```
 
-**정리되는 항목:**
-
-**기본 동작 (--all):**
-- scripts-* 컨테이너 (docker-compose-full.yml)
-- 관련 볼륨 및 네트워크
-- .env 파일
-- Genesis 파일 (genesis-*.json, rollup.json)
-- .devnet의 모든 allocation 파일
-
-**추가 옵션 (--all-containers):**
-- 위 항목 +
-- ops-bedrock-* 컨테이너 (devnet)
-- kurtosis-* 컨테이너
-- op-* 관련 모든 컨테이너
-- dangling 볼륨
+**⭐ 기본값 변경 (중요)**:
+- VM 바이너리 **보호** (pull-vm-images.sh로 다운로드한 것)
+- Registry 이미지 **보호** (ghcr.io 이미지)
+- 명시적으로 삭제하려면: `--clean-vm-builds`, `--clean-pulled-images`
 
 ### setup-env.sh
 
@@ -240,64 +191,48 @@ PRESTATE=$(jq -r '.pre' ../../op-program/bin/prestate-proof.json)
 | 255 | ALPHABET | Alphabet | - | 테스트 전용 | ⚠️ 테스트만 |
 
 ### GameType 0 (Cannon) - 기본값
+- **VM**: MIPS
+- **서버**: op-program (Go)
+- **특징**: 가장 안정적, 프로덕션 검증됨
 
 ```bash
-# 기본 설정
-./deploy-modular.sh --dg-type 0
+./deploy-modular.sh --dg-type 0  # 또는 옵션 없이 실행
 ```
 
-**특징**: MIPS VM 기반, 가장 안정적, 프로덕션 검증됨
-
 ### GameType 2 (Asterisc) - RISC-V
+- **VM**: RISC-V
+- **서버**: op-program (Go)
+- **특징**: Optimism 최신 아키텍처, 400+ 테스트 통과
 
 ```bash
-# GameType 2로 배포
 ./deploy-modular.sh --dg-type 2
 ```
 
-**특징**:
-- RISC-V VM 기반
-- Go 언어로 작성된 op-program 서버 사용
-- Optimism 최신 아키텍처
-- 400+ 테스트 통과
-
-**참고**: `deploy-modular.sh`가 Asterisc VM을 자동으로 빌드합니다 ⭐
-
 ### GameType 3 (AsteriscKona) - RISC-V + Rust 🆕
+- **VM**: RISC-V (**GameType 2와 동일한 RISCV.sol**)
+- **서버**: kona-client (Rust, ~80% 경량화)
+- **특징**: ZK proof 통합 준비, 차세대 아키텍처
+- **Prestate Fallback**: Asterisc prestate 자동 사용 가능 (동일 VM)
 
 ```bash
-# GameType 3로 배포
 ./deploy-modular.sh --dg-type 3
 ```
 
-**특징**:
-- RISC-V VM 기반 (GameType 2와 동일한 RISCV.sol 사용)
-- **Rust 언어로 작성된 kona-client 서버 사용** (Go 대비 ~80% 경량화)
-- ZK proof 시스템 통합 용이 (SP1, RISC Zero)
-- Optimism의 차세대 아키텍처
+> 📚 **자세한 내용**: [Prestate 생성 가이드](../docs/prestate-generation-guide-ko.md)
 
-**차이점 (vs GameType 2)**:
-- 온체인 VM: 동일 (RISCV.sol)
-- Server Binary: kona-client (Rust) vs op-program (Go)
-- 장점: 경량화, 최적화, ZK 통합 준비
-
-**참고**: kona-client 빌드가 필요합니다 (Rust 툴체인 필요)
-
-### 환경 변수 설명
+### 커스텀 게임 설정 (환경 변수)
 
 ```bash
-DG_TYPE                     # GameType (0, 1, 2, 3, 254, 255)
-CHALLENGER_TRACE_TYPE       # Trace type (cannon, asterisc, asterisc-kona, alphabet)
+# 빠른 테스트를 위한 설정
+FAULT_GAME_MAX_CLOCK_DURATION=150    # 게임 진행 시간 (초)
+FAULT_GAME_WITHDRAWAL_DELAY=3600     # 인출 대기 시간 (초)
+PROPOSAL_INTERVAL=30s                 # 제안 간격
 
-# GameType 2 (Asterisc) 관련
-ASTERISC_BIN               # Asterisc 바이너리 경로
-ASTERISC_SERVER            # op-program 경로 (Go)
-ASTERISC_PRESTATE          # Asterisc prestate 파일
-
-# GameType 3 (AsteriscKona) 관련 🆕
-ASTERISC_KONA_BIN          # Asterisc 바이너리 경로 (GameType 2와 동일)
-ASTERISC_KONA_SERVER       # kona-client 경로 (Rust)
-ASTERISC_KONA_PRESTATE     # AsteriscKona prestate 파일
+# 사용 예시
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./deploy-modular.sh --dg-type 3
 ```
 
 ---
@@ -365,47 +300,6 @@ metrics   # Prometheus 메트릭
 - **온체인 설정 확인 (실제 배포된 게임 설정 조회)** ⭐
 - **Prestate 검증 (온체인 절대 prestate vs 로컬 빌드 prestate 자동 비교)** ⭐
 - **Prestate 불일치 에러 자동 감지 및 해결 가이드 제공** ⭐
-
-## ⚙️ 게임 설정
-
-### 기본 게임 설정 (devnetL1-template.json)
-
-```json
-{
-  "faultGameMaxClockDuration": 1200,        // 20분 (초 단위)
-  "faultGameClockExtension": 0,             // 클락 연장 시간
-  "faultGameMaxDepth": 50,                  // 최대 게임 깊이
-  "faultGameSplitDepth": 14,                // 분할 깊이
-  "faultGameWithdrawalDelay": 604800,       // 인출 지연 (7일)
-  "disputeGameFinalityDelaySeconds": 6,     // finality 지연 (6초)
-  "faultGameAbsolutePrestate": "0x03c7ae758795765c6664a5d39bf63841c71ff191e9189522bad8ebff5d4eca98",
-  "faultGameGenesisOutputRoot": "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
-}
-```
-
-**주요 설정:**
-
-- **faultGameMaxClockDuration**: 1200초 (20분) - 각 팀의 최대 체스 클락 시간
-  - ⚠️ 최소값: 120초 (`preimageOracleChallengePeriod` 때문)
-- **faultGameWithdrawalDelay**: 604800초 (7일) - 게임 종료 후 인출 대기 시간
-- **faultGameSplitDepth**: 14 - 16,384 L2 블록 커버 (약 9.1시간)
-- **faultGameMaxDepth**: 50 - 최대 bisection 깊이 (687억 instructions)
-
-**환경 변수로 빠른 테스트 환경 설정:**
-
-```bash
-FAULT_GAME_MAX_CLOCK_DURATION=60 \
-FAULT_GAME_WITHDRAWAL_DELAY=3600 \
-PROPOSAL_INTERVAL=30s \
-./deploy-modular.sh --dg-type 0  # 또는 --dg-type 2 (Asterisc)
-```
-
-**설정값:**
-- 게임 진행: 1분
-- 인출 대기: 1시간
-- 제안 간격: 30초
-
-**⚠️ 주의:** 이 설정들은 개발/테스트 전용입니다. 프로덕션에서는 충분한 시간을 설정하세요.
 
 ---
 

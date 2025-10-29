@@ -326,15 +326,22 @@ services:
       - --l2-eth-rpc=http://challenger-op-geth:8545       # ⭐ 자기 L2
       - --rollup-rpc=http://challenger-op-node:9545       # ⭐ 자기 op-node
       - --game-factory-address=${GAME_FACTORY_ADDRESS}
-      - --trace-type=cannon
+      - --trace-type=${CHALLENGER_TRACE_TYPE}             # ⭐ 모든 GameType 지원
       - --datadir=/data
       - --private-key=${CHALLENGER_PRIVATE_KEY}
     volumes:
       - challenger_data:/data
+      - ${PROJECT_ROOT}/cannon/bin:/cannon                # VM 바이너리 마운트
+      - ${PROJECT_ROOT}/asterisc/bin:/asterisc
+      - ${PROJECT_ROOT}/op-program/bin:/op-program
+      - ${PROJECT_ROOT}/bin:/kona                         # kona-client (GameType 3)
     depends_on:
       - l1-geth                                           # ⭐ L1 공유!
       - challenger-op-node
       - challenger-op-geth
+    environment:
+      # Challenger는 모든 GameType 지원
+      # CHALLENGER_TRACE_TYPE 예시: "asterisc-kona,asterisc,cannon"
 
 volumes:
   l1_data:
@@ -351,15 +358,23 @@ BATCHER_PRIVATE_KEY=0x...
 
 # Proposer (Sequencer가 L1에 Output 제출)
 PROPOSER_PRIVATE_KEY=0x...
-L2OO_ADDRESS=0x...  # L2OutputOracle 컨트랙트 주소
+GAME_FACTORY_ADDRESS=0x...  # DisputeGameFactory 컨트랙트 주소
 
 # Challenger
 CHALLENGER_PRIVATE_KEY=0x...
-GAME_FACTORY_ADDRESS=0x...  # DisputeGameFactory 컨트랙트 주소
+CHALLENGER_TRACE_TYPE=cannon,asterisc,asterisc-kona  # 모든 GameType 지원
 
-# P2P (Follower가 Sequencer와 연결)
+# GameType 설정
+DG_TYPE=0  # Proposer가 사용할 GameType (0, 1, 2, 3)
+
+# P2P (Follower가 Sequencer와 연결, 선택사항)
 SEQUENCER_P2P_ENR=enr://...  # Sequencer의 P2P ENR
+
+# VM 바이너리 경로
+PROJECT_ROOT=/path/to/tokamak-thanos
 ```
+
+> 📚 **실제 배포**: 이 문서의 docker-compose는 참고용입니다. 실제 배포는 [배포 스크립트](../../scripts/README-KR.md)를 사용하세요.
 
 ---
 
