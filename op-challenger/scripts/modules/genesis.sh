@@ -117,10 +117,12 @@ cleanup_for_config_change() {
 
 configure_game_settings() {
     local prestate_hash="$1"
+    local dg_type="${2:-0}"  # ← GameType 추가 (기본값: 0)
 
     log_config "=== Template 파일 경로 ==="
     log_config "DEPLOY_CONFIG: $DEPLOY_CONFIG_TEMPLATE"
     log_config "File exists: $([ -f "$DEPLOY_CONFIG_TEMPLATE" ] && echo 'YES' || echo 'NO')"
+    log_config "GameType to configure: $dg_type"
 
     if [ ! -f "$DEPLOY_CONFIG_TEMPLATE" ]; then
         log_error "Deploy config template not found: $DEPLOY_CONFIG_TEMPLATE"
@@ -139,8 +141,10 @@ configure_game_settings() {
     log_config "Original values:"
     local orig_clock=$(jq -r '.faultGameMaxClockDuration' "$DEPLOY_CONFIG_TEMPLATE" 2>/dev/null || echo "unknown")
     local orig_delay=$(jq -r '.faultGameWithdrawalDelay' "$DEPLOY_CONFIG_TEMPLATE" 2>/dev/null || echo "unknown")
+    local orig_gametype=$(jq -r '.respectedGameType' "$DEPLOY_CONFIG_TEMPLATE" 2>/dev/null || echo "unknown")
     log_config "  faultGameMaxClockDuration: ${orig_clock}s"
     log_config "  faultGameWithdrawalDelay: ${orig_delay}s"
+    log_config "  respectedGameType: ${orig_gametype}"
 
     # Update clock duration if specified
     if [ -n "${FAULT_GAME_MAX_CLOCK_DURATION:-}" ]; then
@@ -195,6 +199,29 @@ configure_game_settings() {
         log_config "PROPOSAL_INTERVAL: ${PROPOSAL_INTERVAL}"
     fi
 
+    # ⭐ Update respectedGameType (OptimismPortal2가 사용할 GameType)
+    if [ -n "$dg_type" ]; then
+        log_info "Updating respectedGameType for OptimismPortal2..."
+        log_config "Updating respectedGameType: ${orig_gametype} -> ${dg_type}"
+
+        local temp_config=$(mktemp)
+        jq ".respectedGameType = ${dg_type}" "$DEPLOY_CONFIG_TEMPLATE" > "$temp_config"
+        mv "$temp_config" "$DEPLOY_CONFIG_TEMPLATE"
+
+        # Verify
+        local new_gametype=$(jq -r '.respectedGameType' "$DEPLOY_CONFIG_TEMPLATE")
+        log_config "Verification: respectedGameType = ${new_gametype}"
+        if [ "$new_gametype" = "$dg_type" ]; then
+            log_config "✅ respectedGameType successfully updated"
+            log_success "OptimismPortal2 will use GameType $dg_type"
+        else
+            log_config "❌ respectedGameType update FAILED!"
+            log_error "Failed to update respectedGameType"
+            return 1
+        fi
+        config_modified=true
+    fi
+
     # ⭐ Update template with generated prestate hash
     if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "error" ]; then
         log_info "Updating template with generated prestate hash..."
@@ -209,7 +236,7 @@ configure_game_settings() {
         log_config "Verification: faultGameAbsolutePrestate = ${new_prestate}"
         if [ "$new_prestate" = "$prestate_hash" ]; then
             log_config "✅ faultGameAbsolutePrestate successfully updated"
-            log_success "Template updated with generated prestate"
+            log_success "Template updated with GameType $dg_type prestate"
         else
             log_config "❌ faultGameAbsolutePrestate update FAILED!"
             log_error "Failed to update template with prestate"
@@ -222,6 +249,7 @@ configure_game_settings() {
         log_success "Game configuration updated in template"
         log_config "=== Template 수정 완료 ==="
         log_config "Modified template file: $DEPLOY_CONFIG_TEMPLATE"
+        log_config "GameType ${dg_type}: respectedGameType and prestate are now aligned"
         echo ""
     fi
 
@@ -239,14 +267,49 @@ run_devnet_up() {
 
     cd "${PROJECT_ROOT}"
 
+    # Temporarily patch Dockerfile to add missing asterisc-builder stage
+    # This is needed because we build op-challenger but provide asterisc via volume mount
+    local dockerfile="${PROJECT_ROOT}/ops/docker/op-stack-go/Dockerfile"
+    local dockerfile_backup="${dockerfile}.backup"
+
+    # Check if asterisc-builder is missing
+    if ! grep -q "as asterisc-builder" "$dockerfile"; then
+        log_info "Patching Dockerfile to add asterisc-builder stage..."
+
+        # Backup original Dockerfile
+        cp "$dockerfile" "$dockerfile_backup"
+
+        # Add asterisc-builder stage after cannon-builder
+        sed -i '' '/^FROM.*as op-program-builder/i\
+\
+# Dummy asterisc-builder stage (actual binary provided via volume mount)\
+FROM --platform=$BUILDPLATFORM builder as asterisc-builder\
+RUN mkdir -p /app/asterisc/bin && \\\
+    echo "#!/bin/sh" > /app/asterisc/bin/asterisc && \\\
+    echo "echo asterisc-placeholder" >> /app/asterisc/bin/asterisc && \\\
+    chmod +x /app/asterisc/bin/asterisc\
+' "$dockerfile"
+
+        log_success "Dockerfile patched for asterisc-builder"
+    fi
+
+    # Run devnet-up
+    local result=0
     if make devnet-up; then
         log_success "Devnet started successfully"
         echo ""
-        return 0
     else
         log_error "Devnet startup failed"
-        return 1
+        result=1
     fi
+
+    # Restore original Dockerfile if we patched it
+    if [ -f "$dockerfile_backup" ]; then
+        log_info "Restoring original Dockerfile..."
+        mv "$dockerfile_backup" "$dockerfile"
+    fi
+
+    return $result
 }
 
 wait_for_genesis_files() {
@@ -329,9 +392,14 @@ stop_devnet() {
     cd "${PROJECT_ROOT}/ops-bedrock"
 
     # Determine docker compose command
-    local docker_compose="docker compose"
-    if ! command -v "docker compose" &> /dev/null; then
+    local docker_compose
+    if docker compose version &> /dev/null; then
+        docker_compose="docker compose"
+    elif command -v docker-compose &> /dev/null; then
         docker_compose="docker-compose"
+    else
+        log_error "Neither 'docker compose' nor 'docker-compose' is available"
+        return 1
     fi
 
     # Try to stop using docker-compose.yml
@@ -401,10 +469,12 @@ stop_devnet() {
 
 generate_genesis() {
     local prestate_hash="${1:-}"
+    local dg_type="${2:-0}"  # ← GameType 추가 (기본값 0)
 
     log_info "=========================================="
     log_info "Genesis Generation Module"
     log_info "=========================================="
+    log_info "GameType: $dg_type"
     echo ""
 
     # Ensure devnet directory exists
@@ -454,7 +524,7 @@ generate_genesis() {
     fi
 
     # Step 5: Configure game settings
-    if ! configure_game_settings "$prestate_hash"; then
+    if ! configure_game_settings "$prestate_hash" "$dg_type"; then
         log_error "Failed to configure game settings"
         return 1
     fi
