@@ -1,0 +1,29 @@
+# Cursor AI가 읽지 않을 파일들
+
+# 환경 변수 및 민감 정보
+.env
+.env.*
+*.env
+.github-token
+
+# 프라이빗 키 및 시크릿
+*-key.txt
+*-secret.txt
+*.pem
+*.key
+
+# 로그 파일 (너무 큼)
+*.log
+logs/
+*.log.*
+
+# 빌드 아티팩트
+node_modules/
+*.sum
+go.sum
+pnpm-lock.yaml
+
+# 캐시
+.cache/
+*.cache/
+
