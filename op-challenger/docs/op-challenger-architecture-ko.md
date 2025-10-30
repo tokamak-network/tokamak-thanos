@@ -304,11 +304,16 @@ func (a *Agent) tryResolveClaims(ctx context.Context) error {
     1. 모든 클레임 로드
     2. 각 클레임에 대해:
        - Clock 만료 확인
-       - Selective 모드: 인센티브 확인
+       - Selective 모드: 인센티브 확인 (individual claims만 해당)
        - CallResolveClaim으로 해결 가능 여부 확인
     3. 해결 가능한 클레임들을 일괄 해결
 }
 ```
+
+**⚠️ Selective Claim Resolution 주의사항:**
+- Individual claims resolve: selective 설정 적용됨 ✅
+- Game resolve (tryResolve): selective 체크 누락 (코드 이슈) ❌
+- 자세한 내용: `op-challenger/scripts/README-KR.md` 참조
 
 ### 6. GameSolver (`game/fault/solver/`)
 

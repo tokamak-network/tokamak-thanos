@@ -34,15 +34,21 @@ Sequencer 스택:                 독립적인 Challenger 스택:
 ```yaml
 연결: challenger-op-node + challenger-l2 (완전히 독립적인 스택!)
 역할: 신뢰 최소화 검증 및 잘못된 Output 챌린지
-설정: --selective-claim-resolution=true (자신이 claim한 게임만 close)
+설정: --selective-claim-resolution=true
 ```
 
 **역할:**
 - ✅ 잘못된 Output에 대한 검증 및 챌린지
 - ✅ 자신이 참여한 게임 방어
 - ✅ **별도 DB로 L1에서 독립적으로 L2 재구성 (신뢰 최소화)** ⭐
-- ⚠️ 다른 사람의 게임 close 시 가스비만 소모 (인센티브 없음)
-- 💡 `--selective-claim-resolution=true`로 가스비 절약
+
+**⚠️ 현재 동작 (코드 이슈):**
+- `--selective-claim-resolution=true` 설정에도 불구하고:
+  - ✅ Individual claims resolve: 자신이 만든 claim만 resolve (정상)
+  - ❌ Game resolve: 모든 게임 resolve 시도 (설정 무시됨)
+- 결과: Sequencer Challenger와 경쟁하여 revert 발생 (불필요한 가스비 소모)
+- 원인: `op-challenger/game/fault/agent.go`의 `tryResolve()` 함수에 selective 체크 누락
+- 📝 **향후 수정 필요**: Game resolve에도 selective 체크 추가 필요
 
 **왜 독립적인 스택이 필요한가요?**
 - Sequencer와 노드를 공유하면 Sequencer가 악의적일 때 Challenger도 속을 수 있음 ❌
@@ -230,12 +236,18 @@ VM 바이너리와 prestate를 Docker에서 재현 가능하게 빌드하고 레
 --push              # 빌드 후 레지스트리에 푸시
 --registry URL      # 레지스트리 URL (기본: ghcr.io/zena-park)
 --tag TAG           # 이미지 태그 (기본: 현재 Git 커밋)
+--no-cache          # 캐시 없이 강제 재빌드
+--asterisc-only     # Asterisc 이미지만 빌드
+--kona-only         # Kona 이미지만 빌드
 --help              # 도움말 표시
 
 # 예시
-./build-vm-images.sh                          # 로컬 빌드만
+./build-vm-images.sh                          # 모든 이미지 로컬 빌드
 ./build-vm-images.sh --push                   # 빌드 + 푸시 (latest 태그 자동 추가!)
 ./build-vm-images.sh --tag v1.0.0 --push      # 특정 태그로 푸시
+./build-vm-images.sh --no-cache --push        # 캐시 없이 재빌드 + 푸시
+./build-vm-images.sh --kona-only --push       # Kona만 빌드 + 푸시
+./build-vm-images.sh --asterisc-only          # Asterisc만 로컬 빌드
 ```
 
 **빌드되는 이미지:**
@@ -306,10 +318,11 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 - `cannon/bin/cannon` - MIPS VM
 - `asterisc/bin/asterisc` - RISC-V VM
 - `op-program/bin/op-program` - Fault Proof 서버
-- `op-program/bin/prestate-proof.json` - Cannon prestate ⭐
-- `asterisc/bin/prestate-proof.json` - Asterisc prestate ⭐
+- `op-program/bin/prestate-proof.json` - Cannon prestate (배포용) ⭐
+- `asterisc/bin/prestate-proof.json` - Asterisc prestate (배포용) ⭐
 - `bin/kona-client` - Rust 서버 (GameType 3)
-- `op-program/bin/prestate-kona.json` - Kona prestate ⭐
+- `op-program/bin/prestate-kona.json` - Kona prestate (배포용) ⭐
+- `bin/prestate.bin.gz` - Kona prestate (런타임용, GameType 3 필수) 🆕
 
 **다운로드 시간:** 약 2-3분
 
@@ -563,16 +576,16 @@ kill -9 [PID]
 
 **배포 및 운영**:
 - [L2 시스템 배포 가이드](../docs/l2-system-deployment-ko.md) - 전체 배포 아키텍처
-- [스크립트 모듈화 요약](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - 모듈 구조 및 사용법
+- [L2 시스템 아키텍처](../docs/l2-system-architecture-ko.md) - L2 기본 구조
 - [Prestate 생성 가이드](../docs/prestate-generation-guide-ko.md) ⭐ - 모든 GameType의 prestate 생성 과정
-- [VM 이미지 빌드 및 공유](../docs/vm-image-build-and-share-guide.md) ⭐ - VM 이미지 관리 워크플로우
 
-**GameType 및 아키텍처**:
+**Challenger & GameType**:
 - [Challenger 시스템 아키텍처](../docs/challenger-system-architecture-ko.md) ⭐ - GameType별 상세 아키텍처
-- [RISC-V GameType 비교](../docs/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 비교
-- [게임 타입 및 VM](../docs/game-types-and-vms-ko.md) - VM 아키텍처 설명
+- [op-challenger 아키텍처](../docs/op-challenger-architecture-ko.md) - Challenger 내부 구조
 
-**보안 및 분석**:
-- [Blob Pruning 위험 분석](../docs/blob-pruning-risk-analysis-ko.md)
-- [Challenge Game 취약점 분석](../docs/challenge-game-vulnerability-ko.md)
-- [DA 시스템 분석](../docs/data-availability-analysis-ko.md)
+**리서치 & 분석** ([research/](../docs/research/) 폴더):
+- [RISC-V GameTypes 비교](../docs/research/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 상세 비교
+- [Optimism 코드 비교](../docs/research/asterisc-comparison-optimism-vs-tokamak-ko.md) - Asterisc 구현 비교
+- [Data Availability 분석](../docs/research/challenger-data-sources-ko.md) - DA 메커니즘 분석
+- [보안 분석](../docs/research/blob-pruning-risk-analysis-ko.md) - Blob pruning 위험성
+- [미래 기술 (ZK, RISC-V)](../docs/research/riscv-and-zk-future-ko.md) - ZK 통합 로드맵

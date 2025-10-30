@@ -126,7 +126,8 @@ $ asterisc witness --input some-state.json
 - ❌ 파일로 저장되지 않음 (또는 게임 중 임시 파일 `/datadir/*/xxx.json.gz`)
 - ❌ 게임 도중 **실시간으로 생성**
 - ✅ `StateConverter.ConvertStateToProof()`가 **stdout을 파싱**
-- ✅ Cannon: `.witnessHash`, Asterisc/Kona: `.stateHash`
+- ✅ Witness 출력 필드: Cannon은 `.witnessHash`, Asterisc/Kona는 `.stateHash` 사용
+- ⚠️ **배포용 파일(`prestate-proof.json`)은 모두 `.pre` 필드 사용** (통일됨)
 
 **코드 동작 (op-challenger):**
 ```go
@@ -640,12 +641,12 @@ ls -lh op-program/bin/prestate-kona.json
 # 3. JSON 형식 검증
 jq '.' op-program/bin/prestate-kona.json > /dev/null && echo "✅ Valid JSON"
 
-# 4. .stateHash 필드 확인
-jq -r '.stateHash' op-program/bin/prestate-kona.json | grep -E '^0x[0-9a-f]{64}$' && echo "✅ Valid hash"
+# 4. .pre 필드 확인 (모든 GameType 공통!)
+jq -r '.pre' op-program/bin/prestate-kona.json | grep -E '^0x[0-9a-f]{64}$' && echo "✅ Valid hash"
 
 # 5. Fallback 테스트 (asterisc prestate와 비교)
-KONA_HASH=$(jq -r '.stateHash' op-program/bin/prestate-kona.json)
-ASTERISC_HASH=$(jq -r '.stateHash' asterisc/bin/prestate-proof.json)
+KONA_HASH=$(jq -r '.pre' op-program/bin/prestate-kona.json)
+ASTERISC_HASH=$(jq -r '.pre' asterisc/bin/prestate-proof.json)
 
 echo "Kona prestate:     $KONA_HASH"
 echo "Asterisc prestate: $ASTERISC_HASH"
@@ -890,15 +891,22 @@ jq -r '.pre' asterisc/bin/prestate-proof.json
 # → null
 ```
 
-**원인**: Asterisc는 `.stateHash` 필드 사용 (Cannon의 `.pre`와 다름)
+**원인**: 잘못된 빌드 또는 파일 손상
 
 **해결**:
 ```bash
-# Asterisc (GameType 2/3)는 .stateHash 사용
-jq -r '.stateHash' asterisc/bin/prestate-proof.json
-
-# Cannon (GameType 0/1)은 .pre 사용
+# ✅ 모든 GameType은 `.pre` 필드 사용 (통일됨!)
+# GameType 0/1 (Cannon)
 jq -r '.pre' op-program/bin/prestate-proof.json
+
+# GameType 2 (Asterisc)
+jq -r '.pre' asterisc/bin/prestate-proof.json
+
+# GameType 3 (Kona)
+jq -r '.pre' op-program/bin/prestate-kona.json
+
+# 만약 null이 나온다면 재빌드 필요:
+./op-challenger/scripts/build-vm-images.sh --asterisc-only
 ```
 
 ### 문제 3: GameType 3 prestate-kona.json 없음
@@ -978,9 +986,10 @@ ls -lh op-program/bin/prestate-proof.json
 # 2. JSON 유효성 확인
 jq '.' op-program/bin/prestate-proof.json
 
-# 3. 해시 필드 확인
+# 3. 해시 필드 확인 (모든 GameType은 배포용 파일에서 .pre 사용)
 jq -r '.pre' op-program/bin/prestate-proof.json  # Cannon
-jq -r '.stateHash' asterisc/bin/prestate-proof.json  # Asterisc/Kona
+jq -r '.pre' asterisc/bin/prestate-proof.json  # Asterisc
+jq -r '.pre' op-program/bin/prestate-kona.json  # Kona
 
 # 4. 권한 확인
 chmod 644 op-program/bin/prestate-proof.json
@@ -1038,9 +1047,10 @@ docker history <image-id>
 
 1. ✅ **모든 GameType의 prestate는 Docker 환경에서 생성**
 2. ✅ **재현 가능한 빌드 보장** (`--platform linux/amd64`)
-3. ✅ **GameType별 해시 필드 차이 정확히 구분** (`.pre` vs `.stateHash`)
-4. ✅ **deploy-modular.sh의 prestate 추출 로직 검증 완료**
-5. ✅ **GameType 3의 fallback 메커니즘 검증 완료**
+3. ✅ **배포용 파일은 모든 GameType에서 `.pre` 필드 사용** (통일됨!)
+4. ✅ **런타임 witness 출력은 VM별로 다름** (`.witnessHash` vs `.stateHash`)
+5. ✅ **deploy-modular.sh의 prestate 추출 로직 검증 완료**
+6. ✅ **GameType 3의 fallback 메커니즘 검증 완료**
 
 ### 🐳 Docker 동작 보장
 
@@ -1081,9 +1091,3 @@ docker history <image-id>
 ```
 
 ---
-
-**문서 버전**: v1.0
-**최종 업데이트**: 2025-10-29
-**작성자**: Zena Park
-**검증 상태**: ✅ Docker 환경 테스트 완료
-

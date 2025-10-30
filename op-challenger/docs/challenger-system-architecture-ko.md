@@ -345,7 +345,7 @@ TraceType: cannon, asterisc, asterisc-kona
 │  │  → Docker로 Linux 바이너리 생성                │    │
 │  │  → asterisc binary (RISC-V VM)                 │    │
 │  │  → op-program binary (RISC-V 타겟)            │    │
-│  │  → prestate-proof.json (.stateHash)            │    │
+│  │  → prestate-proof.json (.pre)                  │    │
 │  └────────────────────────────────────────────────┘    │
 │                                                          │
 │  파일 구조:                                             │
@@ -577,7 +577,7 @@ kona/ 없음                       ../kona/                    ← 클론됨
 | **Off-chain VM** | cannon | asterisc | asterisc (동일) |
 | **Server** | op-program (Go) | op-program (Go) | kona-client (Rust) ⭐ |
 | **Server 언어** | Go | Go | Rust |
-| **Prestate 필드** | `.pre` | `.stateHash` | `.stateHash` |
+| **Prestate 필드 (배포용)** | `.pre` | `.pre` | `.pre` ⭐ |
 | **빌드 도구** | Go + Docker | Go + Docker | Rust + Cargo + Docker |
 | **바이너리 크기** | ~100MB | ~100MB | ~20MB (~80% 감소) ⭐ |
 | **장점** | 안정성, Go 에코시스템 | 현대적 ISA, RISC-V 표준 | 경량화, ZK 통합 준비 |

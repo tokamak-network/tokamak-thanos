@@ -2,21 +2,60 @@
 
 This directory contains scripts for complete deployment of the Optimism L2 Rollup system.
 
-## ⭐ Important: Independent Challenger Stack
+## ⭐ L2 System Architecture (with Dual Challengers)
 
-These deployment scripts implement **fully independent Challenger stack as recommended in the documentation**:
+These deployment scripts implement **two Challengers: Sequencer Challenger and Independent Third-Party Challenger**:
 
 ```
-Sequencer Stack:                Challenger Stack (Independent!):
+Sequencer Stack:                Independent Challenger Stack:
 ├─ sequencer-l2 (L2 geth)       ├─ challenger-l2 (separate L2 geth!) ⭐
 ├─ sequencer-op-node            ├─ challenger-op-node (Follower) ⭐
-├─ op-batcher                   └─ op-challenger
-└─ op-proposer
+├─ op-batcher                   └─ op-challenger (Independent Verifier)
+├─ op-proposer
+└─ sequencer-challenger ⭐
 ```
 
-**Why must it be independent?**
+**Why two Challengers?**
+
+### 1️⃣ sequencer-challenger (for Sequencer)
+```yaml
+Connection: sequencer-op-node + sequencer-l2 (shares Sequencer stack)
+Role: Ensure user withdrawals by closing games
+Setting: no --selective-claim-resolution (closes all games)
+```
+
+**Responsibilities:**
+- ✅ Defend own proposed Outputs
+- ✅ **Resolve and close games on time → Guarantee user withdrawals** ⭐
+- ✅ No separate L2 node needed (shares sequencer-l2)
+- ⚠️ If games not closed, users cannot withdraw funds!
+
+### 2️⃣ op-challenger (Independent Third-Party Verifier)
+```yaml
+Connection: challenger-op-node + challenger-l2 (completely independent stack!)
+Role: Trust-minimized verification and challenge invalid Outputs
+Setting: --selective-claim-resolution=true
+```
+
+**Responsibilities:**
+- ✅ Verify and challenge invalid Outputs
+- ✅ Defend own participated games
+- ✅ **Reconstruct L2 independently from L1 with separate DB (trust-minimized)** ⭐
+
+**⚠️ Current Behavior (Code Issue):**
+- Despite `--selective-claim-resolution=true` setting:
+  - ✅ Individual claims resolve: only own claims (works correctly)
+  - ❌ Game resolve: attempts all games (setting ignored)
+- Result: Competes with Sequencer Challenger, causing reverts (unnecessary gas cost)
+- Cause: Missing selective check in `tryResolve()` function in `op-challenger/game/fault/agent.go`
+- 📝 **Future Fix Needed**: Add selective check to game resolve
+
+**Why independent stack is necessary:**
 - Sharing nodes with Sequencer means Challenger can be fooled when Sequencer is malicious ❌
-- True Fault Proof requires independent L2 reconstruction from L1 with separate DB ✅
+- Essential for true Fault Proof verification as third-party verifier ✅
+- Environment to verify and test correct operation of Challenger system ⭐
+
+> 💡 **Summary**: `sequencer-challenger` is essential for user withdrawals, and `op-challenger` is essential for decentralized verification.
 
 ## 📚 Reference Documentation
 
@@ -51,7 +90,6 @@ git checkout feature/challenger-gametype3
 **Total deployment time**: ~15-20 minutes
 
 > 📚 **GameType Selection**: [GameType Guide](#-gametype-selection-guide)
-> 📚 **VM Image Build**: [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md)
 > 📚 **Understanding Prestate**: [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md)
 
 ## 📋 Script Descriptions
@@ -80,8 +118,6 @@ FAULT_GAME_MAX_CLOCK_DURATION=150 ./deploy-modular.sh --dg-type 3  # Custom sett
 - ✅ Validate all GameType prestates (Challenger supports all types)
 - ✅ Pre-deployment configuration integrity check
 - ✅ Modular structure (lib/ + modules/)
-
-> 📚 **Details**: [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md)
 
 ---
 
@@ -377,16 +413,16 @@ kill -9 [PID]
 
 **Deployment & Operations**:
 - [L2 System Deployment Guide](../docs/l2-system-deployment-ko.md) - Complete deployment architecture
-- [Script Modularization Summary](../docs/SCRIPT-MODULARIZATION-SUMMARY-ko.md) - Module structure and usage
+- [L2 System Architecture](../docs/l2-system-architecture-ko.md) - L2 fundamentals
 - [Prestate Generation Guide](../docs/prestate-generation-guide-ko.md) ⭐ - Prestate generation for all GameTypes
-- [VM Image Build and Share Guide](../docs/vm-image-build-and-share-guide.md) ⭐ - VM image management workflow
 
-**GameType & Architecture**:
+**Challenger & GameType**:
 - [Challenger System Architecture](../docs/challenger-system-architecture.md) ⭐ - Detailed architecture per GameType
-- [RISC-V GameTypes Comparison](../docs/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 comparison
-- [Game Types and VMs](../docs/game-types-and-vms-ko.md) - VM architecture explanation
+- [op-challenger Architecture](../docs/op-challenger-architecture-ko.md) - Challenger internals
 
-**Security & Analysis**:
-- [Blob Pruning Risk Analysis](../docs/blob-pruning-risk-analysis-ko.md)
-- [Challenge Game Vulnerability Analysis](../docs/challenge-game-vulnerability-ko.md)
-- [DA System Analysis](../docs/data-availability-analysis-ko.md)
+**Research & Analysis** ([research/](../docs/research/) folder):
+- [RISC-V GameTypes Comparison](../docs/research/risc-v-gametypes-comparison-ko.md) - GameType 2 vs 3 detailed comparison
+- [Optimism Code Comparison](../docs/research/asterisc-comparison-optimism-vs-tokamak-ko.md) - Asterisc implementation comparison
+- [Data Availability Analysis](../docs/research/challenger-data-sources-ko.md) - DA mechanism analysis
+- [Security Analysis](../docs/research/blob-pruning-risk-analysis-ko.md) - Blob pruning risks
+- [Future Technologies (ZK, RISC-V)](../docs/research/riscv-and-zk-future-ko.md) - ZK integration roadmap
