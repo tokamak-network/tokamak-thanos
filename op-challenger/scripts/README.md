@@ -82,6 +82,12 @@ git checkout feature/challenger-gametype3
 ./op-challenger/scripts/cleanup.sh
 ./op-challenger/scripts/deploy-modular.sh --dg-type 3
 
+# For customizing settings (development and testing)
+FAULT_GAME_MAX_CLOCK_DURATION=150 \
+FAULT_GAME_WITHDRAWAL_DELAY=3600 \
+PROPOSAL_INTERVAL=30s \
+./op-challenger/scripts/deploy-modular.sh --dg-type 3
+
 # 4. Check status
 ./op-challenger/scripts/health-check.sh
 ./op-challenger/scripts/monitor-challenger.sh
