@@ -1,127 +1,251 @@
 #!/usr/bin/env bash
+
+##############################################################################
+# Cleanup Script
+#
+# 배포된 L2 시스템을 정리하고 초기화합니다.
+##############################################################################
+
 set -euo pipefail
 
-##############################################################################
-# Deployment Cleanup Script
-#
-# Completely resets the deployment state including:
-# - Docker containers, volumes, and networks
-# - Incorrectly created directories in .devnet
-# - Optionally: environment variables and Genesis files
-#
-# Reference: /op-challenger/scripts/README.md
-##############################################################################
-
+# Source common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-DOCKER_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose-full.yml"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+source "${SCRIPT_DIR}/lib/common.sh"
+source "${SCRIPT_DIR}/modules/cleanup.sh"
 
-# Log functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+##############################################################################
+# 추가 정리 함수
+##############################################################################
+
+cleanup_vm_builds() {
+    log_info "=========================================="
+    log_info "Cleanup VM Binaries"
+    log_info "=========================================="
+    echo ""
+
+    local files_removed=0
+
+    # Cannon
+    if [ -f "${PROJECT_ROOT}/cannon/bin/cannon" ]; then
+        rm -f "${PROJECT_ROOT}/cannon/bin/cannon" && ((files_removed++))
+        log_info "  ✓ Removed cannon binary"
+    fi
+
+    # Asterisc
+    if [ -d "${PROJECT_ROOT}/asterisc/bin" ]; then
+        rm -rf "${PROJECT_ROOT}/asterisc/bin" && ((files_removed++))
+        log_info "  ✓ Removed asterisc binaries"
+    fi
+
+    # op-program
+    if [ -d "${PROJECT_ROOT}/op-program/bin" ]; then
+        rm -rf "${PROJECT_ROOT}/op-program/bin" && ((files_removed++))
+        log_info "  ✓ Removed op-program binaries"
+    fi
+
+    # kona-client
+    if [ -f "${PROJECT_ROOT}/bin/kona-client" ]; then
+        rm -f "${PROJECT_ROOT}/bin/kona-client" && ((files_removed++))
+        log_info "  ✓ Removed kona-client binary"
+    fi
+
+    if [ -f "${PROJECT_ROOT}/bin/prestate.bin.gz" ]; then
+        rm -f "${PROJECT_ROOT}/bin/prestate.bin.gz" && ((files_removed++))
+        log_info "  ✓ Removed kona runtime prestate"
+    fi
+
+    if [ $files_removed -gt 0 ]; then
+        log_success "Removed $files_removed VM binary/prestate file(s)"
+    else
+        log_info "No VM binaries to remove"
+    fi
+
+    echo ""
+    return 0
 }
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+cleanup_pulled_images() {
+    log_info "=========================================="
+    log_info "Cleanup Pulled Docker Images"
+    log_info "=========================================="
+    echo ""
+
+    local images_removed=0
+
+    # ghcr.io 레지스트리에서 pull한 이미지들
+    local registry_images=(
+        "ghcr.io/zena-park/vm-cannon"
+        "ghcr.io/zena-park/vm-asterisc"
+        "ghcr.io/zena-park/vm-op-program"
+        "ghcr.io/zena-park/vm-kona-client"
+        "ghcr.io/zena-park/op-challenger"
+        "ghcr.io/zena-park/op-node"
+        "ghcr.io/zena-park/op-batcher"
+        "ghcr.io/zena-park/op-proposer"
+    )
+
+    for img_pattern in "${registry_images[@]}"; do
+        # 모든 태그 삭제
+        local found_images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${img_pattern}:" || true)
+        if [ -n "$found_images" ]; then
+            echo "$found_images" | xargs -r docker rmi -f 2>/dev/null && ((images_removed++))
+            log_info "  ✓ Removed: $img_pattern (all tags)"
+        fi
+    done
+
+    if [ $images_removed -gt 0 ]; then
+        log_success "Removed $images_removed pulled image(s)"
+    else
+        log_info "No pulled images to remove"
+    fi
+
+    echo ""
+    return 0
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+cleanup_local_images() {
+    log_info "=========================================="
+    log_info "Cleanup Local Build Images"
+    log_info "=========================================="
+    echo ""
+
+    local images_removed=0
+
+    # 로컬 빌드 이미지들
+    local local_images=(
+        "scripts-l1"
+        "scripts-challenger-l2"
+        "scripts-sequencer-l2"
+        "tokamaknetwork/thanos-op-geth"
+        "ops-bedrock-l1"
+        "ops-bedrock-l2"
+    )
+
+    for img_pattern in "${local_images[@]}"; do
+        local found_images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${img_pattern}" || true)
+        if [ -n "$found_images" ]; then
+            echo "$found_images" | xargs -r docker rmi -f 2>/dev/null && ((images_removed++))
+            log_info "  ✓ Removed: $img_pattern"
+        fi
+    done
+
+    # Dangling images (<none>)
+    local dangling=$(docker images -f "dangling=true" -q)
+    if [ -n "$dangling" ]; then
+        echo "$dangling" | xargs -r docker rmi -f 2>/dev/null && ((images_removed++))
+        log_info "  ✓ Removed dangling images"
+    fi
+
+    if [ $images_removed -gt 0 ]; then
+        log_success "Removed $images_removed local build image(s)"
+    else
+        log_info "No local images to remove"
+    fi
+
+    echo ""
+    return 0
 }
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+cleanup_build_cache() {
+    log_info "Pruning Docker build cache..."
+
+    docker builder prune -af 2>/dev/null || docker buildx prune -af 2>/dev/null || true
+
+    log_success "Docker build cache pruned"
+    echo ""
+    return 0
 }
 
-# Help message
-usage() {
-    cat << EOF
-Deployment Cleanup Script
+cleanup_all_containers() {
+    log_info "=========================================="
+    log_info "Cleanup ALL Related Containers"
+    log_info "=========================================="
+    echo ""
 
-Usage:
-    $0 [options]
+    # scripts-, ops-bedrock-, devnet-, kurtosis- 등 모든 관련 컨테이너
+    local all_containers=$(docker ps -a --format '{{.Names}}' | grep -E "^(scripts-|ops-bedrock-|devnet-|kurtosis-)" || true)
 
-Options:
-    --all-containers      Clean ALL related containers (including devnet, kurtosis, etc.)
-    --rebuild             Remove locally built Docker images and build cache
-    --clean-vm-builds     Remove VM binaries (use if VM code changed)
-    --clean-pulled-images Remove pulled Docker images from registry (ghcr.io)
-    --keep-env            Keep environment variable file (.env)
-    --keep-genesis        Keep Genesis files in .devnet
-    --help                Show this help message
+    if [ -n "$all_containers" ]; then
+        echo "$all_containers" | xargs -r docker stop 2>/dev/null || true
+        echo "$all_containers" | xargs -r docker rm 2>/dev/null || true
+        log_success "All related containers removed"
+    else
+        log_info "No related containers found"
+    fi
 
-Default Behavior:
-    By default, this script cleans:
-    - Docker containers and volumes
-    - Genesis files (.devnet/*.json)
-    - Environment variable file (.env)
-    - Genesis hash caches
-
-    NOT cleaned by default:
-    - VM binaries (use --clean-vm-builds to remove)
-    - Pulled Docker images from ghcr.io (use --clean-pulled-images to remove)
-
-Examples:
-    # Basic cleanup (keeps VM binaries and Docker images)
-    $0
-
-    # Clean and force rebuild of local images
-    $0 --rebuild
-
-    # Clean VM binaries (if you want to rebuild from source)
-    $0 --clean-vm-builds
-
-    # Clean pulled Docker images (if you want to re-pull)
-    $0 --clean-pulled-images
-
-    # Clean but keep .env file
-    $0 --keep-env
-
-    # Clean but keep Genesis files
-    $0 --keep-genesis
-
-    # Clean ALL containers (this script + devnet + kurtosis)
-    $0 --all-containers
-
-    # Full clean (everything including VM binaries and pulled images)
-    $0 --rebuild --clean-vm-builds --clean-pulled-images
-
-    # Minimal clean (keeps .env, Genesis, VM binaries, Docker images)
-    $0 --keep-env --keep-genesis
-
-EOF
-    exit 0
+    echo ""
+    return 0
 }
 
-# Default options
-CLEAN_ENV=true
-CLEAN_GENESIS=true
-CLEAN_ALL_CONTAINERS=false
-REBUILD=false
-CLEAN_VM_BUILDS=false          # Keep VM binaries by default
-CLEAN_PULLED_IMAGES=false      # Keep pulled Docker images by default
+cleanup_env_file() {
+    log_info "Removing .env file..."
 
-# Parse arguments
+    if [ -f "${PROJECT_ROOT}/.env" ]; then
+        rm -f "${PROJECT_ROOT}/.env"
+        log_success ".env file removed"
+    else
+        log_info "No .env file found"
+    fi
+
+    echo ""
+    return 0
+}
+
+cleanup_genesis_files() {
+    log_info "Removing genesis files..."
+
+    local devnet_dir="${PROJECT_ROOT}/.devnet"
+    local files_removed=0
+
+    if [ -d "$devnet_dir" ]; then
+        for item in genesis-l1.json genesis-l2.json rollup.json addresses.json allocs*.json deploy-config.json; do
+            if [ -f "$devnet_dir/$item" ]; then
+                rm -f "$devnet_dir/$item" && ((files_removed++))
+            fi
+        done
+    fi
+
+    if [ $files_removed -gt 0 ]; then
+        log_success "Removed $files_removed genesis file(s)"
+    else
+        log_info "No genesis files to remove"
+    fi
+
+    echo ""
+    return 0
+}
+
+##############################################################################
+# CLI Interface
+##############################################################################
+
+# 기본값 (README와 동일하게 보호 모드)
+CLEANUP_ALL_CONTAINERS=false
+REBUILD_MODE=false
+KEEP_ENV=false
+KEEP_GENESIS=false
+CLEAN_VM_BUILDS=false
+CLEAN_PULLED_IMAGES=false
+
+# 인자 파싱
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --all)
-            CLEAN_ENV=true
-            CLEAN_GENESIS=true
-            shift
-            ;;
         --all-containers)
-            CLEAN_ALL_CONTAINERS=true
+            CLEANUP_ALL_CONTAINERS=true
             shift
             ;;
         --rebuild)
-            REBUILD=true
+            REBUILD_MODE=true
+            shift
+            ;;
+        --keep-env)
+            KEEP_ENV=true
+            shift
+            ;;
+        --keep-genesis)
+            KEEP_GENESIS=true
             shift
             ;;
         --clean-vm-builds)
@@ -132,400 +256,130 @@ while [[ $# -gt 0 ]]; do
             CLEAN_PULLED_IMAGES=true
             shift
             ;;
-        --keep-env)
-            CLEAN_ENV=false
-            shift
-            ;;
-        --keep-genesis)
-            CLEAN_GENESIS=false
-            shift
-            ;;
         --help)
-            usage
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --all-containers       Clean all related containers (devnet, kurtosis, etc.)"
+            echo "  --rebuild              Remove Docker images and build cache (force full rebuild)"
+            echo "  --keep-env             Keep environment variable file (.env)"
+            echo "  --keep-genesis         Keep genesis files"
+            echo "  --clean-vm-builds      Remove VM binaries (default: protected)"
+            echo "  --clean-pulled-images  Remove pulled images from registry (default: protected)"
+            echo "  --help                 Show this help"
+            echo ""
+            echo "Examples:"
+            echo "  $0                                    # Basic cleanup (protects VM & images)"
+            echo "  $0 --rebuild                          # Remove local build images"
+            echo "  $0 --clean-vm-builds                  # Also remove VM binaries"
+            echo "  $0 --clean-pulled-images              # Also remove pulled images"
+            echo "  $0 --clean-vm-builds --clean-pulled-images --all-containers --rebuild"
+            echo "                                        # Full cleanup"
+            echo "  $0 --keep-env                         # Keep .env file"
+            echo "  $0 --keep-genesis                     # Keep genesis files"
+            exit 0
             ;;
         *)
-            log_error "Unknown option: $1"
-            usage
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
             ;;
     esac
 done
 
 ##############################################################################
-# Confirm cleanup
+# 메인 실행
 ##############################################################################
 
-echo ""
+init_logging
+
 log_warn "=========================================="
 log_warn "Deployment Cleanup"
 log_warn "=========================================="
 echo ""
+
 log_warn "This will clean:"
 echo "  - Docker containers (scripts-*)"
-if [ "$CLEAN_ALL_CONTAINERS" = true ]; then
-    echo "  - ALL related containers (devnet, kurtosis, etc.)"
-fi
+[ "$CLEANUP_ALL_CONTAINERS" = true ] && echo "  - ALL related containers (devnet, kurtosis, etc.)"
 echo "  - Docker volumes"
 echo "  - Docker networks"
-if [ "$REBUILD" = true ]; then
-    echo "  - Locally built Docker images (tokamaknetwork/thanos-*, ops-bedrock-*)"
-    echo "  - Dangling images (<none>)"
-    echo "  - Docker build cache (all unused cache)"
-fi
-if [ "$CLEAN_PULLED_IMAGES" = true ]; then
-    REGISTRY="${VM_REGISTRY:-ghcr.io/zena-park}"
-    echo "  - Pulled Docker images from $REGISTRY"
-fi
-if [ "$CLEAN_VM_BUILDS" = true ]; then
-    echo "  - VM binaries (op-program, Cannon, Asterisc, Kona)"
-fi
-if [ "$CLEAN_ENV" = true ]; then
-    echo "  - Environment variable file (.env)"
-fi
-if [ "$CLEAN_GENESIS" = true ]; then
-    echo "  - Genesis files (.devnet/*.json)"
-fi
-echo ""
-if [ "$CLEAN_PULLED_IMAGES" = false ]; then
-    log_info "Keeping pulled Docker images (use --clean-pulled-images to remove)"
-fi
-if [ "$CLEAN_VM_BUILDS" = false ]; then
-    log_info "Keeping VM binaries (use --clean-vm-builds to remove)"
-fi
+[ "$REBUILD_MODE" = true ] && echo "  - Locally built Docker images (tokamaknetwork/thanos-*, ops-bedrock-*)"
+[ "$REBUILD_MODE" = true ] && echo "  - Dangling images (<none>)"
+[ "$REBUILD_MODE" = true ] && echo "  - Docker build cache (all unused cache)"
+[ "$CLEAN_PULLED_IMAGES" = true ] && echo "  - Pulled Docker images from ghcr.io/zena-park"
+[ "$CLEAN_VM_BUILDS" = true ] && echo "  - VM binaries (op-program, Cannon, Asterisc, Kona)"
+[ "$KEEP_ENV" = false ] && echo "  - Environment variable file (.env)"
+[ "$KEEP_GENESIS" = false ] && echo "  - Genesis files (.devnet/*.json)"
 echo ""
 
-read -p "Continue? (Y/n): " -r confirm
-confirm=${confirm:-Y}  # Default to Y if empty (just press Enter)
-if [[ ! $confirm =~ ^[Yy]$ ]]; then
-    log_info "Cleanup cancelled."
+read -p "Continue? (y/N): " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    log_info "Cleanup cancelled"
     exit 0
 fi
 
-##############################################################################
-# 1. Stop and remove Docker resources
-##############################################################################
+echo ""
 
-log_info "Stopping and removing Docker containers..."
-
-# Docker Compose version detection
-if command -v docker-compose &> /dev/null; then
-    DOCKER_COMPOSE="docker-compose"
-elif docker compose version &> /dev/null; then
-    DOCKER_COMPOSE="docker compose"
+# 1. 컨테이너 정리
+if [ "$CLEANUP_ALL_CONTAINERS" = true ]; then
+    cleanup_all_containers
 else
-    log_error "docker-compose or docker compose not found"
-    exit 1
+    cleanup_containers
 fi
 
-cd "$SCRIPT_DIR"
+# 2. 볼륨 정리
+cleanup_volumes
 
-# Stop and remove containers, networks, volumes
-$DOCKER_COMPOSE -f "$DOCKER_COMPOSE_FILE" down -v 2>/dev/null || true
+# 3. .devnet 파일 정리
+cleanup_devnet_files
 
-log_success "Docker Compose resources cleaned"
-
-# Clean ALL related containers if requested
-if [ "$CLEAN_ALL_CONTAINERS" = true ]; then
-    log_info "Cleaning ALL related containers..."
-
-    # Clean ops-bedrock devnet containers
-    if [ -f "${PROJECT_ROOT}/ops-bedrock/docker-compose.yml" ]; then
-        log_info "Cleaning ops-bedrock devnet..."
-        cd "${PROJECT_ROOT}/ops-bedrock"
-        $DOCKER_COMPOSE -f docker-compose.yml down -v 2>/dev/null || true
-    fi
-
-    # Stop and remove all containers with specific prefixes
-    log_info "Removing containers matching patterns..."
-    docker ps -a --format '{{.Names}}' | grep -E '^(scripts-|ops-bedrock-|op-|kurtosis-|wait-for-)' | while read container; do
-        log_info "  Removing: $container"
-        docker rm -f "$container" 2>/dev/null || true
-    done
-
-    # Clean dangling volumes
-    log_info "Cleaning dangling volumes..."
-    docker volume ls -qf dangling=true | while read volume; do
-        docker volume rm "$volume" 2>/dev/null || true
-    done
-
-    log_success "All related containers cleaned"
+# 4. Genesis 파일 정리 (선택적)
+if [ "$KEEP_GENESIS" = false ]; then
+    cleanup_genesis_files
 fi
 
-##############################################################################
-# 2. Clean incorrectly created directories in .devnet
-##############################################################################
-
-log_info "Cleaning .devnet directory..."
-
-DEVNET_DIR="${PROJECT_ROOT}/.devnet"
-
-if [ -d "$DEVNET_DIR" ]; then
-    # Remove directories that should be files
-    for item in genesis-l1.json genesis-l2.json rollup.json; do
-        item_path="${DEVNET_DIR}/${item}"
-        if [ -d "$item_path" ]; then
-            log_warn "Removing incorrectly created directory: $item"
-            rm -rf "$item_path"
-        fi
-    done
-
-    # Optionally clean Genesis files
-    if [ "$CLEAN_GENESIS" = true ]; then
-        log_warn "Removing all Genesis and allocation files..."
-        rm -f "${DEVNET_DIR}"/genesis-*.json
-        rm -f "${DEVNET_DIR}"/rollup.json
-        rm -f "${DEVNET_DIR}"/allocs-*.json
-        rm -f "${DEVNET_DIR}"/addresses.json
-        rm -f "${DEVNET_DIR}"/*.json
-
-        # Remove Genesis hash cache files
-        log_info "Removing Genesis hash cache files..."
-        rm -f "${PROJECT_ROOT}/op-program/bin/.genesis-hash"
-        rm -f "${PROJECT_ROOT}/op-program/bin/.rollup-hash"
-    fi
-
-    log_success ".devnet directory cleaned"
-else
-    log_info ".devnet directory does not exist, skipping"
+# 5. .env 파일 정리 (선택적)
+if [ "$KEEP_ENV" = false ]; then
+    cleanup_env_file
 fi
 
-##############################################################################
-# 3. Clean Docker images and build cache (if --rebuild)
-##############################################################################
-
-if [ "$REBUILD" = true ]; then
-    log_info "=========================================="
-    log_info "Removing Docker images and build cache..."
-    log_info "=========================================="
-    echo ""
-
-    # Remove locally built images only (keep ghcr.io images from pull-vm-images.sh)
-    log_info "Removing locally built images..."
-    log_warn "  Keeping ghcr.io images (downloaded via pull-vm-images.sh)"
-
-    # Remove only tokamaknetwork/thanos images (locally built)
-    docker images --format '{{.Repository}}:{{.Tag}}' | grep '^tokamaknetwork/thanos-' | while read image; do
-        log_info "  Removing image: $image"
-        docker rmi "$image" 2>/dev/null || true
-    done
-
-    # Remove ops-bedrock images (devnet L1/L2)
-    log_info "Removing ops-bedrock-* images..."
-    docker images --format '{{.Repository}}:{{.Tag}}' | grep 'ops-bedrock' | while read image; do
-        log_info "  Removing image: $image"
-        docker rmi "$image" 2>/dev/null || true
-    done
-
-    # Remove dangling images (<none>)
-    log_info "Removing dangling images (<none>)..."
-    docker images -f "dangling=true" -q | while read image_id; do
-        if [ -n "$image_id" ]; then
-            log_info "  Removing dangling image: $image_id"
-            docker rmi "$image_id" 2>/dev/null || true
-        fi
-    done
-
-    # Remove builder cache for op-challenger and related services
-    log_info "Pruning Docker build cache..."
-    docker builder prune -f --filter "label=stage=op-challenger-builder" 2>/dev/null || true
-    docker builder prune -f --filter "label=stage=op-node-builder" 2>/dev/null || true
-    docker builder prune -f --filter "label=stage=op-batcher-builder" 2>/dev/null || true
-    docker builder prune -f --filter "label=stage=op-proposer-builder" 2>/dev/null || true
-
-    # Additional aggressive cache pruning (removes all unused build cache)
-    log_warn "Removing ALL unused build cache (aggressive)..."
-    docker builder prune -af 2>/dev/null || true
-
-    log_success "Docker images and build cache removed"
-    log_success "  ✓ tokamaknetwork/thanos-* images (locally built)"
-    log_success "  ✓ ops-bedrock-* images (devnet)"
-    log_success "  ✓ Dangling images (<none>)"
-    log_success "  ✓ All build cache"
-    log_warn "  ⚠️  Kept ghcr.io images (use --clean-pulled-images to remove)"
-    log_success "Next deployment will rebuild everything from source"
-    echo ""
+# 6. VM 바이너리 정리 (선택적)
+if [ "$CLEAN_VM_BUILDS" = true ]; then
+    cleanup_vm_builds
 fi
 
-##############################################################################
-# 3.5. Clean pulled Docker images from registry (if requested)
-##############################################################################
-
+# 7. Pulled 이미지 정리 (선택적)
 if [ "$CLEAN_PULLED_IMAGES" = true ]; then
-    log_info "=========================================="
-    log_info "Removing pulled Docker images..."
-    log_info "=========================================="
-    echo ""
-
-    # Get the registry from environment or default
-    REGISTRY="${VM_REGISTRY:-ghcr.io/zena-park}"
-
-    log_warn "Removing images from: $REGISTRY"
-
-    # Remove all images from the registry
-    docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${REGISTRY}/" | while read image; do
-        log_info "  Removing: $image"
-        docker rmi "$image" 2>/dev/null || true
-    done
-
-    log_success "Pulled Docker images removed"
-    log_success "  ✓ All $REGISTRY/* images deleted"
-    log_warn "  ⚠️  Next deployment will re-pull images from registry"
-    echo ""
+    cleanup_pulled_images
 fi
 
-##############################################################################
-# 4. Clean VM build artifacts (if enabled)
-##############################################################################
-
-if [ "$CLEAN_VM_BUILDS" = true ]; then
-    log_info "=========================================="
-    log_info "Removing VM build artifacts..."
-    log_info "=========================================="
-    echo ""
-
-    files_removed=0
-
-    # Remove op-program binaries
-    if [ -f "${PROJECT_ROOT}/op-program/bin/op-program" ]; then
-        log_info "Removing op-program binary..."
-        rm -f "${PROJECT_ROOT}/op-program/bin/op-program" && ((files_removed++))
-    fi
-
-    # Remove Cannon VM and prestate
-    if [ -f "${PROJECT_ROOT}/cannon/bin/cannon" ]; then
-        log_info "Removing Cannon binary..."
-        rm -f "${PROJECT_ROOT}/cannon/bin/cannon" && ((files_removed++))
-    fi
-    if [ -f "${PROJECT_ROOT}/op-program/bin/prestate-proof.json" ]; then
-        log_info "Removing Cannon prestate..."
-        rm -f "${PROJECT_ROOT}/op-program/bin/prestate-proof.json" && ((files_removed++))
-        rm -f "${PROJECT_ROOT}/op-program/bin/prestate.json" 2>/dev/null
-    fi
-
-    # Remove Asterisc VM and prestate
-    if [ -f "${PROJECT_ROOT}/asterisc/bin/asterisc" ]; then
-        log_info "Removing Asterisc binary..."
-        rm -f "${PROJECT_ROOT}/asterisc/bin/asterisc" && ((files_removed++))
-    fi
-    if [ -f "${PROJECT_ROOT}/asterisc/bin/prestate-proof.json" ]; then
-        log_info "Removing Asterisc prestate..."
-        rm -f "${PROJECT_ROOT}/asterisc/bin/prestate-proof.json" && ((files_removed++))
-        rm -f "${PROJECT_ROOT}/asterisc/bin/prestate.json" 2>/dev/null
-        rm -f "${PROJECT_ROOT}/asterisc/bin/meta.json" 2>/dev/null
-    fi
-
-    # Remove Asterisc source directory
-    if [ -d "${PROJECT_ROOT}/.asterisc-src" ]; then
-        log_info "Removing Asterisc source directory..."
-        rm -rf "${PROJECT_ROOT}/.asterisc-src" && ((files_removed++))
-    fi
-
-    # Remove Kona client binary and prestate
-    if [ -f "${PROJECT_ROOT}/bin/kona-client" ]; then
-        log_info "Removing Kona client binary..."
-        rm -f "${PROJECT_ROOT}/bin/kona-client" && ((files_removed++))
-    fi
-    if [ -f "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" ]; then
-        log_info "Removing Kona prestate..."
-        rm -f "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" && ((files_removed++))
-    fi
-
-    # Remove Kona build cache (external project)
-    kona_dir="${PROJECT_ROOT}/../kona"
-    if [ -d "$kona_dir/target" ]; then
-        log_info "Removing Kona build cache (external project)..."
-        rm -rf "$kona_dir/target" && ((files_removed++))
-    fi
-    if [ -d "$kona_dir/bin-docker" ]; then
-        rm -rf "$kona_dir/bin-docker" 2>/dev/null
-    fi
-
-    if [ $files_removed -gt 0 ]; then
-        log_success "VM build artifacts removed"
-        log_success "  ✓ Removed $files_removed item(s)"
-        log_success "  ✓ Next deployment will rebuild all VMs from source"
-    else
-        log_info "No VM build artifacts to remove"
-    fi
-    echo ""
+# 8. 로컬 빌드 이미지 및 캐시 정리 (선택적)
+if [ "$REBUILD_MODE" = true ]; then
+    cleanup_local_images
+    cleanup_build_cache
 fi
-
-##############################################################################
-# 5. Clean environment variable file
-##############################################################################
-
-if [ "$CLEAN_ENV" = true ]; then
-    ENV_FILE="${PROJECT_ROOT}/.env"
-    if [ -f "$ENV_FILE" ]; then
-        log_warn "Removing environment variable file: $ENV_FILE"
-        rm -f "$ENV_FILE"
-        log_success "Environment variable file removed"
-    fi
-fi
-
-##############################################################################
-# 6. Summary
-##############################################################################
 
 echo ""
 log_success "=========================================="
-log_success "Cleanup Completed!"
+log_success "Cleanup Complete!"
 log_success "=========================================="
 echo ""
 
-log_info "Next steps:"
-if [ "$CLEAN_ENV" = true ] || [ ! -f "${PROJECT_ROOT}/.env" ]; then
-    echo "  1. Generate environment variables:"
-    echo "     ${SCRIPT_DIR}/setup-env.sh --mode local"
-    echo ""
-fi
-
-if [ "$CLEAN_GENESIS" = true ]; then
-    echo "  2. Generate Genesis files (required!):"
-    echo ""
-    log_warn "     ⚠️  Genesis files are created by 'make devnet-up', NOT 'make devnet-allocs'"
-    echo ""
-    echo "     cd ${PROJECT_ROOT}"
-    echo "     make devnet-up        # Start devnet (generates Genesis files)"
-    echo "     # Wait 1-2 minutes for completion..."
-    echo "     make devnet-down      # Stop devnet"
-    echo ""
-    echo "     # Verify Genesis files:"
-    echo "     ls -la .devnet/genesis*.json .devnet/rollup.json"
-    echo ""
-fi
-
-echo "  3. Deploy L2 system:"
-echo "     ${SCRIPT_DIR}/deploy-full-stack.sh --mode local"
-echo ""
-
-if [ "$REBUILD" = true ]; then
-    log_info "=========================================="
-    log_info "Rebuild Mode Enabled"
-    log_info "=========================================="
-    echo ""
-    log_success "✅ Docker images and build cache removed"
-    log_success "✅ Next deployment will rebuild all services from source"
-    echo ""
-    log_warn "Note: First build after --rebuild will take longer (5-10 minutes)"
-    log_warn "      but ensures all code changes are properly compiled"
-    echo ""
-fi
-
+# 다음 단계 안내
 if [ "$CLEAN_VM_BUILDS" = true ]; then
-    log_info "=========================================="
-    log_info "VM Builds Cleaned"
-    log_info "=========================================="
-    echo ""
-    log_success "✅ VM build artifacts removed (op-program, Cannon, Asterisc, Kona)"
-    log_success "✅ Next deployment will rebuild all VMs from source"
-    echo ""
-    log_warn "Note: First VM build will take longer (10-30 minutes total)"
-    log_warn "      - op-program: ~2-5 min"
-    log_warn "      - Cannon: ~3-5 min"
-    log_warn "      - Asterisc: ~5-10 min"
-    log_warn "      - Kona: ~5-10 min"
-    log_warn "      This ensures latest code from external projects (Kona, Asterisc)"
-    echo ""
+    log_info "Next steps:"
+    log_info "  1. Download VM binaries:"
+    log_info "     ./op-challenger/scripts/pull-vm-images.sh --tag latest"
+    log_info "  2. Deploy:"
+    log_info "     ./op-challenger/scripts/deploy-modular.sh --dg-type 3"
+elif [ "$CLEAN_PULLED_IMAGES" = true ]; then
+    log_info "Next steps:"
+    log_info "  1. Re-download images:"
+    log_info "     ./op-challenger/scripts/pull-vm-images.sh --tag latest"
+    log_info "  2. Deploy:"
+    log_info "     ./op-challenger/scripts/deploy-modular.sh --dg-type 3"
+else
+    log_info "Next steps:"
+    log_info "  Deploy: ./op-challenger/scripts/deploy-modular.sh --dg-type 3"
 fi
-
-exit 0

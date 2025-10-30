@@ -223,27 +223,82 @@ configure_game_settings() {
     fi
 
     # ⭐ Update template with generated prestate hash
-    if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "error" ]; then
-        log_info "Updating template with generated prestate hash..."
-        log_config "Updating faultGameAbsolutePrestate: $prestate_hash"
+    log_info "=========================================="
+    log_info "Setting Prestate Hash for GameType $dg_type"
+    log_info "=========================================="
 
-        local temp_config=$(mktemp)
-        jq ".faultGameAbsolutePrestate = \"${prestate_hash}\"" "$DEPLOY_CONFIG_TEMPLATE" > "$temp_config"
-        mv "$temp_config" "$DEPLOY_CONFIG_TEMPLATE"
+    if [ -z "$prestate_hash" ] || [ "$prestate_hash" = "error" ]; then
+        log_error "❌ Prestate hash is empty or invalid!"
+        log_error "   Provided: '$prestate_hash'"
+        log_error "   GameType: $dg_type"
+        return 1
+    fi
 
-        # Verify
-        local new_prestate=$(jq -r '.faultGameAbsolutePrestate' "$DEPLOY_CONFIG_TEMPLATE")
-        log_config "Verification: faultGameAbsolutePrestate = ${new_prestate}"
-        if [ "$new_prestate" = "$prestate_hash" ]; then
-            log_config "✅ faultGameAbsolutePrestate successfully updated"
-            log_success "Template updated with GameType $dg_type prestate"
+    log_info "Prestate hash to set: $prestate_hash"
+    log_info "GameType: $dg_type"
+
+    # Verify prestate file exists
+    case "$dg_type" in
+        0|1|254|255)
+            local prestate_file="${PROJECT_ROOT}/op-program/bin/prestate-proof.json"
+            log_info "Source file: $prestate_file (Cannon)"
+            ;;
+        2)
+            local prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+            log_info "Source file: $prestate_file (Asterisc)"
+            ;;
+        3)
+            local prestate_file="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+            log_info "Source file: $prestate_file (Kona)"
+            if [ ! -f "$prestate_file" ]; then
+                log_warn "Kona prestate not found, using Asterisc fallback"
+                prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+                log_info "Fallback file: $prestate_file"
+            fi
+            ;;
+    esac
+
+    if [ -f "$prestate_file" ]; then
+        log_success "✅ Prestate source file exists"
+        local file_hash=$(cat "$prestate_file" | jq -r '.pre' 2>/dev/null || echo "")
+        log_info "   File hash: ${file_hash:0:18}...${file_hash: -6}"
+
+        if [ "$file_hash" = "$prestate_hash" ]; then
+            log_success "✅ Hash matches expected value"
         else
-            log_config "❌ faultGameAbsolutePrestate update FAILED!"
-            log_error "Failed to update template with prestate"
+            log_error "❌ Hash mismatch!"
+            log_error "   Expected: $prestate_hash"
+            log_error "   File has: $file_hash"
             return 1
         fi
-        config_modified=true
+    else
+        log_error "❌ Prestate source file not found: $prestate_file"
+        return 1
     fi
+    echo ""
+
+    log_info "Updating deploy config template..."
+    log_config "Updating faultGameAbsolutePrestate: $prestate_hash"
+
+    local temp_config=$(mktemp)
+    jq ".faultGameAbsolutePrestate = \"${prestate_hash}\"" "$DEPLOY_CONFIG_TEMPLATE" > "$temp_config"
+    mv "$temp_config" "$DEPLOY_CONFIG_TEMPLATE"
+
+    # Verify
+    local new_prestate=$(jq -r '.faultGameAbsolutePrestate' "$DEPLOY_CONFIG_TEMPLATE")
+    log_config "Verification: faultGameAbsolutePrestate = ${new_prestate}"
+    if [ "$new_prestate" = "$prestate_hash" ]; then
+        log_config "✅ faultGameAbsolutePrestate successfully updated"
+        log_success "Template updated with GameType $dg_type prestate"
+    else
+        log_config "❌ faultGameAbsolutePrestate update FAILED!"
+        log_error "Failed to update template with prestate"
+        log_error "   Expected: $prestate_hash"
+        log_error "   Got: $new_prestate"
+        return 1
+    fi
+    config_modified=true
+    echo ""
 
     if [ "$config_modified" = true ]; then
         log_success "Game configuration updated in template"
@@ -266,6 +321,57 @@ run_devnet_up() {
     echo ""
 
     cd "${PROJECT_ROOT}"
+
+    # ⭐ Pre-flight checks: Verify prestate files exist before starting devnet
+    log_info "=========================================="
+    log_info "Pre-flight: Verifying prestate files..."
+    log_info "=========================================="
+
+    local preflight_failed=0
+
+    # Check asterisc prestate (required for GameType 2/3)
+    local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+    if [ -f "$asterisc_prestate" ]; then
+        local asterisc_hash=$(cat "$asterisc_prestate" | jq -r '.pre' 2>/dev/null || echo "")
+        if [ -n "$asterisc_hash" ] && [ "$asterisc_hash" != "null" ]; then
+            log_success "✅ Asterisc prestate: ${asterisc_hash:0:18}...${asterisc_hash: -6}"
+        else
+            log_error "❌ Asterisc prestate file exists but .pre field is invalid!"
+            preflight_failed=1
+        fi
+    else
+        log_error "❌ Asterisc prestate file not found: $asterisc_prestate"
+        preflight_failed=1
+    fi
+
+    # Check kona prestate (if GameType 3)
+    local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+    if [ -f "$kona_prestate" ]; then
+        local kona_hash=$(cat "$kona_prestate" | jq -r '.pre' 2>/dev/null || echo "")
+        if [ -n "$kona_hash" ] && [ "$kona_hash" != "null" ]; then
+            log_success "✅ Kona prestate: ${kona_hash:0:18}...${kona_hash: -6}"
+        else
+            log_warn "⚠️  Kona prestate file exists but .pre field is invalid"
+        fi
+    else
+        log_warn "⚠️  Kona prestate not found (will fallback to Asterisc for GameType 3)"
+    fi
+
+    if [ $preflight_failed -eq 1 ]; then
+        log_error "=========================================="
+        log_error "Pre-flight checks FAILED!"
+        log_error "=========================================="
+        log_error "Prestate files are missing or invalid."
+        log_error "Deploy.s.sol will fail when trying to load prestate!"
+        echo ""
+        log_error "Please run:"
+        log_error "  ./op-challenger/scripts/pull-vm-images.sh --tag latest"
+        echo ""
+        return 1
+    fi
+
+    log_success "✅ Pre-flight checks passed!"
+    echo ""
 
     # Temporarily patch Dockerfile to add missing asterisc-builder stage
     # This is needed because we build op-challenger but provide asterisc via volume mount
@@ -294,12 +400,24 @@ RUN mkdir -p /app/asterisc/bin && \\\
     fi
 
     # Run devnet-up
+    log_info "=========================================="
+    log_info "Running: make devnet-up"
+    log_info "=========================================="
+    echo ""
+
     local result=0
-    if make devnet-up; then
+    if make devnet-up 2>&1 | tee /tmp/devnet-up.log; then
         log_success "Devnet started successfully"
         echo ""
     else
-        log_error "Devnet startup failed"
+        log_error "=========================================="
+        log_error "Devnet startup FAILED!"
+        log_error "=========================================="
+        log_error "Last 50 lines of devnet-up output:"
+        echo ""
+        tail -50 /tmp/devnet-up.log
+        echo ""
+        log_error "Full log saved to: /tmp/devnet-up.log"
         result=1
     fi
 

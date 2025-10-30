@@ -159,6 +159,10 @@ load_private_keys() {
     export BATCHER_PRIVATE_KEY="0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"     # Account #2
     export CHALLENGER_PRIVATE_KEY="0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6" # Account #3
 
+    # Sequencer Challenger uses Account #4 (different from independent challenger)
+    # Account #4 (0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65)
+    export SEQUENCER_CHALLENGER_PRIVATE_KEY="0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" # Account #4
+
     log_success "Private keys loaded (⚠️  development only)"
 
     return 0

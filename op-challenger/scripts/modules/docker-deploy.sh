@@ -58,38 +58,53 @@ export_docker_env_vars() {
     export PROJECT_ROOT
     export DG_TYPE="$dg_type"
 
-    # Set CHALLENGER_TRACE_TYPE to support ALL trace types
-    # Note: Challenger must be able to respond to ANY game type, not just the one we're deploying
+    # Set VM_REGISTRY and IMAGE_TAG for docker-compose to use pre-built images
+    export VM_REGISTRY="${VM_REGISTRY:-ghcr.io/zena-park}"
+    export IMAGE_TAG="${IMAGE_TAG:-latest}"
+
+    # Set L2_IMAGE for L2 geth (Dockerfile.l2 requires this)
+    export L2_IMAGE="${L2_IMAGE:-tokamaknetwork/thanos-op-geth:nightly}"
+
+    # Set CHALLENGER_TRACE_TYPE to support ALL trace types (Independent Verifier)
+    # Set SEQUENCER_CHALLENGER_TRACE_TYPE to support ONLY proposer's type (For Sequencer)
     # The order matters - put the proposer's game type first for priority
     case "$dg_type" in
         0|1|254|255)
-            # Cannon-based games: prioritize cannon, but support all
-            export CHALLENGER_TRACE_TYPE="cannon,asterisc,asterisc-kona"
-            log_info "Proposer GameType $dg_type (Cannon): Challenger prioritizes cannon"
+            # Cannon-based games
+            export SEQUENCER_CHALLENGER_TRACE_TYPE="cannon"  # ⭐ 시퀀서: Proposer 타입만
+            export CHALLENGER_TRACE_TYPE="cannon,asterisc,asterisc-kona"  # 독립: 모든 타입
+            log_info "Proposer GameType $dg_type (Cannon)"
             ;;
         2)
-            # Asterisc game: prioritize asterisc, but support all
-            export CHALLENGER_TRACE_TYPE="asterisc,cannon,asterisc-kona"
-            log_info "Proposer GameType $dg_type (Asterisc): Challenger prioritizes asterisc"
+            # Asterisc game
+            export SEQUENCER_CHALLENGER_TRACE_TYPE="asterisc"  # ⭐ 시퀀서: Proposer 타입만
+            export CHALLENGER_TRACE_TYPE="asterisc,cannon,asterisc-kona"  # 독립: 모든 타입
+            log_info "Proposer GameType $dg_type (Asterisc)"
             ;;
         3)
-            # AsteriscKona game: prioritize asterisc-kona, but support all
-            export CHALLENGER_TRACE_TYPE="asterisc-kona,asterisc,cannon"
-            log_info "Proposer GameType $dg_type (AsteriscKona): Challenger prioritizes asterisc-kona"
+            # AsteriscKona game
+            export SEQUENCER_CHALLENGER_TRACE_TYPE="asterisc-kona"  # ⭐ 시퀀서: Proposer 타입만
+            export CHALLENGER_TRACE_TYPE="asterisc-kona,asterisc,cannon"  # 독립: 모든 타입
+            log_info "Proposer GameType $dg_type (AsteriscKona)"
             ;;
         *)
             # Default: support all with cannon priority
+            export SEQUENCER_CHALLENGER_TRACE_TYPE="cannon"
             export CHALLENGER_TRACE_TYPE="cannon,asterisc,asterisc-kona"
-            log_info "Default: Challenger supports all trace types"
+            log_info "Default GameType"
             ;;
     esac
 
     log_info "Challenger configuration:"
-    log_info "  - Primary support: GameType $dg_type (proposer's choice)"
-    log_info "  - Also supports: ALL other game types"
-    log_info "  - Trace types order: $CHALLENGER_TRACE_TYPE"
+    log_info "  🔹 sequencer-challenger (For Sequencer):"
+    log_info "     - Trace type: $SEQUENCER_CHALLENGER_TRACE_TYPE (Proposer's GameType only)"
+    log_info "     - Role: Close games for user withdrawals"
+    log_info "  🔹 op-challenger (Independent Verifier):"
+    log_info "     - Trace types: $CHALLENGER_TRACE_TYPE (All GameTypes)"
+    log_info "     - Role: Decentralized verification and challenge"
 
     # Debug: Verify export worked
+    log_info "DEBUG: Exported SEQUENCER_CHALLENGER_TRACE_TYPE=$SEQUENCER_CHALLENGER_TRACE_TYPE"
     log_info "DEBUG: Exported CHALLENGER_TRACE_TYPE=$CHALLENGER_TRACE_TYPE"
     log_info "DEBUG: Exported DG_TYPE=$DG_TYPE"
 
@@ -100,7 +115,7 @@ export_docker_env_vars() {
 
         # Container path for environment variable (NOT host path!)
         # Docker Compose will mount ASTERISC_BIN to /asterisc, so use container path
-        export ASTERISC_PRESTATE="/asterisc/prestate.json"
+        export ASTERISC_PRESTATE="/asterisc/prestate-proof.json"
 
         log_info "GameType 2: Asterisc paths configured"
         log_info "  Host: ${ASTERISC_BIN}"
@@ -135,23 +150,55 @@ deploy_docker_services() {
 
     # Debug: Check environment variables before docker-compose
     log_info "DEBUG: Environment variables before docker-compose:"
+    log_info "  VM_REGISTRY=$VM_REGISTRY"
+    log_info "  IMAGE_TAG=$IMAGE_TAG"
+    log_info "  L2_IMAGE=$L2_IMAGE"
     log_info "  CHALLENGER_TRACE_TYPE=$CHALLENGER_TRACE_TYPE"
     log_info "  DG_TYPE=$DG_TYPE"
     log_info "  GAME_FACTORY_ADDRESS=$GAME_FACTORY_ADDRESS"
     log_info "  PROJECT_ROOT=$PROJECT_ROOT"
     echo ""
 
-    if $DOCKER_COMPOSE -f docker-compose-full.yml up -d; then
+    # Pre-build l1 and l2 images (not available in registry)
+    log_info "Building l1 and l2 images (local only)..."
+    # IMPORTANT: Disable BuildKit to avoid "file already closed" error
+    # Docker Compose v2.39+ tries to read bake definitions from stdin with BuildKit
+    # This causes issues when stdin is not available in script environment
+    export DOCKER_BUILDKIT=0
+    export COMPOSE_DOCKER_CLI_BUILD=0
+
+    # Build images using legacy builder (more stable for script execution)
+    if $DOCKER_COMPOSE -f docker-compose-full.yml build l1 challenger-l2 sequencer-l2 2>&1; then
+        log_success "  ✓ l1 and l2 images built"
+    else
+        log_error "Failed to build l1/l2 images"
+        return 1
+    fi
+    echo ""
+
+    # Use --no-build for OP Stack services (use pre-built images from registry)
+    log_info "Starting all services (using registry images for OP Stack)..."
+    if $DOCKER_COMPOSE -f docker-compose-full.yml up -d --no-build 2>&1; then
         log_success "Services started successfully"
         echo ""
 
-        # Debug: Verify op-challenger received correct environment variables
-        log_info "DEBUG: Verifying op-challenger environment variables..."
-        if docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" > /dev/null; then
-            local actual_trace_type=$(docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2)
-            log_info "  Actual TRACE_TYPE in container: $actual_trace_type"
+        # Debug: Verify challengers received correct environment variables
+        log_info "DEBUG: Verifying challenger environment variables..."
+
+        # Check sequencer-challenger
+        if docker inspect scripts-sequencer-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" > /dev/null; then
+            local seq_trace=$(docker inspect scripts-sequencer-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2)
+            log_info "  sequencer-challenger TRACE_TYPE: $seq_trace"
         else
-            log_warn "  Could not verify TRACE_TYPE in container"
+            log_warn "  Could not verify sequencer-challenger TRACE_TYPE"
+        fi
+
+        # Check op-challenger (독립 검증자)
+        if docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" > /dev/null; then
+            local ind_trace=$(docker inspect scripts-op-challenger-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2)
+            log_info "  op-challenger TRACE_TYPE: $ind_trace"
+        else
+            log_warn "  Could not verify op-challenger TRACE_TYPE"
         fi
     else
         log_error "Failed to start services"

@@ -55,6 +55,9 @@ else
 fi
 
 PUSH_IMAGES=false
+NO_CACHE=""
+BUILD_ASTERISC_ONLY=false
+BUILD_KONA_ONLY=false
 
 ##############################################################################
 # 인자 파싱
@@ -74,6 +77,18 @@ while [[ $# -gt 0 ]]; do
             IMAGE_TAG="$2"
             shift 2
             ;;
+        --no-cache)
+            NO_CACHE="--no-cache"
+            shift
+            ;;
+        --asterisc-only)
+            BUILD_ASTERISC_ONLY=true
+            shift
+            ;;
+        --kona-only)
+            BUILD_KONA_ONLY=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -81,6 +96,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --push              Push images to registry after build"
             echo "  --registry REGISTRY Registry URL (default: ghcr.io/zena-park)"
             echo "  --tag TAG           Override image tag (default: auto-detect)"
+            echo "  --no-cache          Force rebuild without using cache"
+            echo "  --asterisc-only     Build only vm-asterisc image"
+            echo "  --kona-only         Build only vm-kona-client image"
             echo "  -h, --help          Show this help"
             echo ""
             echo "Tagging Strategy:"
@@ -90,10 +108,11 @@ while [[ $# -gt 0 ]]; do
             echo "  - Also tags as 'latest' when appropriate"
             echo ""
             echo "Examples:"
-            echo "  $0                           # Build with auto-detected tag"
-            echo "  $0 --tag v1.0.0             # Build with specific tag"
+            echo "  $0                           # Build all images"
             echo "  $0 --push                   # Build and push to registry"
-            echo "  $0 --tag stable --push      # Build, tag as 'stable', and push"
+            echo "  $0 --no-cache --push        # Rebuild without cache and push"
+            echo "  $0 --kona-only --push       # Build only kona and push"
+            echo "  $0 --asterisc-only --push   # Build only asterisc and push"
             exit 0
             ;;
         *)
@@ -179,6 +198,7 @@ build_vm_image() {
         -f ops/docker/op-stack-go/Dockerfile \
         --target "$target" \
         --platform linux/amd64 \
+        $NO_CACHE \
         --build-arg GIT_COMMIT="$GIT_COMMIT_FULL" \
         --build-arg GIT_DATE="$(git show -s --format='%ct')" \
         -t "$primary_image" \
@@ -197,8 +217,10 @@ build_vm_image() {
         additional_tags+=("${REGISTRY}/${image_name}:${GIT_COMMIT_SHORT}")
     fi
 
-    # 2. latest 태그 (Git 태그 버전이거나 명시적으로 요청된 경우)
-    if [ -n "$GIT_TAG" ] || [ "$IMAGE_TAG" = "latest" ]; then
+    # 2. latest 태그 (push 시 항상 업데이트)
+    if [ "$PUSH_IMAGES" = true ] && [ "$IMAGE_TAG" != "latest" ]; then
+        additional_tags+=("${REGISTRY}/${image_name}:latest")
+    elif [ -n "$GIT_TAG" ] || [ "$IMAGE_TAG" = "latest" ]; then
         if [ "$IMAGE_TAG" != "latest" ]; then
             additional_tags+=("${REGISTRY}/${image_name}:latest")
         fi
@@ -216,6 +238,136 @@ build_vm_image() {
 }
 
 ##############################################################################
+# Asterisc 이미지 빌드 (외부 repo 사용)
+##############################################################################
+
+build_asterisc_image() {
+    local image_name="vm-asterisc"
+    local primary_image="${REGISTRY}/${image_name}:${IMAGE_TAG}"
+
+    log_info "=========================================="
+    log_info "Building: $image_name (RISC-V + Prestate)"
+    log_info "Primary tag: $IMAGE_TAG"
+    log_info "=========================================="
+
+    # Check for asterisc repository
+    local asterisc_dir="${ASTERISC_DIR:-${PROJECT_ROOT}/../asterisc}"
+
+    if [ ! -d "$asterisc_dir" ]; then
+        log_warn "asterisc repository not found at: $asterisc_dir"
+        log_info "Cloning asterisc repository..."
+
+        local parent_dir="$(dirname ${PROJECT_ROOT})"
+        cd "$parent_dir"
+
+        if git clone https://github.com/ethereum-optimism/asterisc.git; then
+            log_success "asterisc repository cloned successfully"
+            asterisc_dir="${parent_dir}/asterisc"
+        else
+            log_error "Failed to clone asterisc repository"
+            return 1
+        fi
+    fi
+
+    cd "$asterisc_dir"
+
+    # Checkout to master branch
+    local ASTERISC_TAG="${ASTERISC_TAG:-master}"
+    log_info "Using asterisc tag: $ASTERISC_TAG"
+    git checkout "$ASTERISC_TAG" 2>/dev/null || log_warn "Could not checkout $ASTERISC_TAG, using current branch"
+    git submodule update --init --recursive
+
+    # Build using asterisc's reproducible-prestate target
+    log_info "Building asterisc with reproducible prestate..."
+    log_warn "⏳ This may take 5-10 minutes..."
+    echo ""
+
+    # Use make reproducible-prestate to build in Docker (Linux x86-64)
+    if make reproducible-prestate; then
+        log_success "Built asterisc binary and prestate ⭐"
+
+        # Files are now in bin/
+        if [ ! -f "bin/asterisc" ]; then
+            log_error "asterisc binary not found after build"
+            cd "${PROJECT_ROOT}"
+            return 1
+        fi
+
+        if [ ! -f "bin/prestate.json" ]; then
+            log_error "prestate.json not found after build"
+            cd "${PROJECT_ROOT}"
+            return 1
+        fi
+
+        # Create a minimal Docker image with the binaries
+        local asterisc_output_dir="${PROJECT_ROOT}/asterisc/bin"
+        mkdir -p "$asterisc_output_dir"
+
+        # Copy binaries
+        cp "bin/asterisc" "$asterisc_output_dir/"
+        cp "bin/prestate.json" "$asterisc_output_dir/"
+
+        # Convert prestate.json (.stateHash) to prestate-proof.json (.pre) format
+        if [ -f "bin/prestate.json" ]; then
+            local state_hash=$(cat "bin/prestate.json" | jq -r '.stateHash' 2>/dev/null || echo "")
+            if [ -n "$state_hash" ] && [ "$state_hash" != "null" ]; then
+                echo "{\"pre\": \"$state_hash\"}" | jq . > "$asterisc_output_dir/prestate-proof.json"
+                log_success "  ✓ prestate-proof.json created (deployment format)"
+            fi
+        fi
+
+        # Create a scratch image
+        cat > "${PROJECT_ROOT}/.Dockerfile.asterisc-export" << 'EOF'
+FROM scratch
+COPY asterisc/bin/asterisc /app/asterisc/bin/asterisc
+COPY asterisc/bin/prestate.json /app/asterisc/bin/prestate.json
+COPY asterisc/bin/prestate-proof.json /app/asterisc/bin/prestate-proof.json
+EOF
+
+        cd "${PROJECT_ROOT}"
+
+        if docker build --platform linux/amd64 $NO_CACHE -f "${PROJECT_ROOT}/.Dockerfile.asterisc-export" -t "$primary_image" .; then
+            log_success "Built: $primary_image ⭐"
+            rm -f "${PROJECT_ROOT}/.Dockerfile.asterisc-export"
+
+            # 추가 태그 생성
+            local additional_tags=()
+
+            if [ "$IMAGE_TAG" != "$GIT_COMMIT_SHORT" ] && [ "$GIT_COMMIT_SHORT" != "unknown" ]; then
+                additional_tags+=("${REGISTRY}/${image_name}:${GIT_COMMIT_SHORT}")
+            fi
+
+            # latest 태그 (push 시 항상 업데이트)
+            if [ "$PUSH_IMAGES" = true ] && [ "$IMAGE_TAG" != "latest" ]; then
+                additional_tags+=("${REGISTRY}/${image_name}:latest")
+            elif [ -n "$GIT_TAG" ] || [ "$IMAGE_TAG" = "latest" ]; then
+                if [ "$IMAGE_TAG" != "latest" ]; then
+                    additional_tags+=("${REGISTRY}/${image_name}:latest")
+                fi
+            fi
+
+            # 추가 태그 적용
+            if [ ${#additional_tags[@]} -gt 0 ]; then
+                for tag in "${additional_tags[@]}"; do
+                    docker tag "$primary_image" "$tag"
+                    log_info "  ✓ Tagged: $tag"
+                done
+            fi
+
+            return 0
+        else
+            log_error "Failed to create Docker image"
+            rm -f "${PROJECT_ROOT}/.Dockerfile.asterisc-export"
+            return 1
+        fi
+    else
+        log_error "Failed to build asterisc"
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+}
+
+##############################################################################
 # Kona Client 이미지 빌드 (Rust + RISC-V)
 ##############################################################################
 
@@ -224,7 +376,7 @@ build_kona_image() {
     local primary_image="${REGISTRY}/${image_name}:${IMAGE_TAG}"
 
     log_info "=========================================="
-    log_info "Building: $image_name (Rust + RISC-V)"
+    log_info "Building: $image_name (Rust + RISC-V + Prestate)"
     log_info "Primary tag: $IMAGE_TAG"
     log_info "=========================================="
 
@@ -249,36 +401,81 @@ build_kona_image() {
 
     cd "$kona_dir"
 
-    # Create Dockerfile for kona-client
-    local dockerfile_kona="${kona_dir}/Dockerfile.kona-export"
-    cat > "$dockerfile_kona" <<'EOF'
-# Multi-stage Docker build for kona-client (RISC-V only)
-FROM ghcr.io/op-rs/kona/asterisc-builder:0.3.0 AS builder
-
-WORKDIR /workspace
-
-# Copy the entire kona repository
-COPY . .
-
-# Build RISC-V kona-client for prestate generation
-# Note: This is the native target for kona-client (runs in asterisc VM)
-RUN cargo build -Zbuild-std=core,alloc -p kona-client --bin kona-client --profile release-client-lto
-
-# Export stage - copy binary to root for easy extraction
-FROM scratch AS export
-# RISC-V binary - this is what op-challenger uses
-COPY --from=builder /workspace/target/riscv64imac-unknown-none-elf/release-client-lto/kona-client /kona-client
-EOF
-
-    log_success "Created: $dockerfile_kona"
-
-    # Build using Docker
-    log_info "Running Docker build for kona-client (may take 10-15 minutes)..."
-    log_warn "⏳ Rust 컴파일 진행 중... (진행 상황이 보이지 않을 수 있습니다)"
+    # Use kona's official asterisc-repro.dockerfile (includes prestate generation!)
+    log_info "Using kona's official prestate generation system..."
+    log_info "  Dockerfile: kona/docker/fpvm-prestates/asterisc-repro.dockerfile"
+    log_info "  This builds: asterisc + kona-client + prestate files"
     echo ""
 
-    if docker build --platform linux/amd64 -f "$dockerfile_kona" --progress=plain -t "$primary_image" .; then
-        log_success "Built: $primary_image"
+    local dockerfile_path="docker/fpvm-prestates/asterisc-repro.dockerfile"
+
+    if [ ! -f "$dockerfile_path" ]; then
+        log_error "Kona's official dockerfile not found: $dockerfile_path"
+        return 1
+    fi
+
+    # Build using kona's official Dockerfile (includes asterisc + kona-client + prestate!)
+    log_info "Running Docker build for kona with prestate (may take 15-20 minutes)..."
+    log_warn "⏳ This builds: asterisc + kona-client + prestate-proof.json + prestate.bin.gz"
+    echo ""
+
+    # Build arguments for kona's Dockerfile
+    local ASTERISC_TAG="${ASTERISC_TAG:-master}"
+    local CLIENT_BIN="${CLIENT_BIN:-kona-client}"
+    local CLIENT_TAG="${CLIENT_TAG:-main}"
+
+    log_info "Build arguments:"
+    log_info "  ASTERISC_TAG=$ASTERISC_TAG"
+    log_info "  CLIENT_BIN=$CLIENT_BIN"
+    log_info "  CLIENT_TAG=$CLIENT_TAG"
+    echo ""
+
+    if docker build --platform linux/amd64 $NO_CACHE \
+        --build-arg ASTERISC_TAG="$ASTERISC_TAG" \
+        --build-arg CLIENT_BIN="$CLIENT_BIN" \
+        --build-arg CLIENT_TAG="$CLIENT_TAG" \
+        -f "$dockerfile_path" --progress=plain -t "$primary_image" .; then
+        log_success "Built: $primary_image (with prestate files!) ⭐"
+
+        # 이미지에서 prestate 파일들을 로컬로 추출
+        log_info "Extracting prestate files from image..."
+        local container_id=$(docker create "$primary_image" true 2>/dev/null)
+
+        if [ -n "$container_id" ]; then
+            # Extract prestate-proof.json (배포용 - .pre 포맷)
+            mkdir -p "${PROJECT_ROOT}/op-program/bin"
+            if docker cp "${container_id}:/prestate-proof.json" "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" 2>/dev/null; then
+                log_success "  ✓ prestate-kona.json extracted (deployment format)"
+
+                # Extract and display hash
+                local kona_hash=$(cat "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" | jq -r '.pre' 2>/dev/null || echo "")
+                if [ -n "$kona_hash" ] && [ "$kona_hash" != "null" ]; then
+                    log_success "  ✓ Kona deployment prestate hash: ${kona_hash:0:10}...${kona_hash: -8}"
+                fi
+            else
+                log_warn "  ⚠️  prestate-proof.json not found in image"
+            fi
+
+            # Extract prestate.bin.gz (런타임용 - full VMState, 압축)
+            mkdir -p "${PROJECT_ROOT}/bin"
+            if docker cp "${container_id}:/prestate.bin.gz" "${PROJECT_ROOT}/bin/prestate.bin.gz" 2>/dev/null; then
+                log_success "  ✓ prestate.bin.gz extracted (runtime full VMState) ⭐"
+            else
+                log_warn "  ⚠️  prestate.bin.gz not found in image"
+                log_warn "      GameType 3 may not work properly without this file"
+            fi
+
+            # Extract kona-client binary as well
+            if docker cp "${container_id}:/kona-client-elf" "${PROJECT_ROOT}/bin/kona-client" 2>/dev/null; then
+                log_success "  ✓ kona-client binary extracted"
+            else
+                log_warn "  ⚠️  kona-client binary not found in image"
+            fi
+
+            docker rm "$container_id" >/dev/null 2>&1
+        else
+            log_error "Failed to create temporary container from image"
+        fi
 
         # 추가 태그 생성
         local additional_tags=()
@@ -287,7 +484,10 @@ EOF
             additional_tags+=("${REGISTRY}/${image_name}:${GIT_COMMIT_SHORT}")
         fi
 
-        if [ -n "$GIT_TAG" ] || [ "$IMAGE_TAG" = "latest" ]; then
+        # latest 태그 (push 시 항상 업데이트)
+        if [ "$PUSH_IMAGES" = true ] && [ "$IMAGE_TAG" != "latest" ]; then
+            additional_tags+=("${REGISTRY}/${image_name}:latest")
+        elif [ -n "$GIT_TAG" ] || [ "$IMAGE_TAG" = "latest" ]; then
             if [ "$IMAGE_TAG" != "latest" ]; then
                 additional_tags+=("${REGISTRY}/${image_name}:latest")
             fi
@@ -362,10 +562,9 @@ main() {
     fi
     echo ""
 
-    # 빌드할 이미지 목록 (target:image_name 형식)
+    # 빌드할 이미지 목록 (target:image_name 형식) - asterisc 제외!
     local images=(
         "cannon-builder:vm-cannon"
-        "asterisc-builder:vm-asterisc"
         "op-program-builder:vm-op-program"
         "op-challenger-target:op-challenger"
         "op-node-target:op-node"
@@ -376,29 +575,58 @@ main() {
     local failed=0
     local built_images=()
 
-    # 빌드 (Go 기반 이미지)
-    for item in "${images[@]}"; do
-        local target="${item%%:*}"
-        local image_name="${item##*:}"
-
-        if ! build_vm_image "$target" "$image_name"; then
-            ((failed++))
+    # Selective build mode
+    if [ "$BUILD_KONA_ONLY" = true ]; then
+        log_info "Building kona-client only (--kona-only mode)..."
+        if build_kona_image; then
+            built_images+=("vm-kona-client")
         else
-            built_images+=("$image_name")
+            log_error "Kona build failed"
+            ((failed++))
+        fi
+    elif [ "$BUILD_ASTERISC_ONLY" = true ]; then
+        log_info "Building asterisc only (--asterisc-only mode)..."
+        if build_asterisc_image; then
+            built_images+=("vm-asterisc")
+        else
+            log_error "Asterisc build failed"
+            ((failed++))
+        fi
+    else
+        # Full build mode (Go 기반 이미지)
+        for item in "${images[@]}"; do
+            local target="${item%%:*}"
+            local image_name="${item##*:}"
+
+            if ! build_vm_image "$target" "$image_name"; then
+                ((failed++))
+            else
+                built_images+=("$image_name")
+            fi
+            echo ""
+        done
+
+        # Asterisc 빌드 (외부 repo, 별도 처리)
+        log_info "Building asterisc (External RISC-V repo)..."
+        if build_asterisc_image; then
+            built_images+=("vm-asterisc")
+        else
+            log_warn "⚠️  asterisc build failed (GameType 2 지원 불가)"
+            log_warn "    GameType 0, 1, 3은 정상 작동합니다"
         fi
         echo ""
-    done
 
-    # Kona client 빌드 (Rust 기반, 별도 처리)
-    log_info "Building kona-client (Rust + RISC-V)..."
-    if build_kona_image; then
-        built_images+=("vm-kona-client")
-    else
-        log_warn "⚠️  kona-client build failed (GameType 3 지원 불가)"
-        log_warn "    GameType 0, 1, 2는 정상 작동합니다"
-        # Don't fail entire build for optional kona
+        # Kona client 빌드 (Rust 기반, 별도 처리)
+        log_info "Building kona-client (Rust + RISC-V)..."
+        if build_kona_image; then
+            built_images+=("vm-kona-client")
+        else
+            log_warn "⚠️  kona-client build failed (GameType 3 지원 불가)"
+            log_warn "    GameType 0, 1, 2는 정상 작동합니다"
+            # Don't fail entire build for optional kona
+        fi
+        echo ""
     fi
-    echo ""
 
     # 푸시 (요청된 경우)
     if [ "$PUSH_IMAGES" = true ]; then
