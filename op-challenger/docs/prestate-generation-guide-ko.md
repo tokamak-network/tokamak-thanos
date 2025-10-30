@@ -5,6 +5,7 @@
 ## 📋 목차
 
 - [개요](#개요)
+- [⚠️ 중요: Prestate 파일 포맷 vs Witness 출력 포맷](#️-중요-prestate-파일-포맷-vs-witness-출력-포맷)
 - [GameType 0/1: Cannon (MIPS)](#gametype-01-cannon-mips)
 - [GameType 2: Asterisc (RISC-V)](#gametype-2-asterisc-risc-v)
 - [GameType 3: AsteriscKona (RISC-V + Rust)](#gametype-3-asterisckona-risc-v--rust)
@@ -65,6 +66,96 @@
 - ⏱️ **시간 절약**: 35-50분 → 2-3분
 - 🎯 **간편함**: Docker, Rust, Go 환경 설정 불필요
 - 🔒 **안정성**: 검증된 바이너리 사용
+
+---
+
+## ⚠️ 중요: Prestate 파일 포맷 vs Witness 출력 포맷
+
+### 1️⃣ 배포용 파일 (디스크 저장, 계속 재사용)
+
+**파일 경로:**
+```bash
+# GameType 0/1 (Cannon)
+op-program/bin/prestate-proof.json   # ⭐ 파일로 저장됨!
+
+# GameType 2 (Asterisc)
+asterisc/bin/prestate-proof.json     # ⭐ 파일로 저장됨!
+
+# GameType 3 (Kona)
+op-program/bin/prestate-kona.json    # ⭐ 파일로 저장됨!
+```
+
+**파일 구조 (모든 GameType 공통!):**
+```json
+{
+  "step": 0,
+  "pre": "0x03c7ae75...",     // ⭐ 배포 시 사용하는 필드!
+  "post": "0x03fd5826...",
+  "state-data": "0x...",
+  "proof-data": "0x..."
+}
+```
+
+**특징**:
+- ✅ 디스크에 파일로 저장
+- ✅ 한 번 생성하면 계속 재사용
+- ✅ `deploy-modular.sh`가 이 파일의 `.pre` 필드를 읽음
+- ✅ 컨트랙트 배포 시 `faultGameAbsolutePrestate`로 설정
+
+**생성 방법**:
+- `cannon run --proof-at '=0'` (GameType 0/1)
+- `asterisc run --proof-at '=0'` (GameType 2/3)
+
+### 2️⃣ witness 명령 출력 (런타임, 게임 중)
+
+**Cannon (GameType 0/1) witness 출력:**
+```bash
+$ cannon witness --input some-state.json
+{"step":123,"exited":false,"witnessHash":"0x...","witness":"0x..."}
+                                           ↑ stdout 출력!
+```
+
+**Asterisc/Kona (GameType 2/3) witness 출력:**
+```bash
+$ asterisc witness --input some-state.json
+{"pc":456,"step":789,"exited":false,"stateHash":"0x...","witness":"0x..."}
+                                               ↑ stdout 출력!
+```
+
+**특징**:
+- ❌ 파일로 저장되지 않음 (또는 게임 중 임시 파일 `/datadir/*/xxx.json.gz`)
+- ❌ 게임 도중 **실시간으로 생성**
+- ✅ `StateConverter.ConvertStateToProof()`가 **stdout을 파싱**
+- ✅ Cannon: `.witnessHash`, Asterisc/Kona: `.stateHash`
+
+**코드 동작 (op-challenger):**
+```go
+// op-challenger/game/fault/trace/asterisc/state_converter.go
+func (c *StateConverter) ConvertStateToProof(ctx context.Context, statePath string) {
+    // 1. asterisc witness 실행 → stdout으로 JSON 출력
+    stdOut, _, _ := c.cmdExecutor(ctx, c.vmConfig.VmBin, "witness", "--input", statePath)
+
+    // 2. stdout을 파싱 (파일이 아님!)
+    var data VMState  // VMState.StateHash 필드
+    json.Unmarshal([]byte(stdOut), &data)
+
+    return &utils.ProofData{
+        ClaimValue: data.StateHash,  // ⭐ stdout에서 읽은 stateHash
+    }
+}
+```
+
+**용도**:
+- 게임 도중 중간 상태 검증
+- op-challenger가 claim 검증 시 사용
+
+### 📝 요약
+
+| 구분 | 저장 위치 | 파일명/출력 | 필드명 | 생성 시점 | 용도 |
+|------|----------|-------------|--------|----------|------|
+| **배포** | 디스크 (파일) | `prestate-proof.json` | `.pre` | 1회 생성 | ✅ 모든 GameType 공통 |
+| **게임 중 (Cannon)** | 메모리 (stdout) | (파일 아님) | `.witnessHash` | 실시간 | 런타임 검증 |
+| **게임 중 (Asterisc/Kona)** | 메모리 (stdout) | (파일 아님) | `.stateHash` | 실시간 | 런타임 검증 |
 
 ---
 
@@ -197,11 +288,13 @@ HASH2=$(jq -r '.pre' bin/prestate-proof.json)
 |------|-----|
 | **VM** | Asterisc (RISC-V 아키텍처) |
 | **서버** | op-program (Go) |
-| **Prestate 파일** | `asterisc/bin/prestate-proof.json` |
-| **해시 필드** | `.stateHash` ⚠️ (Cannon과 다름!) |
-| **Docker 이미지** | `golang:1.22-bookworm` |
-| **빌드 스크립트** | `asterisc/Dockerfile.repro` |
-| **빌드 함수** | `vm-build.sh::build_asterisc_from_source()` |
+| **배포용 파일** | `asterisc/bin/prestate-proof.json` (`.pre` 필드) |
+| **런타임용 파일** | `asterisc/bin/prestate.json` (full VMState) |
+| **해시 필드 (배포용)** | `.pre` (모든 GameType 공통!) ✅ |
+| **해시 필드 (런타임)** | `.stateHash` (witness 명령 출력) |
+| **Docker 이미지** | `golang:1.22-alpine3.20` (asterisc 공식) |
+| **빌드 스크립트** | `asterisc/Dockerfile.repro` (공식) |
+| **빌드 함수** | `build-vm-images.sh::build_asterisc_image()` |
 
 ### 생성 과정
 
@@ -271,20 +364,25 @@ COPY --from=builder /app/rvgo/bin/asterisc .
 #### 4단계: 결과 복사 및 해시 추출
 
 ```bash
-# Docker build 결과를 로컬로 복사
-cp bin/asterisc "$ASTERISC_BIN/asterisc"
-cp bin/prestate.json "$ASTERISC_BIN/prestate-proof.json"
+# asterisc Makefile의 prestate 타겟 실행
+cd /path/to/asterisc
+make prestate
 
-# prestate.json 구조 (Cannon과 다름!)
+# 결과 복사
+cp rvgo/bin/asterisc "${PROJECT_ROOT}/asterisc/bin/asterisc"
+cp rvgo/bin/prestate-proof.json "${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
+
+# prestate-proof.json 구조 (배포용)
 {
-  "memory": [...],
-  "registers": [...],
-  "stateHash": "0x039bef669fd1a2419634548ca79e85f9e42ae6d52c869ca290cb07e247e9a645",
-  "witness": "..."
+  "step": 0,
+  "pre": "0x030f01ed552527f4004a42c053d93e075e93827351432a35e9f17394100e2d35",
+  "post": "0x0359b5899d17908a1ed89da845fa1f42e1569d0f3abef0c28222cbeeaae608ac",
+  "state-data": "0x...",
+  "proof-data": "0x..."
 }
 
-# 해시 추출 (.stateHash 필드 사용!)
-PRESTATE_HASH=$(jq -r '.stateHash' asterisc/bin/prestate-proof.json)
+# 해시 추출 (.pre 필드 사용!)
+PRESTATE_HASH=$(jq -r '.pre' asterisc/bin/prestate-proof.json)
 ```
 
 ### deploy-modular.sh 통합
@@ -295,8 +393,8 @@ get_prestate_hash_for_gametype() {
         2)
             local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
             if [ -f "$asterisc_prestate" ]; then
-                # ⚠️ 주의: .stateHash 필드 사용 (Cannon과 다름!)
-                prestate_hash=$(cat "$asterisc_prestate" | jq -r '.stateHash')
+                # ✅ .pre 필드 사용 (모든 GameType 공통!)
+                prestate_hash=$(jq -r '.pre' "$asterisc_prestate")
                 log_info "Using Asterisc (RISC-V) prestate: $prestate_hash"
             else
                 log_error "Asterisc prestate not found: $asterisc_prestate"
@@ -317,19 +415,19 @@ ls -lh asterisc/bin/prestate-proof.json
 # 2. JSON 형식 검증
 jq '.' asterisc/bin/prestate-proof.json > /dev/null && echo "✅ Valid JSON"
 
-# 3. .stateHash 필드 확인 (Cannon의 .pre와 다름!)
-jq -r '.stateHash' asterisc/bin/prestate-proof.json | grep -E '^0x[0-9a-f]{64}$' && echo "✅ Valid hash"
+# 3. .pre 필드 확인 (모든 GameType 공통!)
+jq -r '.pre' asterisc/bin/prestate-proof.json | grep -E '^0x[0-9a-f]{64}$' && echo "✅ Valid hash"
 
 # 4. asterisc 바이너리가 Linux ELF인지 확인
 file asterisc/bin/asterisc | grep -q "ELF.*x86-64" && echo "✅ Linux ELF binary"
 
 # 5. 재현 가능성 테스트
-cd .asterisc-src
-make reproducible-prestate
-HASH1=$(jq -r '.stateHash' bin/prestate.json)
+cd /path/to/asterisc
+make prestate
+HASH1=$(jq -r '.pre' rvgo/bin/prestate-proof.json)
 
-make reproducible-prestate
-HASH2=$(jq -r '.stateHash' bin/prestate.json)
+make prestate
+HASH2=$(jq -r '.pre' rvgo/bin/prestate-proof.json)
 
 [ "$HASH1" = "$HASH2" ] && echo "✅ Reproducible build verified"
 ```
@@ -344,11 +442,13 @@ HASH2=$(jq -r '.stateHash' bin/prestate.json)
 |------|-----|
 | **VM** | Asterisc (RISC-V) - GameType 2와 동일한 RISCV.sol |
 | **서버** | kona-client (Rust) ⚠️ Go 대신 Rust! |
-| **Prestate 파일 (우선순위 1)** | `op-program/bin/prestate-kona.json` |
-| **Prestate 파일 (fallback)** | `asterisc/bin/prestate-proof.json` |
-| **해시 필드** | `.stateHash` (Asterisc와 동일) |
-| **Docker 이미지** | `ghcr.io/op-rs/kona/asterisc-builder:0.3.0` (Rust) + `golang:1.22-bookworm` (asterisc) |
-| **빌드 함수** | `vm-build.sh::build_kona_client()` + `generate_kona_prestate()` |
+| **배포용 파일 (우선순위 1)** | `op-program/bin/prestate-kona.json` (`.pre` 필드) |
+| **배포용 파일 (fallback)** | `asterisc/bin/prestate-proof.json` (`.pre` 필드) |
+| **런타임용 파일** | `bin/prestate.bin.gz` (full VMState, 압축) ⭐ |
+| **해시 필드 (배포용)** | `.pre` (모든 GameType 공통!) ✅ |
+| **해시 필드 (런타임)** | `.stateHash` (witness 명령 출력) |
+| **Docker 이미지** | Kona의 공식 `asterisc-repro.dockerfile` (`ubuntu:22.04` 기반) |
+| **빌드 함수** | `build-vm-images.sh::build_kona_image()` |
 
 ### 생성 과정 (2단계 Docker 빌드)
 
@@ -438,16 +538,17 @@ Step 2: Prestate 생성 (Docker 2)
 #### 3단계: Prestate Hash 추출
 
 ```bash
-# prestate-kona.json 구조 (Asterisc와 동일한 형식)
+# prestate-kona.json 구조 (배포용)
 {
-  "memory": [...],
-  "registers": [...],
-  "stateHash": "0x...",  # GameType 3 전용 prestate hash
-  "witness": "..."
+  "step": 0,
+  "pre": "0x03ce7bc8b4e315794a5d1ce7664049f316968cc53d7a6ad155492f4ddc00a106",
+  "post": "0x03040ac4d74c0756783efeff525f0b82eed07b19e9e0845513e78094142a54ce",
+  "state-data": "0x...",
+  "proof-data": "0x..."
 }
 
-# 해시 추출
-PRESTATE_HASH=$(jq -r '.stateHash' op-program/bin/prestate-kona.json)
+# 해시 추출 (.pre 필드 사용!)
+PRESTATE_HASH=$(jq -r '.pre' op-program/bin/prestate-kona.json)
 ```
 
 ### deploy-modular.sh 통합 (Fallback 지원)
@@ -459,12 +560,10 @@ get_prestate_hash_for_gametype() {
             # 우선순위 1: kona-specific prestate
             local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
             if [ -f "$kona_prestate" ]; then
-                prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash')
+                # ✅ .pre 필드 사용 (모든 GameType 공통!)
+                prestate_hash=$(jq -r '.pre' "$kona_prestate")
                 if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
                     log_info "Using AsteriscKona (RISC-V + Rust) prestate: $prestate_hash"
-                else
-                    # .pre 형식도 시도 (호환성)
-                    prestate_hash=$(jq -r '.pre' "$kona_prestate")
                 fi
             else
                 # 우선순위 2: Asterisc prestate로 fallback
@@ -474,7 +573,8 @@ get_prestate_hash_for_gametype() {
 
                 local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
                 if [ -f "$asterisc_prestate" ]; then
-                    prestate_hash=$(cat "$asterisc_prestate" | jq -r '.stateHash')
+                    # ✅ .pre 필드 사용 (모든 GameType 공통!)
+                    prestate_hash=$(jq -r '.pre' "$asterisc_prestate")
                     log_info "Using Asterisc (RISC-V) prestate for GameType 3: $prestate_hash"
                 else
                     log_error "Neither kona nor asterisc prestate found!"
@@ -576,11 +676,11 @@ diff /tmp/kona1.md5 /tmp/kona2.md5 && echo "✅ Reproducible build verified"
 
 ### 파일 위치 및 해시 필드
 
-| GameType | VM | 서버 | Prestate 파일 | 해시 필드 | Docker 이미지 | Fallback |
+| GameType | VM | 서버 | 배포용 파일 (`.pre`) | 런타임용 파일 (full VMState) | Docker 이미지 | Fallback |
 |----------|----|----|--------------|-----------|--------------|----------|
-| **0/1** | Cannon (MIPS) | op-program (Go) | `op-program/bin/prestate-proof.json` | `.pre` | `golang:1.21.3-alpine3.18` | ❌ 없음 (MIPS ≠ RISC-V) |
-| **2** | Asterisc (RISC-V) | op-program (Go) | `asterisc/bin/prestate-proof.json` | `.stateHash` | `golang:1.22-bookworm` | ❌ 불필요 |
-| **3** | **Asterisc (RISC-V)** ⚠️ | **kona-client (Rust)** | `op-program/bin/prestate-kona.json` → `asterisc/bin/prestate-proof.json` | `.stateHash` | `ghcr.io/op-rs/kona/asterisc-builder:0.3.0` + `golang:1.22-bookworm` | ✅ **Asterisc prestate** (동일 VM) |
+| **0/1** | Cannon (MIPS) | op-program (Go) | `op-program/bin/prestate-proof.json` | `op-program/bin/prestate.json` | `golang:1.21.3-alpine3.18` | ❌ 없음 (MIPS ≠ RISC-V) |
+| **2** | Asterisc (RISC-V) | op-program (Go) | `asterisc/bin/prestate-proof.json` | `asterisc/bin/prestate.json` | `golang:1.22-bookworm` | ❌ 불필요 |
+| **3** | **Asterisc (RISC-V)** ⚠️ | **kona-client (Rust)** | `op-program/bin/prestate-kona.json` | `bin/prestate.bin.gz` (압축) ⭐ | `ubuntu:22.04` + kona builder | ✅ **Asterisc prestate** (동일 VM) |
 
 ### 빌드 프로세스 비교
 
@@ -593,21 +693,25 @@ diff /tmp/kona1.md5 /tmp/kona2.md5 && echo "✅ Reproducible build verified"
 | **5. Docker 단계** | 1단계 | 1단계 | **2단계** ⚠️ |
 | **6. Fallback** | ❌ 없음 | ❌ 없음 | ✅ Asterisc prestate |
 
-### 해시 추출 명령어
+### 해시 추출 명령어 (배포용)
 
 ```bash
+# ⭐ 모든 GameType의 배포용 파일은 .pre 필드 사용!
+
 # GameType 0/1 (Cannon)
 jq -r '.pre' op-program/bin/prestate-proof.json
 
 # GameType 2 (Asterisc)
-jq -r '.stateHash' asterisc/bin/prestate-proof.json
+jq -r '.pre' asterisc/bin/prestate-proof.json
 
 # GameType 3 (AsteriscKona)
-# 우선순위 1
-jq -r '.stateHash' op-program/bin/prestate-kona.json
-# 우선순위 2 (fallback)
-jq -r '.stateHash' asterisc/bin/prestate-proof.json
+# 우선순위 1: kona-specific prestate
+jq -r '.pre' op-program/bin/prestate-kona.json
+# 우선순위 2 (fallback): asterisc prestate
+jq -r '.pre' asterisc/bin/prestate-proof.json
 ```
+
+**참고**: 런타임 witness 명령 출력은 `.stateHash`(Asterisc/Kona) 또는 `.witnessHash`(Cannon)를 사용하지만, 배포용 파일은 모두 `.pre`를 사용합니다!
 
 ---
 
@@ -669,35 +773,41 @@ echo ""
 echo "4️⃣  GameType 2 (Asterisc)"
 ASTERISC_PRESTATE="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
 if [ -f "$ASTERISC_PRESTATE" ]; then
-    if jq -e '.stateHash' "$ASTERISC_PRESTATE" > /dev/null 2>&1; then
-        HASH=$(jq -r '.stateHash' "$ASTERISC_PRESTATE")
-        echo "  ✅ Prestate: $HASH"
+    if jq -e '.pre' "$ASTERISC_PRESTATE" > /dev/null 2>&1; then
+        HASH=$(jq -r '.pre' "$ASTERISC_PRESTATE")
+        echo "  ✅ Deployment prestate: $HASH"
     else
-        echo "  ❌ Invalid JSON or missing .stateHash field"
+        echo "  ❌ Invalid JSON or missing .pre field"
     fi
 else
     echo "  ⚠️  Not built yet: $ASTERISC_PRESTATE"
-    echo "     Run: ./op-challenger/scripts/modules/vm-build.sh --asterisc-only"
+    echo "     Run: ./op-challenger/scripts/build-vm-images.sh --asterisc-only --push"
 fi
 echo ""
 
 # GameType 3: AsteriscKona
 echo "5️⃣  GameType 3 (AsteriscKona)"
 KONA_PRESTATE="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
+KONA_RUNTIME="${PROJECT_ROOT}/bin/prestate.bin.gz"
 if [ -f "$KONA_PRESTATE" ]; then
-    if jq -e '.stateHash' "$KONA_PRESTATE" > /dev/null 2>&1; then
-        HASH=$(jq -r '.stateHash' "$KONA_PRESTATE")
-        echo "  ✅ Kona prestate: $HASH"
+    if jq -e '.pre' "$KONA_PRESTATE" > /dev/null 2>&1; then
+        HASH=$(jq -r '.pre' "$KONA_PRESTATE")
+        echo "  ✅ Deployment prestate: $HASH"
     else
-        echo "  ❌ Invalid JSON or missing .stateHash field"
+        echo "  ❌ Invalid JSON or missing .pre field"
+    fi
+    if [ -f "$KONA_RUNTIME" ]; then
+        echo "  ✅ Runtime prestate: prestate.bin.gz (full VMState)"
+    else
+        echo "  ⚠️  Runtime prestate missing: $KONA_RUNTIME"
     fi
 elif [ -f "$ASTERISC_PRESTATE" ]; then
-    HASH=$(jq -r '.stateHash' "$ASTERISC_PRESTATE")
+    HASH=$(jq -r '.pre' "$ASTERISC_PRESTATE")
     echo "  ✅ Fallback to Asterisc prestate: $HASH"
     echo "     (GameType 2/3 share the same RISCV.sol)"
 else
     echo "  ⚠️  Not built yet"
-    echo "     Run: ./op-challenger/scripts/modules/vm-build.sh --kona-only"
+    echo "     Run: ./op-challenger/scripts/build-vm-images.sh --kona-only --push"
 fi
 echo ""
 
