@@ -684,17 +684,13 @@ curl http://localhost:9546/health
   - op-node와 op-geth의 관계
   - Engine API 통신 방식
 
-- **[Batch Inbox Address 상세 분석](./batch-inbox-address-ko.md)**
+- **[Batch Inbox Address 상세 분석](./research/batch-inbox-address-ko.md)**
   - L1↔L2 데이터 전달 방식
   - Batch Inbox의 구조와 보안
 
 ### 🛠️ 운영 가이드
 
-- **[Deployment Guide](./deployment-guide-ko.md)**
-  - 전체 시스템 운영 가이드
-  - 모니터링 및 디버깅
-
-- **[Blob Pruning Risk Analysis](./blob-pruning-risk-analysis-ko.md)**
+- **[Blob Pruning Risk Analysis](./research/blob-pruning-risk-analysis-ko.md)**
   - Blob 데이터 관리
   - 위험 분석 및 대응
 

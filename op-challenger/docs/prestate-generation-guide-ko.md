@@ -1012,8 +1012,6 @@ esac
 ### 관련 문서
 
 - [Challenger 시스템 아키텍처](./challenger-system-architecture-ko.md)
-- [GameType 3 통합 계획](./gametype3-integration-plan-ko.md)
-- [GameType 2 통합 계획](./gametype2-integration-plan-ko.md)
 - [L2 시스템 배포 가이드](./l2-system-deployment-ko.md)
 
 ### 공식 문서
