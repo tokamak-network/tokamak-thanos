@@ -357,12 +357,9 @@ type ExecEngine interface {
   - docker-compose.yml 예시
   - 리소스 요구사항 및 환경별 설정
 
-- **[Batch Inbox Address 상세 분석](./batch-inbox-address-ko.md)**
+- **[Batch Inbox Address 상세 분석](./research/batch-inbox-address-ko.md)**
   - L1에서 L2 데이터가 어떻게 전달되는지
   - Batch Inbox의 구조와 보안
-
-- **[Deployment Guide](./deployment-guide-ko.md)**
-  - 전체 시스템 운영 가이드
 
 ### 💡 핵심 요약
 

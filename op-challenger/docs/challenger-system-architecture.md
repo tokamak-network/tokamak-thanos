@@ -1035,6 +1035,5 @@ docker exec challenger-l2 ls /db     # Challenger DB (different directory!)
 - [OP Stack GitHub](https://github.com/ethereum-optimism/optimism)
 - [Fault Proof Documentation](https://specs.optimism.io/fault-proof/index.html)
 - [Deployment Guide](../scripts/README-KR.md)
-- [GameType 3 Integration Plan](./gametype3-integration-plan-ko.md)
 
 ---
