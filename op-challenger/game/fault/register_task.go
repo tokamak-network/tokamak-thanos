@@ -122,7 +122,7 @@ func NewAsteriscRegisterTask(gameType faultTypes.GameType, cfg *config.Config, m
 }
 
 func NewAsteriscKonaRegisterTask(gameType faultTypes.GameType, cfg *config.Config, m caching.Metrics, serverExecutor vm.OracleServerExecutor, l2Client utils.L2HeaderSource, rollupClient outputs.OutputRollupClient, syncValidator SyncValidator) *RegisterTask {
-	stateConverter := asterisc.NewStateConverter(cfg.Asterisc)
+	stateConverter := asterisc.NewStateConverter(cfg.AsteriscKona)
 	return &RegisterTask{
 		gameType:      gameType,
 		syncValidator: syncValidator,

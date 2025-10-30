@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 )
 
 // VMState represents Asterisc VM state
@@ -116,7 +116,7 @@ func runCmd(ctx context.Context, binary string, args ...string) (stdOut string, 
 }
 
 func parseState(path string) (*VMState, error) {
-	file, err := os.Open(path)
+	file, err := ioutil.OpenDecompressed(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open state file: %w", err)
 	}
