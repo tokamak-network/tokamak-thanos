@@ -68,7 +68,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --commit HASH       Use specific Git commit (default: current)"
             echo "  --tag TAG           Use specific tag (default: current commit)"
-            echo "  --registry REGISTRY Registry URL (default: ghcr.io/tokamak-network)"
+            echo "  --registry REGISTRY Registry URL (default: ghcr.io/zena-park)"
             echo "  -h, --help          Show this help"
             echo ""
             echo "Examples:"
