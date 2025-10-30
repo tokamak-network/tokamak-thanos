@@ -345,7 +345,7 @@ TraceType: cannon, asterisc, asterisc-kona
 │  │  → Generate Linux binary via Docker            │    │
 │  │  → asterisc binary (RISC-V VM)                 │    │
 │  │  → op-program binary (RISC-V target)          │    │
-│  │  → prestate-proof.json (.stateHash)            │    │
+│  │  → prestate-proof.json (.pre)                  │    │
 │  └────────────────────────────────────────────────┘    │
 │                                                          │
 │  File Structure:                                        │
@@ -579,7 +579,7 @@ kona/ does not exist            ../kona/                    ← Cloned
 | **Off-chain VM** | cannon | asterisc | asterisc (same) |
 | **Server** | op-program (Go) | op-program (Go) | kona-client (Rust) ⭐ |
 | **Server Language** | Go | Go | Rust |
-| **Prestate Field** | `.pre` | `.stateHash` | `.stateHash` |
+| **Prestate Field (deployment)** | `.pre` | `.pre` | `.pre` ⭐ |
 | **Build Tools** | Go + Docker | Go + Docker | Rust + Cargo + Docker |
 | **Binary Size** | ~100MB | ~100MB | ~20MB (~80% reduction) ⭐ |
 | **Advantages** | Stability, Go ecosystem | Modern ISA, RISC-V standard | Lightweight, ZK integration ready |
