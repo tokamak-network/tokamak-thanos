@@ -35,7 +35,8 @@ source "${SCRIPT_DIR}/lib/common.sh"
 
 # Source modules
 source "${SCRIPT_DIR}/modules/cleanup.sh"
-source "${SCRIPT_DIR}/modules/vm-build.sh"
+# vm-build.sh is NOT sourced - only used for manual local builds
+# deploy-modular.sh expects pre-built binaries (from pull-vm-images.sh)
 source "${SCRIPT_DIR}/modules/genesis.sh"
 source "${SCRIPT_DIR}/modules/env-setup.sh"
 source "${SCRIPT_DIR}/modules/docker-deploy.sh"
@@ -171,8 +172,9 @@ validate_prestate_file() {
     log_success "  ✓ Valid hash format: ${hash:0:10}...${hash: -8}"
 
     # 5. Check file size (should be reasonable, not empty or corrupted)
+    # Note: prestate-proof.json (deployment format) is ~70-90 bytes, which is normal
     local file_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
-    if [ "$file_size" -lt 100 ]; then
+    if [ "$file_size" -lt 50 ]; then
         log_error "  ✗ Prestate file too small ($file_size bytes), may be corrupted"
         return 1
     fi
@@ -202,17 +204,16 @@ get_prestate_hash_for_gametype() {
             fi
             ;;
         2)
-            # Asterisc (RISC-V) prestate - read directly from Docker build output
+            # Asterisc (RISC-V) prestate
             local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
             if [ -f "$asterisc_prestate" ]; then
-                # Read stateHash directly from prestate-proof.json (Docker reproducible build output)
-                # Note: Asterisc uses .stateHash field (not .pre like Cannon)
-                prestate_hash=$(cat "$asterisc_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+                # ✅ Read .pre field (모든 GameType 공통!)
+                prestate_hash=$(jq -r '.pre' "$asterisc_prestate" 2>/dev/null || echo "")
                 if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
                     # Log to stderr to avoid polluting stdout (function return value)
-                    log_info "Using Asterisc (RISC-V) prestate from Docker build: $prestate_hash" >&2
+                    log_info "Using Asterisc (RISC-V) prestate: $prestate_hash" >&2
                 else
-                    log_error "Failed to extract .stateHash from $asterisc_prestate" >&2
+                    log_error "Failed to extract .pre from $asterisc_prestate" >&2
                 fi
             else
                 log_error "Asterisc prestate not found: $asterisc_prestate" >&2
@@ -232,18 +233,12 @@ get_prestate_hash_for_gametype() {
             # First, try kona-specific prestate if it exists
             local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
             if [ -f "$kona_prestate" ]; then
-                # Try reading .stateHash (kona format, same as Asterisc)
-                prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+                # ✅ Read .pre field (모든 GameType 공통!)
+                prestate_hash=$(jq -r '.pre' "$kona_prestate" 2>/dev/null || echo "")
                 if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
                     log_info "Using AsteriscKona (RISC-V + Rust) prestate: $prestate_hash" >&2
                 else
-                    # Try .pre format (alternative)
-                    prestate_hash=$(jq -r '.pre' "$kona_prestate" 2>/dev/null || echo "")
-                    if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
-                        log_info "Using AsteriscKona prestate (.pre format): $prestate_hash" >&2
-                    else
-                        log_error "Failed to extract prestate from $kona_prestate" >&2
-                    fi
+                    log_error "Failed to extract .pre from $kona_prestate" >&2
                 fi
             else
                 # Fallback to Asterisc prestate (same RISCV.sol)
@@ -251,11 +246,12 @@ get_prestate_hash_for_gametype() {
                 log_info "Falling back to Asterisc (RISC-V) prestate (same RISCV.sol)" >&2
                 local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
                 if [ -f "$asterisc_prestate" ]; then
-                    prestate_hash=$(cat "$asterisc_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+                    # ✅ Read .pre field (모든 GameType 공통!)
+                    prestate_hash=$(jq -r '.pre' "$asterisc_prestate" 2>/dev/null || echo "")
                     if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
                         log_info "Using Asterisc (RISC-V) prestate for GameType 3: $prestate_hash" >&2
                     else
-                        log_error "Failed to extract .stateHash from $asterisc_prestate" >&2
+                        log_error "Failed to extract .pre from $asterisc_prestate" >&2
                     fi
                 else
                     log_error "Neither kona nor asterisc prestate found for GameType 3!" >&2
@@ -459,7 +455,7 @@ main() {
     log_info "2️⃣  Asterisc (GameType 2) prestate..."
     if validate_prestate_file "2" \
         "${PROJECT_ROOT}/asterisc/bin/prestate-proof.json" \
-        "stateHash" \
+        "pre" \
         "Asterisc"; then
         log_success "✅ Asterisc prestate validation passed"
         if [ "$DG_TYPE" = "2" ]; then
@@ -483,7 +479,7 @@ main() {
         log_info "Validating AsteriscKona (RISC-V + Rust) prestate..."
         if validate_prestate_file "3" \
             "$kona_prestate" \
-            "stateHash" \
+            "pre" \
             "AsteriscKona"; then
             log_success "✅ AsteriscKona prestate validation passed"
             if [ "$DG_TYPE" = "3" ]; then

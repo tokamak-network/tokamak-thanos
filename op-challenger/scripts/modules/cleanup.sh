@@ -53,6 +53,7 @@ cleanup_volumes() {
     local volumes_removed=0
     for vol in scripts_l1_data scripts_sequencer_l2_data scripts_challenger_l2_data \
                scripts_sequencer_safedb_data scripts_challenger_safedb_data \
+               scripts_sequencer_challenger_data \
                scripts_challenger_data scripts_op_log \
                ops-bedrock_l1_data ops-bedrock_l2_data ops-bedrock_safedb_data \
                ops-bedrock_challenger_data ops-bedrock_op_log; do
@@ -116,6 +117,44 @@ cleanup_all() {
     cleanup_volumes
     cleanup_devnet_files
     log_success "Full cleanup completed"
+}
+
+cleanup_env_file() {
+    log_info "Removing .env file..."
+
+    if [ -f "${PROJECT_ROOT}/.env" ]; then
+        rm -f "${PROJECT_ROOT}/.env"
+        log_success ".env file removed"
+    else
+        log_info "No .env file found"
+    fi
+
+    echo ""
+    return 0
+}
+
+cleanup_genesis_files() {
+    log_info "Removing genesis files..."
+
+    local devnet_dir="${PROJECT_ROOT}/.devnet"
+    local files_removed=0
+
+    if [ -d "$devnet_dir" ]; then
+        for item in genesis-l1.json genesis-l2.json rollup.json addresses.json allocs*.json deploy-config.json; do
+            if [ -f "$devnet_dir/$item" ]; then
+                rm -f "$devnet_dir/$item" && ((files_removed++))
+            fi
+        done
+    fi
+
+    if [ $files_removed -gt 0 ]; then
+        log_success "Removed $files_removed genesis file(s)"
+    else
+        log_info "No genesis files to remove"
+    fi
+
+    echo ""
+    return 0
 }
 
 ##############################################################################

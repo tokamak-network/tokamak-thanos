@@ -150,22 +150,100 @@ main() {
     if ! pull_and_extract "vm-asterisc" "${PROJECT_ROOT}/asterisc/bin" "/app/asterisc/bin/asterisc"; then
         ((failed++))
     fi
+
+    # Extract Asterisc prestate files (GameType 2)
+    log_info "Extracting Asterisc prestate files..."
+    local asterisc_image="${REGISTRY}/vm-asterisc:${IMAGE_TAG}"
+    local container_id=$(docker create "$asterisc_image" true 2>/dev/null)
+
+    # Extract prestate-proof.json (배포용 - .pre 포맷)
+    if docker cp "${container_id}:/app/asterisc/bin/prestate-proof.json" "${PROJECT_ROOT}/asterisc/bin/" 2>/dev/null; then
+        log_success "  ✓ prestate-proof.json extracted (deployment format)"
+
+        # Extract hash
+        local asterisc_hash=$(cat "${PROJECT_ROOT}/asterisc/bin/prestate-proof.json" | jq -r '.pre' 2>/dev/null || echo "")
+        if [ -n "$asterisc_hash" ] && [ "$asterisc_hash" != "null" ]; then
+            log_success "  ✓ Asterisc deployment prestate hash: ${asterisc_hash:0:10}...${asterisc_hash: -8}"
+        fi
+    else
+        log_warn "  ⚠️  prestate-proof.json not found"
+    fi
+
+    # Extract prestate.json (런타임용 - full VMState)
+    if docker cp "${container_id}:/app/asterisc/bin/prestate.json" "${PROJECT_ROOT}/asterisc/bin/" 2>/dev/null; then
+        log_success "  ✓ prestate.json extracted (runtime full VMState) ⭐"
+    else
+        log_warn "  ⚠️  prestate.json not found in image"
+        log_warn "      GameType 2 may not work properly at runtime"
+    fi
+
+    docker rm "$container_id" >/dev/null 2>&1
     echo ""
 
     # op-program (builder 이미지는 /app/op-program/bin/op-program에 바이너리 저장)
     if ! pull_and_extract "vm-op-program" "${PROJECT_ROOT}/op-program/bin" "/app/op-program/bin/op-program"; then
         ((failed++))
     fi
+
+    # Extract prestate files (required for contract deployment)
+    log_info "Extracting prestate files..."
+    local op_prog_image="${REGISTRY}/vm-op-program:${IMAGE_TAG}"
+    local container_id=$(docker create "$op_prog_image" true 2>/dev/null)
+
+    # Extract prestate-proof.json (contains absolute pre-state hash)
+    if docker cp "${container_id}:/app/op-program/bin/prestate-proof.json" "${PROJECT_ROOT}/op-program/bin/" 2>/dev/null; then
+        log_success "  ✓ prestate-proof.json extracted"
+    else
+        log_warn "  ⚠️  prestate-proof.json not found in image"
+    fi
+
+    # Extract prestate.json
+    if docker cp "${container_id}:/app/op-program/bin/prestate.json" "${PROJECT_ROOT}/op-program/bin/" 2>/dev/null; then
+        log_success "  ✓ prestate.json extracted"
+    else
+        log_warn "  ⚠️  prestate.json not found in image"
+    fi
+
+    docker rm "$container_id" >/dev/null 2>&1
     echo ""
 
-    # kona-client (GameType 3용 - 선택사항, RISC-V 바이너리)
+    # kona-client (GameType 3용 - RISC-V 바이너리 + prestate)
     log_info "Pulling kona-client (GameType 3 support)..."
 
-    # kona-client는 RISC-V 바이너리를 두 곳에 저장
-    # 1. bin/kona-client - deploy가 사용
-    # 2. ../kona/target/.../kona-client - prestate 생성용 (같은 파일)
-    if pull_and_extract "vm-kona-client" "${PROJECT_ROOT}/bin" "/kona-client"; then
-        log_success "  ✓ kona-client downloaded: ${PROJECT_ROOT}/bin/kona-client"
+    if pull_and_extract "vm-kona-client" "${PROJECT_ROOT}/bin" "/kona-client-elf"; then
+        log_success "  ✓ kona-client downloaded: ${PROJECT_ROOT}/bin/kona-client-elf"
+
+        # Rename to kona-client for consistency
+        mv "${PROJECT_ROOT}/bin/kona-client-elf" "${PROJECT_ROOT}/bin/kona-client"
+        log_success "  ✓ Renamed to kona-client"
+
+        # Extract kona prestate files from image (built by kona's official system)
+        log_info "Extracting kona prestate files from image..."
+        local kona_image="${REGISTRY}/vm-kona-client:${IMAGE_TAG}"
+        local container_id=$(docker create "$kona_image" true 2>/dev/null)
+
+        # Extract prestate-proof.json (배포용 - .pre 포맷)
+        if docker cp "${container_id}:/prestate-proof.json" "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" 2>/dev/null; then
+            log_success "  ✓ prestate-kona.json extracted (deployment format)"
+
+            # Extract hash
+            local kona_hash=$(cat "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" | jq -r '.pre' 2>/dev/null || echo "")
+            if [ -n "$kona_hash" ] && [ "$kona_hash" != "null" ]; then
+                log_success "  ✓ Kona deployment prestate hash: ${kona_hash:0:10}...${kona_hash: -8}"
+            fi
+        else
+            log_warn "  ⚠️  prestate-proof.json not found in image"
+        fi
+
+        # Extract prestate.bin.gz (런타임용 - full VMState, 압축)
+        if docker cp "${container_id}:/prestate.bin.gz" "${PROJECT_ROOT}/bin/prestate.bin.gz" 2>/dev/null; then
+            log_success "  ✓ prestate.bin.gz extracted (runtime full VMState) ⭐"
+        else
+            log_warn "  ⚠️  prestate.bin.gz not found in image"
+            log_warn "      GameType 3 may not work properly"
+        fi
+
+        docker rm "$container_id" >/dev/null 2>&1
 
         # prestate 생성을 위해 kona 디렉토리에도 복사
         local kona_dir="${PROJECT_ROOT}/../kona"
@@ -181,6 +259,46 @@ main() {
     fi
     echo ""
 
+    # Pull OP Stack Docker images (배포에 필요한 서비스 이미지들)
+    log_info "=========================================="
+    log_info "Pulling OP Stack Docker Images"
+    log_info "=========================================="
+    echo ""
+
+    # Default L2 image (from docker-compose)
+    local l2_image="${L2_IMAGE:-tokamaknetwork/thanos-op-geth:nightly}"
+
+    local op_stack_images=(
+        "${REGISTRY}/op-challenger:${IMAGE_TAG}"
+        "${REGISTRY}/op-node:${IMAGE_TAG}"
+        "${REGISTRY}/op-proposer:${IMAGE_TAG}"
+        "${REGISTRY}/op-batcher:${IMAGE_TAG}"
+        "$l2_image"
+    )
+
+    local pull_failed=0
+    for img in "${op_stack_images[@]}"; do
+        log_info "Pulling: $img"
+        if docker pull "$img" 2>&1 | grep -q "manifest unknown\|not found"; then
+            log_warn "  ⚠️  Image not found: $img (may need to build locally)"
+            ((pull_failed++))
+        elif docker pull "$img"; then
+            log_success "  ✓ Pulled: $img"
+        else
+            log_warn "  ⚠️  Failed to pull: $img (network issue or not available)"
+            ((pull_failed++))
+        fi
+    done
+    echo ""
+
+    if [ $pull_failed -gt 0 ]; then
+        log_warn "⚠️  $pull_failed OP Stack images could not be pulled"
+        log_warn "   These will be built/pulled during deployment"
+    else
+        log_success "✅ All OP Stack images pulled successfully!"
+    fi
+    echo ""
+
     # 결과
     if [ $failed -eq 0 ]; then
         log_success "=========================================="
@@ -188,8 +306,8 @@ main() {
         log_success "=========================================="
         echo ""
         log_info "다음 단계:"
-        log_info "  1. Prestate 생성 필요 (컨트랙 배포 후)"
-        log_info "  2. 배포: ./op-challenger/scripts/deploy-modular.sh --dg-type 3"
+        log_info "  1. 배포: ./op-challenger/scripts/deploy-modular.sh --dg-type 3 --clean"
+        log_info "  2. 모니터링: ./op-challenger/scripts/monitor-challenger.sh"
         return 0
     else
         log_error "=========================================="

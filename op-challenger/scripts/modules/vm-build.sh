@@ -286,15 +286,15 @@ build_asterisc_from_source() {
         log_success "  ✓ Copied: prestate.json from Docker reproducible build"
 
         # Extract prestate hash from Docker build prestate.json
-        # Note: Asterisc uses .stateHash field (not .pre like Cannon)
-        local prestate_hash=$(cat "bin/prestate.json" | jq -r '.stateHash' 2>/dev/null || echo "")
+        # ✅ Asterisc prestate-proof.json uses .pre field (모든 GameType 공통!)
+        local prestate_hash=$(cat "bin/prestate.json" | jq -r '.pre' 2>/dev/null || echo "")
         if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
             log_success "✅ Asterisc Absolute Prestate Hash (Docker reproducible build):"
             log_info "   $prestate_hash"
             log_config "Asterisc Absolute Prestate: $prestate_hash"
             export ASTERISC_ABSOLUTE_PRESTATE="$prestate_hash"
         else
-            log_error "Failed to extract stateHash from Docker build prestate.json"
+            log_error "Failed to extract .pre from Docker build prestate.json"
             return 1
         fi
 
@@ -617,7 +617,8 @@ generate_kona_prestate() {
         local asterisc_prestate="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
         if [ -f "$asterisc_prestate" ]; then
             cp "$asterisc_prestate" "$kona_prestate"
-            local prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+            # ✅ Read .pre field (모든 GameType 공통!)
+            local prestate_hash=$(cat "$kona_prestate" | jq -r '.pre' 2>/dev/null || echo "")
             if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
                 log_info "   Prestate Hash: $prestate_hash"
                 export KONA_ABSOLUTE_PRESTATE="$prestate_hash"
@@ -668,7 +669,8 @@ generate_kona_prestate() {
         log_success "✅ Kona prestate generated: $kona_prestate"
 
         # Extract and display prestate hash
-        local prestate_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+        # ✅ Read .pre field (모든 GameType 공통!)
+        local prestate_hash=$(cat "$kona_prestate" | jq -r '.pre' 2>/dev/null || echo "")
         if [ -n "$prestate_hash" ] && [ "$prestate_hash" != "null" ]; then
             log_success "✅ Kona Absolute Prestate Hash:"
             log_info "   $prestate_hash"
@@ -760,9 +762,8 @@ build_vms() {
         log_info "    - Binary: $ASTERISC_BIN/asterisc"
 
         if [ -f "$ASTERISC_BIN/prestate-proof.json" ]; then
-            # Read stateHash directly from prestate-proof.json (Docker build output)
-            # Note: Asterisc uses .stateHash field (not .pre like Cannon)
-            local asterisc_hash=$(cat "$ASTERISC_BIN/prestate-proof.json" | jq -r '.stateHash' 2>/dev/null || echo "")
+            # ✅ Read .pre field (모든 GameType 공통!)
+            local asterisc_hash=$(cat "$ASTERISC_BIN/prestate-proof.json" | jq -r '.pre' 2>/dev/null || echo "")
             if [ -n "$asterisc_hash" ] && [ "$asterisc_hash" != "null" ]; then
                 log_info "    - Prestate: $asterisc_hash ✅"
             else
@@ -781,7 +782,8 @@ build_vms() {
 
         local kona_prestate="${PROJECT_ROOT}/op-program/bin/prestate-kona.json"
         if [ -f "$kona_prestate" ]; then
-            local kona_hash=$(cat "$kona_prestate" | jq -r '.stateHash' 2>/dev/null || echo "")
+            # ✅ Read .pre field (모든 GameType 공통!)
+            local kona_hash=$(cat "$kona_prestate" | jq -r '.pre' 2>/dev/null || echo "")
             if [ -n "$kona_hash" ] && [ "$kona_hash" != "null" ]; then
                 log_info "    - Prestate: $kona_hash ✅"
             else

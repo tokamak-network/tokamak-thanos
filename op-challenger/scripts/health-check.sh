@@ -201,17 +201,18 @@ log_info "=========================================="
 echo ""
 
 # 1. Check Docker container status
-log_info "━━━ Docker Container Status ━━━"
+log_info "━━━ Sequencer Stack Container Status ━━━"
 check_docker_container "l1" "L1 Ethereum" || true
 check_docker_container "sequencer-l2" "Sequencer L2 geth" || true
 check_docker_container "sequencer-op-node" "Sequencer op-node" || true
 check_docker_container "op-batcher" "op-batcher" || true
 check_docker_container "op-proposer" "op-proposer" || true
+check_docker_container "sequencer-challenger" "sequencer-challenger (For user withdrawals)" || true
 echo ""
-log_info "━━━ Challenger Stack Container Status ⭐ ━━━"
+log_info "━━━ Independent Challenger Stack Container Status ⭐ ━━━"
 check_docker_container "challenger-l2" "Challenger L2 geth (Independent)" || true
 check_docker_container "challenger-op-node" "Challenger op-node (Follower)" || true
-check_docker_container "op-challenger" "op-challenger" || true
+check_docker_container "op-challenger" "op-challenger (Independent Verifier)" || true
 echo ""
 
 # 2. L1 RPC check
@@ -225,6 +226,34 @@ log_info "━━━ Sequencer Stack ━━━"
 check_rpc "Sequencer L2 op-geth" "http://localhost:9545" 5 || true
 check_sync_status "Sequencer L2" "http://localhost:9545" || true
 check_opnode_rpc "Sequencer op-node" "http://localhost:7545" 5 || true
+
+# Check sequencer-challenger (For user withdrawals)
+if docker ps --format '{{.Names}}' | grep -q "sequencer-challenger"; then
+    seq_challenger_container=$(docker ps --format '{{.Names}}' | grep "sequencer-challenger" | head -1)
+    log_info "Checking sequencer-challenger..."
+
+    # Check RPC if available (port 6548)
+    if curl -s -m 3 "http://localhost:6548" > /dev/null 2>&1; then
+        log_success "sequencer-challenger - RPC responding (port 6548)"
+        PASSED_CHECKS=$((PASSED_CHECKS + 1))
+    else
+        log_info "sequencer-challenger - RPC not available yet (initializing)"
+    fi
+
+    # Check for errors in recent logs
+    error_count=$(docker logs --tail=50 "$seq_challenger_container" 2>&1 | grep -i "error" | wc -l | tr -d ' \n' || echo "0")
+    error_count=${error_count:-0}
+
+    if [ "$error_count" -lt 5 ]; then
+        log_success "sequencer-challenger - Operating normally (error logs: $error_count)"
+        PASSED_CHECKS=$((PASSED_CHECKS + 1))
+    else
+        log_warn "sequencer-challenger - Multiple errors found ($error_count)"
+        log_info "Detailed logs: docker logs $seq_challenger_container"
+        FAILED_CHECKS=$((FAILED_CHECKS + 1))
+    fi
+    TOTAL_CHECKS=$((TOTAL_CHECKS + 2))
+fi
 echo ""
 
 # 4. Challenger stack check (Independent!) ⭐

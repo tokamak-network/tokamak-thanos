@@ -128,12 +128,19 @@ batcher_key="0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
 sequencer_address="0x90F79bf6EB2c4f870365E785982E1f101E93b906"
 sequencer_key="0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
 
-# Challenger 지갑 (Hardhat Account #4)
+# Challenger 지갑 (Hardhat Account #4) - 독립 검증자용
 challenger_address="0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
 challenger_key="0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
 
+# Sequencer Challenger 지갑 (Hardhat Account #5) - 시퀀서용 ⭐
+sequencer_challenger_address="0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+sequencer_challenger_key="0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba"
+
 log_success "Wallet configuration completed (using Hardhat test accounts)"
 log_info "These accounts match devnet-up Genesis generation"
+log_info "⭐ Two separate Challenger accounts configured:"
+log_info "   - op-challenger (independent): Account #4"
+log_info "   - sequencer-challenger (sequencer): Account #5"
 
 ##############################################################################
 # 3. Configuration by deployment mode
@@ -268,10 +275,16 @@ SEQUENCER_ADDRESS=$sequencer_address
 SEQUENCER_PRIVATE_KEY=$sequencer_key
 
 # ============================================================================
-# Wallet Information (Challenger)
+# Wallet Information (Challenger) - Independent Verifier
 # ============================================================================
 CHALLENGER_ADDRESS=$challenger_address
 CHALLENGER_PRIVATE_KEY=$challenger_key
+
+# ============================================================================
+# Wallet Information (Sequencer Challenger) - For Sequencer Stack ⭐
+# ============================================================================
+SEQUENCER_CHALLENGER_ADDRESS=$sequencer_challenger_address
+SEQUENCER_CHALLENGER_PRIVATE_KEY=$sequencer_challenger_key
 
 # ============================================================================
 # Mnemonic (For Development)
@@ -377,9 +390,14 @@ echo "  Address:     $sequencer_address"
 echo "  Private Key: $sequencer_key"
 echo ""
 
-echo "Challenger Account:"
+echo "Challenger Account (Independent Verifier):"
 echo "  Address:     $challenger_address"
 echo "  Private Key: $challenger_key"
+echo ""
+
+echo "Sequencer Challenger Account (For Sequencer Stack): ⭐"
+echo "  Address:     $sequencer_challenger_address"
+echo "  Private Key: $sequencer_challenger_key"
 echo ""
 
 ##############################################################################
@@ -401,11 +419,12 @@ if [ "$DEPLOY_MODE" = "local" ]; then
     echo ""
 else
     echo "1. Send ETH to each wallet (for L1 gas fees)"
-    echo "   - Admin:     $admin_address"
-    echo "   - Batcher:   $batcher_address"
-    echo "   - Proposer:  $proposer_address"
-    echo "   - Sequencer: $sequencer_address"
-    echo "   - Challenger: $challenger_address"
+    echo "   - Admin:               $admin_address"
+    echo "   - Batcher:             $batcher_address"
+    echo "   - Proposer:            $proposer_address"
+    echo "   - Sequencer:           $sequencer_address"
+    echo "   - Challenger (Indep):  $challenger_address"
+    echo "   - Seq Challenger:      $sequencer_challenger_address ⭐"
     echo ""
     echo "2. Deploy L1 contracts (if needed)"
     echo ""

@@ -19,6 +19,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Log functions
@@ -77,6 +78,7 @@ get_game_type_color() {
     case "$game_type" in
         0|1) echo "${BLUE}" ;;      # CANNON - Blue
         2) echo "${CYAN}" ;;         # ASTERISC - Cyan
+        3) echo "${MAGENTA}" ;;      # ASTERISC_KONA - Magenta
         254) echo "${YELLOW}" ;;     # FAST - Yellow
         255) echo "${GREEN}" ;;      # ALPHABET - Green
         *) echo "${NC}" ;;
@@ -220,6 +222,30 @@ show_game_summary() {
         echo ""
         echo "  🎯 Moves Made:            $moves_made"
         echo "  ⚠️  Recent Errors:         $errors"
+
+        # Show recent error samples if any
+        if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "  Recent Error Samples (last 3):"
+            echo "$recent_logs" | grep "lvl=error" | tail -3 | while IFS= read -r error_line; do
+                # Extract timestamp and message
+                local timestamp=$(echo "$error_line" | sed -n 's/^t=\([^ ]*\).*/\1/p' | sed 's/\+.*//' | sed 's/T/ /')
+                local msg=$(echo "$error_line" | sed -n 's/.*msg="\([^"]*\)".*/\1/p')
+                local err=$(echo "$error_line" | sed -n 's/.*err="\([^"]*\)".*/\1/p' | head -c 80)
+
+                if [ -n "$msg" ]; then
+                    echo "    [$timestamp] $msg"
+                    if [ -n "$err" ]; then
+                        echo "      └─ ${err}..."
+                    fi
+                fi
+            done
+            echo ""
+            log_info "💡 View full error logs:"
+            echo "     docker logs scripts-op-challenger-1 2>&1 | grep 'lvl=error' | tail -20"
+            echo "     docker logs scripts-sequencer-challenger-1 2>&1 | grep 'lvl=error' | tail -20"
+            echo ""
+        fi
 
         if [ "$invalid_prestate" -gt 0 ]; then
             echo ""
@@ -384,7 +410,7 @@ show_errors() {
                 # Show Asterisc prestate status
                 local asterisc_prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
                 if [ -f "$asterisc_prestate_file" ]; then
-                    local asterisc_hash=$(cat "$asterisc_prestate_file" | jq -r '.stateHash' 2>/dev/null || echo "")
+                    local asterisc_hash=$(cat "$asterisc_prestate_file" | jq -r '.pre' 2>/dev/null || echo "")
                     echo "  Asterisc (GameType 2):"
                     echo "    Local:  ${asterisc_hash:0:18}...${asterisc_hash: -6}"
                 else
@@ -519,10 +545,10 @@ show_system_config() {
         # Verify prestate matches local Docker build
         local local_prestate_file="${PROJECT_ROOT}/asterisc/bin/prestate-proof.json"
         if [ -f "$local_prestate_file" ]; then
-            local local_prestate=$(cat "$local_prestate_file" | jq -r '.stateHash' 2>/dev/null || echo "")
+            local local_prestate=$(cat "$local_prestate_file" | jq -r '.pre' 2>/dev/null || echo "")
             if [ -n "$local_prestate" ] && [ "$local_prestate" != "null" ]; then
                 if [ "$absolute_prestate_2" = "$local_prestate" ]; then
-                    echo -e "     ${GREEN}✅ Matches local Docker build prestate${NC}"
+                    echo -e "     ${GREEN}✅ Matches local prestate file${NC}"
                 else
                     echo -e "     ${RED}⚠️  MISMATCH with local prestate!${NC}"
                     echo "     Local: ${local_prestate:0:18}...${local_prestate: -6}"
@@ -560,7 +586,7 @@ show_system_config() {
 
         # Verify kona prestate matches
         if [ -f "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" ]; then
-            local kona_hash=$(cat "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" | jq -r '.stateHash' 2>/dev/null || echo "")
+            local kona_hash=$(cat "${PROJECT_ROOT}/op-program/bin/prestate-kona.json" | jq -r '.pre' 2>/dev/null || echo "")
             if [ -n "$kona_hash" ]; then
                 echo "  Kona (GameType 3):"
                 echo "    Local:  ${kona_hash:0:18}...${kona_hash: -6}"
@@ -592,7 +618,8 @@ show_system_config() {
         case "$game_type" in
             0) game_type_name="CANNON (MIPS)" ;;
             1) game_type_name="PERMISSIONED_CANNON" ;;
-            2) game_type_name="ASTERISC (RISC-V) ⭐" ;;
+            2) game_type_name="ASTERISC (RISC-V)" ;;
+            3) game_type_name="ASTERISC_KONA (RISC-V + Rust) 🆕" ;;
             254) game_type_name="FAST (Test)" ;;
             255) game_type_name="ALPHABET (Test)" ;;
         esac
@@ -603,30 +630,80 @@ show_system_config() {
 
     echo ""
 
-    # Challenger configuration
-    local challenger_container=$(docker ps --format '{{.Names}}' | grep "op-challenger" | head -1 || echo "")
+    # Sequencer Challenger configuration ⭐
+    local seq_challenger_container=$(docker ps --format '{{.Names}}' | grep "sequencer-challenger" | head -1 || echo "")
+    if [ -n "$seq_challenger_container" ]; then
+        echo "  Sequencer Challenger Configuration: ⭐"
+
+        # Get trace type
+        local trace_type=$(docker inspect "$seq_challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2 || echo "unknown")
+
+        # Display trace type
+        case "$trace_type" in
+            cannon)
+                echo "    Trace Type: cannon (MIPS VM)"
+                ;;
+            asterisc)
+                echo "    Trace Type: asterisc (RISC-V VM)"
+                ;;
+            asterisc-kona)
+                echo "    Trace Type: asterisc-kona (RISC-V + Rust) 🆕"
+                ;;
+            *)
+                echo "    Trace Types: $trace_type"
+                ;;
+        esac
+
+        echo "    Role: Close all games for user withdrawals"
+        echo "    Selective Claim Resolution: false (closes all games)"
+
+        # Get challenger address
+        local challenger_addr=$(docker inspect "$seq_challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_PRIVATE_KEY" | cut -d= -f2 || echo "")
+        if [ -n "$challenger_addr" ] && command -v cast >/dev/null 2>&1; then
+            challenger_addr=$(cast wallet address "$challenger_addr" 2>/dev/null || echo "unknown")
+            echo "    Address: $challenger_addr (Account #5)"
+        fi
+    else
+        echo "  Sequencer Challenger: Not running ⚠️"
+    fi
+
+    echo ""
+
+    # Independent Challenger configuration
+    local challenger_container=$(docker ps --format '{{.Names}}' | grep -E "^scripts-op-challenger-|op-challenger" | grep -v "sequencer" | head -1 || echo "")
     if [ -n "$challenger_container" ]; then
-        echo "  Challenger Configuration:"
+        echo "  Independent Challenger Configuration: ⭐"
 
         # Get trace type
         local trace_type=$(docker inspect "$challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_TRACE_TYPE" | cut -d= -f2 || echo "unknown")
 
-        # Convert trace type to display name
-        local trace_type_name="Unknown"
+        # Display trace type
         case "$trace_type" in
-            cannon) trace_type_name="Cannon (MIPS VM)" ;;
-            asterisc) trace_type_name="Asterisc (RISC-V VM) ⭐" ;;
-            alphabet) trace_type_name="Alphabet (Test)" ;;
+            cannon)
+                echo "    Trace Type: cannon (MIPS VM)"
+                ;;
+            asterisc)
+                echo "    Trace Type: asterisc (RISC-V VM)"
+                ;;
+            asterisc-kona)
+                echo "    Trace Type: asterisc-kona (RISC-V + Rust) 🆕"
+                ;;
+            *)
+                echo "    Trace Types: $trace_type (All GameTypes)"
+                ;;
         esac
 
-        echo "    Trace Type: $trace_type ($trace_type_name)"
+        echo "    Role: Independent verification and challenge"
+        echo "    Selective Claim Resolution: true (only own claims)"
 
         # Get challenger address
         local challenger_addr=$(docker inspect "$challenger_container" 2>/dev/null | jq -r '.[0].Config.Env[]' | grep "OP_CHALLENGER_PRIVATE_KEY" | cut -d= -f2 || echo "")
         if [ -n "$challenger_addr" ] && command -v cast >/dev/null 2>&1; then
             challenger_addr=$(cast wallet address "$challenger_addr" 2>/dev/null || echo "unknown")
-            echo "    Address: $challenger_addr"
+            echo "    Address: $challenger_addr (Account #4)"
         fi
+    else
+        echo "  Independent Challenger: Not running ⚠️"
     fi
 
     echo ""
