@@ -1826,11 +1826,10 @@ contract Deploy is Deployer {
         }
     }
 
-    /// @notice Loads the riscv absolute prestate from the prestate-proof for devnets otherwise
-    ///         from the config.
-    function loadRiscvAbsolutePrestate() internal returns (Claim riscvAbsolutePrestate_) {
+    /// @notice Loads the riscv absolute prestate for GameType 2 (Asterisc)
+    function loadAsteriscAbsolutePrestate() internal returns (Claim asteriscAbsolutePrestate_) {
         if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
-            // Fetch the absolute prestate dump from Asterisc Docker reproducible build
+            // For devnet, read from asterisc prestate file
             string memory filePath = string.concat(vm.projectRoot(), "/../../../asterisc/bin/prestate-proof.json");
             string[] memory commands = new string[](3);
             commands[0] = "bash";
@@ -1839,19 +1838,51 @@ contract Deploy is Deployer {
             if (Process.run(commands).length == 0) {
                 revert("Asterisc prestate dump not found, generate it with `make asterisc` and build RISC-V prestate in the monorepo root.");
             }
-            // Read stateHash directly from prestate-proof.json (Docker build output)
-            // Note: Asterisc uses .stateHash field (not .pre like Cannon)
-            commands[2] = string.concat("cat ", filePath, " | jq -r .stateHash");
-            riscvAbsolutePrestate_ = Claim.wrap(abi.decode(Process.run(commands), (bytes32)));
+            commands[2] = string.concat("cat ", filePath, " | jq -r .pre");
+            asteriscAbsolutePrestate_ = Claim.wrap(abi.decode(Process.run(commands), (bytes32)));
             console.log(
                 "[Asterisc Dispute Game] Using devnet RISC-V Absolute prestate: %s",
-                vm.toString(Claim.unwrap(riscvAbsolutePrestate_))
+                vm.toString(Claim.unwrap(asteriscAbsolutePrestate_))
             );
         } else {
+            // For production, use config value
             console.log(
                 "[Asterisc Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()
             );
-            riscvAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+            asteriscAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
+        }
+    }
+
+    /// @notice Loads the riscv absolute prestate for GameType 3 (Kona)
+    ///         GameType 3 shares RISCV.sol with GameType 2 but may use different prestate
+    function loadKonaAbsolutePrestate() internal returns (Claim konaAbsolutePrestate_) {
+        if (block.chainid == Chains.LocalDevnet || block.chainid == Chains.GethDevnet) {
+            // For devnet, try kona-specific prestate first
+            string memory konaFilePath = string.concat(vm.projectRoot(), "/../../../op-program/bin/prestate-kona.json");
+            string[] memory commands = new string[](3);
+            commands[0] = "bash";
+            commands[1] = "-c";
+            commands[2] = string.concat("[[ -f ", konaFilePath, " ]] && echo \"present\"");
+
+            if (Process.run(commands).length > 0) {
+                // Kona-specific prestate exists
+                commands[2] = string.concat("cat ", konaFilePath, " | jq -r .pre");
+                konaAbsolutePrestate_ = Claim.wrap(abi.decode(Process.run(commands), (bytes32)));
+                console.log(
+                    "[Kona Dispute Game] Using devnet Kona prestate: %s",
+                    vm.toString(Claim.unwrap(konaAbsolutePrestate_))
+                );
+            } else {
+                // Fallback to Asterisc prestate (same RISCV.sol)
+                console.log("[Kona Dispute Game] Kona prestate not found, using Asterisc prestate (same RISCV.sol)");
+                konaAbsolutePrestate_ = loadAsteriscAbsolutePrestate();
+            }
+        } else {
+            // For production, use config value
+            console.log(
+                "[Kona Dispute Game] Using absolute prestate from config: %x", cfg.faultGameAbsolutePrestate()
+            );
+            konaAbsolutePrestate_ = Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate()));
         }
     }
 
@@ -1960,7 +1991,7 @@ contract Deploy is Deployer {
                 anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.ASTERISC,
-                absolutePrestate: loadRiscvAbsolutePrestate(),
+                absolutePrestate: loadAsteriscAbsolutePrestate(),
                 faultVm: IBigStepper(mustGetAddress("Riscv")),
                 maxGameDepth: cfg.faultGameMaxDepth(),
                 maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
@@ -1975,7 +2006,7 @@ contract Deploy is Deployer {
         DelayedWETH weth = DelayedWETH(mustGetAddress("DelayedWETHProxy"));
 
         // Set the Asterisc-Kona FaultDisputeGame implementation in the factory.
-        // Uses the same RISCV.sol as Asterisc (GameType 2), but with kona-client
+        // Uses the same RISCV.sol as Asterisc (GameType 2), but with kona-client and kona prestate
         _setFaultGameImplementation({
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
@@ -1983,7 +2014,7 @@ contract Deploy is Deployer {
                 anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.ASTERISC_KONA,
-                absolutePrestate: loadRiscvAbsolutePrestate(), // Same RISC-V prestate as Asterisc
+                absolutePrestate: loadKonaAbsolutePrestate(), // Kona-specific prestate
                 faultVm: IBigStepper(mustGetAddress("Riscv")), // Same RISCV.sol as Asterisc
                 maxGameDepth: cfg.faultGameMaxDepth(),
                 maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
@@ -2051,6 +2082,12 @@ contract Deploy is Deployer {
             gameTypeString = "PermissionedCannon";
         } else if (rawGameType == GameTypes.ALPHABET.raw()) {
             gameTypeString = "Alphabet";
+        } else if (rawGameType == GameTypes.ASTERISC.raw()) {
+            gameTypeString = "Asterisc";
+        } else if (rawGameType == GameTypes.ASTERISC_KONA.raw()) {
+            gameTypeString = "AsteriscKona";
+        } else if (rawGameType == GameTypes.FAST.raw()) {
+            gameTypeString = "Fast";
         } else {
             gameTypeString = "Unknown";
         }

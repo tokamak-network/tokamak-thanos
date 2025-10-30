@@ -7,6 +7,7 @@ volumes:
   challenger_l2_data:
   challenger_safedb_data:
   sequencer_safedb_data:
+  sequencer_challenger_data:  # ⭐ Sequencer용 Challenger 데이터
   challenger_data:
   op_log:
 
@@ -179,6 +180,61 @@ services:
       - l1
       - sequencer-op-node
 
+  sequencer-challenger:
+    platform: linux/amd64  # Required for x86_64 binaries (asterisc, cannon, op-program, kona-client)
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile: ops/docker/op-stack-go/Dockerfile
+      target: op-challenger-target
+    image: ${VM_REGISTRY:-ghcr.io/zena-park}/op-challenger:${IMAGE_TAG:-latest}
+    command: >
+      /bin/sh -c "while ! nc -z sequencer-op-node 8545; do sleep 1; done; echo 'Sequencer op-node 준비 완료' && op-challenger"
+    volumes:
+      - 'sequencer_challenger_data:/db'
+      - '${PROJECT_ROOT}/op-program/bin:/op-program'
+      - '${PROJECT_ROOT}/cannon/bin:/cannon'
+      - '${ASTERISC_BIN:-${PROJECT_ROOT}/asterisc/bin}:/asterisc'
+      - '${KONA_BIN:-${PROJECT_ROOT}/bin}:/kona'
+      - '${PROJECT_ROOT}/.devnet:/devnet'
+    environment:
+      OP_CHALLENGER_L1_ETH_RPC: http://l1:8545
+      OP_CHALLENGER_L1_BEACON: ${L1_BEACON_URL:-unset}
+      OP_CHALLENGER_ROLLUP_RPC: http://sequencer-op-node:8545  # ⭐ Sequencer의 op-node 사용!
+      OP_CHALLENGER_L2_ETH_RPC: http://sequencer-l2:8545        # ⭐ Sequencer의 L2 geth 사용!
+      # ⭐ Proposer가 사용하는 GameType만 지원 (예: DG_TYPE=3이면 asterisc-kona만)
+      OP_CHALLENGER_TRACE_TYPE: ${SEQUENCER_CHALLENGER_TRACE_TYPE:-${CHALLENGER_TRACE_TYPE}}
+      OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
+      OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
+      OP_CHALLENGER_DATADIR: /db
+      OP_CHALLENGER_PRIVATE_KEY: ${SEQUENCER_CHALLENGER_PRIVATE_KEY}  # ⭐ 시퀀서 전용 계정 (Account #5)
+      # Cannon (GameType 0, 1) 설정
+      OP_CHALLENGER_CANNON_ROLLUP_CONFIG: /devnet/rollup.json
+      OP_CHALLENGER_CANNON_L2_GENESIS: /devnet/genesis-l2.json
+      OP_CHALLENGER_CANNON_BIN: /cannon/cannon
+      OP_CHALLENGER_CANNON_SERVER: /op-program/op-program
+      OP_CHALLENGER_CANNON_PRESTATE: /op-program/prestate.json
+      # Asterisc (GameType 2) 설정
+      OP_CHALLENGER_ASTERISC_ROLLUP_CONFIG: /devnet/rollup.json
+      OP_CHALLENGER_ASTERISC_L2_GENESIS: /devnet/genesis-l2.json
+      OP_CHALLENGER_ASTERISC_BIN: /asterisc/asterisc
+      OP_CHALLENGER_ASTERISC_SERVER: /op-program/op-program
+      OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ 런타임용 full VMState
+      # AsteriscKona (GameType 3) 설정
+      OP_CHALLENGER_ASTERISC_KONA_BIN: /asterisc/asterisc        # GameType 3 VM binary (RISCV)
+      OP_CHALLENGER_ASTERISC_KONA_SERVER: /kona/kona-client      # GameType 3 client binary
+      OP_CHALLENGER_ASTERISC_KONA_PRESTATE: ${KONA_PRESTATE:-/kona/prestate.bin.gz}  # ⭐ 압축된 full VMState
+      OP_CHALLENGER_ASTERISC_KONA_L2_CUSTOM: 'false'
+      # ⭐ selective-claim-resolution 없음 → 모든 게임 close (사용자 인출 보장)
+      OP_CHALLENGER_NUM_CONFIRMATIONS: 1
+    ports:
+      - '6548:8545'   # Sequencer Challenger RPC
+    networks:
+      - l2-network
+    depends_on:
+      - l1
+      - sequencer-op-node
+      - sequencer-l2
+
   # ============================================
   # Challenger 스택 (독립적!) ⭐
   # ============================================
@@ -280,6 +336,7 @@ services:
       OP_CHALLENGER_GAME_FACTORY_ADDRESS: ${GAME_FACTORY_ADDRESS}
       OP_CHALLENGER_UNSAFE_ALLOW_INVALID_PRESTATE: 'true'
       OP_CHALLENGER_DATADIR: /db
+      OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}  # ⭐ 독립 검증자 계정 (Account #4)
       # Cannon (GameType 0, 1) 설정
       OP_CHALLENGER_CANNON_ROLLUP_CONFIG: /devnet/rollup.json
       OP_CHALLENGER_CANNON_L2_GENESIS: /devnet/genesis-l2.json
@@ -291,13 +348,14 @@ services:
       OP_CHALLENGER_ASTERISC_L2_GENESIS: /devnet/genesis-l2.json
       OP_CHALLENGER_ASTERISC_BIN: /asterisc/asterisc             # ⭐ Asterisc 바이너리
       OP_CHALLENGER_ASTERISC_SERVER: /op-program/op-program      # ⭐ op-program 서버
-      OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ Asterisc prestate
+      OP_CHALLENGER_ASTERISC_PRESTATE: ${ASTERISC_PRESTATE:-/asterisc/prestate.json}  # ⭐ 런타임용 full VMState
       # ✅ AsteriscKona (GameType 3) 설정
       # Note: GameType 3 shares ASTERISC_BIN, ASTERISC_ROLLUP_CONFIG, ASTERISC_L2_GENESIS with GameType 2
+      OP_CHALLENGER_ASTERISC_KONA_BIN: /asterisc/asterisc        # ✅ GameType 3 VM binary (RISCV)
       OP_CHALLENGER_ASTERISC_KONA_SERVER: /kona/kona-client      # ✅ kona-client binary (Rust)
-      OP_CHALLENGER_ASTERISC_KONA_PRESTATE: ${KONA_PRESTATE:-/op-program/prestate-kona.json}  # ✅ kona prestate
+      OP_CHALLENGER_ASTERISC_KONA_PRESTATE: ${KONA_PRESTATE:-/kona/prestate.bin.gz}  # ⭐ 압축된 full VMState
       OP_CHALLENGER_ASTERISC_KONA_L2_CUSTOM: 'false'
-      OP_CHALLENGER_PRIVATE_KEY: ${CHALLENGER_PRIVATE_KEY}
+      OP_CHALLENGER_SELECTIVE_CLAIM_RESOLUTION: 'true'  # ⭐ 자신이 claim한 게임만 close (제3자 검증자)
       OP_CHALLENGER_NUM_CONFIRMATIONS: 1
     ports:
       - '6547:8545'   # Challenger RPC (있는 경우)
