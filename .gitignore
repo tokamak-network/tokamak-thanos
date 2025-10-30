@@ -49,8 +49,7 @@ bedrock-devnet/data
 asterisc/bin/
 cannon/bin/
 op-program/bin/
-bin/kona-client
-bin/*.elf
+bin/
 /prestate.json
 
 # Backup files
