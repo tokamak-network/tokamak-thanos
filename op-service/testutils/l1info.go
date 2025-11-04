@@ -68,6 +68,10 @@ func (l *MockBlockInfo) BlobBaseFee() *big.Int {
 	return l.InfoBlobBaseFee
 }
 
+func (l *MockBlockInfo) ExcessBlobGas() *uint64 {
+	return nil
+}
+
 func (l *MockBlockInfo) ReceiptHash() common.Hash {
 	return l.InfoReceiptRoot
 }
@@ -93,6 +97,10 @@ func (l *MockBlockInfo) HeaderRLP() ([]byte, error) {
 		return nil, errors.New("header rlp not available")
 	}
 	return l.InfoHeaderRLP, nil
+}
+
+func (l *MockBlockInfo) WithdrawalsRoot() *common.Hash {
+	return nil
 }
 
 func (l *MockBlockInfo) BlockRef() eth.L1BlockRef {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
@@ -75,7 +74,11 @@ func (h headerInfo) BlobBaseFee() *big.Int {
 	if h.Header.ExcessBlobGas == nil {
 		return nil
 	}
-	return eip4844.CalcBlobFee(*h.Header.ExcessBlobGas)
+	return eth.CalcBlobFeeCancun(*h.Header.ExcessBlobGas)
+}
+
+func (h headerInfo) ExcessBlobGas() *uint64 {
+	return h.Header.ExcessBlobGas
 }
 
 func (h headerInfo) ReceiptHash() common.Hash {
@@ -96,6 +99,10 @@ func (h headerInfo) ParentBeaconRoot() *common.Hash {
 
 func (h headerInfo) HeaderRLP() ([]byte, error) {
 	return rlp.EncodeToBytes(h.Header)
+}
+
+func (h headerInfo) WithdrawalsRoot() *common.Hash {
+	return h.Header.WithdrawalsHash
 }
 
 type RPCHeader struct {
