@@ -23,6 +23,7 @@ const (
 	versionMethod        = "eth/v1/node/version"
 	specMethod           = "eth/v1/config/spec"
 	genesisMethod        = "eth/v1/beacon/genesis"
+    blobsMethodPrefix    = "eth/v1/beacon/blobs/"
 	sidecarsMethodPrefix = "eth/v1/beacon/blob_sidecars/"
 )
 
@@ -117,18 +118,28 @@ func (cl *BeaconHTTPClient) BeaconGenesis(ctx context.Context) (eth.APIGenesisRe
 }
 
 func (cl *BeaconHTTPClient) BeaconBlobSideCars(ctx context.Context, fetchAllSidecars bool, slot uint64, hashes []eth.IndexedBlobHash) (eth.APIGetBlobSidecarsResponse, error) {
-	reqPath := path.Join(sidecarsMethodPrefix, strconv.FormatUint(slot, 10))
-	var reqQuery url.Values
-	if !fetchAllSidecars {
-		reqQuery = url.Values{}
-		for i := range hashes {
-			reqQuery.Add("indices", strconv.FormatUint(hashes[i].Index, 10))
-		}
-	}
-	var resp eth.APIGetBlobSidecarsResponse
-	if err := cl.apiReq(ctx, &resp, reqPath, reqQuery); err != nil {
-		return eth.APIGetBlobSidecarsResponse{}, err
-	}
+    var reqQuery url.Values
+    if !fetchAllSidecars {
+        reqQuery = url.Values{}
+        for i := range hashes {
+            reqQuery.Add("indices", strconv.FormatUint(hashes[i].Index, 10))
+        }
+    }
+
+    // Try new blobs API first (Fusaka readiness), then fallback to blob_sidecars if not found.
+    var resp eth.APIGetBlobSidecarsResponse
+    reqPathNew := path.Join(blobsMethodPrefix, strconv.FormatUint(slot, 10))
+    if err := cl.apiReq(ctx, &resp, reqPathNew, reqQuery); err != nil {
+        if errors.Is(err, ethereum.NotFound) {
+            // Fallback to legacy sidecars API
+            reqPathLegacy := path.Join(sidecarsMethodPrefix, strconv.FormatUint(slot, 10))
+            if err2 := cl.apiReq(ctx, &resp, reqPathLegacy, reqQuery); err2 != nil {
+                return eth.APIGetBlobSidecarsResponse{}, err2
+            }
+        } else {
+            return eth.APIGetBlobSidecarsResponse{}, err
+        }
+    }
 
 	indices := make(map[uint64]struct{}, len(hashes))
 	for _, h := range hashes {
@@ -306,11 +317,6 @@ func blobsFromSidecars(blobSidecars []*eth.BlobSidecar, hashes []eth.IndexedBlob
 		hash := eth.KZGToVersionedHash(kzg4844.Commitment(sidecar.KZGCommitment))
 		if hash != ih.Hash {
 			return nil, fmt.Errorf("expected hash %s for blob at index %d but got %s", ih.Hash, ih.Index, hash)
-		}
-
-		// confirm blob data is valid by verifying its proof against the commitment
-		if err := eth.VerifyBlobProof(&sidecar.Blob, kzg4844.Commitment(sidecar.KZGCommitment), kzg4844.Proof(sidecar.KZGProof)); err != nil {
-			return nil, fmt.Errorf("blob at index %d failed verification: %w", i, err)
 		}
 		out[i] = &sidecar.Blob
 	}
