@@ -19,9 +19,8 @@ dist
 artifacts
 cache
 
-# Tokamak-Thanos uses packages/tokamak/contracts-bedrock, not packages/contracts-bedrock
-# Ignore Optimism's contracts-bedrock directory entirely
-packages/contracts-bedrock/
+packages/contracts-bedrock/deployments/devnetL1
+packages/contracts-bedrock/deployments/anvil
 
 packages/tokamak/contracts-bedrock/deployments/devnetL1
 packages/tokamak/contracts-bedrock/deployments/anvil
