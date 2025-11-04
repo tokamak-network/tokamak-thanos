@@ -36,6 +36,7 @@ const (
 	TxSendTimeoutFlagName             = "txmgr.send-timeout"
 	TxNotInMempoolTimeoutFlagName     = "txmgr.not-in-mempool-timeout"
 	ReceiptQueryIntervalFlagName      = "txmgr.receipt-query-interval"
+	EnableCellProofsFlagName          = "txmgr.enable-cell-proofs"
 )
 
 var (
@@ -65,6 +66,7 @@ type DefaultFlagValues struct {
 	TxSendTimeout             time.Duration
 	TxNotInMempoolTimeout     time.Duration
 	ReceiptQueryInterval      time.Duration
+	EnableCellProofs          bool
 }
 
 var (
@@ -80,6 +82,7 @@ var (
 		TxSendTimeout:             0 * time.Second,
 		TxNotInMempoolTimeout:     2 * time.Minute,
 		ReceiptQueryInterval:      12 * time.Second,
+		EnableCellProofs:          false, // Ater Osaka activates on L1, this should be set to true
 	}
 	DefaultChallengerFlagValues = DefaultFlagValues{
 		NumConfirmations:          uint64(3),
@@ -186,6 +189,12 @@ func CLIFlagsWithDefaults(envPrefix string, defaults DefaultFlagValues) []cli.Fl
 			Value:   defaults.ReceiptQueryInterval,
 			EnvVars: prefixEnvVars("TXMGR_RECEIPT_QUERY_INTERVAL"),
 		},
+		&cli.BoolFlag{
+			Name:    EnableCellProofsFlagName,
+			Usage:   "Enable cell proofs in blob transactions for Fusaka (EIP-7742) compatibility",
+			Value:   false,
+			EnvVars: prefixEnvVars("TXMGR_ENABLE_CELL_PROOFS"),
+		},
 	}, opsigner.CLIFlags(envPrefix)...)
 }
 
@@ -208,6 +217,7 @@ type CLIConfig struct {
 	NetworkTimeout            time.Duration
 	TxSendTimeout             time.Duration
 	TxNotInMempoolTimeout     time.Duration
+	EnableCellProofs          bool
 }
 
 func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
@@ -224,6 +234,7 @@ func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
 		TxSendTimeout:             defaults.TxSendTimeout,
 		TxNotInMempoolTimeout:     defaults.TxNotInMempoolTimeout,
 		ReceiptQueryInterval:      defaults.ReceiptQueryInterval,
+		EnableCellProofs:          defaults.EnableCellProofs,
 		SignerCLIConfig:           opsigner.NewCLIConfig(),
 	}
 }
@@ -283,6 +294,7 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		NetworkTimeout:            ctx.Duration(NetworkTimeoutFlagName),
 		TxSendTimeout:             ctx.Duration(TxSendTimeoutFlagName),
 		TxNotInMempoolTimeout:     ctx.Duration(TxNotInMempoolTimeoutFlagName),
+		EnableCellProofs:          ctx.Bool(EnableCellProofsFlagName),
 	}
 }
 
@@ -349,6 +361,7 @@ func NewConfig(cfg CLIConfig, l log.Logger) (Config, error) {
 		SafeAbortNonceTooLowCount: cfg.SafeAbortNonceTooLowCount,
 		Signer:                    signerFactory(chainID),
 		From:                      from,
+		EnableCellProofs:          cfg.EnableCellProofs,
 	}, nil
 }
 
@@ -407,6 +420,10 @@ type Config struct {
 	// Signer is used to sign transactions when the gas price is increased.
 	Signer opcrypto.SignerFn
 	From   common.Address
+
+	// EnableCellProofs determines whether to use cell proofs (Version1 sidecars)
+	// for Fusaka (EIP-7742) compatibility. If false, uses legacy blob proofs (Version0).
+	EnableCellProofs bool
 }
 
 func (m Config) Check() error {
