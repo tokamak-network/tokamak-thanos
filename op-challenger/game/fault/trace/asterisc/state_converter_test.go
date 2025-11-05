@@ -2,7 +2,6 @@ package asterisc
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -26,22 +25,22 @@ func TestStateConverter(t *testing.T) {
 
 	t.Run("Valid", func(t *testing.T) {
 		converter, executor := setup(t)
-		data := VMState{
-			Witness:   []byte{1, 2, 3, 4},
-			StateHash: common.Hash{0xab},
-			Step:      42,
-			Exited:    true,
-			PC:        11,
-		}
-		ser, err := json.Marshal(data)
-		require.NoError(t, err)
-		executor.stdOut = string(ser)
+		// Manually construct JSON with witness field (as hex string)
+		// because VMState.Witness has json:"-" tag
+		jsonOutput := `{
+			"pc": 11,
+			"exited": true,
+			"step": 42,
+			"witness": "0x01020304",
+			"stateHash": "0xab00000000000000000000000000000000000000000000000000000000000000"
+		}`
+		executor.stdOut = jsonOutput
 		proof, step, exited, err := converter.ConvertStateToProof(context.Background(), "foo.json")
 		require.NoError(t, err)
-		require.Equal(t, data.Exited, exited)
-		require.Equal(t, data.Step, step)
-		require.Equal(t, data.StateHash, proof.ClaimValue)
-		require.Equal(t, data.Witness, proof.StateData)
+		require.Equal(t, true, exited)
+		require.Equal(t, uint64(42), step)
+		require.Equal(t, common.Hash{0xab}, proof.ClaimValue)
+		require.Equal(t, []byte{1, 2, 3, 4}, []byte(proof.StateData))
 		require.NotNil(t, proof.ProofData, "later validations require this to be non-nil")
 
 		require.Equal(t, testBinary, executor.binary)

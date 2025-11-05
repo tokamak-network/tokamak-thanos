@@ -5,9 +5,10 @@ import (
 	_ "embed"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 //go:embed abis/FaultDisputeGame-1.1.1.json
@@ -25,4 +26,8 @@ func (f *FaultDisputeGameContract111) AttackTx(ctx context.Context, parent types
 func (f *FaultDisputeGameContract111) DefendTx(ctx context.Context, parent types.Claim, pivot common.Hash) (txmgr.TxCandidate, error) {
 	call := f.contract.Call(methodDefend, big.NewInt(int64(parent.ContractIndex)), pivot)
 	return f.txWithBond(ctx, parent.Position.Defend(), call)
+}
+
+func (f *FaultDisputeGameContract111) GetBondDistributionMode(ctx context.Context, block rpcblock.Block) (types.BondDistributionMode, error) {
+	return types.LegacyDistributionMode, nil
 }

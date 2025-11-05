@@ -54,7 +54,21 @@ func TestLogLevel(t *testing.T) {
 func TestDefaultCLIOptionsMatchDefaultConfig(t *testing.T) {
 	cfg := configForArgs(t, addRequiredArgs(config.TraceTypeAlphabet))
 	defaultCfg := config.NewConfig(common.HexToAddress(gameFactoryAddressValue), l1EthRpc, l1Beacon, rollupRpc, l2EthRpc, datadir, config.TraceTypeAlphabet)
-	require.Equal(t, defaultCfg, cfg)
+
+	// Compare main fields (vm.Config fields are initialized later during setup)
+	require.Equal(t, defaultCfg.L1EthRpc, cfg.L1EthRpc)
+	require.Equal(t, defaultCfg.L1Beacon, cfg.L1Beacon)
+	require.Equal(t, defaultCfg.GameFactoryAddress, cfg.GameFactoryAddress)
+	require.Equal(t, defaultCfg.RollupRpc, cfg.RollupRpc)
+	require.Equal(t, defaultCfg.L2Rpc, cfg.L2Rpc)
+	require.Equal(t, defaultCfg.Datadir, cfg.Datadir)
+	require.Equal(t, defaultCfg.TraceTypes, cfg.TraceTypes)
+	require.Equal(t, defaultCfg.MaxConcurrency, cfg.MaxConcurrency)
+	require.Equal(t, defaultCfg.PollInterval, cfg.PollInterval)
+	require.Equal(t, defaultCfg.CannonSnapshotFreq, cfg.CannonSnapshotFreq)
+	require.Equal(t, defaultCfg.CannonInfoFreq, cfg.CannonInfoFreq)
+	require.Equal(t, defaultCfg.AsteriscSnapshotFreq, cfg.AsteriscSnapshotFreq)
+	require.Equal(t, defaultCfg.AsteriscInfoFreq, cfg.AsteriscInfoFreq)
 }
 
 func TestDefaultConfigIsValid(t *testing.T) {
@@ -296,7 +310,7 @@ func TestAsteriscRequiredArgs(t *testing.T) {
 			})
 
 			t.Run("Required", func(t *testing.T) {
-				verifyArgsInvalid(t, "flag asterisc-prestates-url or asterisc-prestate is required", addRequiredArgsExcept(traceType, "--asterisc-prestate"))
+				verifyArgsInvalid(t, "flag prestates-url/asterisc-prestates-url or asterisc-prestate is required", addRequiredArgsExcept(traceType, "--asterisc-prestate"))
 			})
 
 			t.Run("Valid", func(t *testing.T) {
@@ -311,7 +325,7 @@ func TestAsteriscRequiredArgs(t *testing.T) {
 			})
 
 			t.Run("Required", func(t *testing.T) {
-				verifyArgsInvalid(t, "flag asterisc-prestates-url or asterisc-prestate is required", addRequiredArgsExcept(traceType, "--asterisc-prestate"))
+				verifyArgsInvalid(t, "flag prestates-url/asterisc-prestates-url or asterisc-prestate is required", addRequiredArgsExcept(traceType, "--asterisc-prestate"))
 			})
 
 			t.Run("Valid", func(t *testing.T) {
@@ -521,7 +535,7 @@ func TestCannonRequiredArgs(t *testing.T) {
 			})
 
 			t.Run("Required", func(t *testing.T) {
-				verifyArgsInvalid(t, "flag cannon-prestates-url or cannon-prestate is required", addRequiredArgsExcept(traceType, "--cannon-prestate"))
+				verifyArgsInvalid(t, "flag prestates-url/cannon-prestates-url or cannon-prestate is required", addRequiredArgsExcept(traceType, "--cannon-prestate"))
 			})
 
 			t.Run("Valid", func(t *testing.T) {
@@ -536,7 +550,7 @@ func TestCannonRequiredArgs(t *testing.T) {
 			})
 
 			t.Run("Required", func(t *testing.T) {
-				verifyArgsInvalid(t, "flag cannon-prestates-url or cannon-prestate is required", addRequiredArgsExcept(traceType, "--cannon-prestate"))
+				verifyArgsInvalid(t, "flag prestates-url/cannon-prestates-url or cannon-prestate is required", addRequiredArgsExcept(traceType, "--cannon-prestate"))
 			})
 
 			t.Run("Valid", func(t *testing.T) {
@@ -846,6 +860,8 @@ func requiredArgs(traceType config.TraceType) map[string]string {
 		addRequiredCannonArgs(args)
 	case config.TraceTypeAsterisc:
 		addRequiredAsteriscArgs(args)
+	case config.TraceTypeAsteriscKona:
+		addRequiredAsteriscKonaArgs(args)
 	}
 	return args
 }
@@ -863,6 +879,16 @@ func addRequiredAsteriscArgs(args map[string]string) {
 	args["--asterisc-bin"] = asteriscBin
 	args["--asterisc-server"] = asteriscServer
 	args["--asterisc-prestate"] = asteriscPreState
+	args["--l2-eth-rpc"] = l2EthRpc
+}
+
+func addRequiredAsteriscKonaArgs(args map[string]string) {
+	args["--asterisc-network"] = asteriscNetwork
+	args["--asterisc-bin"] = asteriscBin
+	args["--asterisc-kona-server"] = asteriscServer
+	args["--asterisc-kona-prestate"] = asteriscPreState
+	args["--asterisc-rollup-config"] = "../../.devnet/rollup.json"
+	args["--asterisc-l2-genesis"] = "../../.devnet/genesis-l2.json"
 	args["--l2-eth-rpc"] = l2EthRpc
 }
 

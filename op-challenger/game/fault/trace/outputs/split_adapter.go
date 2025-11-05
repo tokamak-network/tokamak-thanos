@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type ProposalTraceProviderCreator func(ctx context.Context, localContext common.Hash, depth types.Depth, agreed utils.Proposal, claimed utils.Proposal) (types.TraceProvider, error)
@@ -56,4 +56,3 @@ func FetchProposals(ctx context.Context, topProvider *OutputTraceProvider, pre t
 	}
 	return agreed, claimed, nil
 }
-

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type stateData struct {

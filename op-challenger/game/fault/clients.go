@@ -3,13 +3,13 @@ package fault
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/super"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type clientProvider struct {
@@ -19,6 +19,7 @@ type clientProvider struct {
 	l2HeaderSource utils.L2HeaderSource
 	rollupClient   RollupClient
 	syncValidator  *syncStatusValidator
+	rootProvider   super.RootProvider
 	toClose        []CloseFunc
 }
 
@@ -44,11 +45,13 @@ func (c *clientProvider) L2HeaderSource() (utils.L2HeaderSource, error) {
 	if c.l2HeaderSource != nil {
 		return c.l2HeaderSource, nil
 	}
+	if len(c.cfg.L2Rpcs) != 1 {
+		return nil, fmt.Errorf("incorrect number of L2 RPCs configured, expected 1 but got %d", len(c.cfg.L2Rpcs))
+	}
 
-	// Tokamak-Thanos uses L2Rpc (single string) instead of L2Rpcs (array)
-	l2Client, err := ethclient.DialContext(c.ctx, c.cfg.L2Rpc)
+	l2Client, err := ethclient.DialContext(c.ctx, c.cfg.L2Rpcs[0])
 	if err != nil {
-		return nil, fmt.Errorf("dial l2 client %v: %w", c.cfg.L2Rpc, err)
+		return nil, fmt.Errorf("dial l2 client %v: %w", c.cfg.L2Rpcs[0], err)
 	}
 	c.l2HeaderSource = l2Client
 	c.toClose = append(c.toClose, l2Client.Close)
@@ -59,8 +62,7 @@ func (c *clientProvider) RollupClient() (RollupClient, error) {
 	if c.rollupClient != nil {
 		return c.rollupClient, nil
 	}
-	// Tokamak-Thanos requires timeout parameter
-	rollupClient, err := dial.DialRollupClientWithTimeout(c.ctx, 30*time.Second, c.logger, c.cfg.RollupRpc)
+	rollupClient, err := dial.DialRollupClientWithTimeout(c.ctx, c.logger, c.cfg.RollupRpc)
 	if err != nil {
 		return nil, fmt.Errorf("dial rollup client %v: %w", c.cfg.RollupRpc, err)
 	}
@@ -68,4 +70,14 @@ func (c *clientProvider) RollupClient() (RollupClient, error) {
 	c.syncValidator = newSyncStatusValidator(rollupClient)
 	c.toClose = append(c.toClose, rollupClient.Close)
 	return rollupClient, nil
+}
+
+func (c *clientProvider) SuperchainClients() (super.RootProvider, *super.SyncValidator, error) {
+	supervisorClient, err := dial.DialSupervisorClientWithTimeout(c.ctx, c.logger, c.cfg.SupervisorRPC)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to dial supervisor: %w", err)
+	}
+	c.rootProvider = supervisorClient
+	c.toClose = append(c.toClose, supervisorClient.Close)
+	return supervisorClient, super.NewSyncValidator(supervisorClient), nil
 }

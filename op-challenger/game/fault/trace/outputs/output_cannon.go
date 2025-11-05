@@ -7,11 +7,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
+
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/cannon"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
@@ -20,7 +21,8 @@ import (
 func NewOutputCannonTraceAccessor(
 	logger log.Logger,
 	m metrics.Metricer,
-	cfg *config.Config,
+	cfg vm.Config,
+	serverExecutor vm.OracleServerExecutor,
 	l2Client utils.L2HeaderSource,
 	prestateProvider types.PrestateProvider,
 	cannonPrestate string,
@@ -39,7 +41,7 @@ func NewOutputCannonTraceAccessor(
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch cannon local inputs: %w", err)
 		}
-		provider := cannon.NewTraceProvider(logger, m, cfg, prestateProvider, cannonPrestate, localInputs, subdir, depth)
+		provider := cannon.NewTraceProvider(logger, m.ToTypedVmMetrics(cfg.VmType.String()), cfg, serverExecutor, prestateProvider, cannonPrestate, localInputs, subdir, depth)
 		return provider, nil
 	}
 

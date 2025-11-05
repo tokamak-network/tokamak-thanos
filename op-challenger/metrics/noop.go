@@ -48,6 +48,8 @@ func (*NoopMetricsImpl) RecordGamesStatus(inProgress, defenderWon, challengerWon
 func (*NoopMetricsImpl) RecordGameUpdateScheduled() {}
 func (*NoopMetricsImpl) RecordGameUpdateCompleted() {}
 
+func (*NoopMetricsImpl) RecordLargePreimageCount(count int) {}
+
 func (*NoopMetricsImpl) IncActiveExecutors() {}
 func (*NoopMetricsImpl) DecActiveExecutors() {}
 func (*NoopMetricsImpl) IncIdleExecutors()   {}

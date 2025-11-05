@@ -10,14 +10,14 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/fetcher"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/matrix"
 	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerify(t *testing.T) {
@@ -69,11 +69,15 @@ func TestVerify(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
+			inputs := test.inputs()
 			fetcher := &stubFetcher{
-				inputs: test.inputs(),
+				inputs: inputs,
 			}
+
 			verifier := NewPreimageVerifier(logger, fetcher)
-			preimage := keccakTypes.LargePreimageMetaData{}
+			preimage := keccakTypes.LargePreimageMetaData{
+				BytesProcessed: inputLength(inputs),
+			}
 			oracle := &stubOracle{
 				treeRoots: map[keccakTypes.LargePreimageIdent]common.Hash{
 					preimage.LargePreimageIdent: {0xde},
@@ -94,8 +98,9 @@ func TestVerify(t *testing.T) {
 
 func TestCacheValidRoots(t *testing.T) {
 	logger := testlog.Logger(t, log.LvlInfo)
+	inputs := validInputs(t, 1)
 	fetcher := &stubFetcher{
-		inputs: validInputs(t, 1),
+		inputs: inputs,
 	}
 	verifier := NewPreimageVerifier(logger, fetcher)
 	preimage1 := keccakTypes.LargePreimageMetaData{
@@ -103,12 +108,14 @@ func TestCacheValidRoots(t *testing.T) {
 			Claimant: common.Address{0x12},
 			UUID:     big.NewInt(1),
 		},
+		BytesProcessed: inputLength(inputs),
 	}
 	preimage2 := keccakTypes.LargePreimageMetaData{
 		LargePreimageIdent: keccakTypes.LargePreimageIdent{
 			Claimant: common.Address{0x23},
 			UUID:     big.NewInt(2),
 		},
+		BytesProcessed: inputLength(inputs),
 	}
 	oracle := &stubOracle{
 		treeRoots: map[keccakTypes.LargePreimageIdent]common.Hash{
@@ -161,4 +168,12 @@ type stubFetcher struct {
 func (s *stubFetcher) FetchInputs(_ context.Context, _ common.Hash, _ fetcher.Oracle, _ keccakTypes.LargePreimageIdent) ([]keccakTypes.InputData, error) {
 	s.fetchCount.Add(1)
 	return s.inputs, nil
+}
+
+func inputLength(inputs []keccakTypes.InputData) uint32 {
+	inputLen := uint32(0)
+	for _, input := range inputs {
+		inputLen += uint32(len(input.Input))
+	}
+	return inputLen
 }

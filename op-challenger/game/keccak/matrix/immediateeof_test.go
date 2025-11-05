@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 type sameCallEOFReader struct {

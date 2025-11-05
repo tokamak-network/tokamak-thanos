@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/solver"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // Responder takes a response action & executes.
@@ -153,6 +153,11 @@ func (a *Agent) performAction(ctx context.Context, wg *sync.WaitGroup, action ty
 func (a *Agent) tryResolve(ctx context.Context) bool {
 	if err := a.resolveClaims(ctx); err != nil {
 		a.log.Error("Failed to resolve claims", "err", err)
+		return false
+	}
+	if a.selective {
+		// Never resolve games in selective mode as it won't unlock any bonds for us.
+		// Assume the game is still in progress or the player wouldn't have told us to act.
 		return false
 	}
 	status, err := a.responder.CallResolve(ctx)

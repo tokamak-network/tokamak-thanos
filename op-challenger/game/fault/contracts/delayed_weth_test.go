@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	contractMetrics "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 var (

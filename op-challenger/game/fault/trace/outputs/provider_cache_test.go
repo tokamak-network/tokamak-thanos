@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProviderCache(t *testing.T) {

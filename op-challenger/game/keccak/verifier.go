@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/fetcher"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/matrix"
 	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 const validPreimageCacheSize = 500
@@ -66,9 +66,14 @@ func (v *PreimageVerifier) CreateChallenge(ctx context.Context, blockHash common
 	}
 	readers := make([]io.Reader, 0, len(inputs))
 	var commitments []common.Hash
+	dataLen := 0
 	for _, input := range inputs {
 		readers = append(readers, bytes.NewReader(input.Input))
 		commitments = append(commitments, input.Commitments...)
+		dataLen += len(input.Input)
+	}
+	if dataLen != int(preimage.BytesProcessed) {
+		return keccakTypes.Challenge{}, fmt.Errorf("retrieved incorrect input length, expected %v but got %v", preimage.BytesProcessed, dataLen)
 	}
 	challenge, err := matrix.Challenge(io.MultiReader(readers...), commitments)
 	if errors.Is(err, matrix.ErrValid) {

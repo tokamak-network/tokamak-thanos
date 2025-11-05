@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -18,19 +19,25 @@ import (
 var (
 	ErrGameDepthReached   = errors.New("game depth reached")
 	ErrL2BlockNumberValid = errors.New("l2 block number is valid")
+	ErrNotInSync          = errors.New("not in sync")
 )
 
 // GameType is the type of dispute game (Optimism style)
 type GameType uint32
 
 const (
-	CannonGameType       GameType = 0
-	PermissionedGameType GameType = 1
-	AsteriscGameType     GameType = 2
-	AsteriscKonaGameType GameType = 3
-	FastGameType         GameType = 254
-	AlphabetGameType     GameType = 255
-	UnknownGameType      GameType = math.MaxUint32
+	CannonGameType            GameType = 0
+	PermissionedGameType      GameType = 1
+	AsteriscGameType          GameType = 2
+	AsteriscKonaGameType      GameType = 3
+	SuperCannonGameType       GameType = 4
+	SuperPermissionedGameType GameType = 5
+	OPSuccinctGameType        GameType = 6
+	SuperAsteriscKonaGameType GameType = 7
+	FastGameType              GameType = 254
+	AlphabetGameType          GameType = 255
+	KailuaGameType            GameType = 1337
+	UnknownGameType           GameType = math.MaxUint32
 )
 
 func (t GameType) MarshalText() ([]byte, error) {
@@ -47,10 +54,20 @@ func (t GameType) String() string {
 		return "asterisc"
 	case AsteriscKonaGameType:
 		return "asterisc-kona"
+	case SuperCannonGameType:
+		return "super-cannon"
+	case SuperPermissionedGameType:
+		return "super-permissioned"
+	case OPSuccinctGameType:
+		return "op-succinct"
+	case SuperAsteriscKonaGameType:
+		return "super-asterisc-kona"
 	case FastGameType:
 		return "fast"
 	case AlphabetGameType:
 		return "alphabet"
+	case KailuaGameType:
+		return "kailua"
 	default:
 		return fmt.Sprintf("unknown(%d)", t)
 	}
@@ -69,7 +86,7 @@ type PreimageOracleData struct {
 	OracleOffset uint32
 
 	// 4844 blob data
-	BlobFieldIndex uint64
+	ZPoint         [32]byte
 	BlobCommitment []byte
 	BlobProof      []byte
 }
@@ -93,8 +110,12 @@ func (p *PreimageOracleData) GetPrecompileAddress() common.Address {
 	return common.BytesToAddress(p.oracleData[8:28])
 }
 
+func (p *PreimageOracleData) GetPrecompileRequiredGas() uint64 {
+	return binary.BigEndian.Uint64(p.oracleData[28:36])
+}
+
 func (p *PreimageOracleData) GetPrecompileInput() []byte {
-	return p.oracleData[28:]
+	return p.oracleData[36:]
 }
 
 // NewPreimageOracleData creates a new [PreimageOracleData] instance.
@@ -107,13 +128,13 @@ func NewPreimageOracleData(key []byte, data []byte, offset uint32) *PreimageOrac
 	}
 }
 
-func NewPreimageOracleBlobData(key []byte, data []byte, offset uint32, fieldIndex uint64, commitment []byte, proof []byte) *PreimageOracleData {
+func NewPreimageOracleBlobData(key []byte, data []byte, offset uint32, zPoint [32]byte, commitment []byte, proof []byte) *PreimageOracleData {
 	return &PreimageOracleData{
 		IsLocal:        false,
 		OracleKey:      key,
 		oracleData:     data,
 		OracleOffset:   offset,
-		BlobFieldIndex: fieldIndex,
+		ZPoint:         zPoint,
 		BlobCommitment: commitment,
 		BlobProof:      proof,
 	}
@@ -225,6 +246,14 @@ type Clock struct {
 	Timestamp time.Time
 }
 
+// DecodeClock decodes a uint128 into a Clock duration and timestamp.
+func DecodeClock(clock *big.Int) Clock {
+	maxUint64 := new(big.Int).Add(new(big.Int).SetUint64(math.MaxUint64), big.NewInt(1))
+	remainder := new(big.Int)
+	quotient, _ := new(big.Int).QuoRem(clock, maxUint64, remainder)
+	return NewClock(time.Duration(quotient.Int64())*time.Second, time.Unix(remainder.Int64(), 0))
+}
+
 // NewClock creates a new Clock instance.
 func NewClock(duration time.Duration, timestamp time.Time) Clock {
 	return Clock{
@@ -244,6 +273,17 @@ func NewInvalidL2BlockNumberProof(output *eth.OutputResponse, header *ethTypes.H
 		Header: header,
 	}
 }
+
+type BondDistributionMode uint8
+
+const (
+	UndecidedDistributionMode BondDistributionMode = iota
+	NormalDistributionMode
+	RefundDistributionMode
+
+	// LegacyDistributionMode is used for contract versions that do not implement bond distribution modes.
+	LegacyDistributionMode BondDistributionMode = 255
+)
 
 type TraceType string
 

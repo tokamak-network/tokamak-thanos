@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVMContract_Oracle(t *testing.T) {
@@ -21,6 +21,8 @@ func TestVMContract_Oracle(t *testing.T) {
 	vmContract := NewVMContract(vmAddr, batching.NewMultiCaller(stubRpc, batching.DefaultBatchSize))
 
 	stubRpc.SetResponse(vmAddr, methodOracle, rpcblock.Latest, nil, []interface{}{oracleAddr})
+	stubRpc.AddContract(oracleAddr, snapshots.LoadPreimageOracleABI())
+	stubRpc.SetResponse(oracleAddr, methodVersion, rpcblock.Latest, nil, []interface{}{oracleLatest})
 
 	oracleContract, err := vmContract.Oracle(context.Background())
 	require.NoError(t, err)

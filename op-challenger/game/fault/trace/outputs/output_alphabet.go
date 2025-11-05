@@ -3,8 +3,6 @@ package outputs
 import (
 	"context"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/alphabet"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
@@ -12,6 +10,8 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 func NewOutputAlphabetTraceAccessor(

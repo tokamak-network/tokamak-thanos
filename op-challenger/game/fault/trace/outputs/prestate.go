@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ types.PrestateProvider = (*OutputPrestateProvider)(nil)

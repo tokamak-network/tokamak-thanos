@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/asterisc"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/split"
