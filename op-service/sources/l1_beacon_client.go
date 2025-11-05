@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
@@ -301,26 +301,37 @@ func (cl *L1BeaconClient) GetBlobs(ctx context.Context, ref eth.L1BlockRef, hash
 	return blobsFromSidecars(blobSidecars, hashes)
 }
 
+// blobsFromSidecars pulls the blobs from the sidecars and verifies them against the supplied hashes.
 func blobsFromSidecars(blobSidecars []*eth.BlobSidecar, hashes []eth.IndexedBlobHash) ([]*eth.Blob, error) {
 	if len(blobSidecars) != len(hashes) {
 		return nil, fmt.Errorf("number of hashes and blobSidecars mismatch, %d != %d", len(hashes), len(blobSidecars))
 	}
-
 	out := make([]*eth.Blob, len(hashes))
 	for i, ih := range hashes {
 		sidecar := blobSidecars[i]
 		if sidx := uint64(sidecar.Index); sidx != ih.Index {
 			return nil, fmt.Errorf("expected sidecars to be ordered by hashes, but got %d != %d", sidx, ih.Index)
 		}
-
-		// make sure the blob's kzg commitment hashes to the expected value
-		hash := eth.KZGToVersionedHash(kzg4844.Commitment(sidecar.KZGCommitment))
-		if hash != ih.Hash {
-			return nil, fmt.Errorf("expected hash %s for blob at index %d but got %s", ih.Hash, ih.Index, hash)
+		if err := verifyBlob(&sidecar.Blob, ih.Hash); err != nil {
+			return nil, fmt.Errorf("blob %d failed verification: %w", i, err)
 		}
 		out[i] = &sidecar.Blob
 	}
 	return out, nil
+}
+
+// verifyBlob verifies that the blob data corresponds to the provided commitment.
+// It recomputes the commitment from the blob data and checks it matches the expected commitment hash.
+func verifyBlob(blob *eth.Blob, expectedCommitmentHash common.Hash) error {
+	recomputedCommitment, err := blob.ComputeKZGCommitment()
+	if err != nil {
+		return fmt.Errorf("cannot compute KZG commitment for blob: %w", err)
+	}
+	recomputedCommitmentHash := eth.KZGToVersionedHash(recomputedCommitment)
+	if recomputedCommitmentHash != expectedCommitmentHash {
+		return fmt.Errorf("recomputed commitment %s does not match expected commitment %s", recomputedCommitmentHash, expectedCommitmentHash)
+	}
+	return nil
 }
 
 // GetVersion fetches the version of the Beacon-node.
