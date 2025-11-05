@@ -39,6 +39,5 @@ func (m *MemKV) Get(k common.Hash) ([]byte, error) {
 }
 
 func (m *MemKV) Close() error {
-	// MemKV doesn't hold any resources that need closing
 	return nil
 }

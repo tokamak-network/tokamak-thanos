@@ -20,6 +20,6 @@ type KV interface {
 	// KV store implementations may return additional errors specific to the KV storage.
 	Get(k common.Hash) ([]byte, error)
 
-	// Close closes the KV store and releases any resources.
+	// Closes the KV store.
 	Close() error
 }

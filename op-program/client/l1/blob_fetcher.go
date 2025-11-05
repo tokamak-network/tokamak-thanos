@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var InvalidHashesLengthError = errors.New("invalid hashes length")
@@ -16,7 +16,7 @@ type BlobFetcher struct {
 	oracle Oracle
 }
 
-var _ = (*derive.L1BlobsFetcher)(nil)
+var _ derive.L1BlobsFetcher = (*BlobFetcher)(nil)
 
 func NewBlobFetcher(logger log.Logger, oracle Oracle) *BlobFetcher {
 	return &BlobFetcher{

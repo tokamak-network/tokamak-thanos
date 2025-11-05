@@ -1,8 +1,8 @@
 package kvstore
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type PreimageSource func(key common.Hash) ([]byte, error)
