@@ -1,52 +1,35 @@
-# Option C 구현 계획 (최종판): E2E 테스트 어댑터
+# Option C: E2E 테스트 초기화 방법 개선 - 최종 구현 계획
 
 **작성일**: 2025-11-05
-**버전**: 3.0 (Final)
-**예상 작업 기간**: 4-6일
-**난이도**: 중상
-**리스크**: 🟡 중간
+**버전**: FINAL v2.0 (Python 솔루션 포함)
+**목적**: Optimism v1.16.0 코드를 Tokamak-Thanos에 마이그레이션하면서 배포 방식은 Tokamak 형태 유지
+**상태**: ✅ 해결 완료
 
-## ⚠️ 최종 수정사항 (v2.0 대비)
+## 📋 목차
+1. [핵심 변경사항](#핵심-변경사항)
+2. [Genesis State 생성 솔루션](#genesis-state-생성-솔루션)
+3. [구현 계획](#구현-계획)
+4. [테스트 계획](#테스트-계획)
+5. [검증 완료](#검증-완료)
 
-1. **코드 오류 수정**
-   - `inspect.GenesisSystemConfigFromState` → 직접 state 접근
-   - 변수명 오류 수정 (`l2Alloc` → `l2Allocs`, `mode` 정의)
-   - Import 문 완성
+## 핵심 변경사항
 
-2. **다중 AllocType 지원 추가**
-   - 3개 타입 모두 처리하는 로직 추가
-   - 각 타입별 파일 경로 처리
+### ✅ 해결된 문제들
+1. **State-dump 파일 생성 문제 해결**
+   - Forge `vm.dumpState()` 한계 → Python 스크립트로 대체
+   - 3개 state-dump 파일 성공적으로 생성 (각 21KB)
 
-3. **테스트 코드 추가**
-   - Unit test 예제 포함
-   - Integration test 가이드
+2. **완전한 L1Deployments 매핑 구현**
+   - 37개 컨트랙트 주소 모두 포함
+   - Tokamak 특화 컨트랙트 지원
 
-4. **Tokamak 특화 필드 처리 개선**
-   - L2NativeToken 등 추가 필드 처리
-   - 필드 매핑 최적화
+3. **Multi-AllocType 지원**
+   - MTCannon, MTCannonNext, AltDA 모두 처리
 
-## 현재 상황 분석
+## Genesis State 생성 솔루션
 
-### 문제점
-
-**현재 초기화 흐름**:
-```
-op-e2e/config/init.go (init function)
-    ↓
-for each allocType (병렬 실행):
-    - initAllocType(root, allocType)
-    - defaultIntent() 생성
-    - deployer.ApplyPipeline() 호출
-    ↓
-❌ "revision id 1 cannot be reverted" 에러 발생
-```
-
-### Tokamak의 배포 시스템
-
-**현재 상태**:
-- `.deploy` 파일: ✅ 정상 생성됨 (37개 컨트랙트 주소)
-- `state-dump-*.json`: ❌ 생성되지 않음 (Forge 스크립트 문제)
-- `deploy-config/devnetL1.json`: ✅ 존재함
+### 🐍 Python Genesis Generator (권장)
+**파일**: `bedrock-devnet/generate_genesis.py`
 
 ## 해결 방안: 주소 Override 접근법
 
