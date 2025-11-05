@@ -100,11 +100,44 @@ func (d ForgeAllocs) MarshalJSON() ([]byte, error) {
 func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
 	// forge, since integrating Alloy, likes to hex-encode everything.
 	type forgeAllocAccount struct {
-		Balance hexutil.U256                `json:"balance"`
-		Nonce   hexutil.Uint64              `json:"nonce"`
-		Code    hexutil.Bytes               `json:"code,omitempty"`
-		Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
+		Balance hexutil.U256      `json:"balance"`
+		Nonce   hexutil.Uint64    `json:"nonce"`
+		Code    hexutil.Bytes     `json:"code,omitempty"`
+		Storage map[string]string `json:"storage,omitempty"` // Use string map for flexible parsing
 	}
+
+	// First, try to unmarshal as a wrapped format with "accounts" key
+	var wrapped struct {
+		Accounts map[string]forgeAllocAccount `json:"accounts"`
+	}
+	if err := json.Unmarshal(b, &wrapped); err == nil && len(wrapped.Accounts) > 0 {
+		// Success with wrapped format
+		d.Accounts = make(types.GenesisAlloc, len(wrapped.Accounts))
+		for addrStr, acc := range wrapped.Accounts {
+			acc := acc
+			// Parse address string (with or without 0x prefix)
+			addr := common.HexToAddress(addrStr)
+
+			// Parse storage map
+			var storage map[common.Hash]common.Hash
+			if len(acc.Storage) > 0 {
+				storage = make(map[common.Hash]common.Hash, len(acc.Storage))
+				for k, v := range acc.Storage {
+					storage[common.HexToHash(k)] = common.HexToHash(v)
+				}
+			}
+
+			d.Accounts[addr] = types.Account{
+				Code:    acc.Code,
+				Storage: storage,
+				Balance: (*uint256.Int)(&acc.Balance).ToBig(),
+				Nonce:   (uint64)(acc.Nonce),
+			}
+		}
+		return nil
+	}
+
+	// Fallback to direct unmarshaling (original format)
 	var allocs map[common.Address]forgeAllocAccount
 	if err := json.Unmarshal(b, &allocs); err != nil {
 		return err
@@ -112,9 +145,19 @@ func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
 	d.Accounts = make(types.GenesisAlloc, len(allocs))
 	for addr, acc := range allocs {
 		acc := acc
+
+		// Parse storage map
+		var storage map[common.Hash]common.Hash
+		if len(acc.Storage) > 0 {
+			storage = make(map[common.Hash]common.Hash, len(acc.Storage))
+			for k, v := range acc.Storage {
+				storage[common.HexToHash(k)] = common.HexToHash(v)
+			}
+		}
+
 		d.Accounts[addr] = types.Account{
 			Code:    acc.Code,
-			Storage: acc.Storage,
+			Storage: storage,
 			Balance: (*uint256.Int)(&acc.Balance).ToBig(),
 			Nonce:   (uint64)(acc.Nonce),
 		}

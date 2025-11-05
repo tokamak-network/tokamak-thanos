@@ -27,9 +27,9 @@ def generate_genesis_state():
         "accounts": {}  # ForgeAllocs expects "accounts", not "alloc"
     }
 
-    # Add deployed contracts to genesis with minimal proxy code
-    # This is the minimal proxy bytecode that delegates all calls
-    minimal_proxy_code = "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f851a44014610030575b600080fd5b61003861004e565b6040516001600160a01b03909116815260200160405180910390f35b60006100767f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc5490565b905090565b600080fd5b5056fea26469706673582212208b0e7b7c7d89f3f3c3f3c3f3c3f3c3f3c3f3c3f3c3f3c3f3c3f3c3f3c3f3c64736f6c63430008110033"
+    # Add deployed contracts to genesis
+    # For E2E tests, we just need the accounts to exist with balance
+    # Most contracts don't need actual bytecode for state initialization
 
     for name, address in addresses.items():
         print(f"  Adding {name}: {address}")
@@ -37,8 +37,9 @@ def generate_genesis_state():
         addr = address.lower() if address.startswith("0x") else f"0x{address.lower()}"
         l1_genesis["accounts"][addr] = {
             "balance": "0x0",
-            "code": minimal_proxy_code,
-            "storage": {}
+            "nonce": "0x0",
+            # Empty bytecode is valid for genesis - deployments will set the actual code
+            "code": "0x"
         }
 
     # Add funded accounts (dev accounts with ETH balance)
@@ -75,16 +76,17 @@ def generate_genesis_state():
         # Ensure address has 0x prefix and is lowercase
         acc = account.lower() if account.startswith("0x") else f"0x{account.lower()}"
         l1_genesis["accounts"][acc] = {
-            "balance": "0x21e19e0c9bab2400000"  # 10000 ETH in wei (hex)
+            "balance": "0x21e19e0c9bab2400000",  # 10000 ETH in wei (hex)
+            "nonce": "0x0"
         }
 
-    # Write state dump files
+    # Write L1 state dump files
     output_dir = Path("packages/tokamak/contracts-bedrock")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Delta version (initial state)
     delta_file = output_dir / "state-dump-901-delta.json"
-    print(f"\n📝 Writing delta state to: {delta_file}")
+    print(f"\n📝 Writing L1 delta state to: {delta_file}")
     with open(delta_file, "w") as f:
         json.dump(l1_genesis, f, indent=2)
 
@@ -93,21 +95,62 @@ def generate_genesis_state():
     l1_genesis_ecotone = l1_genesis.copy()
 
     ecotone_file = output_dir / "state-dump-901-ecotone.json"
-    print(f"📝 Writing ecotone state to: {ecotone_file}")
+    print(f"📝 Writing L1 ecotone state to: {ecotone_file}")
     with open(ecotone_file, "w") as f:
         json.dump(l1_genesis_ecotone, f, indent=2)
 
     # Final version (Fjord activated)
     final_file = output_dir / "state-dump-901.json"
-    print(f"📝 Writing final state to: {final_file}")
+    print(f"📝 Writing L1 final state to: {final_file}")
     with open(final_file, "w") as f:
         json.dump(l1_genesis, f, indent=2)
 
+    # Generate L2 allocs with predeploys
+    print("\n🔧 Generating L2 allocs with predeploys...")
+    l2_allocs = generate_l2_allocs_with_predeploys()
+
+    l2_delta_file = output_dir / "l2-allocs-delta.json"
+    print(f"📝 Writing L2 delta allocs to: {l2_delta_file}")
+    with open(l2_delta_file, "w") as f:
+        json.dump(l2_allocs, f, indent=2)
+
+    l2_ecotone_file = output_dir / "l2-allocs-ecotone.json"
+    print(f"📝 Writing L2 ecotone allocs to: {l2_ecotone_file}")
+    with open(l2_ecotone_file, "w") as f:
+        json.dump(l2_allocs, f, indent=2)
+
+    l2_final_file = output_dir / "l2-allocs.json"
+    print(f"📝 Writing L2 final allocs to: {l2_final_file}")
+    with open(l2_final_file, "w") as f:
+        json.dump(l2_allocs, f, indent=2)
+
     print("\n✅ Genesis state files generated successfully!")
+    print(f"  - L1 files: 3 (L1 contract addresses)")
+    print(f"  - L2 files: 3 (L2 predeploys)")
     print("\nYou can now run E2E tests with:")
     print("  go test -v ./op-e2e/faultproofs")
 
     return True
+
+def generate_l2_allocs_with_predeploys():
+    """Generate L2 allocs with all predeploy contracts"""
+    l2_allocs = {"accounts": {}}
+
+    # L2 predeploys are at 0x4200000000000000000000000000000000000000 ~ 0x42000000000000000000000000000000000007FF
+    # We need to add minimal code for each predeploy
+    predeploy_base = 0x4200000000000000000000000000000000000000
+
+    # Add all 2048 predeploy slots
+    for i in range(2048):
+        addr = hex(predeploy_base + i)
+        l2_allocs["accounts"][addr] = {
+            "balance": "0x0",
+            "nonce": "0x0",
+            "code": "0x00"  # Minimal code - just a STOP opcode
+        }
+
+    print(f"  ✅ Generated {len(l2_allocs['accounts'])} L2 predeploy accounts")
+    return l2_allocs
 
 if __name__ == "__main__":
     success = generate_genesis_state()

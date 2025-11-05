@@ -1245,7 +1245,11 @@ func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
 			continue
 		}
 		// Skip RAT proxy check for now - RAT deployment is optional
-		if name == "RATProxy" {
+		if name == "RATProxy" || name == "RAT" {
+			continue
+		}
+		// Skip ETHLockbox for Native Token deployments (e.g., Tokamak)
+		if name == "ETHLockbox" || name == "ETHLockboxProxy" {
 			continue
 		}
 

@@ -12,19 +12,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/artifacts"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/inspect"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/pipeline"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/state"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/exp/maps"
 
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/config/secrets"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config/secrets"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/addresses"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
@@ -186,11 +186,10 @@ func init() {
 	// which reduces CI performance.
 	oplog.SetGlobalLogHandler(errHandler)
 
-	// Use Tokamak initialization instead of op-deployer
 	// Check if we should use Tokamak mode (when state-dump files exist)
 	tokamakStatePath := path.Join(root, "packages/tokamak/contracts-bedrock/state-dump-901.json")
 	if _, err := os.Stat(tokamakStatePath); err == nil {
-		// Use Tokamak initialization if state-dump files exist
+		// Use Tokamak initialization (includes both L1 and L2 allocs)
 		log.Info("Using Tokamak initialization (state-dump files found)")
 		if err := InitTokamakConfig(root); err != nil {
 			panic(fmt.Errorf("failed to initialize Tokamak config: %w", err))
@@ -321,11 +320,17 @@ func initAllocType(root string, allocType AllocType) {
 				dc.L2BlockTime = 1
 				dc.SetContracts(l1Contracts)
 				mtx.Lock()
-				deployConfigsByType[allocType] = dc
-				l1AllocsByType[allocType] = st.L1StateDump.Data
-
-				l1Deployments := genesis.CreateL1DeploymentsFromContracts(l1Contracts)
-				l1DeploymentsByType[allocType] = l1Deployments
+				// Only set these if not already set (by Tokamak initialization)
+				if _, exists := deployConfigsByType[allocType]; !exists {
+					deployConfigsByType[allocType] = dc
+				}
+				if _, exists := l1AllocsByType[allocType]; !exists {
+					l1AllocsByType[allocType] = st.L1StateDump.Data
+				}
+				if _, exists := l1DeploymentsByType[allocType]; !exists {
+					l1Deployments := genesis.CreateL1DeploymentsFromContracts(l1Contracts)
+					l1DeploymentsByType[allocType] = l1Deployments
+				}
 				mtx.Unlock()
 			}
 		}(mode)
@@ -390,11 +395,11 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 			"proofMaturityDelaySeconds":                12,
 			"disputeGameFinalityDelaySeconds":          6,
 			"deployRAT":                                true,
-			"perTestBondAmount":                        "0x5af3107a4000",       // 0.0001 ETH in wei (100000000000000)
-			"evidenceSubmissionPeriod":                 600,                    // 10 minutes in seconds
-			"minimumStakingBalance":                    "0xde0b6b3a7640000",   // 1 ETH in wei (1000000000000000000)
-			"ratTriggerProbability":                    "0x186a0",              // 100000
-			"ratManager":                               deployer.Hex(),        // Use deployer as RAT manager
+			"perTestBondAmount":                        "0x5af3107a4000",    // 0.0001 ETH in wei (100000000000000)
+			"evidenceSubmissionPeriod":                 600,                 // 10 minutes in seconds
+			"minimumStakingBalance":                    "0xde0b6b3a7640000", // 1 ETH in wei (1000000000000000000)
+			"ratTriggerProbability":                    "0x186a0",           // 100000
+			"ratManager":                               deployer.Hex(),      // Use deployer as RAT manager
 		},
 		Chains: []*state.ChainIntent{
 			{

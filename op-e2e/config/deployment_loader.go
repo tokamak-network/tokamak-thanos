@@ -38,39 +38,78 @@ func mapToL1Deployments(addresses map[string]string) *genesis.L1Deployments {
 	if addr, ok := addresses["AddressManager"]; ok {
 		deployments.AddressManager = common.HexToAddress(addr)
 	}
+
+	// Messenger contracts
+	if addr, ok := addresses["L1CrossDomainMessenger"]; ok {
+		deployments.L1CrossDomainMessenger = common.HexToAddress(addr)
+	}
 	if addr, ok := addresses["L1CrossDomainMessengerProxy"]; ok {
 		deployments.L1CrossDomainMessengerProxy = common.HexToAddress(addr)
+	}
+
+	// Bridge contracts
+	if addr, ok := addresses["L1StandardBridge"]; ok {
+		deployments.L1StandardBridge = common.HexToAddress(addr)
 	}
 	if addr, ok := addresses["L1StandardBridgeProxy"]; ok {
 		deployments.L1StandardBridgeProxy = common.HexToAddress(addr)
 	}
+	if addr, ok := addresses["L1ERC721Bridge"]; ok {
+		deployments.L1ERC721Bridge = common.HexToAddress(addr)
+	}
+	if addr, ok := addresses["L1ERC721BridgeProxy"]; ok {
+		deployments.L1ERC721BridgeProxy = common.HexToAddress(addr)
+	}
+
+	// Oracle contracts
+	if addr, ok := addresses["L2OutputOracle"]; ok {
+		deployments.L2OutputOracle = common.HexToAddress(addr)
+	}
 	if addr, ok := addresses["L2OutputOracleProxy"]; ok {
 		deployments.L2OutputOracleProxy = common.HexToAddress(addr)
+	}
+
+	// Portal contracts
+	if addr, ok := addresses["OptimismPortal"]; ok {
+		deployments.OptimismPortal = common.HexToAddress(addr)
 	}
 	if addr, ok := addresses["OptimismPortalProxy"]; ok {
 		deployments.OptimismPortalProxy = common.HexToAddress(addr)
 	}
+
+	// System config
+	if addr, ok := addresses["SystemConfig"]; ok {
+		deployments.SystemConfig = common.HexToAddress(addr)
+	}
 	if addr, ok := addresses["SystemConfigProxy"]; ok {
 		deployments.SystemConfigProxy = common.HexToAddress(addr)
 	}
+
+	// Admin
 	if addr, ok := addresses["ProxyAdmin"]; ok {
 		deployments.ProxyAdmin = common.HexToAddress(addr)
 	}
-	// SuperchainConfigProxy is not in L1Deployments struct in this version
-	// if addr, ok := addresses["SuperchainConfigProxy"]; ok {
-	//     deployments.SuperchainConfigProxy = common.HexToAddress(addr)
-	// }
-	if addr, ok := addresses["L1ERC721BridgeProxy"]; ok {
-		deployments.L1ERC721BridgeProxy = common.HexToAddress(addr)
+
+	// Protocol versions
+	if addr, ok := addresses["ProtocolVersions"]; ok {
+		deployments.ProtocolVersions = common.HexToAddress(addr)
 	}
 	if addr, ok := addresses["ProtocolVersionsProxy"]; ok {
 		deployments.ProtocolVersionsProxy = common.HexToAddress(addr)
+	}
+
+	// Factory contracts
+	if addr, ok := addresses["OptimismMintableERC20Factory"]; ok {
+		deployments.OptimismMintableERC20Factory = common.HexToAddress(addr)
 	}
 	if addr, ok := addresses["OptimismMintableERC20FactoryProxy"]; ok {
 		deployments.OptimismMintableERC20FactoryProxy = common.HexToAddress(addr)
 	}
 
 	// Dispute game related addresses
+	if addr, ok := addresses["DisputeGameFactory"]; ok {
+		deployments.DisputeGameFactory = common.HexToAddress(addr)
+	}
 	if addr, ok := addresses["DisputeGameFactoryProxy"]; ok {
 		deployments.DisputeGameFactoryProxy = common.HexToAddress(addr)
 	}

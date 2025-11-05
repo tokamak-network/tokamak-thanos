@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
@@ -67,7 +66,7 @@ func initTokamakAllocType(root string, allocType AllocType) error {
 	// 5. Handle L2 allocs for different hardforks
 	l2AllocsMap := make(genesis.L2AllocsModeMap)
 
-	// For each hardfork, load the corresponding state-dump
+	// For each hardfork mode, try to load the corresponding L2 alloc file
 	modes := []genesis.L2AllocsMode{
 		genesis.L2AllocsDelta,
 		genesis.L2AllocsEcotone,
@@ -79,22 +78,29 @@ func initTokamakAllocType(root string, allocType AllocType) error {
 	}
 
 	for _, mode := range modes {
-		l2StatePath := getL2StatePathForMode(root, allocType, mode)
-		if _, err := os.Stat(l2StatePath); err == nil {
-			l2Allocs, err := foundry.LoadForgeAllocs(l2StatePath)
+		l2AllocPath := getL2AllocPathForMode(root, mode)
+		if _, err := os.Stat(l2AllocPath); err == nil {
+			l2Allocs, err := foundry.LoadForgeAllocs(l2AllocPath)
 			if err != nil {
-				log.Warn("Failed to load L2 allocs", "mode", mode, "error", err)
+				log.Warn("Failed to load L2 allocs", "mode", mode, "path", l2AllocPath, "error", err)
 				continue
 			}
 			l2AllocsMap[mode] = l2Allocs
+			log.Info("Loaded L2 allocs", "mode", mode, "accounts", len(l2Allocs.Accounts))
 		}
 	}
 
-	// If we don't have specific hardfork allocs, use the base one for all
-	if len(l2AllocsMap) == 0 && statePath != "" {
-		if baseAllocs, err := foundry.LoadForgeAllocs(statePath); err == nil {
-			for _, mode := range modes {
-				l2AllocsMap[mode] = baseAllocs
+	// If no specific mode files found, try the generic l2-allocs.json
+	if len(l2AllocsMap) == 0 {
+		genericL2Path := path.Join(root, "packages/tokamak/contracts-bedrock/l2-allocs.json")
+		if _, err := os.Stat(genericL2Path); err == nil {
+			l2Allocs, err := foundry.LoadForgeAllocs(genericL2Path)
+			if err == nil {
+				// Use this for all modes
+				for _, mode := range modes {
+					l2AllocsMap[mode] = l2Allocs
+				}
+				log.Info("Loaded generic L2 allocs for all modes", "accounts", len(l2Allocs.Accounts))
 			}
 		}
 	}
@@ -103,8 +109,22 @@ func initTokamakAllocType(root string, allocType AllocType) error {
 	l2AllocsByType[allocType] = l2AllocsMap
 	mtx.Unlock()
 
-	log.Info("Tokamak alloc type initialized", "allocType", allocType)
+	log.Info("Tokamak alloc type initialized", "allocType", allocType, "l2_modes", len(l2AllocsMap))
 	return nil
+}
+
+// getL2AllocPathForMode returns the path to L2 alloc file for a given mode
+func getL2AllocPathForMode(root string, mode genesis.L2AllocsMode) string {
+	base := path.Join(root, "packages/tokamak/contracts-bedrock")
+	
+	switch mode {
+	case genesis.L2AllocsDelta:
+		return path.Join(base, "l2-allocs-delta.json")
+	case genesis.L2AllocsEcotone:
+		return path.Join(base, "l2-allocs-ecotone.json")
+	default:
+		return path.Join(base, "l2-allocs.json")
+	}
 }
 
 // getStatePathForAllocType returns the path to the state-dump file for a given AllocType
@@ -178,27 +198,11 @@ func createMinimalDeployments() *genesis.L1Deployments {
 func InitTokamakConfig(root string) error {
 	log.Info("Initializing Tokamak E2E configuration")
 
-	// Initialize all alloc types in parallel
-	var wg sync.WaitGroup
-	errors := make(chan error, len(allocTypes))
-
+	// Initialize all alloc types SEQUENTIALLY to avoid conflicts
+	// (Previously used parallel execution but it caused EVM state conflicts)
 	for _, allocType := range allocTypes {
-		wg.Add(1)
-		go func(at AllocType) {
-			defer wg.Done()
-			if err := initTokamakAllocType(root, at); err != nil {
-				errors <- fmt.Errorf("failed to init %s: %w", at, err)
-			}
-		}(allocType)
-	}
-
-	wg.Wait()
-	close(errors)
-
-	// Check for errors
-	for err := range errors {
-		if err != nil {
-			return err
+		if err := initTokamakAllocType(root, allocType); err != nil {
+			return fmt.Errorf("failed to init %s: %w", allocType, err)
 		}
 	}
 

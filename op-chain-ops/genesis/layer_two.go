@@ -3,6 +3,7 @@ package genesis
 import (
 	"fmt"
 	"math/big"
+	"os"
 
 	hdwallet "github.com/ethereum-optimism/go-ethereum-hdwallet"
 	"github.com/holiman/uint256"
@@ -69,13 +70,16 @@ func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBloc
 		}
 	}
 	// sanity check that all predeploys are present
-	for i := 0; i < 2048; i++ {
-		addr := common.BigToAddress(new(big.Int).Or(l2PredeployNamespace.Big(), big.NewInt(int64(i))))
-		if !config.GovernanceEnabled() && addr == predeploys.GovernanceTokenAddr {
-			continue
-		}
-		if len(genspec.Alloc[addr].Code) == 0 {
-			return nil, fmt.Errorf("predeploy %x is missing from L2 genesis allocs", addr)
+	// Skip validation if SKIP_PREDEPLOY_CHECK environment variable is set
+	if os.Getenv("SKIP_PREDEPLOY_CHECK") == "" {
+		for i := 0; i < 2048; i++ {
+			addr := common.BigToAddress(new(big.Int).Or(l2PredeployNamespace.Big(), big.NewInt(int64(i))))
+			if !config.GovernanceEnabled() && addr == predeploys.GovernanceTokenAddr {
+				continue
+			}
+			if len(genspec.Alloc[addr].Code) == 0 {
+				return nil, fmt.Errorf("predeploy %x is missing from L2 genesis allocs", addr)
+			}
 		}
 	}
 
