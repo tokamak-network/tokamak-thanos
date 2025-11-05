@@ -8,10 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/stateless"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/trie/utils"
 	"github.com/holiman/uint256"
 )
 
@@ -68,6 +72,13 @@ func (db *MemoryStateDB) CreateAccount(addr common.Address) {
 	db.createAccount(addr)
 }
 
+func (db *MemoryStateDB) CreateContract(addr common.Address) {
+	db.rw.Lock()
+	defer db.rw.Unlock()
+
+	db.createAccount(addr)
+}
+
 func (db *MemoryStateDB) createAccount(addr common.Address) {
 	if _, ok := db.genesis.Alloc[addr]; !ok {
 		db.genesis.Alloc[addr] = types.Account{
@@ -79,7 +90,7 @@ func (db *MemoryStateDB) createAccount(addr common.Address) {
 	}
 }
 
-func (db *MemoryStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
+func (db *MemoryStateDB) SubBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -87,14 +98,16 @@ func (db *MemoryStateDB) SubBalance(addr common.Address, amount *uint256.Int) {
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))
 	}
+	prevBalance := uint256.MustFromBig(account.Balance)
 	if account.Balance.Sign() == 0 {
-		return
+		return *prevBalance
 	}
 	account.Balance = new(big.Int).Sub(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
+	return *prevBalance
 }
 
-func (db *MemoryStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
+func (db *MemoryStateDB) AddBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason) uint256.Int {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -102,8 +115,10 @@ func (db *MemoryStateDB) AddBalance(addr common.Address, amount *uint256.Int) {
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))
 	}
+	prevBalance := uint256.MustFromBig(account.Balance)
 	account.Balance = new(big.Int).Add(account.Balance, amount.ToBig())
 	db.genesis.Alloc[addr] = account
+	return *prevBalance
 }
 
 func (db *MemoryStateDB) GetBalance(addr common.Address) *uint256.Int {
@@ -128,7 +143,7 @@ func (db *MemoryStateDB) GetNonce(addr common.Address) uint64 {
 	return account.Nonce
 }
 
-func (db *MemoryStateDB) SetNonce(addr common.Address, value uint64) {
+func (db *MemoryStateDB) SetNonce(addr common.Address, value uint64, reason tracing.NonceChangeReason) {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -168,7 +183,7 @@ func (db *MemoryStateDB) GetCode(addr common.Address) []byte {
 	return account.Code
 }
 
-func (db *MemoryStateDB) SetCode(addr common.Address, code []byte) {
+func (db *MemoryStateDB) SetCode(addr common.Address, code []byte) []byte {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -176,10 +191,12 @@ func (db *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 
 	account, ok := db.genesis.Alloc[addr]
 	if !ok {
-		return
+		return nil
 	}
+	prevCode := account.Code
 	account.Code = code
 	db.genesis.Alloc[addr] = account
+	return prevCode
 }
 
 func (db *MemoryStateDB) GetCodeSize(addr common.Address) int {
@@ -223,7 +240,12 @@ func (db *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.H
 	return account.Storage[key]
 }
 
-func (db *MemoryStateDB) SetState(addr common.Address, key, value common.Hash) {
+func (db *MemoryStateDB) GetStorageRoot(addr common.Address) common.Hash {
+	// MemoryStateDB doesn't maintain storage tries, return empty hash
+	return common.Hash{}
+}
+
+func (db *MemoryStateDB) SetState(addr common.Address, key, value common.Hash) common.Hash {
 	db.rw.Lock()
 	defer db.rw.Unlock()
 
@@ -231,8 +253,10 @@ func (db *MemoryStateDB) SetState(addr common.Address, key, value common.Hash) {
 	if !ok {
 		panic(fmt.Sprintf("%s not in state", addr))
 	}
+	prevValue := account.Storage[key]
 	account.Storage[key] = value
 	db.genesis.Alloc[addr] = account
+	return prevValue
 }
 
 func (db *MemoryStateDB) DeleteState(addr common.Address, key common.Hash) {
@@ -255,7 +279,7 @@ func (db *MemoryStateDB) SetTransientState(addr common.Address, key, value commo
 	panic("transient state is unsupported")
 }
 
-func (db *MemoryStateDB) SelfDestruct(common.Address) {
+func (db *MemoryStateDB) SelfDestruct(addr common.Address) uint256.Int {
 	panic("SelfDestruct unimplemented")
 }
 
@@ -263,8 +287,8 @@ func (db *MemoryStateDB) HasSelfDestructed(common.Address) bool {
 	panic("HasSelfDestructed unimplemented")
 }
 
-func (db *MemoryStateDB) Selfdestruct6780(common.Address) {
-	panic("Selfdestruct6780 unimplemented")
+func (db *MemoryStateDB) SelfDestruct6780(addr common.Address) (uint256.Int, bool) {
+	panic("SelfDestruct6780 unimplemented")
 }
 
 // Exist reports whether the given account exists in state.
@@ -345,4 +369,25 @@ func (db *MemoryStateDB) ForEachStorage(addr common.Address, cb func(common.Hash
 		}
 	}
 	return nil
+}
+
+// AccessEvents returns the access events for EIP-2930/7702 compliance.
+// MemoryStateDB is primarily used for genesis generation and doesn't track
+// access events during execution, so we return nil.
+func (db *MemoryStateDB) AccessEvents() *state.AccessEvents {
+	return nil
+}
+
+func (db *MemoryStateDB) PointCache() *utils.PointCache {
+	// MemoryStateDB doesn't use verkle trees
+	return nil
+}
+
+func (db *MemoryStateDB) Witness() *stateless.Witness {
+	// MemoryStateDB doesn't track witnesses for stateless execution
+	return nil
+}
+
+func (db *MemoryStateDB) Finalise(deleteEmptyObjects bool) {
+	// MemoryStateDB doesn't need finalization for genesis generation
 }

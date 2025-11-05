@@ -1,7 +1,6 @@
 package genesis
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -14,22 +13,10 @@ import (
 )
 
 var (
-	// codeNamespace represents the namespace of implementations of predeploys
-	codeNamespace = common.HexToAddress("0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000")
-	// l2PredeployNamespace represents the namespace of L2 predeploys
-	l2PredeployNamespace = common.HexToAddress("0x4200000000000000000000000000000000000000")
-	// BigL2PredeployNamespace represents the predeploy namespace as a big.Int
-	BigL2PredeployNamespace = new(big.Int).SetBytes(l2PredeployNamespace.Bytes())
-	// bigCodeNamespace represents the predeploy namespace as a big.Int
-	bigCodeNamespace = new(big.Int).SetBytes(codeNamespace.Bytes())
 	// ImplementationSlot represents the EIP 1967 implementation storage slot
 	ImplementationSlot = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
 	// AdminSlot represents the EIP 1967 admin storage slot
 	AdminSlot = common.HexToHash("0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103")
-	// implementationSlot represents the EIP 1967 implementation storage slot
-	ImplementationSlotForZepplin = common.HexToHash("0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3")
-	// implementationSlot represents the EIP 1967 admin storage slot
-	AdminSlotForZepplin = common.HexToHash("0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b")
 	// The devBalance is the amount of wei that a dev account is funded with.
 	devBalance = hexutil.MustDecodeBig("0x200000000000000000000000000000000000000000000000000000000000000")
 )
@@ -65,25 +52,6 @@ var DevAccounts = []common.Address{
 	common.HexToAddress("0x3fab184622dc19b6109349b94811493bf2a45362"),
 }
 
-// AddressToCodeNamespace takes a predeploy address and computes
-// the implementation address that the implementation should be deployed at
-func AddressToCodeNamespace(addr common.Address) (common.Address, error) {
-	if !IsL2DevPredeploy(addr) {
-		return common.Address{}, fmt.Errorf("cannot handle non predeploy: %s", addr)
-	}
-	bigAddress := new(big.Int).SetBytes(addr[18:])
-	num := new(big.Int).Or(bigCodeNamespace, bigAddress)
-	return common.BigToAddress(num), nil
-}
-
-func IsL2DevPredeploy(addr common.Address) bool {
-	if addr == common.HexToAddress("0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000") {
-		return true
-	}
-
-	return bytes.Equal(addr[0:2], []byte{0x42, 0x00})
-}
-
 // GetBlockFromTag will resolve a Block given an rpc block tag
 func GetBlockFromTag(chain ethereum.ChainReader, tag *rpc.BlockNumberOrHash) (*types.Block, error) {
 	if hash, ok := tag.Hash(); ok {
@@ -102,11 +70,6 @@ func GetBlockFromTag(chain ethereum.ChainReader, tag *rpc.BlockNumberOrHash) (*t
 	} else {
 		return nil, fmt.Errorf("invalid block tag: %v", tag)
 	}
-}
-
-// uint642Big creates a new *big.Int from a uint64.
-func uint642Big(in uint64) *big.Int {
-	return new(big.Int).SetUint64(in)
 }
 
 func newHexBig(in uint64) *hexutil.Big {

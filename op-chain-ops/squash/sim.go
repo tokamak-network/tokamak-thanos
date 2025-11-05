@@ -19,12 +19,17 @@ import (
 )
 
 type staticChain struct {
-	startTime uint64
-	blockTime uint64
+	startTime   uint64
+	blockTime   uint64
+	chainConfig *params.ChainConfig
 }
 
 func (d *staticChain) Engine() consensus.Engine {
 	return ethash.NewFullFaker()
+}
+
+func (d *staticChain) Config() *params.ChainConfig {
+	return d.chainConfig
 }
 
 func (d *staticChain) GetHeader(h common.Hash, n uint64) *types.Header {
@@ -182,14 +187,14 @@ func NewSimulator(db *state.MemoryStateDB) *SquashSim {
 	offsetBlocks := uint64(0)
 	genesisTime := uint64(17_000_000)
 	blockTime := uint64(2)
-	bc := &staticChain{startTime: genesisTime, blockTime: blockTime}
-	header := bc.GetHeader(common.Hash{}, genesisTime+offsetBlocks)
 	chainCfg := db.Genesis().Config
+	bc := &staticChain{startTime: genesisTime, blockTime: blockTime, chainConfig: chainCfg}
+	header := bc.GetHeader(common.Hash{}, genesisTime+offsetBlocks)
 	blockContext := core.NewEVMBlockContext(header, bc, nil, chainCfg, db)
 	vmCfg := vm.Config{}
 	signer := types.LatestSigner(db.Genesis().Config)
 	simDB := &simState{MemoryStateDB: db}
-	env := vm.NewEVM(blockContext, vm.TxContext{}, simDB, chainCfg, vmCfg)
+	env := vm.NewEVM(blockContext, simDB, chainCfg, vmCfg)
 
 	return &SquashSim{
 		chainConfig: chainCfg,
