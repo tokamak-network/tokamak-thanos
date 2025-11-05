@@ -1,4 +1,6 @@
-FROM golang:1.21.3-alpine3.18 as builder
+ARG GO_VERSION=1.24.2-alpine3.21
+
+FROM golang:${GO_VERSION} as builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers git jq bash
 
@@ -26,20 +28,24 @@ ARG OP_PROGRAM_VERSION=v0.0.0
 
 ARG TARGETOS TARGETARCH
 
-# Build the cannon, op-program, and op-program-client.elf binaries.
+# Build the cannon, op-program, and op-program-client binaries.
 RUN --mount=type=cache,target=/root/.cache/go-build cd cannon && make cannon  \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$CANNON_VERSION"
 RUN --mount=type=cache,target=/root/.cache/go-build cd op-program && make op-program-host  \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_PROGRAM_VERSION"
 RUN --mount=type=cache,target=/root/.cache/go-build cd op-program && make op-program-client-mips  \
-    GOOS=linux GOARCH=mips GOMIPS=softfloat GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_PROGRAM_VERSION"
+    GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_PROGRAM_VERSION"
 
-# Run the op-program-client.elf binary directly through cannon's load-elf subcommand.
+# Generate mips32 prestate (legacy, for backwards compatibility)
 RUN /app/cannon/bin/cannon load-elf --path /app/op-program/bin/op-program-client.elf --out /app/op-program/bin/prestate.json --meta ""
-
-# Generate the prestate proof containing the absolute pre-state hash.
 RUN /app/cannon/bin/cannon run --proof-at '=0' --stop-at '=1' --input /app/op-program/bin/prestate.json --meta "" --proof-fmt '/app/op-program/bin/%d.json' --output ""
 RUN mv /app/op-program/bin/0.json /app/op-program/bin/prestate-proof.json
+
+# Generate mips64 (mt64) prestate - production version
+RUN /app/cannon/bin/cannon load-elf --path /app/op-program/bin/op-program-client64.elf --out /app/op-program/bin/prestate-mt64.json --meta /app/op-program/bin/meta-mt64.json
+RUN /app/cannon/bin/cannon run --proof-at '=0' --stop-at '=1' --input /app/op-program/bin/prestate-mt64.json --meta /app/op-program/bin/meta-mt64.json --proof-fmt '/app/op-program/bin/%d.json' --output ""
+RUN mv /app/op-program/bin/0.json /app/op-program/bin/prestate-proof-mt64.json
+RUN gzip -fk /app/op-program/bin/prestate-mt64.json && mv /app/op-program/bin/prestate-mt64.json.gz /app/op-program/bin/prestate-mt64.bin.gz
 
 # Exports files to the specified output location.
 # Writing files to host requires buildkit to be enabled.
@@ -47,6 +53,13 @@ RUN mv /app/op-program/bin/0.json /app/op-program/bin/prestate-proof.json
 FROM scratch AS export-stage
 COPY --from=builder /app/cannon/bin/cannon .
 COPY --from=builder /app/op-program/bin/op-program .
+# MIPS32 (legacy)
 COPY --from=builder /app/op-program/bin/op-program-client.elf .
 COPY --from=builder /app/op-program/bin/prestate.json .
 COPY --from=builder /app/op-program/bin/prestate-proof.json .
+# MIPS64 (mt64) - production
+COPY --from=builder /app/op-program/bin/op-program-client64.elf .
+COPY --from=builder /app/op-program/bin/prestate-mt64.json .
+COPY --from=builder /app/op-program/bin/prestate-mt64.bin.gz .
+COPY --from=builder /app/op-program/bin/prestate-proof-mt64.json .
+COPY --from=builder /app/op-program/bin/meta-mt64.json .

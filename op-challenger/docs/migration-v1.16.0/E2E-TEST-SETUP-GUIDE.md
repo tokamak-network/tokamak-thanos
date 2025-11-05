@@ -59,7 +59,7 @@ func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
         Code    hexutil.Bytes     `json:"code,omitempty"`
         Storage map[string]string `json:"storage,omitempty"` // 유연한 파싱을 위해 string map 사용
     }
-    
+
     // 래핑된 형식 처리
     var wrapped struct {
         Accounts map[string]forgeAllocAccount `json:"accounts"`
@@ -84,13 +84,13 @@ func (d *ForgeAllocs) UnmarshalJSON(b []byte) error {
         }
         return nil
     }
-    
+
     // 기존 직접 형식도 지원 (fallback)
     // ...
 }
 ```
 
-**효과**: 
+**효과**:
 - ✅ 래핑된 JSON 형식 지원
 - ✅ 0x prefix 없는 hex string 파싱
 - ✅ 기존 형식 호환성 유지
@@ -120,7 +120,7 @@ type TokamakDeployConfig struct {
     L1UsdcAddr     common.Address `json:"l1UsdcAddr,omitempty"`
     UsdcTokenName  string         `json:"usdcTokenName,omitempty"`
     FiatTokenOwner common.Address `json:"fiatTokenOwner,omitempty"`
-    
+
     // Other Tokamak-specific fields
     SetPrecompileBalances bool `json:"setPrecompileBalances,omitempty"`
 }
@@ -137,7 +137,7 @@ func (d *TokamakDeployConfig) Check(log log.Logger) error {
 ```go
 type DeployConfig struct {
     // ... existing fields ...
-    
+
     // Tokamak-specific fields for Native Token support
     TokamakDeployConfig `evm:"-"`
 }
@@ -151,7 +151,7 @@ func NewDeployConfig(path string) (*DeployConfig, error) {
     // Allow unknown fields for Tokamak-specific extensions
     // (native token, USDC bridge, UniswapV3, etc.)
     // dec.DisallowUnknownFields()  // 주석 처리
-    
+
     var config DeployConfig
     if err := dec.Decode(&config); err != nil {
         return nil, fmt.Errorf("cannot unmarshal deploy config: %w", err)
@@ -160,7 +160,7 @@ func NewDeployConfig(path string) (*DeployConfig, error) {
 }
 ```
 
-**효과**: 
+**효과**:
 - ✅ Tokamak 전용 필드 인식
 - ✅ UniswapV3, governance token 등 추가 필드 허용
 - ✅ 기존 OP Stack 필드 호환성 유지
@@ -177,21 +177,21 @@ func NewDeployConfig(path string) (*DeployConfig, error) {
 ```go
 func (d *L1Deployments) Check(deployConfig *DeployConfig) error {
     // ... reflection code ...
-    
+
     if name == "RATProxy" || name == "RAT" {
         continue
     }
-    
+
     // Skip ETHLockbox for Native Token deployments (e.g., Tokamak)
     if name == "ETHLockbox" || name == "ETHLockboxProxy" {
         continue
     }
-    
+
     // ... rest of validation ...
 }
 ```
 
-**효과**: 
+**효과**:
 - ✅ ETHLockbox 검증 에러 해결
 - ✅ RAT 검증 에러 해결
 
@@ -214,21 +214,21 @@ func initFromDevnetFiles(root string) error {
     if err != nil {
         return fmt.Errorf("failed to load L1 allocs: %w", err)
     }
-    
+
     // Load L1 deployments
     l1DeploymentsPath := path.Join(root, ".devnet", "addresses.json")
     l1Deployments, err := genesis.NewL1Deployments(l1DeploymentsPath)
     if err != nil {
         return fmt.Errorf("failed to load L1 deployments: %w", err)
     }
-    
+
     // Load deploy config
     deployConfigPath := path.Join(root, "packages", "tokamak", "contracts-bedrock", "deploy-config", "devnetL1.json")
     deployConfig, err := genesis.NewDeployConfig(deployConfigPath)
     if err != nil {
         return fmt.Errorf("failed to load deploy config: %w", err)
     }
-    
+
     // Apply deploy config settings
     deployConfig.L1GenesisBlockTimestamp = hexutil.Uint64(time.Now().Unix())
     deployConfig.FundDevAccounts = true
@@ -237,11 +237,11 @@ func initFromDevnetFiles(root string) error {
     if l1Deployments != nil {
         deployConfig.SetDeployments(l1Deployments)
     }
-    
+
     // Load L2 allocs for different modes
     l2AllocsDir := path.Join(root, ".devnet")
     l2AllocsMap := make(genesis.L2AllocsModeMap)
-    
+
     modes := []genesis.L2AllocsMode{
         genesis.L2AllocsDelta,
         genesis.L2AllocsEcotone,
@@ -251,7 +251,7 @@ func initFromDevnetFiles(root string) error {
         genesis.L2AllocsIsthmus,
         genesis.L2AllocsInterop,
     }
-    
+
     for _, mode := range modes {
         name := "allocs-l2"
         if mode != "" {
@@ -267,7 +267,7 @@ func initFromDevnetFiles(root string) error {
             l2AllocsMap[mode] = allocs
         }
     }
-    
+
     // Apply to all AllocTypes
     mtx.Lock()
     for _, allocType := range allocTypes {
@@ -277,7 +277,7 @@ func initFromDevnetFiles(root string) error {
         l2AllocsByType[allocType] = l2AllocsMap
     }
     mtx.Unlock()
-    
+
     return nil
 }
 ```
@@ -286,10 +286,10 @@ func initFromDevnetFiles(root string) error {
 ```go
 func init() {
     // ... logger setup ...
-    
+
     // Check if .devnet allocs exist (pre-generated files)
     devnetL1AllocsPath := path.Join(root, ".devnet", "allocs-l1.json")
-    
+
     if _, err := os.Stat(devnetL1AllocsPath); err == nil {
         // Use pre-generated .devnet files (simpler and more stable)
         log.Info("Using pre-generated .devnet allocs")
@@ -309,7 +309,7 @@ func init() {
 #### 삭제한 파일:
 - `op-e2e/config/init_tokamak.go` - 복잡한 병렬 초기화 로직 제거
 
-**효과**: 
+**효과**:
 - ✅ 초기화 로직 단순화
 - ✅ 병렬 실행 충돌 해결
 - ✅ .devnet 파일 안정적 로드
@@ -347,6 +347,39 @@ op-e2e/config/init_tokamak.go          # 삭제됨
 
 ## E2E 테스트 실행
 
+### 전체 실행 절차 요약
+
+```bash
+# 1. .devnet 파일 생성 (5분, 최초 1회)
+make devnet-allocs
+
+# 2. macOS용 VM 바이너리 빌드 (5-10분, 최초 1회)
+cd cannon
+make cannon
+cd ../op-program
+make op-program-host
+
+# 3. mips64 ELF 및 mt64 prestate 생성 (5분, 최초 1회)
+make op-program-client-mips64
+cd ..
+./cannon/bin/cannon load-elf \
+  --type multithreaded64-4 \
+  --path op-program/bin/op-program-client64.elf \
+  --out op-program/bin/prestate-mt64.bin.gz \
+  --meta op-program/bin/meta-mt64.json
+
+./cannon/bin/cannon run \
+  --proof-at '=0' --stop-at '=1' \
+  --input op-program/bin/prestate-mt64.bin.gz \
+  --meta op-program/bin/meta-mt64.json \
+  --proof-fmt 'op-program/bin/%d.json' --output ""
+mv op-program/bin/0.json op-program/bin/prestate-proof-mt64.json
+
+# 4. E2E 테스트 실행 (10-20분)
+cd op-e2e
+go test -v ./faultproofs -run TestOutputCannonGame -timeout 20m
+```
+
 ### 1. .devnet 파일 생성
 
 ```bash
@@ -361,43 +394,148 @@ make devnet-allocs
 - `.devnet/allocs-l2-ecotone.json` - L2 genesis 상태 (Ecotone)
 - `.devnet/addresses.json` - L1 컨트랙트 주소
 
-### 2. VM 바이너리 다운로드 (옵션)
+**소요 시간**: 약 5분
+
+### 2. VM 바이너리 준비
+
+#### ⚠️ 중요: macOS vs Linux 바이너리
+
+E2E 테스트는 실제 바이너리를 실행하므로, **실행 환경에 맞는 바이너리**가 필요합니다.
+
+**옵션 A: macOS에서 E2E 테스트 실행 (권장)**
 
 ```bash
-# 사전 빌드된 VM 이미지 다운로드 (2-3분)
+# Cannon을 macOS용으로 빌드
+cd cannon
+make cannon
+
+# 확인 (macOS용 바이너리인지 확인)
+file bin/cannon
+# 출력: bin/cannon: Mach-O 64-bit executable arm64
+
+# OP Program도 로컬 빌드
+cd ../op-program
+make op-program-host
+
+# 확인
+ls -lh bin/op-program
+```
+
+**소요 시간**: 약 5분
+
+**옵션 B: Docker 이미지에서 다운로드 (Linux용, macOS에서 E2E 실패)**
+
+⚠️ **주의**: 이 방법으로 다운로드한 바이너리는 **Linux용**이므로 macOS에서 E2E 테스트 시 다음 에러 발생:
+```
+fork/exec ./../../cannon/bin/cannon: exec format error
+```
+
+```bash
+# Linux용 바이너리 다운로드 (CI/CD나 Linux 환경용)
 ./op-challenger/scripts/pull-vm-images.sh --tag latest
 ```
 
-**다운로드되는 파일**:
-- `cannon/bin/cannon` - Cannon VM (GameType 0/1)
-- `asterisc/bin/asterisc` - Asterisc VM (GameType 2)
-- `op-program/bin/op-program` - OP Program
-- `bin/kona-client` - Kona client (GameType 3)
+**다운로드되는 파일** (모두 Linux용):
+- `cannon/bin/cannon` - Cannon VM (Linux)
+- `asterisc/bin/asterisc` - Asterisc VM (Linux)
+- `op-program/bin/op-program` - OP Program (Linux)
+- `bin/kona-client` - Kona client (Linux)
+- `op-program/bin/prestate.json` - 기본 prestate
+- `op-program/bin/prestate-proof.json` - 기본 prestate proof
 
-### 3. E2E 테스트 실행
+**권장 사항**:
+- ✅ **macOS에서 테스트**: 옵션 A 사용 (로컬 빌드)
+- ✅ **Linux/CI에서 테스트**: 옵션 B 사용 (Docker 이미지)
+- ✅ **Docker로 테스트**: 컨테이너 내부에서 실행
+
+### 3. Cannon Prestate 준비 (mt64)
+
+```bash
+# 1. mips64 ELF 빌드
+cd op-program
+make op-program-client-mips64
+
+# 2. mt64 prestate 생성 (macOS용 cannon 사용)
+cd ..
+./cannon/bin/cannon load-elf \
+  --type multithreaded64-4 \
+  --path op-program/bin/op-program-client64.elf \
+  --out op-program/bin/prestate-mt64.bin.gz \
+  --meta op-program/bin/meta-mt64.json
+
+# 3. 확인
+ls -lh op-program/bin/prestate-mt64.bin.gz
+# 예상 출력: prestate-mt64.bin.gz (약 19MB)
+
+# 4. prestate proof 생성
+./cannon/bin/cannon run \
+  --proof-at '=0' \
+  --stop-at '=1' \
+  --input op-program/bin/prestate-mt64.bin.gz \
+  --meta op-program/bin/meta-mt64.json \
+  --proof-fmt 'op-program/bin/%d.json' \
+  --output ""
+
+# proof 파일을 prestate-proof-mt64.json으로 이동
+mv op-program/bin/0.json op-program/bin/prestate-proof-mt64.json
+
+# 5. 생성된 파일 확인
+ls -lh op-program/bin/prestate-mt64* op-program/bin/meta-mt64.json
+```
+
+**소요 시간**: 약 2-3분
+
+**주의**:
+- ⚠️ `load-elf`에서 `--type multithreaded64-4` 필요 (버전 7, mt64)
+- ⚠️ `run`에서는 --type 불필요 (input에서 자동 감지)
+- ⚠️ JSON 출력 형식은 load-elf에서 지원 안 됨, `.bin.gz` 사용
+
+### 4. E2E 테스트 실행
+
+#### 옵션 A: 단일 테스트 (권장)
 
 ```bash
 cd op-e2e
 
-# 단일 테스트 (verbose)
-go test -v ./faultproofs -run TestOutputCannonGame -timeout 10m
-
-# 전체 테스트
-go test ./faultproofs/... -timeout 30m
+# verbose 모드로 실행 (진행 상황 확인 가능)
+go test -v ./faultproofs -run TestOutputCannonGame -timeout 20m
 ```
 
 **예상 결과**:
 ```
-INFO [timestamp] Using pre-generated .devnet allocs
-INFO [timestamp] Initialized from .devnet files  l1_allocs=XX l2_modes=3
-INFO [timestamp] Building developer L1 genesis block
-INFO [timestamp] Included L1 deployment  name=DisputeGameFactory
-...
 === RUN   TestOutputCannonGame
 === PAUSE TestOutputCannonGame
 === CONT  TestOutputCannonGame
+INFO [timestamp] Using pre-generated .devnet allocs
+INFO [timestamp] Initialized from .devnet files  l1_allocs=XX l2_modes=3
+INFO [timestamp] Building developer L1 genesis block
+INFO [timestamp] Included L1 deployment  name=DisputeGameFactory address=0x...
+INFO [timestamp] Included L1 deployment  name=L1CrossDomainMessenger address=0x...
 ...
+=== RUN   TestOutputCannonGame/mt-cannon
+=== RUN   TestOutputCannonGame/mt-cannon-next
+--- PASS: TestOutputCannonGame (10.52s)
+    --- PASS: TestOutputCannonGame/mt-cannon (10.45s)
+    --- PASS: TestOutputCannonGame/mt-cannon-next (10.48s)
+PASS
+ok      github.com/tokamak-network/tokamak-thanos/op-e2e/faultproofs    15.234s
 ```
+
+**소요 시간**: 약 10-20분
+
+#### 옵션 B: 전체 테스트
+
+```bash
+cd op-e2e
+
+# 전체 fault proof 테스트 실행
+go test ./faultproofs/... -timeout 30m
+
+# verbose 모드 (로그 많음, 느림)
+go test -v ./faultproofs/... -timeout 40m
+```
+
+**소요 시간**: 약 20-40분
 
 ---
 
@@ -413,7 +551,34 @@ stat ./../../op-program/bin/prestate-mt64Next.bin.gz: no such file or directory
 
 ### 해결 방법
 
-#### 방법 1: reproducible-prestate 빌드 (권장)
+#### 방법 1: 로컬에서 mips64 빌드 + optimism에서 복사 (가장 빠름) ⚡
+
+우리 프로젝트의 Makefile과 Dockerfile은 이미 업데이트되었지만, cannon이 Linux 바이너리라 맥에서 직접 실행이 안됩니다. 따라서 optimism 프로젝트에서 prestate 파일을 복사하는 것이 가장 빠릅니다:
+
+```bash
+# 1. mips64 ELF 빌드 (우리 프로젝트에서)
+cd op-program
+make op-program-client-mips64
+
+# 2. mt64 prestate 파일 복사 (optimism 프로젝트에서)
+cp /path/to/optimism/op-program/bin/prestate-mt64*.bin.gz ./bin/
+cp /path/to/optimism/op-program/bin/prestate-mt64*.json ./bin/
+
+# 확인
+ls -lh bin/prestate-mt64*
+```
+
+**장점**:
+- ✅ 즉시 사용 가능 (5분)
+- ✅ 검증된 prestate
+
+**단점**:
+- ⚠️ optimism 프로젝트 필요
+- ⚠️ 버전 불일치 가능성 (hash가 다를 수 있음)
+
+#### 방법 2: reproducible-prestate 빌드 (Linux/Docker 환경)
+
+**주의**: 현재 cannon 컴파일 에러로 인해 Docker 빌드가 실패합니다. 이 방법은 cannon 코드 수정 후 사용 가능합니다.
 
 Docker를 사용하여 재현 가능한 prestate 생성:
 
@@ -421,6 +586,10 @@ Docker를 사용하여 재현 가능한 prestate 생성:
 cd op-program
 make reproducible-prestate
 ```
+
+**업데이트된 파일**:
+- `op-program/Makefile` - mips64 빌드 타겟 추가
+- `op-program/Dockerfile.repro` - Go 1.24.2, mt64 prestate 생성 추가
 
 **생성되는 파일**:
 - `op-program/bin/prestate-proof-mt64.json`
@@ -438,18 +607,18 @@ make reproducible-prestate
 ```
 -------------------- Production Prestates --------------------
 
-Cannon64 Absolute prestate hash: 
+Cannon64 Absolute prestate hash:
 0x03c7ae758fa7f367ba6a7d8c21f0c5a1e64a5e6f8a5e6f8a5e6f8a5e6f8a5e6f
 
 -------------------- Experimental Prestates --------------------
 
-Cannon64Next Absolute prestate hash: 
+Cannon64Next Absolute prestate hash:
 0x03fd582694a9cc73adc8f3e8bfcf7f5f6d5c5a4e3d2c1b0a9f8e7d6c5b4a3f2e
 
-CannonInterop Absolute prestate hash: 
+CannonInterop Absolute prestate hash:
 0x03be3ecf8a4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c
 
-CannonInteropNext Absolute prestate hash: 
+CannonInteropNext Absolute prestate hash:
 0x03ab1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab
 ```
 
@@ -563,7 +732,7 @@ echo "temp/" >> op-program/.dockerignore
 
 ---
 
-**작성일**: 2025-11-05  
-**버전**: v1.16.0  
-**작성자**: AI Assistant  
+**작성일**: 2025-11-05
+**버전**: v1.16.0
+**작성자**: AI Assistant
 
