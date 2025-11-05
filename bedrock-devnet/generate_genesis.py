@@ -22,9 +22,9 @@ def generate_genesis_state():
 
     print(f"✅ Loaded {len(addresses)} contract addresses")
 
-    # Create L1 genesis state
+    # Create L1 genesis state (ForgeAllocs format)
     l1_genesis = {
-        "alloc": {}
+        "accounts": {}  # ForgeAllocs expects "accounts", not "alloc"
     }
 
     # Add deployed contracts to genesis with minimal proxy code
@@ -33,7 +33,9 @@ def generate_genesis_state():
 
     for name, address in addresses.items():
         print(f"  Adding {name}: {address}")
-        l1_genesis["alloc"][address.lower()] = {
+        # Ensure address has 0x prefix and is lowercase
+        addr = address.lower() if address.startswith("0x") else f"0x{address.lower()}"
+        l1_genesis["accounts"][addr] = {
             "balance": "0x0",
             "code": minimal_proxy_code,
             "storage": {}
@@ -70,7 +72,9 @@ def generate_genesis_state():
 
     print(f"\n✅ Adding {len(dev_accounts)} funded dev accounts")
     for account in dev_accounts:
-        l1_genesis["alloc"][account.lower()] = {
+        # Ensure address has 0x prefix and is lowercase
+        acc = account.lower() if account.startswith("0x") else f"0x{account.lower()}"
+        l1_genesis["accounts"][acc] = {
             "balance": "0x21e19e0c9bab2400000"  # 10000 ETH in wei (hex)
         }
 

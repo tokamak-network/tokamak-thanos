@@ -186,8 +186,21 @@ func init() {
 	// which reduces CI performance.
 	oplog.SetGlobalLogHandler(errHandler)
 
-	for _, allocType := range allocTypes {
-		initAllocType(root, allocType)
+	// Use Tokamak initialization instead of op-deployer
+	// Check if we should use Tokamak mode (when state-dump files exist)
+	tokamakStatePath := path.Join(root, "packages/tokamak/contracts-bedrock/state-dump-901.json")
+	if _, err := os.Stat(tokamakStatePath); err == nil {
+		// Use Tokamak initialization if state-dump files exist
+		log.Info("Using Tokamak initialization (state-dump files found)")
+		if err := InitTokamakConfig(root); err != nil {
+			panic(fmt.Errorf("failed to initialize Tokamak config: %w", err))
+		}
+	} else {
+		// Fall back to original op-deployer initialization
+		log.Info("Using op-deployer initialization (no state-dump files found)")
+		for _, allocType := range allocTypes {
+			initAllocType(root, allocType)
+		}
 	}
 
 	// Use regular level going forward.

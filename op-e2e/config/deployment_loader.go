@@ -3,10 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 )
 
@@ -54,9 +56,10 @@ func mapToL1Deployments(addresses map[string]string) *genesis.L1Deployments {
 	if addr, ok := addresses["ProxyAdmin"]; ok {
 		deployments.ProxyAdmin = common.HexToAddress(addr)
 	}
-	if addr, ok := addresses["SuperchainConfigProxy"]; ok {
-		deployments.SuperchainConfigProxy = common.HexToAddress(addr)
-	}
+	// SuperchainConfigProxy is not in L1Deployments struct in this version
+	// if addr, ok := addresses["SuperchainConfigProxy"]; ok {
+	//     deployments.SuperchainConfigProxy = common.HexToAddress(addr)
+	// }
 	if addr, ok := addresses["L1ERC721BridgeProxy"]; ok {
 		deployments.L1ERC721BridgeProxy = common.HexToAddress(addr)
 	}
@@ -71,28 +74,29 @@ func mapToL1Deployments(addresses map[string]string) *genesis.L1Deployments {
 	if addr, ok := addresses["DisputeGameFactoryProxy"]; ok {
 		deployments.DisputeGameFactoryProxy = common.HexToAddress(addr)
 	}
-	if addr, ok := addresses["DelayedWETHProxy"]; ok {
-		deployments.DelayedWETHProxy = common.HexToAddress(addr)
-	}
-	if addr, ok := addresses["PermissionedDelayedWETHProxy"]; ok {
-		deployments.PermissionedDelayedWETHProxy = common.HexToAddress(addr)
-	}
-	if addr, ok := addresses["AnchorStateRegistryProxy"]; ok {
-		deployments.AnchorStateRegistryProxy = common.HexToAddress(addr)
-	}
-	if addr, ok := addresses["PreimageOracle"]; ok {
-		deployments.PreimageOracle = common.HexToAddress(addr)
-	}
-	if addr, ok := addresses["Mips"]; ok {
-		deployments.Mips = common.HexToAddress(addr)
-	}
+	// These fields are not in L1Deployments struct in this version
+	// if addr, ok := addresses["DelayedWETHProxy"]; ok {
+	//     deployments.DelayedWETHProxy = common.HexToAddress(addr)
+	// }
+	// if addr, ok := addresses["PermissionedDelayedWETHProxy"]; ok {
+	//     deployments.PermissionedDelayedWETHProxy = common.HexToAddress(addr)
+	// }
+	// if addr, ok := addresses["AnchorStateRegistryProxy"]; ok {
+	//     deployments.AnchorStateRegistryProxy = common.HexToAddress(addr)
+	// }
+	// if addr, ok := addresses["PreimageOracle"]; ok {
+	//     deployments.PreimageOracle = common.HexToAddress(addr)
+	// }
+	// if addr, ok := addresses["Mips"]; ok {
+	//     deployments.Mips = common.HexToAddress(addr)
+	// }
 
 	// Tokamak specific contracts
-	if addr, ok := addresses["L2NativeToken"]; ok {
+	if _, ok := addresses["L2NativeToken"]; ok {
 		// Add Tokamak-specific field if it exists in L1Deployments
 		// For now, store it in a custom way if needed
 	}
-	if addr, ok := addresses["L1UsdcBridgeProxy"]; ok {
+	if _, ok := addresses["L1UsdcBridgeProxy"]; ok {
 		// Add USDC bridge if needed
 	}
 
@@ -101,8 +105,8 @@ func mapToL1Deployments(addresses map[string]string) *genesis.L1Deployments {
 
 // CreateMinimalL1State creates minimal L1 state for testing without full state-dump
 // This is useful when state-dump files are not available but contract addresses are known
-func CreateMinimalL1State(deployments *genesis.L1Deployments) map[common.Address]genesis.Account {
-	allocs := make(map[common.Address]genesis.Account)
+func CreateMinimalL1State(deployments *genesis.L1Deployments) types.GenesisAlloc {
+	allocs := make(types.GenesisAlloc)
 
 	// Add minimal proxy code for each deployed contract
 	// This is just placeholder code that allows the contracts to exist on-chain
@@ -111,9 +115,9 @@ func CreateMinimalL1State(deployments *genesis.L1Deployments) map[common.Address
 	// Helper function to add contract with minimal code
 	addContract := func(addr common.Address) {
 		if addr != (common.Address{}) {
-			allocs[addr] = genesis.Account{
+			allocs[addr] = types.Account{
 				Code:    minimalProxyCode,
-				Balance: common.Big0,
+				Balance: big.NewInt(0),
 				Storage: make(map[common.Hash]common.Hash),
 			}
 		}
@@ -127,16 +131,16 @@ func CreateMinimalL1State(deployments *genesis.L1Deployments) map[common.Address
 	addContract(deployments.OptimismPortalProxy)
 	addContract(deployments.SystemConfigProxy)
 	addContract(deployments.ProxyAdmin)
-	addContract(deployments.SuperchainConfigProxy)
+	// addContract(deployments.SuperchainConfigProxy) // Field not in struct
 	addContract(deployments.L1ERC721BridgeProxy)
 	addContract(deployments.ProtocolVersionsProxy)
 	addContract(deployments.OptimismMintableERC20FactoryProxy)
 	addContract(deployments.DisputeGameFactoryProxy)
-	addContract(deployments.DelayedWETHProxy)
-	addContract(deployments.PermissionedDelayedWETHProxy)
-	addContract(deployments.AnchorStateRegistryProxy)
-	addContract(deployments.PreimageOracle)
-	addContract(deployments.Mips)
+	// addContract(deployments.DelayedWETHProxy) // Field not in struct
+	// addContract(deployments.PermissionedDelayedWETHProxy) // Field not in struct
+	// addContract(deployments.AnchorStateRegistryProxy) // Field not in struct
+	// addContract(deployments.PreimageOracle) // Field not in struct
+	// addContract(deployments.Mips) // Field not in struct
 
 	return allocs
 }
