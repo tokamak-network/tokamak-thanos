@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (

@@ -5,16 +5,20 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/backend/depset"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-node/node/safedb"
 
+	"github.com/tokamak-network/tokamak-thanos/op-node/node/safedb"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/engine"
 	"github.com/tokamak-network/tokamak-thanos/op-node/version"
+	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 )
 
 type l2EthClient interface {
@@ -32,7 +36,10 @@ type driverClient interface {
 	StartSequencer(ctx context.Context, blockHash common.Hash) error
 	StopSequencer(context.Context) (common.Hash, error)
 	SequencerActive(context.Context) (bool, error)
-	OnUnsafeL2Payload(ctx context.Context, payload *eth.ExecutionPayloadEnvelope) error
+	OnUnsafeL2Payload(ctx context.Context, payload *eth.ExecutionPayloadEnvelope)
+	OverrideLeader(ctx context.Context) error
+	ConductorEnabled(ctx context.Context) (bool, error)
+	SetRecoverMode(ctx context.Context, mode bool) error
 }
 
 type SafeDBReader interface {
@@ -44,82 +51,87 @@ type adminAPI struct {
 	dr driverClient
 }
 
-func NewAdminAPI(dr driverClient, m metrics.RPCMetricer, log log.Logger) *adminAPI {
+var _ apis.OpnodeAdminServer = (*adminAPI)(nil)
+
+func NewAdminAPI(dr driverClient, log log.Logger) *adminAPI {
 	return &adminAPI{
-		CommonAdminAPI: rpc.NewCommonAdminAPI(m, log),
+		CommonAdminAPI: rpc.NewCommonAdminAPI(log),
 		dr:             dr,
 	}
 }
 
 func (n *adminAPI) ResetDerivationPipeline(ctx context.Context) error {
-	recordDur := n.M.RecordRPCServerRequest("admin_resetDerivationPipeline")
-	defer recordDur()
 	return n.dr.ResetDerivationPipeline(ctx)
 }
 
 func (n *adminAPI) StartSequencer(ctx context.Context, blockHash common.Hash) error {
-	recordDur := n.M.RecordRPCServerRequest("admin_startSequencer")
-	defer recordDur()
 	return n.dr.StartSequencer(ctx, blockHash)
 }
 
 func (n *adminAPI) StopSequencer(ctx context.Context) (common.Hash, error) {
-	recordDur := n.M.RecordRPCServerRequest("admin_stopSequencer")
-	defer recordDur()
 	return n.dr.StopSequencer(ctx)
 }
 
 func (n *adminAPI) SequencerActive(ctx context.Context) (bool, error) {
-	recordDur := n.M.RecordRPCServerRequest("admin_sequencerActive")
-	defer recordDur()
 	return n.dr.SequencerActive(ctx)
 }
 
 // PostUnsafePayload is a special API that allows posting an unsafe payload to the L2 derivation pipeline.
 // It should only be used by op-conductor for sequencer failover scenarios.
-// TODO(ethereum-optimism/optimism#9064): op-conductor Dencun changes.
 func (n *adminAPI) PostUnsafePayload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope) error {
-	recordDur := n.M.RecordRPCServerRequest("admin_postUnsafePayload")
-	defer recordDur()
-
 	payload := envelope.ExecutionPayload
 	if actual, ok := envelope.CheckBlockHash(); !ok {
 		log.Error("payload has bad block hash", "bad_hash", payload.BlockHash.String(), "actual", actual.String())
 		return fmt.Errorf("payload has bad block hash: %s, actual block hash is: %s", payload.BlockHash.String(), actual.String())
 	}
+	n.dr.OnUnsafeL2Payload(ctx, envelope)
+	return nil
+}
 
-	return n.dr.OnUnsafeL2Payload(ctx, envelope)
+// OverrideLeader disables sequencer conductor interactions and allow sequencer to run in non-HA mode during disaster recovery scenarios.
+func (n *adminAPI) OverrideLeader(ctx context.Context) error {
+	return n.dr.OverrideLeader(ctx)
+}
+
+// ConductorEnabled returns true if the sequencer conductor is enabled.
+func (n *adminAPI) ConductorEnabled(ctx context.Context) (bool, error) {
+	return n.dr.ConductorEnabled(ctx)
+}
+
+func (n *adminAPI) SetRecoverMode(ctx context.Context, mode bool) error {
+	return n.dr.SetRecoverMode(ctx, mode)
 }
 
 type nodeAPI struct {
 	config *rollup.Config
+	depSet depset.DependencySet
 	client l2EthClient
 	dr     driverClient
 	safeDB SafeDBReader
 	log    log.Logger
-	m      metrics.RPCMetricer
 }
 
-func NewNodeAPI(config *rollup.Config, l2Client l2EthClient, dr driverClient, safeDB SafeDBReader, log log.Logger, m metrics.RPCMetricer) *nodeAPI {
+var _ apis.RollupNodeServer = (*nodeAPI)(nil)
+
+func NewNodeAPI(config *rollup.Config, depSet depset.DependencySet, l2Client l2EthClient, dr driverClient, safeDB SafeDBReader, log log.Logger) *nodeAPI {
 	return &nodeAPI{
 		config: config,
+		depSet: depSet,
 		client: l2Client,
 		dr:     dr,
 		safeDB: safeDB,
 		log:    log,
-		m:      m,
 	}
 }
 
 func (n *nodeAPI) OutputAtBlock(ctx context.Context, number hexutil.Uint64) (*eth.OutputResponse, error) {
-	recordDur := n.m.RecordRPCServerRequest("optimism_outputAtBlock")
-	defer recordDur()
-
 	ref, status, err := n.dr.BlockRefWithStatus(ctx, uint64(number))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get L2 block ref with sync status: %w", err)
 	}
 
+	// OutputV0AtBlock uses the WithdrawalsRoot in the block header as the value for the
+	// output MessagePasserStorageRoot, if Isthmus hard fork has activated.
 	output, err := n.client.OutputV0AtBlock(ctx, ref.Hash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get L2 output at block %s: %w", ref, err)
@@ -135,8 +147,6 @@ func (n *nodeAPI) OutputAtBlock(ctx context.Context, number hexutil.Uint64) (*et
 }
 
 func (n *nodeAPI) SafeHeadAtL1Block(ctx context.Context, number hexutil.Uint64) (*eth.SafeHeadResponse, error) {
-	recordDur := n.m.RecordRPCServerRequest("optimism_safeHeadAtL1Block")
-	defer recordDur()
 	l1Block, safeHead, err := n.safeDB.SafeHeadAtL1(ctx, uint64(number))
 	if errors.Is(err, safedb.ErrNotFound) {
 		return nil, err
@@ -150,19 +160,52 @@ func (n *nodeAPI) SafeHeadAtL1Block(ctx context.Context, number hexutil.Uint64) 
 }
 
 func (n *nodeAPI) SyncStatus(ctx context.Context) (*eth.SyncStatus, error) {
-	recordDur := n.m.RecordRPCServerRequest("optimism_syncStatus")
-	defer recordDur()
 	return n.dr.SyncStatus(ctx)
 }
 
 func (n *nodeAPI) RollupConfig(_ context.Context) (*rollup.Config, error) {
-	recordDur := n.m.RecordRPCServerRequest("optimism_rollupConfig")
-	defer recordDur()
 	return n.config, nil
 }
 
+func (n *nodeAPI) DependencySet(_ context.Context) (depset.DependencySet, error) {
+	if n.depSet != nil {
+		return n.depSet, nil
+	}
+	return nil, ethereum.NotFound
+}
+
 func (n *nodeAPI) Version(ctx context.Context) (string, error) {
-	recordDur := n.m.RecordRPCServerRequest("optimism_version")
-	defer recordDur()
 	return version.Version + "-" + version.Meta, nil
+}
+
+type opstackAPI struct {
+	engine    engine.RollupAPI
+	publisher apis.PublishAPI
+}
+
+func NewOpstackAPI(eng engine.RollupAPI, publisher apis.PublishAPI) *opstackAPI {
+	return &opstackAPI{
+		engine:    eng,
+		publisher: publisher,
+	}
+}
+
+func (a *opstackAPI) OpenBlockV1(ctx context.Context, parent eth.BlockID, attrs *eth.PayloadAttributes) (eth.PayloadInfo, error) {
+	return a.engine.OpenBlock(ctx, parent, attrs)
+}
+
+func (a *opstackAPI) CancelBlockV1(ctx context.Context, id eth.PayloadInfo) error {
+	return a.engine.CancelBlock(ctx, id)
+}
+
+func (a *opstackAPI) SealBlockV1(ctx context.Context, id eth.PayloadInfo) (*eth.ExecutionPayloadEnvelope, error) {
+	return a.engine.SealBlock(ctx, id)
+}
+
+func (a *opstackAPI) CommitBlockV1(ctx context.Context, envelope *opsigner.SignedExecutionPayloadEnvelope) error {
+	return a.engine.CommitBlock(ctx, envelope)
+}
+
+func (a *opstackAPI) PublishBlockV1(ctx context.Context, signed *opsigner.SignedExecutionPayloadEnvelope) error {
+	return a.publisher.PublishBlock(ctx, signed)
 }

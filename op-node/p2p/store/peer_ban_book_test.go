@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestGetUnknownPeerBan(t *testing.T) {
 	book := createMemoryPeerBanBook(t)
 	defer book.Close()
 	exp, err := book.GetPeerBanExpiration("a")
-	require.Same(t, UnknownBanErr, err)
+	require.Same(t, ErrUnknownBan, err)
 	require.Equal(t, time.Time{}, exp)
 }
 

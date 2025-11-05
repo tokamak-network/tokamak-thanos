@@ -48,11 +48,20 @@ type L2Chain interface {
 	L2BlockRefByLabel(ctx context.Context, label eth.BlockLabel) (eth.L2BlockRef, error)
 }
 
-var ReorgFinalizedErr = errors.New("cannot reorg finalized block")
-var WrongChainErr = errors.New("wrong chain")
-var TooDeepReorgErr = errors.New("reorg is too deep")
+var (
+	ReorgFinalizedErr = errors.New("cannot reorg finalized block")
+	WrongChainErr     = errors.New("wrong chain")
+	TooDeepReorgErr   = errors.New("reorg is too deep")
+)
 
 const MaxReorgSeqWindows = 5
+
+// RecoverMinSeqWindows is the number of sequence windows
+// between the unsafe head L1 origin, and the finalized block, while finality is still at genesis,
+// that need to elapse to heuristically recover from a missing forkchoice state.
+// Note that in healthy node circumstances finality should have been forced a long time ago,
+// since blocks are force-inserted after a full sequence window.
+const RecoverMinSeqWindows = 14
 
 type FindHeadsResult struct {
 	Unsafe    eth.L2BlockRef
@@ -114,6 +123,24 @@ func FindL2Heads(ctx context.Context, cfg *rollup.Config, l1 L1Chain, l2 L2Chain
 	lgr.Info("Loaded current L2 heads", "unsafe", result.Unsafe, "safe", result.Safe, "finalized", result.Finalized,
 		"unsafe_origin", result.Unsafe.L1Origin, "safe_origin", result.Safe.L1Origin)
 
+	// Check if the execution engine completed sync, but left the forkchoice finalized & safe heads at genesis.
+	// This is the equivalent of the "syncStatusFinishedELButNotFinalized" post-processing in the engine controller.
+	if result.Finalized.Hash == cfg.Genesis.L2.Hash &&
+		result.Safe.Hash == cfg.Genesis.L2.Hash &&
+		result.Unsafe.Number > cfg.Genesis.L2.Number &&
+		result.Unsafe.L1Origin.Number > cfg.Genesis.L1.Number+(RecoverMinSeqWindows*cfg.SeqWindowSize) {
+		lgr.Warn("Attempting recovery from sync state without finality.", "head", result.Unsafe)
+		return &FindHeadsResult{Unsafe: result.Unsafe, Safe: result.Unsafe, Finalized: result.Unsafe}, nil
+	}
+
+	// Check if the execution engine corrupted, and forkchoice is ahead of the remaining chain:
+	// in this case we must go back to the prior head, to reprocess the pruned finalized/safe data.
+	if result.Unsafe.Number < result.Finalized.Number || result.Unsafe.Number < result.Safe.Number {
+		lgr.Error("Unsafe head is behind known finalized/safe blocks, execution-engine chain must have been rewound without forkchoice update. Attempting recovery now.",
+			"unsafe_head", result.Unsafe, "safe_head", result.Safe, "finalized_head", result.Finalized)
+		return &FindHeadsResult{Unsafe: result.Unsafe, Safe: result.Unsafe, Finalized: result.Unsafe}, nil
+	}
+
 	// Remember original unsafe block to determine reorg depth
 	prevUnsafe := result.Unsafe
 
@@ -131,6 +158,8 @@ func FindL2Heads(ctx context.Context, cfg *rollup.Config, l1 L1Chain, l2 L2Chain
 	// Once we pass the previous safe head and we have seen enough canonical L1 origins to fill a sequence window worth of data,
 	// then we return the last L2 block of the epoch before that as safe head.
 	// Each loop iteration we traverse a single L2 block, and we check if the L1 origins are consistent.
+	// TODO(#16141): maybe check inside here not to go over Interop activation, this should be handled by supervisor
+	// Fine to keep unsafe chain. Safe chain should be capped to stay pre-Interop.
 	for {
 		// Fetch L1 information if we never had it, or if we do not have it for the current origin.
 		// Optimization: as soon as we have a previous L1 block, try to traverse L1 by hash instead of by number, to fill the cache.
@@ -188,6 +217,8 @@ func FindL2Heads(ctx context.Context, cfg *rollup.Config, l1 L1Chain, l2 L2Chain
 		}
 
 		if ahead {
+			// discard previous candidate
+			highestL2WithCanonicalL1Origin = eth.L2BlockRef{}
 			// keep the unsafe head if we can't tell if its L1 origin is canonical or not yet.
 		} else if l1Block.Hash == n.L1Origin.Hash {
 			// if L2 matches canonical chain, even if unsafe,

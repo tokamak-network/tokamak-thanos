@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"net"
 	"slices"
+	gosync "sync"
 	"testing"
 	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
-	"github.com/libp2p/go-libp2p"
+	libp2p "github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -22,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
@@ -126,16 +126,15 @@ func TestP2PFull(t *testing.T) {
 
 	conns := make(chan network.Conn, 1)
 	hostA := nodeA.Host()
+	var once gosync.Once
 	hostA.Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(n network.Network, conn network.Conn) {
-			conns <- conn
+			once.Do(func() {
+				conns <- conn
+			})
 		}})
 
-	backend := NewP2PAPIBackend(nodeA, logA, nil)
-	srv := rpc.NewServer()
-	require.NoError(t, srv.RegisterName("opp2p", backend))
-	client := rpc.DialInProc(srv)
-	p2pClientA := NewClient(client)
+	p2pClientA := NewP2PAPIBackend(nodeA, logA)
 
 	// Set up B to connect statically
 	confB.StaticPeers, err = peer.AddrInfoToP2pAddrs(&peer.AddrInfo{ID: hostA.ID(), Addrs: hostA.Addrs()})

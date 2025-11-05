@@ -3,7 +3,7 @@ package rollup
 import (
 	"errors"
 
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
+	"github.com/tokamak-network/tokamak-thanos/op-node/bindings"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 

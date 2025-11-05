@@ -1,14 +1,14 @@
 package rollup
 
 import (
+	"log/slog"
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"golang.org/x/exp/slog"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func u64ptr(n uint64) *uint64 {
@@ -36,7 +36,7 @@ var testConfig = Config{
 	BlockTime:               2,
 	MaxSequencerDrift:       600,
 	SeqWindowSize:           3600,
-	ChannelTimeout:          300,
+	ChannelTimeoutBedrock:   300,
 	L1ChainID:               big.NewInt(1),
 	L2ChainID:               big.NewInt(10),
 	RegolithTime:            u64ptr(10),
@@ -44,12 +44,16 @@ var testConfig = Config{
 	DeltaTime:               u64ptr(30),
 	EcotoneTime:             u64ptr(40),
 	FjordTime:               u64ptr(50),
-	InteropTime:             nil,
+	GraniteTime:             u64ptr(60),
+	HoloceneTime:            u64ptr(70),
+	IsthmusTime:             u64ptr(80),
+	JovianTime:              u64ptr(90),
+	InteropTime:             u64ptr(100),
 	BatchInboxAddress:       common.HexToAddress("0xff00000000000000000000000000000000000010"),
 	DepositContractAddress:  common.HexToAddress("0xbEb5Fc579115071764c7423A4f12eDde41f106Ed"),
 	L1SystemConfigAddress:   common.HexToAddress("0x229047fed2591dbec1eF1118d64F7aF3dB9EB290"),
 	ProtocolVersionsAddress: common.HexToAddress("0x8062AbC286f5e7D9428a0Ccb9AbD71e50d93b935"),
-	PlasmaConfig:            nil,
+	AltDAConfig:             nil,
 }
 
 func TestChainSpec_CanyonForkActivation(t *testing.T) {
@@ -171,9 +175,39 @@ func TestCheckForkActivation(t *testing.T) {
 			expectedLog:         "Detected hardfork activation block",
 		},
 		{
+			name:                "Granite activation",
+			block:               eth.L2BlockRef{Time: 60, Number: 8, Hash: common.Hash{0x8}},
+			expectedCurrentFork: Granite,
+			expectedLog:         "Detected hardfork activation block",
+		},
+		{
+			name:                "Holocene activation",
+			block:               eth.L2BlockRef{Time: 70, Number: 9, Hash: common.Hash{0x9}},
+			expectedCurrentFork: Holocene,
+			expectedLog:         "Detected hardfork activation block",
+		},
+		{
+			name:                "Isthmus activation",
+			block:               eth.L2BlockRef{Time: 80, Number: 10, Hash: common.Hash{0xa}},
+			expectedCurrentFork: Isthmus,
+			expectedLog:         "Detected hardfork activation block",
+		},
+		{
+			name:                "Jovian activation",
+			block:               eth.L2BlockRef{Time: 90, Number: 11, Hash: common.Hash{0xb}},
+			expectedCurrentFork: Jovian,
+			expectedLog:         "Detected hardfork activation block",
+		},
+		{
+			name:                "Interop activation",
+			block:               eth.L2BlockRef{Time: 100, Number: 11, Hash: common.Hash{0xb}},
+			expectedCurrentFork: Interop,
+			expectedLog:         "Detected hardfork activation block",
+		},
+		{
 			name:                "No more hardforks",
-			block:               eth.L2BlockRef{Time: 700, Number: 8, Hash: common.Hash{0x8}},
-			expectedCurrentFork: Fjord,
+			block:               eth.L2BlockRef{Time: 700, Number: 12, Hash: common.Hash{0xc}},
+			expectedCurrentFork: Interop,
 			expectedLog:         "",
 		},
 	}

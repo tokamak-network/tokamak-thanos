@@ -1,39 +1,48 @@
 package opnode
 
 import (
-	"crypto/rand"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
-	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
-	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/urfave/cli/v2"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
+	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
+	"github.com/tokamak-network/tokamak-thanos/op-node/config"
 	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-node/node"
 	p2pcli "github.com/tokamak-network/tokamak-thanos/op-node/p2p/cli"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/driver"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/engine"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/interop"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
 	opflags "github.com/tokamak-network/tokamak-thanos/op-service/flags"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
+	"github.com/tokamak-network/tokamak-thanos/op-service/rpc"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/backend/depset"
 )
 
 // NewConfig creates a Config from the provided flags or environment variables.
-func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
+func NewConfig(ctx *cli.Context, log log.Logger) (*config.Config, error) {
 	if err := flags.CheckRequired(ctx); err != nil {
 		return nil, err
 	}
 
 	rollupConfig, err := NewRollupConfigFromCLI(log, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	depSet, err := NewDependencySetFromCLI(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +56,12 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 
 	driverConfig := NewDriverConfig(ctx)
 
-	p2pSignerSetup, err := p2pcli.LoadSignerSetup(ctx)
+	p2pSignerSetup, err := p2pcli.LoadSignerSetup(ctx, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load p2p signer: %w", err)
 	}
 
-	p2pConfig, err := p2pcli.NewConfig(ctx, rollupConfig)
+	p2pConfig, err := p2pcli.NewConfig(ctx, rollupConfig.BlockTime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load p2p config: %w", err)
 	}
@@ -74,44 +83,44 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 		haltOption = ""
 	}
 
-	cfg := &node.Config{
-		L1:     l1Endpoint,
-		L2:     l2Endpoint,
-		Rollup: *rollupConfig,
-		Driver: *driverConfig,
-		Beacon: NewBeaconEndpointConfig(ctx),
-		RPC: node.RPCConfig{
-			ListenAddr:  ctx.String(flags.RPCListenAddr.Name),
-			ListenPort:  ctx.Int(flags.RPCListenPort.Name),
-			EnableAdmin: ctx.Bool(flags.RPCEnableAdmin.Name),
-		},
-		Metrics: node.MetricsConfig{
-			Enabled:    ctx.Bool(flags.MetricsEnabledFlag.Name),
-			ListenAddr: ctx.String(flags.MetricsAddrFlag.Name),
-			ListenPort: ctx.Int(flags.MetricsPortFlag.Name),
-		},
+	if ctx.IsSet(flags.HeartbeatEnabledFlag.Name) ||
+		ctx.IsSet(flags.HeartbeatMonikerFlag.Name) ||
+		ctx.IsSet(flags.HeartbeatURLFlag.Name) {
+		log.Warn("Heartbeat functionality is not supported anymore, CLI flags will be removed in following release.")
+	}
+	conductorRPCEndpoint := ctx.String(flags.ConductorRpcFlag.Name)
+	cfg := &config.Config{
+		L1:                          l1Endpoint,
+		L2:                          l2Endpoint,
+		Rollup:                      *rollupConfig,
+		DependencySet:               depSet,
+		Driver:                      *driverConfig,
+		Beacon:                      NewBeaconEndpointConfig(ctx),
+		InteropConfig:               NewSupervisorEndpointConfig(ctx),
+		RPC:                         rpc.ReadCLIConfig(ctx),
+		Metrics:                     opmetrics.ReadCLIConfig(ctx),
 		Pprof:                       oppprof.ReadCLIConfig(ctx),
 		P2P:                         p2pConfig,
 		P2PSigner:                   p2pSignerSetup,
 		L1EpochPollInterval:         ctx.Duration(flags.L1EpochPollIntervalFlag.Name),
 		RuntimeConfigReloadInterval: ctx.Duration(flags.RuntimeConfigReloadIntervalFlag.Name),
-		Heartbeat: node.HeartbeatConfig{
-			Enabled: ctx.Bool(flags.HeartbeatEnabledFlag.Name),
-			Moniker: ctx.String(flags.HeartbeatMonikerFlag.Name),
-			URL:     ctx.String(flags.HeartbeatURLFlag.Name),
-		},
-		ConfigPersistence: configPersistence,
-		SafeDBPath:        ctx.String(flags.SafeDBPath.Name),
-		Sync:              *syncConfig,
-		RollupHalt:        haltOption,
-		RethDBPath:        ctx.String(flags.L1RethDBPath.Name),
+		ConfigPersistence:           configPersistence,
+		SafeDBPath:                  ctx.String(flags.SafeDBPath.Name),
+		Sync:                        *syncConfig,
+		RollupHalt:                  haltOption,
 
-		ConductorEnabled:    ctx.Bool(flags.ConductorEnabledFlag.Name),
-		ConductorRpc:        ctx.String(flags.ConductorRpcFlag.Name),
+		ConductorEnabled: ctx.Bool(flags.ConductorEnabledFlag.Name),
+		ConductorRpc: func(context.Context) (string, error) {
+			return conductorRPCEndpoint, nil
+		},
 		ConductorRpcTimeout: ctx.Duration(flags.ConductorRpcTimeoutFlag.Name),
 
-		Plasma:              plasma.ReadCLIConfig(ctx),
-		IsForkPublicNetwork: ctx.Bool(flags.IsForkPublicNetworkFlag.Name),
+		AltDA: altda.ReadCLIConfig(ctx),
+
+		IgnoreMissingPectraBlobSchedule: ctx.Bool(flags.IgnoreMissingPectraBlobSchedule.Name),
+		FetchWithdrawalRootFromState:    ctx.Bool(flags.FetchWithdrawalRootFromState.Name),
+
+		ExperimentalOPStackAPI: ctx.Bool(flags.ExperimentalOPStackAPI.Name),
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {
@@ -129,8 +138,16 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 	return cfg, nil
 }
 
-func NewBeaconEndpointConfig(ctx *cli.Context) node.L1BeaconEndpointSetup {
-	return &node.L1BeaconEndpointConfig{
+func NewSupervisorEndpointConfig(ctx *cli.Context) *interop.Config {
+	return &interop.Config{
+		RPCAddr:          ctx.String(flags.InteropRPCAddr.Name),
+		RPCPort:          ctx.Int(flags.InteropRPCPort.Name),
+		RPCJwtSecretPath: ctx.String(flags.InteropJWTSecret.Name),
+	}
+}
+
+func NewBeaconEndpointConfig(ctx *cli.Context) config.L1BeaconEndpointSetup {
+	return &config.L1BeaconEndpointConfig{
 		BeaconAddr:             ctx.String(flags.BeaconAddr.Name),
 		BeaconHeader:           ctx.String(flags.BeaconHeader.Name),
 		BeaconFallbackAddrs:    ctx.StringSlice(flags.BeaconFallbackAddrs.Name),
@@ -139,8 +156,8 @@ func NewBeaconEndpointConfig(ctx *cli.Context) node.L1BeaconEndpointSetup {
 	}
 }
 
-func NewL1EndpointConfig(ctx *cli.Context) *node.L1EndpointConfig {
-	return &node.L1EndpointConfig{
+func NewL1EndpointConfig(ctx *cli.Context) *config.L1EndpointConfig {
+	return &config.L1EndpointConfig{
 		L1NodeAddr:       ctx.String(flags.L1NodeAddr.Name),
 		L1TrustRPC:       ctx.Bool(flags.L1TrustRPC.Name),
 		L1RPCKind:        sources.RPCProviderKind(strings.ToLower(ctx.String(flags.L1RPCProviderKind.Name))),
@@ -148,45 +165,31 @@ func NewL1EndpointConfig(ctx *cli.Context) *node.L1EndpointConfig {
 		BatchSize:        ctx.Int(flags.L1RPCMaxBatchSize.Name),
 		HttpPollInterval: ctx.Duration(flags.L1HTTPPollInterval.Name),
 		MaxConcurrency:   ctx.Int(flags.L1RPCMaxConcurrency.Name),
+		CacheSize:        ctx.Uint(flags.L1CacheSize.Name),
 	}
 }
 
-func NewL2EndpointConfig(ctx *cli.Context, log log.Logger) (*node.L2EndpointConfig, error) {
+func NewL2EndpointConfig(ctx *cli.Context, logger log.Logger) (*config.L2EndpointConfig, error) {
 	l2Addr := ctx.String(flags.L2EngineAddr.Name)
 	fileName := ctx.String(flags.L2EngineJWTSecret.Name)
-	var secret [32]byte
-	fileName = strings.TrimSpace(fileName)
-	if fileName == "" {
-		return nil, fmt.Errorf("file-name of jwt secret is empty")
+	secret, err := rpc.ObtainJWTSecret(logger, fileName, true)
+	if err != nil {
+		return nil, err
 	}
-	if data, err := os.ReadFile(fileName); err == nil {
-		jwtSecret := common.FromHex(strings.TrimSpace(string(data)))
-		if len(jwtSecret) != 32 {
-			return nil, fmt.Errorf("invalid jwt secret in path %s, not 32 hex-formatted bytes", fileName)
-		}
-		copy(secret[:], jwtSecret)
-	} else {
-		log.Warn("Failed to read JWT secret from file, generating a new one now. Configure L2 geth with --authrpc.jwt-secret=" + fmt.Sprintf("%q", fileName))
-		if _, err := io.ReadFull(rand.Reader, secret[:]); err != nil {
-			return nil, fmt.Errorf("failed to generate jwt secret: %w", err)
-		}
-		if err := os.WriteFile(fileName, []byte(hexutil.Encode(secret[:])), 0o600); err != nil {
-			return nil, err
-		}
-	}
-
-	return &node.L2EndpointConfig{
-		L2EngineAddr:      l2Addr,
-		L2EngineJWTSecret: secret,
+	l2RpcTimeout := ctx.Duration(flags.L2EngineRpcTimeout.Name)
+	return &config.L2EndpointConfig{
+		L2EngineAddr:        l2Addr,
+		L2EngineJWTSecret:   secret,
+		L2EngineCallTimeout: l2RpcTimeout,
 	}, nil
 }
 
-func NewConfigPersistence(ctx *cli.Context) node.ConfigPersistence {
+func NewConfigPersistence(ctx *cli.Context) config.ConfigPersistence {
 	stateFile := ctx.String(flags.RPCAdminPersistence.Name)
 	if stateFile == "" {
-		return node.DisabledConfigPersistence{}
+		return config.DisabledConfigPersistence{}
 	}
-	return node.NewConfigPersistence(stateFile)
+	return config.NewConfigPersistence(stateFile)
 }
 
 func NewDriverConfig(ctx *cli.Context) *driver.Config {
@@ -196,6 +199,7 @@ func NewDriverConfig(ctx *cli.Context) *driver.Config {
 		SequencerEnabled:    ctx.Bool(flags.SequencerEnabledFlag.Name),
 		SequencerStopped:    ctx.Bool(flags.SequencerStoppedFlag.Name),
 		SequencerMaxSafeLag: ctx.Uint64(flags.SequencerMaxSafeLagFlag.Name),
+		RecoverMode:         ctx.Bool(flags.SequencerRecoverMode.Name),
 	}
 }
 
@@ -235,7 +239,9 @@ Conflicting configuration is deprecated, and will stop the op-node from starting
 	defer file.Close()
 
 	var rollupConfig rollup.Config
-	if err := json.NewDecoder(file).Decode(&rollupConfig); err != nil {
+	dec := json.NewDecoder(file)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&rollupConfig); err != nil {
 		return nil, fmt.Errorf("failed to decode rollup config: %w", err)
 	}
 	return &rollupConfig, nil
@@ -258,23 +264,34 @@ func applyOverrides(ctx *cli.Context, rollupConfig *rollup.Config) {
 		fjord := ctx.Uint64(opflags.FjordOverrideFlagName)
 		rollupConfig.FjordTime = &fjord
 	}
-	if ctx.IsSet(flags.IsForkPublicNetworkFlag.Name) {
-		rollupConfig.IsForkPublicNetwork = ctx.Bool(flags.IsForkPublicNetworkFlag.Name)
+	if ctx.IsSet(opflags.GraniteOverrideFlagName) {
+		granite := ctx.Uint64(opflags.GraniteOverrideFlagName)
+		rollupConfig.GraniteTime = &granite
+	}
+	if ctx.IsSet(opflags.HoloceneOverrideFlagName) {
+		holocene := ctx.Uint64(opflags.HoloceneOverrideFlagName)
+		rollupConfig.HoloceneTime = &holocene
+	}
+	if ctx.IsSet(opflags.PectraBlobScheduleOverrideFlagName) {
+		pectrablobschedule := ctx.Uint64(opflags.PectraBlobScheduleOverrideFlagName)
+		rollupConfig.PectraBlobScheduleTime = &pectrablobschedule
+	}
+	if ctx.IsSet(opflags.IsthmusOverrideFlagName) {
+		isthmus := ctx.Uint64(opflags.IsthmusOverrideFlagName)
+		rollupConfig.IsthmusTime = &isthmus
+	}
+	if ctx.IsSet(opflags.InteropOverrideFlagName) {
+		interop := ctx.Uint64(opflags.InteropOverrideFlagName)
+		rollupConfig.InteropTime = &interop
 	}
 }
 
-func NewSnapshotLogger(ctx *cli.Context) (log.Logger, error) {
-	snapshotFile := ctx.String(flags.SnapshotLog.Name)
-	if snapshotFile == "" {
-		return log.NewLogger(log.DiscardHandler()), nil
+func NewDependencySetFromCLI(ctx *cli.Context) (depset.DependencySet, error) {
+	if !ctx.IsSet(flags.InteropDependencySet.Name) {
+		return nil, nil
 	}
-
-	sf, err := os.OpenFile(snapshotFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, err
-	}
-	handler := log.JSONHandler(sf)
-	return log.NewLogger(handler), nil
+	loader := &depset.JSONDependencySetLoader{Path: ctx.Path(flags.InteropDependencySet.Name)}
+	return loader.LoadDependencySet(ctx.Context)
 }
 
 func NewSyncConfig(ctx *cli.Context, log log.Logger) (*sync.Config, error) {
@@ -287,9 +304,12 @@ func NewSyncConfig(ctx *cli.Context, log log.Logger) (*sync.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	engineKind := engine.Kind(ctx.String(flags.L2EngineKind.Name))
 	cfg := &sync.Config{
-		SyncMode:           mode,
-		SkipSyncStartCheck: ctx.Bool(flags.SkipSyncStartCheck.Name),
+		SyncMode:                       mode,
+		SkipSyncStartCheck:             ctx.Bool(flags.SkipSyncStartCheck.Name),
+		SupportsPostFinalizationELSync: engineKind.SupportsPostFinalizationELSync(),
 	}
 	if ctx.Bool(flags.L2EngineSyncEnabled.Name) {
 		cfg.SyncMode = sync.ELSync

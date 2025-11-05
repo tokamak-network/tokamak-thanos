@@ -2,70 +2,76 @@ package clsync
 
 import (
 	"context"
-	"errors"
-	"io"
 	"math/big"
-	"math/rand" // nosemgrep
+	mrand "math/rand"
 	"testing"
 
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/engine"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/ethereum/go-ethereum/common"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-type fakeEngine struct {
-	unsafe, safe, finalized eth.L2BlockRef
+type noopMetrics struct{}
 
-	err error
+func (n *noopMetrics) RecordUnsafePayloadsBuffer(length uint64, memSize uint64, next eth.BlockID) {}
+
+type fakeEngController struct{ calls int }
+
+func (f *fakeEngController) RequestForkchoiceUpdate(ctx context.Context) { f.calls++ }
+func (f *fakeEngController) TryUpdatePendingSafe(ctx context.Context, ref eth.L2BlockRef, concluding bool, source eth.L1BlockRef) {
+}
+func (f *fakeEngController) TryUpdateLocalSafe(ctx context.Context, ref eth.L2BlockRef, concluding bool, source eth.L1BlockRef) {
+}
+func (f *fakeEngController) RequestPendingSafeUpdate(ctx context.Context) {
 }
 
-func (f *fakeEngine) Finalized() eth.L2BlockRef {
-	return f.finalized
+func TestCLSync_InvalidPayloadDropsHead(t *testing.T) {
+	logger := testlog.Logger(t, 0)
+	fe := &fakeEngController{}
+	cl := NewCLSync(logger, nil, &noopMetrics{}, fe)
+	emitter := &testutils.MockEmitter{}
+	cl.AttachEmitter(emitter)
+
+	payload := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
+		BlockHash: common.Hash{0x01},
+	}}
+
+	// Adding an unsafe payload requests a forkchoice update via engine controller
+	cl.OnEvent(context.Background(), ReceivedUnsafePayloadEvent{Envelope: payload})
+	require.Equal(t, 1, fe.calls)
+	require.NotNil(t, cl.unsafePayloads.Peek())
+
+	// Mark it invalid; it should be dropped if it matches the queue head
+	cl.OnEvent(context.Background(), engine.PayloadInvalidEvent{Envelope: payload})
+	require.Nil(t, cl.unsafePayloads.Peek())
 }
 
-func (f *fakeEngine) UnsafeL2Head() eth.L2BlockRef {
-	return f.unsafe
+type recordingMetrics struct {
+	calls    int
+	lastLen  uint64
+	lastMem  uint64
+	lastNext eth.BlockID
 }
 
-func (f *fakeEngine) SafeL2Head() eth.L2BlockRef {
-	return f.safe
+func (m *recordingMetrics) RecordUnsafePayloadsBuffer(length uint64, memSize uint64, next eth.BlockID) {
+	m.calls++
+	m.lastLen = length
+	m.lastMem = memSize
+	m.lastNext = next
 }
 
-func (f *fakeEngine) InsertUnsafePayload(ctx context.Context, payload *eth.ExecutionPayloadEnvelope, ref eth.L2BlockRef) error {
-	if f.err != nil {
-		return f.err
-	}
-	f.unsafe = ref
-	return nil
-}
-
-var _ Engine = (*fakeEngine)(nil)
-
-func TestCLSync(t *testing.T) {
-	rng := rand.New(rand.NewSource(1234))
-
+// buildSimpleCfgAndPayload creates a minimal rollup config and a valid payload (A1) on top of A0.
+func buildSimpleCfgAndPayload(t *testing.T) (*rollup.Config, eth.L2BlockRef, eth.L2BlockRef, *eth.ExecutionPayloadEnvelope) {
+	t.Helper()
+	rng := mrand.New(mrand.NewSource(1234))
 	refA := testutils.RandomBlockRef(rng)
-
-	aL1Info := &testutils.MockBlockInfo{
-		InfoParentHash:  refA.ParentHash,
-		InfoNum:         refA.Number,
-		InfoTime:        refA.Time,
-		InfoHash:        refA.Hash,
-		InfoBaseFee:     big.NewInt(1),
-		InfoBlobBaseFee: big.NewInt(1),
-		InfoReceiptRoot: types.EmptyRootHash,
-		InfoRoot:        testutils.RandomHash(rng),
-		InfoGasUsed:     rng.Uint64(),
-	}
 
 	refA0 := eth.L2BlockRef{
 		Hash:           testutils.RandomHash(rng),
@@ -75,7 +81,7 @@ func TestCLSync(t *testing.T) {
 		L1Origin:       refA.ID(),
 		SequenceNumber: 0,
 	}
-	gasLimit := eth.Uint64Quantity(20_000_000)
+
 	cfg := &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1:     refA.ID(),
@@ -101,211 +107,132 @@ func TestCLSync(t *testing.T) {
 		SequenceNumber: 1,
 	}
 
-	altRefA1 := refA1
-	altRefA1.Hash = testutils.RandomHash(rng)
-
-	refA2 := eth.L2BlockRef{
-		Hash:           testutils.RandomHash(rng),
-		Number:         refA1.Number + 1,
-		ParentHash:     refA1.Hash,
-		Time:           refA1.Time + cfg.BlockTime,
-		L1Origin:       refA.ID(),
-		SequenceNumber: 2,
+	// Populate necessary L1 info fields
+	aL1Info := &testutils.MockBlockInfo{
+		InfoParentHash:  refA.ParentHash,
+		InfoNum:         refA.Number,
+		InfoTime:        refA.Time,
+		InfoHash:        refA.Hash,
+		InfoBaseFee:     big.NewInt(1),
+		InfoBlobBaseFee: big.NewInt(1),
+		InfoReceiptRoot: gethtypes.EmptyRootHash,
+		InfoRoot:        testutils.RandomHash(rng),
+		InfoGasUsed:     rng.Uint64(),
 	}
-
 	a1L1Info, err := derive.L1InfoDepositBytes(cfg, cfg.Genesis.SystemConfig, refA1.SequenceNumber, aL1Info, refA1.Time)
 	require.NoError(t, err)
+
 	payloadA1 := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
-		ParentHash:    refA1.ParentHash,
-		FeeRecipient:  common.Address{},
-		StateRoot:     eth.Bytes32{},
-		ReceiptsRoot:  eth.Bytes32{},
-		LogsBloom:     eth.Bytes256{},
-		PrevRandao:    eth.Bytes32{},
-		BlockNumber:   eth.Uint64Quantity(refA1.Number),
-		GasLimit:      gasLimit,
-		GasUsed:       0,
-		Timestamp:     eth.Uint64Quantity(refA1.Time),
-		ExtraData:     nil,
-		BaseFeePerGas: eth.Uint256Quantity(*uint256.NewInt(7)),
-		BlockHash:     refA1.Hash,
-		Transactions:  []eth.Data{a1L1Info},
+		ParentHash:   refA1.ParentHash,
+		BlockNumber:  eth.Uint64Quantity(refA1.Number),
+		Timestamp:    eth.Uint64Quantity(refA1.Time),
+		BlockHash:    refA1.Hash,
+		Transactions: []eth.Data{a1L1Info},
 	}}
-	a2L1Info, err := derive.L1InfoDepositBytes(cfg, cfg.Genesis.SystemConfig, refA2.SequenceNumber, aL1Info, refA2.Time)
-	require.NoError(t, err)
-	payloadA2 := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
-		ParentHash:    refA2.ParentHash,
-		FeeRecipient:  common.Address{},
-		StateRoot:     eth.Bytes32{},
-		ReceiptsRoot:  eth.Bytes32{},
-		LogsBloom:     eth.Bytes256{},
-		PrevRandao:    eth.Bytes32{},
-		BlockNumber:   eth.Uint64Quantity(refA2.Number),
-		GasLimit:      gasLimit,
-		GasUsed:       0,
-		Timestamp:     eth.Uint64Quantity(refA2.Time),
-		ExtraData:     nil,
-		BaseFeePerGas: eth.Uint256Quantity(*uint256.NewInt(7)),
-		BlockHash:     refA2.Hash,
-		Transactions:  []eth.Data{a2L1Info},
-	}}
-
-	metrics := &testutils.TestDerivationMetrics{}
-
-	// When a previously received unsafe block is older than the tip of the chain, we want to drop it.
-	t.Run("drop old", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA2,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		cl.AddUnsafePayload(payloadA1)
-		require.NoError(t, cl.Proceed(context.Background()))
-
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because too old")
-		require.Equal(t, refA2, eng.unsafe, "keep unsafe head")
-	})
-
-	// When we already have the exact payload as tip, then no need to process it
-	t.Run("drop equal", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA1,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		cl.AddUnsafePayload(payloadA1)
-		require.NoError(t, cl.Proceed(context.Background()))
-
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because seen")
-		require.Equal(t, refA1, eng.unsafe, "keep unsafe head")
-	})
-
-	// When we have a different payload, at the same height, then we want to keep it.
-	// The unsafe chain consensus preserves the first-seen payload.
-	t.Run("ignore conflict", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    altRefA1,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		cl.AddUnsafePayload(payloadA1)
-		require.NoError(t, cl.Proceed(context.Background()))
-
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because alternative")
-		require.Equal(t, altRefA1, eng.unsafe, "keep unsafe head")
-	})
-
-	t.Run("ignore unsafe reorg", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    altRefA1,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		cl.AddUnsafePayload(payloadA2)
-		require.ErrorIs(t, cl.Proceed(context.Background()), io.EOF, "payload2 does not fit onto alt1, thus retrieve next input from L1")
-
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because not applicable")
-		require.Equal(t, altRefA1, eng.unsafe, "keep unsafe head")
-	})
-
-	t.Run("success", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA0,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		require.ErrorIs(t, cl.Proceed(context.Background()), io.EOF, "nothing to process yet")
-		require.Nil(t, cl.unsafePayloads.Peek(), "no payloads yet")
-
-		cl.AddUnsafePayload(payloadA1)
-		lowest := cl.LowestQueuedUnsafeBlock()
-		require.Equal(t, refA1, lowest, "expecting A1 next")
-		require.NoError(t, cl.Proceed(context.Background()))
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because applied")
-		require.Equal(t, refA1, eng.unsafe, "new unsafe head")
-
-		cl.AddUnsafePayload(payloadA2)
-		lowest = cl.LowestQueuedUnsafeBlock()
-		require.Equal(t, refA2, lowest, "expecting A2 next")
-		require.NoError(t, cl.Proceed(context.Background()))
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because applied")
-		require.Equal(t, refA2, eng.unsafe, "new unsafe head")
-	})
-
-	t.Run("double buffer", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA0,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		cl.AddUnsafePayload(payloadA1)
-		cl.AddUnsafePayload(payloadA2)
-
-		lowest := cl.LowestQueuedUnsafeBlock()
-		require.Equal(t, refA1, lowest, "expecting A1 next")
-
-		require.NoError(t, cl.Proceed(context.Background()))
-		require.NotNil(t, cl.unsafePayloads.Peek(), "next is ready")
-		require.Equal(t, refA1, eng.unsafe, "new unsafe head")
-		require.NoError(t, cl.Proceed(context.Background()))
-		require.Nil(t, cl.unsafePayloads.Peek(), "done")
-		require.Equal(t, refA2, eng.unsafe, "new unsafe head")
-	})
-
-	t.Run("temporary error", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA0,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		testErr := derive.NewTemporaryError(errors.New("test error"))
-		eng.err = testErr
-		cl.AddUnsafePayload(payloadA1)
-		require.ErrorIs(t, cl.Proceed(context.Background()), testErr)
-		require.Equal(t, refA0, eng.unsafe, "old unsafe head after error")
-		require.NotNil(t, cl.unsafePayloads.Peek(), "no pop because temporary error")
-
-		eng.err = nil
-		require.NoError(t, cl.Proceed(context.Background()))
-		require.Equal(t, refA1, eng.unsafe, "new unsafe head after resolved error")
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because valid")
-	})
-
-	t.Run("invalid payload error", func(t *testing.T) {
-		logger := testlog.Logger(t, log.LevelError)
-		eng := &fakeEngine{
-			unsafe:    refA0,
-			safe:      refA0,
-			finalized: refA0,
-		}
-		cl := NewCLSync(logger, cfg, metrics, eng)
-
-		testErr := errors.New("test error")
-		eng.err = testErr
-		cl.AddUnsafePayload(payloadA1)
-		require.ErrorIs(t, cl.Proceed(context.Background()), testErr)
-		require.Equal(t, refA0, eng.unsafe, "old unsafe head after error")
-		require.Nil(t, cl.unsafePayloads.Peek(), "pop because invalid")
-	})
+	return cfg, refA0, refA1, payloadA1
 }
+
+func TestCLSync_OnUnsafePayload_EnqueueEmitAndRecord(t *testing.T) {
+	cfg, _, refA1, payloadA1 := buildSimpleCfgAndPayload(t)
+	logger := testlog.Logger(t, 0)
+	metrics := &recordingMetrics{}
+	emitter := &testutils.MockEmitter{}
+	fe := &fakeEngController{}
+	cl := NewCLSync(logger, cfg, metrics, fe)
+	cl.AttachEmitter(emitter)
+
+	cl.OnEvent(context.Background(), ReceivedUnsafePayloadEvent{Envelope: payloadA1})
+	require.Equal(t, 1, fe.calls)
+
+	// queued and metrics recorded
+	got := cl.unsafePayloads.Peek()
+	require.NotNil(t, got)
+	require.Equal(t, payloadA1, got)
+	require.Equal(t, 1, metrics.calls)
+	require.EqualValues(t, 1, metrics.lastLen)
+	require.Equal(t, refA1.Hash, metrics.lastNext.Hash)
+	require.Equal(t, cl.unsafePayloads.MemSize(), metrics.lastMem)
+}
+
+func TestCLSync_OnForkchoiceUpdate_ProcessRetryAndPop(t *testing.T) {
+	cfg, refA0, refA1, payloadA1 := buildSimpleCfgAndPayload(t)
+	logger := testlog.Logger(t, 0)
+	metrics := &recordingMetrics{}
+	emitter := &testutils.MockEmitter{}
+	fe := &fakeEngController{}
+	cl := NewCLSync(logger, cfg, metrics, fe)
+	cl.AttachEmitter(emitter)
+
+	// queue payload A1
+	cl.OnEvent(context.Background(), ReceivedUnsafePayloadEvent{Envelope: payloadA1})
+	require.Equal(t, 1, fe.calls)
+
+	// applicable forkchoice -> process once
+	emitter.ExpectOnce(engine.ProcessUnsafePayloadEvent{Envelope: payloadA1})
+	cl.OnEvent(context.Background(), engine.ForkchoiceUpdateEvent{UnsafeL2Head: refA0, SafeL2Head: refA0, FinalizedL2Head: refA0})
+	emitter.AssertExpectations(t)
+	require.NotNil(t, cl.unsafePayloads.Peek(), "should not pop yet")
+
+	// same forkchoice -> retry
+	emitter.ExpectOnce(engine.ProcessUnsafePayloadEvent{Envelope: payloadA1})
+	cl.OnEvent(context.Background(), engine.ForkchoiceUpdateEvent{UnsafeL2Head: refA0, SafeL2Head: refA0, FinalizedL2Head: refA0})
+	emitter.AssertExpectations(t)
+	require.NotNil(t, cl.unsafePayloads.Peek(), "still pending")
+
+	// after applied (unsafe head == A1) -> pop
+	cl.OnEvent(context.Background(), engine.ForkchoiceUpdateEvent{UnsafeL2Head: refA1, SafeL2Head: refA0, FinalizedL2Head: refA0})
+	require.Nil(t, cl.unsafePayloads.Peek())
+}
+
+func TestCLSync_LowestQueuedUnsafeBlock(t *testing.T) {
+	cfg, _, _, payloadA1 := buildSimpleCfgAndPayload(t)
+	logger := testlog.Logger(t, 0)
+	cl := NewCLSync(logger, cfg, &noopMetrics{}, &fakeEngController{})
+	// empty -> zero
+	require.Equal(t, eth.L2BlockRef{}, cl.LowestQueuedUnsafeBlock())
+
+	// queue -> returns derived ref
+	_ = cl.unsafePayloads.Push(payloadA1)
+	want, err := derive.PayloadToBlockRef(cfg, payloadA1.ExecutionPayload)
+	require.NoError(t, err)
+	require.Equal(t, want, cl.LowestQueuedUnsafeBlock())
+}
+
+func TestCLSync_LowestQueuedUnsafeBlock_OnDeriveErrorReturnsZero(t *testing.T) {
+	// missing L1-info in txs will cause derive error
+	logger := testlog.Logger(t, 0)
+	cl := NewCLSync(logger, &rollup.Config{}, &noopMetrics{}, &fakeEngController{})
+	bad := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{BlockNumber: 1, BlockHash: common.Hash{0xaa}}}
+	_ = cl.unsafePayloads.Push(bad)
+	require.Equal(t, eth.L2BlockRef{}, cl.LowestQueuedUnsafeBlock())
+}
+
+func TestCLSync_InvalidPayloadForNonHead_NoDrop(t *testing.T) {
+	logger := testlog.Logger(t, 0)
+	fe := &fakeEngController{}
+	cl := NewCLSync(logger, nil, &noopMetrics{}, fe)
+	emitter := &testutils.MockEmitter{}
+	cl.AttachEmitter(emitter)
+
+	// Head payload (lower block number)
+	head := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
+		BlockNumber: 1,
+		BlockHash:   common.Hash{0x01},
+	}}
+	// Non-head payload (higher block number)
+	other := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
+		BlockNumber: 2,
+		BlockHash:   common.Hash{0x02},
+	}}
+
+	cl.OnEvent(context.Background(), ReceivedUnsafePayloadEvent{Envelope: head})
+	cl.OnEvent(context.Background(), ReceivedUnsafePayloadEvent{Envelope: other})
+	require.Equal(t, 2, fe.calls)
+
+	// Invalidate non-head should not drop head
+	cl.OnEvent(context.Background(), engine.PayloadInvalidEvent{Envelope: other})
+	require.Equal(t, 2, cl.unsafePayloads.Len())
+	require.Equal(t, head, cl.unsafePayloads.Peek())
+}
+
+// note: nil-envelope behavior is not tested to match current implementation

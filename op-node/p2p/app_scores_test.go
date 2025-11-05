@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/stretchr/testify/require"
 	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
 	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 type stubScoreBookUpdate struct {
@@ -71,7 +71,7 @@ func setupPeerApplicationScorerTest(t *testing.T, params *ApplicationScoreParams
 			updates: make(chan stubScoreBookUpdate, 10),
 		},
 	}
-	appScorer := newPeerApplicationScorer(data.ctx, data.logger, data.clock, params, data.scorebook, func() []peer.ID {
+	appScorer := NewPeerApplicationScorer(data.ctx, data.logger, data.clock, params, data.scorebook, func() []peer.ID {
 		return data.peers
 	})
 	return data, appScorer
@@ -155,8 +155,8 @@ func TestDecayScoresAfterDecayInterval(t *testing.T) {
 		DecayToZero:          0.1,
 	}
 
-	appScorer.start()
-	defer appScorer.stop()
+	appScorer.Start()
+	defer appScorer.Stop()
 
 	data.clock.WaitForNewPendingTaskWithTimeout(30 * time.Second)
 
