@@ -92,7 +92,7 @@ else
 fi
 echo ""
 
-# 5. Prestate Proof 생성
+# 5. Prestate Proof 생성 (mt64)
 log_info "5/7: Prestate Proof 생성 중..."
 if ./cannon/bin/cannon run \
     --proof-at '=0' \
@@ -102,10 +102,31 @@ if ./cannon/bin/cannon run \
     --proof-fmt 'op-program/bin/%d.json' \
     --output "" > /tmp/prestate-proof.log 2>&1; then
     mv op-program/bin/0.json op-program/bin/prestate-proof-mt64.json
-    log_success "Prestate Proof 생성 완료"
+    # Deploy.s.sol이 prestate-proof.json을 읽으므로 복사
+    cp op-program/bin/prestate-proof-mt64.json op-program/bin/prestate-proof.json
+    log_success "Prestate Proof (mt64) 생성 완료"
+    log_info "  ✓ prestate-proof-mt64.json 생성"
+    log_info "  ✓ prestate-proof.json 복사 (Deploy.s.sol용)"
 else
     log_error "Prestate Proof 생성 실패. 로그: /tmp/prestate-proof.log"
     exit 1
+fi
+
+# mt64Next도 생성 (E2E 테스트가 사용)
+if [ -f op-program/bin/prestate-mt64Next.bin.gz ]; then
+    log_info "  prestate-proof-mt64Next.json 생성 중..."
+    if ./cannon/bin/cannon run \
+        --proof-at '=0' \
+        --stop-at '=1' \
+        --input op-program/bin/prestate-mt64Next.bin.gz \
+        --meta op-program/bin/meta-mt64Next.json \
+        --proof-fmt 'op-program/bin/%d.json' \
+        --output "" > /tmp/prestate-proof-next.log 2>&1; then
+        mv op-program/bin/0.json op-program/bin/prestate-proof-mt64Next.json
+        log_info "  ✓ prestate-proof-mt64Next.json 생성"
+    else
+        log_warning "  prestate-proof-mt64Next.json 생성 실패 (선택사항)"
+    fi
 fi
 echo ""
 
@@ -176,6 +197,27 @@ mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
 log_info "  템플릿 원래 상태로 복원 완료"
 echo ""
 
+# 8. E2E 테스트 전 검증
+log_info "=========================================="
+log_info "E2E 테스트 전 검증"
+log_info "=========================================="
+
+# prestate-proof-mt64.json과 devnetL1.json의 일치 확인
+PROOF_PRESTATE=$(cat op-program/bin/prestate-proof-mt64.json | jq -r '.pre')
+CONFIG_PRESTATE=$(cat "$DEPLOY_CONFIG" | jq -r '.faultGameAbsolutePrestate')
+
+log_info "prestate-proof-mt64.json: $PROOF_PRESTATE"
+log_info "devnetL1.json:             $CONFIG_PRESTATE"
+
+if [ "$PROOF_PRESTATE" == "$CONFIG_PRESTATE" ]; then
+    log_success "✓ Prestate hash 일치"
+else
+    log_error "✗ Prestate hash 불일치!"
+    log_error "  E2E 테스트 전에 이 문제를 해결해야 합니다."
+    exit 1
+fi
+echo ""
+
 # 완료 메시지
 log_success "=========================================="
 log_success "E2E 테스트 환경 준비 완료!"
@@ -194,6 +236,8 @@ echo "  - op-program/bin/prestate-mt64.bin.gz"
 echo "  - op-program/bin/prestate-proof-mt64.json"
 echo "  - .devnet/allocs-l1.json"
 echo "  - .devnet/allocs-l2-*.json"
-echo "  - .devnet/addresses.json (prestate hash: $PRESTATE_HASH)"
+echo "  - .devnet/addresses.json"
+echo ""
+log_info "검증된 Prestate Hash: $PRESTATE_HASH"
 echo ""
 
