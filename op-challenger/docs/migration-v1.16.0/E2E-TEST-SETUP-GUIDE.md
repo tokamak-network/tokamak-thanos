@@ -347,38 +347,42 @@ op-e2e/config/init_tokamak.go          # 삭제됨
 
 ## E2E 테스트 실행
 
-### 전체 실행 절차 요약
+### 🚀 빠른 시작: 자동화 스크립트 사용 (권장)
+
+모든 준비 과정을 자동으로 수행하는 스크립트를 제공합니다:
 
 ```bash
-# 1. .devnet 파일 생성 (5분, 최초 1회)
-make devnet-allocs
+# E2E 테스트 환경 자동 준비 (약 15-20분)
+./scripts/prepare-e2e-test.sh
 
-# 2. macOS용 VM 바이너리 빌드 (5-10분, 최초 1회)
-cd cannon
-make cannon
-cd ../op-program
-make op-program-host
-
-# 3. mips64 ELF 및 mt64 prestate 생성 (5분, 최초 1회)
-make op-program-client-mips64
-cd ..
-./cannon/bin/cannon load-elf \
-  --type multithreaded64-4 \
-  --path op-program/bin/op-program-client64.elf \
-  --out op-program/bin/prestate-mt64.bin.gz \
-  --meta op-program/bin/meta-mt64.json
-
-./cannon/bin/cannon run \
-  --proof-at '=0' --stop-at '=1' \
-  --input op-program/bin/prestate-mt64.bin.gz \
-  --meta op-program/bin/meta-mt64.json \
-  --proof-fmt 'op-program/bin/%d.json' --output ""
-mv op-program/bin/0.json op-program/bin/prestate-proof-mt64.json
-
-# 4. E2E 테스트 실행 (10-20분)
+# 완료 후 E2E 테스트 실행
 cd op-e2e
-go test -v ./faultproofs -run TestOutputCannonGame -timeout 20m
+go test -v ./faultproofs -run TestOutputCannonGame -timeout 30m
 ```
+
+**스크립트가 수행하는 작업**:
+1. ✅ Cannon 빌드 (macOS용)
+2. ✅ op-program-host 빌드
+3. ✅ mips64 ELF 빌드
+4. ✅ mt64 Prestate 생성
+5. ✅ Prestate Proof 생성
+6. ✅ **Prestate Hash 추출 및 템플릿 임시 업데이트** ⭐
+7. ✅ .devnet 파일 재생성 (새 prestate hash로 devnetL1.json 생성)
+8. ✅ 템플릿 원래 상태로 복원
+
+**작동 원리**:
+- `devnetL1-template.json`을 백업 → 새 prestate hash로 임시 업데이트
+- `make devnet-allocs`가 템플릿에서 `devnetL1.json` 생성 (새 hash 반영)
+- 템플릿을 원래 상태로 복원 (Git 변경사항 없음)
+
+**장점**:
+- ⚡ 한 번의 명령으로 모든 준비 완료
+- 🔒 올바른 순서 보장 (prestate → template → devnet-allocs → restore)
+- ✅ 에러 발생 시 자동 중단 및 템플릿 복원
+- 📝 진행 상황 및 Hash 검증 실시간 표시
+- 🎯 템플릿 파일 변경 없음 (깔끔한 Git 상태 유지)
+
+### 수동 실행 절차 (고급 사용자용)
 
 ### 1. .devnet 파일 생성
 
