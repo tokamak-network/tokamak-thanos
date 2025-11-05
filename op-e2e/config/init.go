@@ -141,6 +141,85 @@ func DeployConfig(allocType AllocType) *genesis.DeployConfig {
 	return dc.Copy()
 }
 
+// initFromDevnetFiles initializes allocs from pre-generated .devnet files
+func initFromDevnetFiles(root string) error {
+	// Load L1 allocs
+	l1AllocsPath := path.Join(root, ".devnet", "allocs-l1.json")
+	l1Allocs, err := foundry.LoadForgeAllocs(l1AllocsPath)
+	if err != nil {
+		return fmt.Errorf("failed to load L1 allocs: %w", err)
+	}
+
+	// Load L1 deployments
+	l1DeploymentsPath := path.Join(root, ".devnet", "addresses.json")
+	l1Deployments, err := genesis.NewL1Deployments(l1DeploymentsPath)
+	if err != nil {
+		return fmt.Errorf("failed to load L1 deployments: %w", err)
+	}
+
+	// Load deploy config
+	deployConfigPath := path.Join(root, "packages", "tokamak", "contracts-bedrock", "deploy-config", "devnetL1.json")
+	deployConfig, err := genesis.NewDeployConfig(deployConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to load deploy config: %w", err)
+	}
+
+	// Apply deploy config settings
+	deployConfig.L1GenesisBlockTimestamp = hexutil.Uint64(time.Now().Unix())
+	deployConfig.FundDevAccounts = true
+	deployConfig.L1BlockTime = 2
+	deployConfig.L2BlockTime = 1
+	if l1Deployments != nil {
+		deployConfig.SetDeployments(l1Deployments)
+	}
+
+	// Load L2 allocs for different modes
+	l2AllocsDir := path.Join(root, ".devnet")
+	l2AllocsMap := make(genesis.L2AllocsModeMap)
+
+	modes := []genesis.L2AllocsMode{
+		genesis.L2AllocsDelta,
+		genesis.L2AllocsEcotone,
+		genesis.L2AllocsFjord,
+		genesis.L2AllocsGranite,
+		genesis.L2AllocsHolocene,
+		genesis.L2AllocsIsthmus,
+		genesis.L2AllocsInterop,
+	}
+
+	for _, mode := range modes {
+		name := "allocs-l2"
+		if mode != "" {
+			name += "-" + string(mode)
+		}
+		allocPath := path.Join(l2AllocsDir, name+".json")
+		if _, err := os.Stat(allocPath); err == nil {
+			allocs, err := foundry.LoadForgeAllocs(allocPath)
+			if err != nil {
+				log.Warn("Failed to load L2 allocs", "mode", mode, "error", err)
+				continue
+			}
+			l2AllocsMap[mode] = allocs
+		}
+	}
+
+	// Apply to all AllocTypes (since .devnet is shared)
+	mtx.Lock()
+	for _, allocType := range allocTypes {
+		l1AllocsByType[allocType] = l1Allocs
+		l1DeploymentsByType[allocType] = l1Deployments
+		deployConfigsByType[allocType] = deployConfig
+		l2AllocsByType[allocType] = l2AllocsMap
+	}
+	mtx.Unlock()
+
+	log.Info("Initialized from .devnet files",
+		"l1_allocs", len(l1Allocs.Accounts),
+		"l2_modes", len(l2AllocsMap))
+
+	return nil
+}
+
 func init() {
 	// Used by the rust team, to skip legacy op-e2e init. Not used by devstack acceptance tests.
 	if os.Getenv("DISABLE_OP_E2E_LEGACY") == "true" {
@@ -186,17 +265,18 @@ func init() {
 	// which reduces CI performance.
 	oplog.SetGlobalLogHandler(errHandler)
 
-	// Check if we should use Tokamak mode (when state-dump files exist)
-	tokamakStatePath := path.Join(root, "packages/tokamak/contracts-bedrock/state-dump-901.json")
-	if _, err := os.Stat(tokamakStatePath); err == nil {
-		// Use Tokamak initialization (includes both L1 and L2 allocs)
-		log.Info("Using Tokamak initialization (state-dump files found)")
-		if err := InitTokamakConfig(root); err != nil {
-			panic(fmt.Errorf("failed to initialize Tokamak config: %w", err))
+	// Check if .devnet allocs exist (pre-generated files like in risc branch)
+	devnetL1AllocsPath := path.Join(root, ".devnet", "allocs-l1.json")
+
+	if _, err := os.Stat(devnetL1AllocsPath); err == nil {
+		// Use pre-generated .devnet files (simpler and more stable)
+		log.Info("Using pre-generated .devnet allocs")
+		if err := initFromDevnetFiles(root); err != nil {
+			panic(fmt.Errorf("failed to init from .devnet files: %w", err))
 		}
 	} else {
-		// Fall back to original op-deployer initialization
-		log.Info("Using op-deployer initialization (no state-dump files found)")
+		// Fall back to op-deployer initialization
+		log.Info("Using op-deployer initialization (.devnet files not found)")
 		for _, allocType := range allocTypes {
 			initAllocType(root, allocType)
 		}
