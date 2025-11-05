@@ -950,6 +950,31 @@ func (d *LegacyDeployConfig) Check(log log.Logger) error {
 	return nil
 }
 
+// TokamakDeployConfig contains Tokamak-specific deployment configuration fields
+// for Native Token and USDC bridge support
+type TokamakDeployConfig struct {
+	// Native Token configuration
+	NativeTokenAddress       common.Address `json:"nativeTokenAddress,omitempty"`
+	NativeTokenName          string         `json:"nativeTokenName,omitempty"`
+	NativeTokenSymbol        string         `json:"nativeTokenSymbol,omitempty"`
+	NativeCurrencyLabelBytes []byte         `json:"nativeCurrencyLabelBytes,omitempty"`
+
+	// USDC Bridge configuration
+	L1UsdcAddr     common.Address `json:"l1UsdcAddr,omitempty"`
+	UsdcTokenName  string         `json:"usdcTokenName,omitempty"`
+	FiatTokenOwner common.Address `json:"fiatTokenOwner,omitempty"`
+
+	// Other Tokamak-specific fields
+	SetPrecompileBalances bool `json:"setPrecompileBalances,omitempty"`
+}
+
+var _ ConfigChecker = (*TokamakDeployConfig)(nil)
+
+func (d *TokamakDeployConfig) Check(log log.Logger) error {
+	// Tokamak fields are all optional, no validation needed
+	return nil
+}
+
 // DeployConfig represents the deployment configuration for an OP Stack chain.
 // It is used to deploy the L1 contracts as well as create the L2 genesis state.
 type DeployConfig struct {
@@ -979,6 +1004,9 @@ type DeployConfig struct {
 
 	// Legacy, ignored, here for strict-JSON decoding to be accepted.
 	LegacyDeployConfig `evm:"-"`
+
+	// Tokamak-specific fields for Native Token support
+	TokamakDeployConfig `evm:"-"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
@@ -1129,7 +1157,9 @@ func NewDeployConfig(path string) (*DeployConfig, error) {
 	}
 
 	dec := json.NewDecoder(bytes.NewReader(file))
-	dec.DisallowUnknownFields()
+	// Allow unknown fields for Tokamak-specific extensions
+	// (native token, USDC bridge, UniswapV3, etc.)
+	// dec.DisallowUnknownFields()
 
 	var config DeployConfig
 	if err := dec.Decode(&config); err != nil {
