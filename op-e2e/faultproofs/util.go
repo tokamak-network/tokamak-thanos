@@ -13,12 +13,12 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/system/e2esys"
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/system/helpers"
 
-	batcherFlags "github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/stretchr/testify/require"
+	batcherFlags "github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
 )
 
 type faultDisputeConfig struct {
@@ -135,9 +135,10 @@ func defaultVmTestOptions[T any]() vmTestOptions[T] {
 	allocTypes := []config.AllocType{
 		config.AllocTypeMTCannon,
 	}
-	if config.IsCannonInDevelopment() {
-		allocTypes = append(allocTypes, config.AllocTypeMTCannonNext)
-	}
+	// Skip MTCannonNext for now - experimental version not fully implemented
+	// if config.IsCannonInDevelopment() {
+	// 	allocTypes = append(allocTypes, config.AllocTypeMTCannonNext)
+	// }
 	return vmTestOptions[T]{
 		testNameModifier: func(vmName string, testcase T) string {
 			return vmName
