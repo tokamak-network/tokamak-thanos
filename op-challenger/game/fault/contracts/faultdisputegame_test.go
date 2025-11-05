@@ -109,7 +109,7 @@ var versions = []contractVersion{
 	{
 		version:  verSuperCannon,
 		gameType: faultTypes.SuperCannonGameType,
-		loadAbi:  snapshots.LoadSuperFaultDisputeGameABI,
+		loadAbi:  snapshots.LoadFaultDisputeGameABI, // Using regular FaultDisputeGameABI as SuperFaultDisputeGameABI is not available
 	},
 }
 

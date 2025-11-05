@@ -50,7 +50,8 @@ func TestRegisterOracle_AddsOracle(t *testing.T) {
 			if gameType == faultTypes.CannonGameType {
 				rpc.AddContract(gameImplAddr, snapshots.LoadFaultDisputeGameABI())
 			} else if gameType == faultTypes.SuperCannonGameType || gameType == faultTypes.SuperAsteriscKonaGameType {
-				rpc.AddContract(gameImplAddr, snapshots.LoadSuperFaultDisputeGameABI())
+				// Using regular FaultDisputeGameABI as SuperFaultDisputeGameABI is not available
+				rpc.AddContract(gameImplAddr, snapshots.LoadFaultDisputeGameABI())
 			} else {
 				t.Fatalf("game type %v not supported", gameType)
 			}

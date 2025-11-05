@@ -24,7 +24,8 @@ type SuperFaultDisputeGameContractLatest struct {
 }
 
 func NewSuperFaultDisputeGameContract(ctx context.Context, metrics metrics.ContractMetricer, addr common.Address, caller *batching.MultiCaller) (FaultDisputeGameContract, error) {
-	contractAbi := snapshots.LoadSuperFaultDisputeGameABI()
+	// SuperFaultDisputeGameABI is not available in snapshots, using regular FaultDisputeGameABI as fallback
+	contractAbi := snapshots.LoadFaultDisputeGameABI()
 	return &SuperFaultDisputeGameContractLatest{
 		FaultDisputeGameContractLatest: FaultDisputeGameContractLatest{
 			metrics:     metrics,
