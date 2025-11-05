@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 )
 
 func TestDecodeCall(t *testing.T) {

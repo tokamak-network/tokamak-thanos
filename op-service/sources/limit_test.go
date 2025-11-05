@@ -2,16 +2,16 @@ package sources
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 )
 
 type MockRPC struct {
@@ -34,8 +34,8 @@ func (m *MockRPC) BatchCallContext(ctx context.Context, b []rpc.BatchElem) error
 	return <-m.errC
 }
 
-func (m *MockRPC) EthSubscribe(ctx context.Context, channel any, args ...any) (ethereum.Subscription, error) {
-	m.t.Fatal("EthSubscribe should not be called")
+func (m *MockRPC) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	m.t.Fatal("Subscribe should not be called")
 	return nil, nil
 }
 
@@ -97,10 +97,10 @@ func TestLimitClient(t *testing.T) {
 		// None of the clients should return yet
 	}
 
-	m.errC <- fmt.Errorf("fake-error")
-	m.errC <- fmt.Errorf("fake-error")
+	m.errC <- errors.New("fake-error")
+	m.errC <- errors.New("fake-error")
 	require.Eventually(t, func() bool { return m.blockedCallers.Load() == 1 }, time.Second, 10*time.Millisecond)
-	m.errC <- fmt.Errorf("fake-error")
+	m.errC <- errors.New("fake-error")
 
 	require.ErrorContains(t, <-errC1, "fake-error")
 	require.ErrorContains(t, <-errC2, "fake-error")

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 var DefaultBatchSize = 100

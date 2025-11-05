@@ -7,16 +7,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 )
 
 var (
-	// Returned by CriticalError when there is an incompatible tx type already in the mempool.
-	// geth defines this error as txpool.ErrAlreadyReserved in v1.13.14 so we can remove this
-	// declaration once op-geth is updated to this version.
-	ErrAlreadyReserved = errors.New("address already reserved")
-
 	// Returned by CriticalError when the system is unable to get the tx into the mempool in the
-	// alloted time
+	// allotted time
 	ErrMempoolDeadlineExpired = errors.New("failed to get tx into the mempool")
 )
 
@@ -31,15 +27,18 @@ type SendState struct {
 	now      func() time.Time
 
 	// Config
-	nonceTooLowCount    uint64
-	txInMempoolDeadline time.Time // deadline to abort at if no transactions are in the mempool
+	safeAbortNonceTooLowCount uint64
+	txInMempoolDeadline       time.Time // deadline to abort at if no transactions are in the mempool
 
 	// Counts of the different types of errors
-	successFullPublishCount   uint64 // nil error => tx made it to the mempool
-	safeAbortNonceTooLowCount uint64 // nonce too low error
+	successfulPublishCount uint64 // nil error => tx made it to the mempool
+	nonceTooLowCount       uint64 // nonce too low error
 
 	// Whether any attempt to send the tx resulted in ErrAlreadyReserved
 	alreadyReserved bool
+
+	// Whether we should bump fees before trying to publish the tx again
+	bumpFees bool
 
 	// Miscellaneous tracking
 	bumpCount int // number of times we have bumped the gas price
@@ -72,11 +71,11 @@ func (s *SendState) ProcessSendError(err error) {
 
 	// Record the type of error
 	switch {
-	case err == nil:
-		s.successFullPublishCount++
+	case err == nil || errStringMatch(err, txpool.ErrAlreadyKnown):
+		s.successfulPublishCount++
 	case errStringMatch(err, core.ErrNonceTooLow):
 		s.nonceTooLowCount++
-	case errStringMatch(err, ErrAlreadyReserved):
+	case errStringMatch(err, txpool.ErrAlreadyReserved):
 		s.alreadyReserved = true
 	}
 }
@@ -124,12 +123,16 @@ func (s *SendState) CriticalError() error {
 	case s.nonceTooLowCount >= s.safeAbortNonceTooLowCount:
 		// we have exceeded the nonce too low count
 		return core.ErrNonceTooLow
-	case s.successFullPublishCount == 0 && s.now().After(s.txInMempoolDeadline):
-		// unable to get the tx into the mempool in the alloted time
+	case s.successfulPublishCount == 0 && s.nonceTooLowCount > 0:
+		// A nonce too low error before successfully publishing any transaction means the tx will
+		// need a different nonce, which we can force by returning error.
+		return core.ErrNonceTooLow
+	case s.successfulPublishCount == 0 && s.now().After(s.txInMempoolDeadline):
+		// unable to get the tx into the mempool in the allotted time
 		return ErrMempoolDeadlineExpired
 	case s.alreadyReserved:
 		// incompatible tx type in mempool
-		return ErrAlreadyReserved
+		return txpool.ErrAlreadyReserved
 	}
 	return nil
 }

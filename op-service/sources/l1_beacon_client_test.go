@@ -13,20 +13,26 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ethereum/go-ethereum/crypto/kzg4844"
+
 	client_mocks "github.com/tokamak-network/tokamak-thanos/op-service/client/mocks"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/mocks"
 )
+
+//go:generate mockery --srcpkg=github.com/tokamak-network/tokamak-thanos/op-service/apis --name BlobSideCarsClient --with-expecter=true
+
+//go:generate mockery --srcpkg=github.com/tokamak-network/tokamak-thanos/op-service/apis --name BeaconClient --with-expecter=true
 
 func makeTestBlobSidecar(index uint64) (eth.IndexedBlobHash, *eth.BlobSidecar) {
 	blob := kzg4844.Blob{}
 	// make first byte of test blob match its index so we can easily verify if is returned in the
 	// expected order
 	blob[0] = byte(index)
-	commit, _ := kzg4844.BlobToCommitment(blob)
-	proof, _ := kzg4844.ComputeBlobProof(blob, commit)
+	commit, _ := kzg4844.BlobToCommitment(&blob)
+	proof, _ := kzg4844.ComputeBlobProof(&blob, commit)
 	hash := eth.KZGToVersionedHash(commit)
 
 	idh := eth.IndexedBlobHash{
@@ -127,7 +133,7 @@ func TestBeaconClientNoErrorPrimary(t *testing.T) {
 
 	ctx := context.Background()
 	p := mocks.NewBeaconClient(t)
-	f := mocks.NewBlobSideCarsFetcher(t)
+	f := mocks.NewBlobSideCarsClient(t)
 	c := NewL1BeaconClient(p, L1BeaconClientConfig{}, f)
 	p.EXPECT().BeaconGenesis(ctx).Return(eth.APIGenesisResponse{Data: eth.ReducedGenesisData{GenesisTime: 10}}, nil)
 	p.EXPECT().ConfigSpec(ctx).Return(eth.APIConfigResponse{Data: eth.ReducedConfigData{SecondsPerSlot: 2}}, nil)
@@ -151,7 +157,7 @@ func TestBeaconClientFallback(t *testing.T) {
 
 	ctx := context.Background()
 	p := mocks.NewBeaconClient(t)
-	f := mocks.NewBlobSideCarsFetcher(t)
+	f := mocks.NewBlobSideCarsClient(t)
 	c := NewL1BeaconClient(p, L1BeaconClientConfig{}, f)
 	p.EXPECT().BeaconGenesis(ctx).Return(eth.APIGenesisResponse{Data: eth.ReducedGenesisData{GenesisTime: 10}}, nil)
 	p.EXPECT().ConfigSpec(ctx).Return(eth.APIConfigResponse{Data: eth.ReducedConfigData{SecondsPerSlot: 2}}, nil)
@@ -215,14 +221,14 @@ func TestBeaconHTTPClient(t *testing.T) {
 }
 
 func TestClientPoolSingle(t *testing.T) {
-	p := NewClientPool[int](1)
+	p := NewClientPool(1)
 	for i := 0; i < 10; i++ {
 		require.Equal(t, 1, p.Get())
 		p.MoveToNext()
 	}
 }
 func TestClientPoolSeveral(t *testing.T) {
-	p := NewClientPool[int](0, 1, 2, 3)
+	p := NewClientPool(0, 1, 2, 3)
 	for i := 0; i < 25; i++ {
 		require.Equal(t, i%4, p.Get())
 		p.MoveToNext()

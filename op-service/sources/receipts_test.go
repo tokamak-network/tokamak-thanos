@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -17,10 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/client"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 type ethBackend struct {
@@ -283,7 +283,7 @@ func TestEthClient_FetchReceipts(t *testing.T) {
 		{
 			name:         "infura",
 			providerKind: RPCKindInfura,
-			setup:        fallbackCase(4, EthGetTransactionReceiptBatch),
+			setup:        fallbackCase(4, EthGetBlockReceipts, EthGetTransactionReceiptBatch),
 		},
 		{
 			name:         "nethermind",

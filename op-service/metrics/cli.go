@@ -17,6 +17,8 @@ const (
 	defaultListenPort  = 7300
 )
 
+var ErrInvalidPort = errors.New("invalid metrics port")
+
 func DefaultCLIConfig() CLIConfig {
 	return CLIConfig{
 		Enabled:    false,
@@ -26,23 +28,30 @@ func DefaultCLIConfig() CLIConfig {
 }
 
 func CLIFlags(envPrefix string) []cli.Flag {
+	return CLIFlagsWithCategory(envPrefix, "")
+}
+
+func CLIFlagsWithCategory(envPrefix string, category string) []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{
-			Name:    EnabledFlagName,
-			Usage:   "Enable the metrics server",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "METRICS_ENABLED"),
+			Name:     EnabledFlagName,
+			Usage:    "Enable the metrics server",
+			EnvVars:  opservice.PrefixEnvVar(envPrefix, "METRICS_ENABLED"),
+			Category: category,
 		},
 		&cli.StringFlag{
-			Name:    ListenAddrFlagName,
-			Usage:   "Metrics listening address",
-			Value:   defaultListenAddr, // TODO(CLI-4159): Switch to 127.0.0.1
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "METRICS_ADDR"),
+			Name:     ListenAddrFlagName,
+			Usage:    "Metrics listening address",
+			Value:    defaultListenAddr, // TODO: Switch to 127.0.0.1
+			EnvVars:  opservice.PrefixEnvVar(envPrefix, "METRICS_ADDR"),
+			Category: category,
 		},
 		&cli.IntFlag{
-			Name:    PortFlagName,
-			Usage:   "Metrics listening port",
-			Value:   defaultListenPort,
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "METRICS_PORT"),
+			Name:     PortFlagName,
+			Usage:    "Metrics listening port",
+			Value:    defaultListenPort,
+			EnvVars:  opservice.PrefixEnvVar(envPrefix, "METRICS_PORT"),
+			Category: category,
 		},
 	}
 }
@@ -59,7 +68,7 @@ func (m CLIConfig) Check() error {
 	}
 
 	if m.ListenPort < 0 || m.ListenPort > math.MaxUint16 {
-		return errors.New("invalid metrics port")
+		return ErrInvalidPort
 	}
 
 	return nil

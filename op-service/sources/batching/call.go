@@ -3,10 +3,10 @@ package batching
 import (
 	"math/big"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
 type BatchElementCreator func(block rpcblock.Block) (any, rpc.BatchElem)
@@ -18,6 +18,12 @@ type Call interface {
 
 type CallResult struct {
 	out []interface{}
+}
+
+func NewCallResult(out []any) *CallResult {
+	return &CallResult{
+		out: out,
+	}
 }
 
 func (c *CallResult) GetUint8(i int) uint8 {
@@ -66,4 +72,8 @@ func (c *CallResult) GetBytes32Slice(i int) [][32]byte {
 
 func (c *CallResult) GetString(i int) string {
 	return *abi.ConvertType(c.out[i], new(string)).(*string)
+}
+
+func (c *CallResult) Get(i int) interface{} {
+	return c.out[i]
 }

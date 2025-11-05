@@ -8,12 +8,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
 type ExpectedRpcCall interface {
@@ -59,7 +59,7 @@ func (r *RpcStub) findExpectedCall(rpcMethod string, args ...interface{}) Expect
 		if err := call.Matches(rpcMethod, args...); err == nil {
 			return call
 		} else {
-			matchResults += fmt.Sprintf("%v: %v", call, err)
+			matchResults += fmt.Sprintf("%v: %v\n", call, err)
 		}
 	}
 	require.Failf(r.t, "No matching expected calls.", matchResults)

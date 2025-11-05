@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 func NewLoggingMiddleware(lgr log.Logger, next http.Handler) http.Handler {
@@ -20,6 +20,7 @@ func NewLoggingMiddleware(lgr log.Logger, next http.Handler) http.Handler {
 			"path", r.URL.EscapedPath(),
 			"duration", time.Since(start),
 			"remote_addr", r.RemoteAddr,
+			"upgrade_attempt", ww.UpgradeAttempt,
 		)
 	})
 }

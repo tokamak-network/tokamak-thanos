@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 )
 
 func TestContractCall_ToCallArgs(t *testing.T) {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 //go:embed testdata
@@ -70,7 +70,7 @@ func TestBlockJSON(t *testing.T) {
 			var block RPCBlock
 			readJsonTestdata(t, "testdata/data/blocks/"+strings.Replace(entry.Name(), "_metadata.json", "_data.json", 1), &block)
 
-			err := block.verify()
+			err := block.Verify()
 			if metadata.Fail {
 				require.NotNil(t, err, "expecting verification error")
 				require.ErrorContains(t, err, metadata.Reason, "validation failed for incorrect reason")
@@ -128,8 +128,6 @@ func TestBlockToExecutionPayloadIncludesEcotoneProperties(t *testing.T) {
 		Hash:             hdr.Hash(),
 		BlobGasUsed:      (*hexutil.Uint64)(hdr.BlobGasUsed),
 		ExcessBlobGas:    (*hexutil.Uint64)(hdr.ExcessBlobGas),
-		// Prague
-		RequestsHash: hdr.RequestsHash,
 	}
 
 	block := RPCBlock{

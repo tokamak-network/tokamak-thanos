@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
 	"github.com/tokamak-network/tokamak-thanos/op-service/client"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
@@ -26,35 +27,22 @@ const (
 	sidecarsMethodPrefix = "eth/v1/beacon/blob_sidecars/"
 )
 
+// Re-export apis types for backward compatibility
+type BeaconClient = apis.BeaconClient
+type BlobSideCarsFetcher = apis.BlobSideCarsClient
+
 type L1BeaconClientConfig struct {
 	FetchAllSidecars bool
 }
 
 // L1BeaconClient is a high level golang client for the Beacon API.
 type L1BeaconClient struct {
-	cl   BeaconClient
-	pool *ClientPool[BlobSideCarsFetcher]
+	cl   apis.BeaconClient
+	pool *ClientPool[apis.BlobSideCarsClient]
 	cfg  L1BeaconClientConfig
 
 	initLock     sync.Mutex
 	timeToSlotFn TimeToSlotFn
-}
-
-// BeaconClient is a thin wrapper over the Beacon APIs.
-//
-//go:generate mockery --name BeaconClient --with-expecter=true
-type BeaconClient interface {
-	NodeVersion(ctx context.Context) (string, error)
-	ConfigSpec(ctx context.Context) (eth.APIConfigResponse, error)
-	BeaconGenesis(ctx context.Context) (eth.APIGenesisResponse, error)
-	BeaconBlobSideCars(ctx context.Context, fetchAllSidecars bool, slot uint64, hashes []eth.IndexedBlobHash) (eth.APIGetBlobSidecarsResponse, error)
-}
-
-// BlobSideCarsFetcher is a thin wrapper over the Beacon APIs.
-//
-//go:generate mockery --name BlobSideCarsFetcher --with-expecter=true
-type BlobSideCarsFetcher interface {
-	BeaconBlobSideCars(ctx context.Context, fetchAllSidecars bool, slot uint64, hashes []eth.IndexedBlobHash) (eth.APIGetBlobSidecarsResponse, error)
 }
 
 // BeaconHTTPClient implements BeaconClient. It provides golang types over the basic Beacon API.
@@ -175,8 +163,8 @@ func (p *ClientPool[T]) MoveToNext() {
 // NewL1BeaconClient returns a client for making requests to an L1 consensus layer node.
 // Fallbacks are optional clients that will be used for fetching blobs. L1BeaconClient will rotate between
 // the `cl` and the fallbacks whenever a client runs into an error while fetching blobs.
-func NewL1BeaconClient(cl BeaconClient, cfg L1BeaconClientConfig, fallbacks ...BlobSideCarsFetcher) *L1BeaconClient {
-	cs := append([]BlobSideCarsFetcher{cl}, fallbacks...)
+func NewL1BeaconClient(cl apis.BeaconClient, cfg L1BeaconClientConfig, fallbacks ...apis.BlobSideCarsClient) *L1BeaconClient {
+	cs := append([]apis.BlobSideCarsClient{cl}, fallbacks...)
 	return &L1BeaconClient{
 		cl:   cl,
 		pool: NewClientPool(cs...),
@@ -287,7 +275,11 @@ func (cl *L1BeaconClient) GetBlobs(ctx context.Context, ref eth.L1BlockRef, hash
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blob sidecars for L1BlockRef %s: %w", ref, err)
 	}
-	return blobsFromSidecars(blobSidecars, hashes)
+	blobs, err := blobsFromSidecars(blobSidecars, hashes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blobs from sidecars for L1BlockRef %s: %w", ref, err)
+	}
+	return blobs, nil
 }
 
 func blobsFromSidecars(blobSidecars []*eth.BlobSidecar, hashes []eth.IndexedBlobHash) ([]*eth.Blob, error) {
