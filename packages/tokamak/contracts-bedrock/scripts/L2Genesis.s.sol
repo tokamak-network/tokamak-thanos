@@ -549,7 +549,7 @@ contract L2Genesis is Deployer {
 
         console.log("Writing state dump to: %s", _path);
         vm.dumpState(_path);
-        sortJsonByKeys(_path);
+        // sortJsonByKeys(_path); // Disabled: jq failure causes file deletion
     }
 
     /// @notice Sorts the allocs by address

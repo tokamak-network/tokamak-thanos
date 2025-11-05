@@ -1,0 +1,114 @@
+overrides:
+  deployer:
+    faultGameMaxClockDuration: 1200
+    faultGameClockExtension: 300
+    preimageOracleChallengePeriod: 300
+    vmType: "CANNON"
+    # RAT (Refund Address Tracker) configuration
+    deployRAT: true
+    perTestBondAmount: "100000000000000"          # 0.0001 ETH in wei (uint64 범위 내)
+    evidenceSubmissionPeriod: 600                # 10 minutes in seconds
+    minimumStakingBalance: "1000000000000000000"    # 1 ETH in wei
+    ratTriggerProbability: "100000"                         # 100% (100000/100000)
+    ratManager: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"  # First prefunded account
+optimism_package:
+  faucet:
+    enabled: true
+    image: op-faucet:devnet
+  chains:
+    op-kurtosis:
+      participants:
+        node0:
+          el:
+            type: op-geth
+            image: ""
+            log_level: ""
+            extra_env_vars: {}
+            extra_labels: {}
+            extra_params: []
+            tolerations: []
+            volume_size: 0
+            min_cpu: 0
+            max_cpu: 0
+            min_mem: 0
+            max_mem: 0
+          cl:
+            type: op-node
+            image: op-node:devnet
+            log_level: ""
+            extra_env_vars: {}
+            extra_labels: {}
+            extra_params: []
+            tolerations: []
+            volume_size: 0
+            min_cpu: 0
+            max_cpu: 0
+            min_mem: 0
+            max_mem: 0
+          mev_params:
+            image: ""
+            builder_host: ""
+            builder_port: ""
+      network_params:
+        network: "kurtosis"
+        network_id: "2151908"
+        seconds_per_slot: 2
+        fjord_time_offset: 0
+        granite_time_offset: 0
+        holocene_time_offset: 0
+        fund_dev_accounts: true
+      batcher_params:
+        image: op-batcher:devnet
+        extra_params: []
+      proposer_params:
+        image: op-proposer:devnet
+        extra_params: []
+        game_type: 0
+        proposal_interval: 10m
+  challengers:
+    challenger:
+      enabled: true
+      image: op-challenger:devnet
+      participants: "*"
+      cannon_prestates_url: file:///op-program/prestate.json
+      cannon_trace_types: ["cannon"]
+      extra_params: ["--unsafe-allow-invalid-prestate"]
+  op_contract_deployer_params:
+    image: op-deployer:devnet
+    l1_artifacts_locator: artifact://l1-artifacts
+    l2_artifacts_locator: artifact://l2-artifacts
+    overrides:
+      faultGameAbsolutePrestate: 0x038512e02c4c3f7bdaec27d00edf55b7155e0905301e1a88083e4e0a6764d54c
+      vmType: "CANNON"
+      faultGameMaxClockDuration: 1200
+      faultGameClockExtension: 300
+      preimageOracleChallengePeriod: 300
+      # RAT (Refund Address Tracker) configuration
+      deployRAT: true
+      perTestBondAmount: "100000000000000"          # 0.0001 ETH in wei (uint64 범위 내)
+      evidenceSubmissionPeriod: 600                # 10 minutes in seconds
+      minimumStakingBalance: "1000000000000000000"    # 1 ETH in wei
+      ratTriggerProbability: "100000"                         # 100% (100000/100000)
+      ratManager: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"  # First prefunded account
+  global_log_level: "debug"
+  global_node_selectors: {}
+  global_tolerations: []
+  persistent: false
+ethereum_package:
+  participants:
+    - el_type: geth
+      cl_type: teku
+      cl_image: "consensys/teku:25.7.0"
+  network_params:
+    preset: minimal
+    genesis_delay: 10
+    prefunded_accounts: '{"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {"balance": "1000ETH"}, "0x70997970C51812dc3A010C7d01b50e0d17dc79c8": {"balance": "1000ETH"}, "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC": {"balance": "1000ETH"}, "0x90F79bf6EB2c4f870365E785982E1f101E93b906": {"balance": "1000ETH"}, "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65": {"balance": "1000ETH"}}'
+    additional_preloaded_contracts: |
+      {
+        "0x4e59b44847b379578588920cA78FbF26c0B4956C": {
+          "balance": "0ETH",
+          "code": "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3",
+          "storage": {},
+          "nonce": "1"
+        }
+      }

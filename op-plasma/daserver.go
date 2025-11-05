@@ -16,7 +16,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/rpc"
 )
 
 type KVStore interface {
@@ -30,7 +29,6 @@ type DAServer struct {
 	log            log.Logger
 	endpoint       string
 	store          KVStore
-	tls            *rpc.ServerTLSConfig
 	httpServer     *http.Server
 	listener       net.Listener
 	useGenericComm bool
@@ -66,14 +64,8 @@ func (d *DAServer) Start() error {
 	d.endpoint = listener.Addr().String()
 	errCh := make(chan error, 1)
 	go func() {
-		if d.tls != nil {
-			if err := d.httpServer.ServeTLS(d.listener, "", ""); err != nil {
-				errCh <- err
-			}
-		} else {
-			if err := d.httpServer.Serve(d.listener); err != nil {
-				errCh <- err
-			}
+		if err := d.httpServer.Serve(d.listener); err != nil {
+			errCh <- err
 		}
 	}()
 

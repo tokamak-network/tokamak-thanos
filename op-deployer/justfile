@@ -1,0 +1,12 @@
+build:
+    go build -o bin/op-deployer cmd/op-deployer/main.go
+
+build-contracts:
+    just ../packages/contracts-bedrock/forge-build
+
+test args='./...': build-contracts
+    go test -v {{args}}
+
+copy-contract-artifacts:
+    rm -f ./pkg/deployer/artifacts/forge-artifacts/artifacts.tgz
+    @if [ -d "../packages/contracts-bedrock/forge-artifacts" ] && [ "$$(ls -A ../packages/contracts-bedrock/forge-artifacts 2>/dev/null)" ]; then echo "Using forge-artifacts directory"; tar -cvzf ./pkg/deployer/artifacts/forge-artifacts/artifacts.tgz -C ../packages/contracts-bedrock/forge-artifacts --exclude="*.t.sol" .; elif [ -d "../packages/contracts-bedrock/out" ] && [ "$$(ls -A ../packages/contracts-bedrock/out 2>/dev/null)" ]; then echo "Using out directory"; tar -cvzf ./pkg/deployer/artifacts/forge-artifacts/artifacts.tgz -C ../packages/contracts-bedrock/out --exclude="*.t.sol" .; else echo "Error: No contract artifacts found"; exit 1; fi

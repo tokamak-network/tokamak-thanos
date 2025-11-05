@@ -22,7 +22,7 @@ type adminAPI struct {
 
 func NewAdminAPI(dr ProposerDriver, m metrics.RPCMetricer, log log.Logger) *adminAPI {
 	return &adminAPI{
-		CommonAdminAPI: rpc.NewCommonAdminAPI(m, log),
+		CommonAdminAPI: rpc.NewCommonAdminAPI(log),
 		b:              dr,
 	}
 }
