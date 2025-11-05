@@ -3,15 +3,16 @@ package batcher
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/urfave/cli/v2"
 
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
+	"github.com/tokamak-network/tokamak-thanos/op-batcher/config"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/flags"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
-	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
@@ -19,15 +20,59 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
+// Current max blobs const, irrespective of active fork, is that of the Prague
+// blob config.
+var maxBlobsPerBlock = params.DefaultPragueBlobConfig.Max
+
+type ThrottleConfig struct {
+	AdditionalEndpoints []string
+
+	TxSizeLowerLimit    uint64
+	TxSizeUpperLimit    uint64
+	BlockSizeLowerLimit uint64
+	BlockSizeUpperLimit uint64
+
+	ControllerType config.ThrottleControllerType
+	LowerThreshold uint64
+	UpperThreshold uint64
+
+	// PID Controller specific parameters
+	PidKp          float64
+	PidKi          float64
+	PidKd          float64
+	PidIntegralMax float64
+	PidOutputMax   float64
+	PidSampleTime  time.Duration
+}
+
+func (c *ThrottleConfig) Check() error {
+	if !config.ValidThrottleControllerType(c.ControllerType) {
+		return fmt.Errorf("invalid throttle controller type: %s (must be one of: %v)", c.ControllerType, config.ThrottleControllerTypes)
+	}
+
+	if c.LowerThreshold != 0 && c.UpperThreshold <= c.LowerThreshold {
+		return fmt.Errorf("throttle.upper-threshold must be greater than throttle.lower-threshold")
+	}
+
+	if c.BlockSizeLowerLimit > 0 && c.BlockSizeLowerLimit >= c.BlockSizeUpperLimit {
+		return fmt.Errorf("throttle.block-size-lower-limit must be less than throttle.block-size-upper-limit")
+	}
+
+	if c.TxSizeLowerLimit > 0 && c.ControllerType != config.StepControllerType && c.TxSizeLowerLimit >= c.TxSizeUpperLimit {
+		return fmt.Errorf("throttle.tx-size-lower-limit must be less than throttle.tx-size-upper-limit")
+	}
+	return nil
+}
+
 type CLIConfig struct {
 	// L1EthRpc is the HTTP provider URL for L1.
 	L1EthRpc string
 
 	// L2EthRpc is the HTTP provider URL for the L2 execution engine. A comma-separated list enables the active L2 provider. Such a list needs to match the number of RollupRpcs provided.
-	L2EthRpc string
+	L2EthRpc []string
 
 	// RollupRpc is the HTTP provider URL for the L2 rollup node. A comma-separated list enables the active L2 provider. Such a list needs to match the number of L2EthRpcs provided.
-	RollupRpc string
+	RollupRpc []string
 
 	// MaxChannelDuration is the maximum duration (in #L1-blocks) to keep a
 	// channel open. This allows to more eagerly send batcher transactions
@@ -55,6 +100,9 @@ type CLIConfig struct {
 	// MaxL1TxSize is the maximum size of a batch tx submitted to L1.
 	// If using blobs, this setting is ignored and the max blob size is used.
 	MaxL1TxSize uint64
+
+	// Maximum number of blocks to add to a span batch. Default is 0 - no maximum.
+	MaxBlocksPerSpanBatch int
 
 	// The target number of frames to create per channel. Controls number of blobs
 	// per blob tx, if using Blob DA.
@@ -85,35 +133,38 @@ type CLIConfig struct {
 	BatchType uint
 
 	// DataAvailabilityType is one of the values defined in op-batcher/flags/types.go and dictates
-	// the data availability type to use for posting batches, e.g. blobs vs calldata.
+	// the data availability type to use for posting batches, e.g. blobs vs calldata, or auto
+	// for choosing the most economic type dynamically at the start of each channel.
 	DataAvailabilityType flags.DataAvailabilityType
+
+	// ActiveSequencerCheckDuration is the duration between checks to determine the active sequencer endpoint.
+	ActiveSequencerCheckDuration time.Duration
 
 	// TestUseMaxTxSizeForBlobs allows to set the blob size with MaxL1TxSize.
 	// Should only be used for testing purposes.
 	TestUseMaxTxSizeForBlobs bool
 
-	// ActiveSequencerCheckDuration is the duration between checks to determine the active sequencer endpoint.
-	ActiveSequencerCheckDuration time.Duration
+	ThrottleConfig ThrottleConfig
 
 	TxMgrConfig   txmgr.CLIConfig
 	LogConfig     oplog.CLIConfig
 	MetricsConfig opmetrics.CLIConfig
 	PprofConfig   oppprof.CLIConfig
 	RPC           oprpc.CLIConfig
-	PlasmaDA      plasma.CLIConfig
+	AltDA         altda.CLIConfig
 }
 
 func (c *CLIConfig) Check() error {
 	if c.L1EthRpc == "" {
 		return errors.New("empty L1 RPC URL")
 	}
-	if c.L2EthRpc == "" {
+	if len(c.L2EthRpc) == 0 {
 		return errors.New("empty L2 RPC URL")
 	}
-	if c.RollupRpc == "" {
+	if len(c.RollupRpc) == 0 {
 		return errors.New("empty rollup RPC URL")
 	}
-	if strings.Count(c.RollupRpc, ",") != strings.Count(c.L2EthRpc, ",") {
+	if len(c.RollupRpc) != len(c.L2EthRpc) {
 		return errors.New("number of rollup and eth URLs must match")
 	}
 	if c.PollInterval == 0 {
@@ -131,18 +182,26 @@ func (c *CLIConfig) Check() error {
 	if !derive.ValidCompressionAlgo(c.CompressionAlgo) {
 		return fmt.Errorf("invalid compression algo %v", c.CompressionAlgo)
 	}
-	if c.BatchType > 1 {
+	if c.BatchType > derive.SpanBatchType {
 		return fmt.Errorf("unknown batch type: %v", c.BatchType)
 	}
 	if c.CheckRecentTxsDepth > 128 {
 		return fmt.Errorf("CheckRecentTxsDepth cannot be set higher than 128: %v", c.CheckRecentTxsDepth)
 	}
-	if c.DataAvailabilityType == flags.BlobsType && c.TargetNumFrames > 6 {
-		return errors.New("too many frames for blob transactions, max 6")
-	}
 	if !flags.ValidDataAvailabilityType(c.DataAvailabilityType) {
 		return fmt.Errorf("unknown data availability type: %q", c.DataAvailabilityType)
 	}
+	// Most chains' L1s still have only Cancun active, but we don't want to
+	// overcomplicate this check with a dynamic L1 query, so we just use maxBlobsPerBlock.
+	// We want to check for both, blobs and auto da-type.
+	if c.DataAvailabilityType != flags.CalldataType && c.TargetNumFrames > maxBlobsPerBlock {
+		return fmt.Errorf("too many frames for blob transactions, max %d", maxBlobsPerBlock)
+	}
+
+	if err := c.ThrottleConfig.Check(); err != nil {
+		return err
+	}
+
 	if err := c.MetricsConfig.Check(); err != nil {
 		return err
 	}
@@ -163,8 +222,8 @@ func NewConfig(ctx *cli.Context) *CLIConfig {
 	return &CLIConfig{
 		/* Required Flags */
 		L1EthRpc:        ctx.String(flags.L1EthRpcFlag.Name),
-		L2EthRpc:        ctx.String(flags.L2EthRpcFlag.Name),
-		RollupRpc:       ctx.String(flags.RollupRpcFlag.Name),
+		L2EthRpc:        ctx.StringSlice(flags.L2EthRpcFlag.Name),
+		RollupRpc:       ctx.StringSlice(flags.RollupRpcFlag.Name),
 		SubSafetyMargin: ctx.Uint64(flags.SubSafetyMarginFlag.Name),
 		PollInterval:    ctx.Duration(flags.PollIntervalFlag.Name),
 
@@ -172,6 +231,7 @@ func NewConfig(ctx *cli.Context) *CLIConfig {
 		MaxPendingTransactions:       ctx.Uint64(flags.MaxPendingTransactionsFlag.Name),
 		MaxChannelDuration:           ctx.Uint64(flags.MaxChannelDurationFlag.Name),
 		MaxL1TxSize:                  ctx.Uint64(flags.MaxL1TxSizeBytesFlag.Name),
+		MaxBlocksPerSpanBatch:        ctx.Int(flags.MaxBlocksPerSpanBatch.Name),
 		TargetNumFrames:              ctx.Int(flags.TargetNumFramesFlag.Name),
 		ApproxComprRatio:             ctx.Float64(flags.ApproxComprRatioFlag.Name),
 		Compressor:                   ctx.String(flags.CompressorFlag.Name),
@@ -187,6 +247,22 @@ func NewConfig(ctx *cli.Context) *CLIConfig {
 		MetricsConfig:                opmetrics.ReadCLIConfig(ctx),
 		PprofConfig:                  oppprof.ReadCLIConfig(ctx),
 		RPC:                          oprpc.ReadCLIConfig(ctx),
-		PlasmaDA:                     plasma.ReadCLIConfig(ctx),
+		AltDA:                        altda.ReadCLIConfig(ctx),
+		ThrottleConfig: ThrottleConfig{
+			AdditionalEndpoints: ctx.StringSlice(flags.AdditionalThrottlingEndpointsFlag.Name),
+			TxSizeLowerLimit:    ctx.Uint64(flags.ThrottleTxSizeLowerLimitFlag.Name),
+			TxSizeUpperLimit:    ctx.Uint64(flags.ThrottleTxSizeUpperLimitFlag.Name),
+			BlockSizeLowerLimit: ctx.Uint64(flags.ThrottleBlockSizeLowerLimitFlag.Name),
+			BlockSizeUpperLimit: ctx.Uint64(flags.ThrottleBlockSizeUpperLimitFlag.Name),
+			ControllerType:      config.ThrottleControllerType(ctx.String(flags.ThrottleControllerTypeFlag.Name)),
+			LowerThreshold:      ctx.Uint64(flags.ThrottleUsafeDABytesLowerThresholdFlag.Name),
+			UpperThreshold:      ctx.Uint64(flags.ThrottleUsafeDABytesUpperThresholdFlag.Name),
+			PidKp:               ctx.Float64(flags.ThrottlePidKpFlag.Name),
+			PidKi:               ctx.Float64(flags.ThrottlePidKiFlag.Name),
+			PidKd:               ctx.Float64(flags.ThrottlePidKdFlag.Name),
+			PidIntegralMax:      ctx.Float64(flags.ThrottlePidIntegralMaxFlag.Name),
+			PidOutputMax:        ctx.Float64(flags.ThrottlePidOutputMaxFlag.Name),
+			PidSampleTime:       ctx.Duration(flags.ThrottlePidSampleTimeFlag.Name),
+		},
 	}
 }

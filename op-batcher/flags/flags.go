@@ -8,9 +8,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/compressor"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
-	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	openum "github.com/tokamak-network/tokamak-thanos/op-service/enum"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
@@ -20,7 +20,9 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
-const EnvVarPrefix = "OP_BATCHER"
+const (
+	EnvVarPrefix = "OP_BATCHER"
+)
 
 func prefixEnvVars(name string) []string {
 	return opservice.PrefixEnvVar(EnvVarPrefix, name)
@@ -33,12 +35,12 @@ var (
 		Usage:   "HTTP provider URL for L1",
 		EnvVars: prefixEnvVars("L1_ETH_RPC"),
 	}
-	L2EthRpcFlag = &cli.StringFlag{
+	L2EthRpcFlag = &cli.StringSliceFlag{
 		Name:    "l2-eth-rpc",
 		Usage:   "HTTP provider URL for L2 execution engine. A comma-separated list enables the active L2 endpoint provider. Such a list needs to match the number of rollup-rpcs provided.",
 		EnvVars: prefixEnvVars("L2_ETH_RPC"),
 	}
-	RollupRpcFlag = &cli.StringFlag{
+	RollupRpcFlag = &cli.StringSliceFlag{
 		Name:    "rollup-rpc",
 		Usage:   "HTTP provider URL for Rollup node. A comma-separated list enables the active L2 endpoint provider. Such a list needs to match the number of l2-eth-rpcs provided.",
 		EnvVars: prefixEnvVars("ROLLUP_RPC"),
@@ -75,6 +77,11 @@ var (
 		Usage:   "The maximum size of a batch tx submitted to L1. Ignored for blobs, where max blob size will be used.",
 		Value:   120_000, // will be overwritten to max for blob da-type
 		EnvVars: prefixEnvVars("MAX_L1_TX_SIZE_BYTES"),
+	}
+	MaxBlocksPerSpanBatch = &cli.IntFlag{
+		Name:    "max-blocks-per-span-batch",
+		Usage:   "Maximum number of blocks to add to a span batch. Default is 0 - no maximum.",
+		EnvVars: prefixEnvVars("MAX_BLOCKS_PER_SPAN_BATCH"),
 	}
 	TargetNumFramesFlag = &cli.IntFlag{
 		Name:    "target-num-frames",
@@ -133,8 +140,8 @@ var (
 	}
 	ActiveSequencerCheckDurationFlag = &cli.DurationFlag{
 		Name:    "active-sequencer-check-duration",
-		Usage:   "The duration between checks to determine the active sequencer endpoint. ",
-		Value:   2 * time.Minute,
+		Usage:   "The duration between checks to determine the active sequencer endpoint.",
+		Value:   5 * time.Second,
 		EnvVars: prefixEnvVars("ACTIVE_SEQUENCER_CHECK_DURATION"),
 	}
 	CheckRecentTxsDepthFlag = &cli.IntFlag{
@@ -151,6 +158,7 @@ var (
 		Value:   false,
 		EnvVars: prefixEnvVars("WAIT_NODE_SYNC"),
 	}
+
 	// Legacy Flags
 	SequencerHDPathFlag = txmgr.SequencerHDPathFlag
 )
@@ -169,6 +177,7 @@ var optionalFlags = []cli.Flag{
 	MaxPendingTransactionsFlag,
 	MaxChannelDurationFlag,
 	MaxL1TxSizeBytesFlag,
+	MaxBlocksPerSpanBatch,
 	TargetNumFramesFlag,
 	ApproxComprRatioFlag,
 	CompressorFlag,
@@ -181,12 +190,13 @@ var optionalFlags = []cli.Flag{
 }
 
 func init() {
+	optionalFlags = append(optionalFlags, ThrottleFlags...)
 	optionalFlags = append(optionalFlags, oprpc.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, oplog.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, opmetrics.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, oppprof.CLIFlags(EnvVarPrefix)...)
 	optionalFlags = append(optionalFlags, txmgr.CLIFlags(EnvVarPrefix)...)
-	optionalFlags = append(optionalFlags, plasma.CLIFlags(EnvVarPrefix, "")...)
+	optionalFlags = append(optionalFlags, altda.CLIFlags(EnvVarPrefix, "")...)
 
 	Flags = append(requiredFlags, optionalFlags...)
 }
