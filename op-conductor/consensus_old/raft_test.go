@@ -18,6 +18,9 @@ import (
 
 func TestCommitAndRead(t *testing.T) {
 	log := testlog.Logger(t, log.LevelInfo)
+	serverID := "SequencerA"
+	serverAddr := "127.0.0.1:0"
+	bootstrap := true
 	now := uint64(time.Now().Unix())
 	rollupCfg := &rollup.Config{
 		CanyonTime: &now,
@@ -26,22 +29,8 @@ func TestCommitAndRead(t *testing.T) {
 	if err := os.RemoveAll(storageDir); err != nil {
 		t.Fatal(err)
 	}
-	raftConsensusConfig := &RaftConsensusConfig{
-		ServerID:           "SequencerA",
-		ListenPort:         0,
-		ListenAddr:         "127.0.0.1", // local test, don't bind to external interface
-		AdvertisedAddr:     "",          // use local address that the server binds to
-		StorageDir:         storageDir,
-		Bootstrap:          true,
-		RollupCfg:          rollupCfg,
-		SnapshotInterval:   120 * time.Second,
-		SnapshotThreshold:  10240,
-		TrailingLogs:       8192,
-		HeartbeatTimeout:   1000 * time.Millisecond,
-		LeaderLeaseTimeout: 500 * time.Millisecond,
-	}
 
-	cons, err := NewRaftConsensus(log, raftConsensusConfig)
+	cons, err := NewRaftConsensus(log, serverID, serverAddr, storageDir, bootstrap, rollupCfg)
 	require.NoError(t, err)
 
 	// wait till it became leader

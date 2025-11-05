@@ -29,17 +29,13 @@ func NewUnsafeHeadTracker(log log.Logger) *unsafeHeadTracker {
 
 // Apply implements raft.FSM, it applies the latest change (latest unsafe head payload) to FSM.
 func (t *unsafeHeadTracker) Apply(l *raft.Log) interface{} {
-	if len(l.Data) == 0 {
+	if l.Data == nil || len(l.Data) == 0 {
 		return fmt.Errorf("log data is nil or empty")
 	}
 
 	data := &eth.ExecutionPayloadEnvelope{}
-	// There is no good way to know which version, so try both. Start with the most recent version
-	if err := data.UnmarshalSSZ(eth.BlockV4, uint32(len(l.Data)), bytes.NewReader(l.Data)); err != nil {
-		// Try v3 if v4 fails and return an error if v3 fails
-		if err := data.UnmarshalSSZ(eth.BlockV3, uint32(len(l.Data)), bytes.NewReader(l.Data)); err != nil {
-			return err
-		}
+	if err := data.UnmarshalSSZ(uint32(len(l.Data)), bytes.NewReader(l.Data)); err != nil {
+		return err
 	}
 
 	t.mtx.Lock()
@@ -62,12 +58,8 @@ func (t *unsafeHeadTracker) Restore(snapshot io.ReadCloser) error {
 	}
 
 	data := &eth.ExecutionPayloadEnvelope{}
-	// There is no good way to know which version, so try both. Start with the most recent version
-	if err := data.UnmarshalSSZ(eth.BlockV4, uint32(n), bytes.NewReader(buf.Bytes())); err != nil {
-		// Try v3 if v4 fails and return an error if v3 fails
-		if err := data.UnmarshalSSZ(eth.BlockV3, uint32(n), bytes.NewReader(buf.Bytes())); err != nil {
-			return err
-		}
+	if err := data.UnmarshalSSZ(uint32(n), bytes.NewReader(buf.Bytes())); err != nil {
+		return fmt.Errorf("error unmarshalling snapshot: %w", err)
 	}
 
 	t.mtx.Lock()

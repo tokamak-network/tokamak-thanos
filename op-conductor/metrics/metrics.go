@@ -3,9 +3,9 @@ package metrics
 import (
 	"strconv"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
 	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const Namespace = "op_conductor"
@@ -19,6 +19,9 @@ type Metricer interface {
 	RecordStopSequencer(success bool)
 	RecordHealthCheck(success bool, err error)
 	RecordLoopExecutionTime(duration float64)
+	RecordRollupBoostConnectionAttempts(success bool, source string)
+	RecordWebSocketClientCount(count int)
+	opmetrics.RPCMetricer
 }
 
 // Metrics implementation must implement RegistryMetricer to allow the metrics server to work.
@@ -29,16 +32,20 @@ type Metrics struct {
 	registry *prometheus.Registry
 	factory  opmetrics.Factory
 
+	opmetrics.RPCMetrics
+
 	info prometheus.GaugeVec
 	up   prometheus.Gauge
 
-	healthChecks    *prometheus.CounterVec
-	leaderTransfers *prometheus.CounterVec
-	sequencerStarts *prometheus.CounterVec
-	sequencerStops  *prometheus.CounterVec
-	stateChanges    *prometheus.CounterVec
+	healthChecks                  *prometheus.CounterVec
+	leaderTransfers               *prometheus.CounterVec
+	sequencerStarts               *prometheus.CounterVec
+	sequencerStops                *prometheus.CounterVec
+	stateChanges                  *prometheus.CounterVec
+	rollupBoostConnectionAttempts *prometheus.CounterVec
 
 	loopExecutionTime prometheus.Histogram
+	webSocketClients  prometheus.Gauge
 }
 
 func (m *Metrics) Registry() *prometheus.Registry {
@@ -55,6 +62,8 @@ func NewMetrics() *Metrics {
 		ns:       Namespace,
 		registry: registry,
 		factory:  factory,
+
+		RPCMetrics: opmetrics.MakeRPCMetrics(Namespace, factory),
 
 		info: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -103,6 +112,16 @@ func NewMetrics() *Metrics {
 			Help:      "Time (in seconds) to execute conductor loop iteration",
 			Buckets:   []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 		}),
+		rollupBoostConnectionAttempts: factory.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "rollup_boost_connection_attempts_count",
+			Help:      "Number of rollup boost connection attempts",
+		}, []string{"success", "source"}),
+		webSocketClients: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "websocket_clients_connected",
+			Help:      "Number of WebSocket clients currently connected to the hub",
+		}),
 	}
 }
 
@@ -118,7 +137,6 @@ func (m *Metrics) RecordInfo(version string) {
 
 // RecordUp sets the up metric to 1.
 func (m *Metrics) RecordUp() {
-	prometheus.MustRegister()
 	m.up.Set(1)
 }
 
@@ -154,4 +172,14 @@ func (m *Metrics) RecordStopSequencer(success bool) {
 // RecordLoopExecutionTime records the time it took to execute the conductor loop.
 func (m *Metrics) RecordLoopExecutionTime(duration float64) {
 	m.loopExecutionTime.Observe(duration)
+}
+
+// RecordRollupBoostConnectionAttempts increments the rollupBoostConnectionAttempts counter.
+func (m *Metrics) RecordRollupBoostConnectionAttempts(success bool, source string) {
+	m.rollupBoostConnectionAttempts.WithLabelValues(strconv.FormatBool(success), source).Inc()
+}
+
+// RecordWebSocketClientCount sets the current number of WebSocket clients connected.
+func (m *Metrics) RecordWebSocketClientCount(count int) {
+	m.webSocketClients.Set(float64(count))
 }
