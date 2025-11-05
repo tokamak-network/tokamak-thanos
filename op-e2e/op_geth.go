@@ -4,10 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"testing"
 
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/system/e2esys"
+
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/services"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -17,16 +29,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/geth"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
-	"github.com/tokamak-network/tokamak-thanos/op-service/client"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var (
@@ -39,7 +41,7 @@ var (
 // OpGeth is an actor that functions as a l2 op-geth node
 // It provides useful functions for advancing and querying the chain
 type OpGeth struct {
-	node          EthInstance
+	node          services.EthInstance
 	l2Engine      *sources.EngineClient
 	L2Client      *ethclient.Client
 	SystemConfig  eth.SystemConfig
@@ -51,15 +53,16 @@ type OpGeth struct {
 	lgr           log.Logger
 }
 
-func NewOpGeth(t testing.TB, ctx context.Context, cfg *SystemConfig) (*OpGeth, error) {
+func NewOpGeth(t testing.TB, ctx context.Context, cfg *e2esys.SystemConfig) (*OpGeth, error) {
 	logger := testlog.Logger(t, log.LevelCrit)
 
-	l1Genesis, err := genesis.BuildL1DeveloperGenesis(cfg.DeployConfig, config.L1Allocs, config.L1Deployments)
-	require.Nil(t, err)
+	l1Genesis, err := genesis.BuildL1DeveloperGenesis(cfg.DeployConfig, config.L1Allocs(config.DefaultAllocType), config.L1Deployments(config.DefaultAllocType))
+	require.NoError(t, err)
 	l1Block := l1Genesis.ToBlock()
-
-	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l1Block)
-	require.Nil(t, err)
+	allocsMode := e2eutils.GetL2AllocsMode(cfg.DeployConfig, l1Block.Time())
+	l2Allocs := config.L2Allocs(config.DefaultAllocType, allocsMode)
+	l2Genesis, err := genesis.BuildL2Genesis(cfg.DeployConfig, l2Allocs, eth.BlockRefFromHeader(l1Block.Header()))
+	require.NoError(t, err)
 	l2GenesisBlock := l2Genesis.ToBlock()
 
 	rollupGenesis := rollup.Genesis{
@@ -75,28 +78,18 @@ func NewOpGeth(t testing.TB, ctx context.Context, cfg *SystemConfig) (*OpGeth, e
 		SystemConfig: e2eutils.SystemConfigFromDeployConfig(cfg.DeployConfig),
 	}
 
-	var node EthInstance
-	if cfg.ExternalL2Shim == "" {
-		gethNode, _, err := geth.InitL2("l2", big.NewInt(int64(cfg.DeployConfig.L2ChainID)), l2Genesis, cfg.JWTFilePath)
-		require.Nil(t, err)
-		require.Nil(t, gethNode.Start())
-		node = gethNode
-	} else {
-		externalNode := (&ExternalRunner{
-			Name:    "l2",
-			BinPath: cfg.ExternalL2Shim,
-			Genesis: l2Genesis,
-			JWTPath: cfg.JWTFilePath,
-		}).Run(t)
-		node = externalNode
-	}
+	var node services.EthInstance
+	gethNode, err := geth.InitL2("l2", l2Genesis, cfg.JWTFilePath)
+	require.NoError(t, err)
+	require.NoError(t, gethNode.Node.Start())
+	node = gethNode
 
 	auth := rpc.WithHTTPAuth(gn.NewJWTAuth(cfg.JWTSecret))
-	l2Node, err := client.NewRPC(ctx, logger, node.WSAuthEndpoint(), client.WithGethRPCOptions(auth))
+	l2Node, err := client.NewRPC(ctx, logger, node.AuthRPC().RPC(), client.WithGethRPCOptions(auth))
 	require.NoError(t, err)
 
 	// Finally create the engine client
-	rollupCfg, err := cfg.DeployConfig.RollupConfig(l1Block, l2GenesisBlock.Hash(), l2GenesisBlock.NumberU64())
+	rollupCfg, err := cfg.DeployConfig.RollupConfig(eth.BlockRefFromHeader(l1Block.Header()), l2GenesisBlock.Hash(), l2GenesisBlock.NumberU64())
 	require.NoError(t, err)
 	rollupCfg.Genesis = rollupGenesis
 	l2Engine, err := sources.NewEngineClient(
@@ -105,14 +98,19 @@ func NewOpGeth(t testing.TB, ctx context.Context, cfg *SystemConfig) (*OpGeth, e
 		nil,
 		sources.EngineClientDefaultConfig(rollupCfg),
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	l2Client, err := ethclient.Dial(selectEndpoint(node))
-	require.Nil(t, err)
+	l2Client, err := ethclient.Dial(node.UserRPC().RPC())
+	require.NoError(t, err)
 
-	genesisPayload, err := eth.BlockAsPayload(l2GenesisBlock, cfg.DeployConfig.CanyonTime(l2GenesisBlock.Time()))
+	// Note: Using CanyonTime here because for OP Stack chains, Shanghai must be activated at the same time as Canyon.
+	chainCfg := params.ChainConfig{
+		CanyonTime: cfg.DeployConfig.CanyonTime(l2GenesisBlock.Time()),
+	}
 
-	require.Nil(t, err)
+	genesisPayload, err := eth.BlockAsPayload(l2GenesisBlock, &chainCfg)
+
+	require.NoError(t, err)
 	return &OpGeth{
 		node:          node,
 		L2Client:      l2Client,
@@ -143,14 +141,14 @@ func (d *OpGeth) AddL2Block(ctx context.Context, txs ...*types.Transaction) (*et
 	}
 	res, err := d.StartBlockBuilding(ctx, attrs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("start block building: %w", err)
 	}
 
 	envelope, err := d.l2Engine.GetPayload(ctx, eth.PayloadInfo{ID: *res.PayloadID, Timestamp: uint64(attrs.Timestamp)})
 	payload := envelope.ExecutionPayload
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get payload: %w", err)
 	}
 	if !reflect.DeepEqual(payload.Transactions, attrs.Transactions) {
 		return nil, errors.New("required transactions were not included")
@@ -158,7 +156,7 @@ func (d *OpGeth) AddL2Block(ctx context.Context, txs ...*types.Transaction) (*et
 
 	status, err := d.l2Engine.NewPayload(ctx, payload, envelope.ParentBeaconBlockRoot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new payload: %w", err)
 	}
 	if status.Status != eth.ExecutionValid {
 		return nil, fmt.Errorf("%w: %s", ErrNewPayloadNotValid, status.Status)
@@ -170,7 +168,7 @@ func (d *OpGeth) AddL2Block(ctx context.Context, txs ...*types.Transaction) (*et
 	}
 	res, err = d.l2Engine.ForkchoiceUpdate(ctx, &fc, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("forkchoice update: %w", err)
 	}
 	if res.PayloadStatus.Status != eth.ExecutionValid {
 		return nil, fmt.Errorf("%w: %s", ErrForkChoiceUpdatedNotValid, res.PayloadStatus.Status)
@@ -227,6 +225,10 @@ func (d *OpGeth) CreatePayloadAttributes(txs ...*types.Transaction) (*eth.Payloa
 	var parentBeaconBlockRoot *common.Hash
 	if d.L2ChainConfig.IsEcotone(uint64(timestamp)) {
 		parentBeaconBlockRoot = d.L1Head.ParentBeaconRoot()
+		// In case L1 hasn't activated Dencun yet.
+		if parentBeaconBlockRoot == nil {
+			parentBeaconBlockRoot = &(common.Hash{})
+		}
 	}
 
 	attrs := eth.PayloadAttributes{
@@ -236,6 +238,10 @@ func (d *OpGeth) CreatePayloadAttributes(txs ...*types.Transaction) (*eth.Payloa
 		GasLimit:              (*eth.Uint64Quantity)(&d.SystemConfig.GasLimit),
 		Withdrawals:           withdrawals,
 		ParentBeaconBlockRoot: parentBeaconBlockRoot,
+	}
+	if d.L2ChainConfig.IsHolocene(uint64(timestamp)) {
+		attrs.EIP1559Params = new(eth.Bytes8)
+		*attrs.EIP1559Params = d.SystemConfig.EIP1559Params
 	}
 	return &attrs, nil
 }

@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 )
 
 // BlockCaller is a subset of the [ethclient.Client] interface
@@ -63,7 +64,7 @@ func ForNextBlock(ctx context.Context, client BlockCaller) error {
 	return ForBlock(ctx, client, current+1)
 }
 
-func ForProcessingFullBatch(ctx context.Context, rollupCl *sources.RollupClient) error {
+func ForProcessingFullBatch(ctx context.Context, rollupCl dial.RollupClientInterface) error {
 	_, err := AndGet(ctx, time.Second, func() (*eth.SyncStatus, error) {
 		return rollupCl.SyncStatus(ctx)
 	}, func(syncStatus *eth.SyncStatus) bool {
@@ -72,7 +73,7 @@ func ForProcessingFullBatch(ctx context.Context, rollupCl *sources.RollupClient)
 	return err
 }
 
-func ForUnsafeBlock(ctx context.Context, rollupCl *sources.RollupClient, n uint64) error {
+func ForUnsafeBlock(ctx context.Context, rollupCl dial.RollupClientInterface, n uint64) error {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -84,7 +85,7 @@ func ForUnsafeBlock(ctx context.Context, rollupCl *sources.RollupClient, n uint6
 	return err
 }
 
-func ForSafeBlock(ctx context.Context, rollupClient *sources.RollupClient, n uint64) error {
+func ForSafeBlock(ctx context.Context, rollupClient dial.RollupClientInterface, n uint64) error {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	_, err := AndGet(ctx, time.Second, func() (*eth.SyncStatus, error) {
@@ -97,9 +98,19 @@ func ForSafeBlock(ctx context.Context, rollupClient *sources.RollupClient, n uin
 
 func ForNextSafeBlock(ctx context.Context, client BlockCaller) (*types.Block, error) {
 	safeBlockNumber := big.NewInt(rpc.SafeBlockNumber.Int64())
-	current, err := client.BlockByNumber(ctx, safeBlockNumber)
-	if err != nil {
-		return nil, err
+	var current *types.Block
+	var err error
+	for {
+		current, err = client.BlockByNumber(ctx, safeBlockNumber)
+		if err != nil {
+			// If block is not found (e.g. upon startup of chain, when there is no "safe block" yet)
+			// then it may be found later. Keep wait loop running.
+			if strings.Contains(err.Error(), "block not found") {
+				continue
+			}
+			return nil, err
+		}
+		break
 	}
 
 	// Long timeout so we don't have to care what the block time is. If the test passes this will complete early anyway.
@@ -112,6 +123,11 @@ func ForNextSafeBlock(ctx context.Context, client BlockCaller) (*types.Block, er
 		default:
 			next, err := client.BlockByNumber(ctx, safeBlockNumber)
 			if err != nil {
+				// If block is not found (e.g. upon startup of chain, when there is no "safe block" yet)
+				// then it may be found later. Keep wait loop running.
+				if strings.Contains(err.Error(), "block not found") {
+					continue
+				}
 				return nil, err
 			}
 			if next.NumberU64() > current.NumberU64() {

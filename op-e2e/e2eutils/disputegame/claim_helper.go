@@ -4,24 +4,23 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/wait"
 )
 
 type ClaimHelper struct {
 	require     *require.Assertions
-	game        *OutputGameHelper
+	game        *SplitGameHelper
 	Index       int64
 	ParentIndex int
 	Position    types.Position
 	claim       common.Hash
 }
 
-func newClaimHelper(game *OutputGameHelper, idx int64, claim types.Claim) *ClaimHelper {
+func newClaimHelper(game *SplitGameHelper, idx int64, claim types.Claim) *ClaimHelper {
 	return &ClaimHelper{
 		require:     game.Require,
 		game:        game,
@@ -80,15 +79,7 @@ func (c *ClaimHelper) WaitForCounterClaim(ctx context.Context, ignoreClaims ...*
 
 // WaitForCountered waits until the claim is countered either by a child claim or by a step call.
 func (c *ClaimHelper) WaitForCountered(ctx context.Context) {
-	timedCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-	err := wait.For(timedCtx, time.Second, func() (bool, error) {
-		latestData := c.game.getClaim(ctx, c.Index)
-		return latestData.CounteredBy != common.Address{}, nil
-	})
-	if err != nil { // Avoid waiting time capturing game data when there's no error
-		c.require.NoErrorf(err, "Claim %v was not countered\n%v", c.Index, c.game.GameData(ctx))
-	}
+	c.game.WaitForCountered(ctx, c.Index)
 }
 
 func (c *ClaimHelper) RequireCorrectOutputRoot(ctx context.Context) {
@@ -96,6 +87,10 @@ func (c *ClaimHelper) RequireCorrectOutputRoot(ctx context.Context) {
 	expected, err := c.game.CorrectOutputProvider.Get(ctx, c.Position)
 	c.require.NoError(err, "Failed to get correct output root")
 	c.require.Equalf(expected, c.claim, "Should have correct output root in claim %v and position %v", c.Index, c.Position)
+}
+
+func (c *ClaimHelper) RequireInvalidStatusCode() {
+	c.require.Equal(byte(mipsevm.VMStatusInvalid), c.claim[0], "should have had invalid status code")
 }
 
 func (c *ClaimHelper) Attack(ctx context.Context, value common.Hash, opts ...MoveOpt) *ClaimHelper {

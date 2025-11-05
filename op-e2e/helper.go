@@ -5,9 +5,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
 )
+
+func RunMain(m *testing.M) {
+	os.Exit(m.Run())
+}
 
 var enableParallelTesting bool = os.Getenv("OP_E2E_DISABLE_PARALLEL") != "true"
 
@@ -44,18 +49,6 @@ func autoAllocateExecutor(t e2eutils.TestingBase) {
 func UsesCannon(t e2eutils.TestingBase) {
 	if os.Getenv("OP_E2E_CANNON_ENABLED") == "false" {
 		t.Skip("Skipping cannon test")
-	}
-}
-
-func SkipOnFaultProofs(t e2eutils.TestingBase) {
-	if e2eutils.UseFaultProofs() {
-		t.Skip("Skipping test for fault proofs")
-	}
-}
-
-func SkipOnL2OO(t e2eutils.TestingBase) {
-	if e2eutils.UseL2OO() {
-		t.Skip("Skipping test for L2OO")
 	}
 }
 

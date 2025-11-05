@@ -1,0 +1,89 @@
+package faultproofs
+
+import (
+	"context"
+	"math/big"
+	"testing"
+	"time"
+
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
+	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils/disputegame"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
+)
+
+// TestRATSimpleE2E tests basic RAT functionality without full deployment
+func TestRATSimpleE2E(t *testing.T) {
+	RunTestAcrossVmTypes(t, testRATSimpleE2E)
+}
+
+func testRATSimpleE2E(t *testing.T, allocType config.AllocType) {
+	ctx := context.Background()
+	sys, _ := StartFaultDisputeSystem(t, WithAllocType(allocType))
+	t.Cleanup(sys.Close)
+
+	t.Log("=== RAT Simple E2E Test (Failure Scenario) ===")
+
+	// Check if RAT is deployed in the system
+	ratAddress := sys.L1Deployments().RATProxy
+	if ratAddress == (common.Address{}) {
+		t.Skip("RAT contract is not deployed - skipping test")
+		return
+	}
+
+	t.Logf("RAT contract found at address: %s", ratAddress.Hex())
+
+	// Verify RAT contract has code
+	l1Client := sys.NodeClient("l1")
+	code, err := l1Client.CodeAt(ctx, ratAddress, nil)
+	require.NoError(t, err, "Should get code at RAT address")
+	require.Greater(t, len(code), 0, "RAT contract should have code")
+
+	t.Logf("✅ RAT contract verified with %d bytes of code", len(code))
+
+	// Test RAT failure scenario: evidence submission fails
+	t.Log("Testing RAT failure scenario with mismatched evidence")
+
+	// Create RAT helper
+	ratHelper := NewRATHelper(t, ctx, sys, ratAddress)
+
+	// Phase 1: Setup challenger with stake
+	challengerAddr := sys.Cfg.Secrets.Addresses().Alice
+	stakeAmount := big.NewInt(1000000000000000000) // 1 ETH
+	ratHelper.StakeToRAT(ctx, challengerAddr, stakeAmount)
+	t.Logf("Challenger %s staked %s ETH to RAT", challengerAddr.Hex(), stakeAmount.String())
+
+	// Phase 2: Create dispute game with invalid rootClaim (different from mock proof)
+	t.Log("Creating dispute game with invalid rootClaim for failure scenario")
+	disputeGameFactory := disputegame.NewFactoryHelper(t, ctx, sys)
+	invalidRootClaim := common.Hash{0xff, 0xff} // Different from mock proof
+	game := disputeGameFactory.StartOutputCannonGame(ctx, "sequencer", 3, invalidRootClaim)
+	gameAddr := game.Addr
+	t.Logf("Created dispute game with invalid rootClaim: %s", gameAddr.Hex())
+
+	// Phase 3: Wait for RAT attention test to be triggered
+	t.Log("Waiting for RAT attention test to be triggered")
+	attentionTest := ratHelper.WaitForAttentionTest(ctx, gameAddr, 30*time.Second)
+	require.NotNil(t, attentionTest, "Attention test should be triggered")
+	require.NotEqual(t, common.Address{}, attentionTest.ChallengerAddress, "Attention test should be triggered")
+	t.Logf("Attention test triggered for challenger: %s", attentionTest.ChallengerAddress.Hex())
+
+	// Phase 4: Attempt evidence submission (should fail)
+	t.Log("Attempting evidence submission (expected to fail)")
+	if attentionTest.ChallengerAddress == challengerAddr {
+		evidence := ratHelper.GenerateCorrectEvidence(ctx, gameAddr)
+		err := ratHelper.TrySubmitEvidence(ctx, challengerAddr, evidence)
+		require.Error(t, err, "Evidence submission should fail with mismatched proof")
+		t.Logf("Evidence submission failed as expected: %v", err)
+	}
+
+	// Phase 5: Verify attention test state after failed submission
+	t.Log("Verifying attention test state after failed submission")
+	// Re-fetch attention test info to verify state
+	finalAttentionTest := ratHelper.WaitForAttentionTest(ctx, gameAddr, 5*time.Second)
+	require.NotNil(t, finalAttentionTest, "Attention test should still exist")
+	require.False(t, finalAttentionTest.EvidenceSubmitted, "Evidence should not be marked as submitted")
+	t.Log("✅ Failure scenario verified: evidence submission properly rejected")
+
+	t.Log("=== RAT Simple E2E Test (Failure Scenario) PASSED ===")
+}

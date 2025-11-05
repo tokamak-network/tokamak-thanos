@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type DishonestHelper struct {
