@@ -130,10 +130,15 @@ if [ -f op-program/bin/prestate-mt64Next.bin.gz ]; then
 fi
 echo ""
 
-# 6. Prestate Hash 추출 및 템플릿 임시 업데이트
-log_info "6/7: Prestate Hash 추출 및 템플릿 임시 업데이트 중..."
+# 6. Prestate Hash 추출
+log_info "6/9: Prestate Hash 추출..."
 PRESTATE_HASH=$(cat op-program/bin/prestate-proof-mt64.json | jq -r '.pre')
 log_success "Prestate Hash: $PRESTATE_HASH"
+echo ""
+
+# 7. 1차 devnet-allocs 실행 (더미 genesis output root로)
+log_info "7/9: 1차 .devnet 파일 생성 중 (genesis output root 계산용)..."
+log_warning "  이 단계는 약 5분 소요됩니다..."
 
 DEPLOY_CONFIG_TEMPLATE="$PROJECT_ROOT/packages/tokamak/contracts-bedrock/deploy-config/devnetL1-template.json"
 if [ ! -f "$DEPLOY_CONFIG_TEMPLATE" ]; then
@@ -143,51 +148,80 @@ fi
 
 # 템플릿 백업
 cp "$DEPLOY_CONFIG_TEMPLATE" "${DEPLOY_CONFIG_TEMPLATE}.backup-script"
-log_info "  템플릿 백업 완료: ${DEPLOY_CONFIG_TEMPLATE}.backup-script"
+log_info "  템플릿 백업 완료"
 
-# 템플릿에 새 prestate hash 임시 업데이트
+# 템플릿에 prestate hash만 업데이트
 if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' "s/\"faultGameAbsolutePrestate\": \"0x[^\"]*\"/\"faultGameAbsolutePrestate\": \"$PRESTATE_HASH\"/" "$DEPLOY_CONFIG_TEMPLATE"
 else
     sed -i "s/\"faultGameAbsolutePrestate\": \"0x[^\"]*\"/\"faultGameAbsolutePrestate\": \"$PRESTATE_HASH\"/" "$DEPLOY_CONFIG_TEMPLATE"
 fi
-log_success "  템플릿에 새 prestate hash 임시 적용"
+
+cd "$PROJECT_ROOT"
+if make devnet-allocs > /tmp/devnet-allocs-1st.log 2>&1; then
+    log_success "1차 .devnet 파일 생성 완료"
+else
+    log_error "1차 devnet-allocs 실패. 로그: /tmp/devnet-allocs-1st.log"
+    mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
+    exit 1
+fi
 echo ""
 
-# 7. devnet-allocs 재생성 (새 prestate hash가 반영된 템플릿 사용)
-log_info "7/7: .devnet 파일 재생성 중..."
-log_warning "  이 단계는 약 5분 소요됩니다..."
-log_info "  make devnet-allocs가 템플릿에서 devnetL1.json을 생성합니다"
-cd "$PROJECT_ROOT"
+# 8. Genesis Output Root 계산
+log_info "8/9: Genesis Output Root 계산 중..."
+GENESIS_OUTPUT_ROOT=$(go run scripts/calc-genesis-output-root.go 2>/dev/null)
+CALC_EXIT_CODE=$?
+if [ $CALC_EXIT_CODE -ne 0 ]; then
+    log_error "Genesis output root 계산 실패 (exit code: $CALC_EXIT_CODE)"
+    go run scripts/calc-genesis-output-root.go 2>&1 | head -20  # 에러 출력
+    mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
+    exit 1
+fi
+log_success "Genesis Output Root: $GENESIS_OUTPUT_ROOT"
 
-if make devnet-allocs > /tmp/devnet-allocs.log 2>&1; then
-    log_success ".devnet 파일 생성 완료"
+# 템플릿에 genesis output root도 업데이트
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/\"faultGameGenesisOutputRoot\": \"0x[^\"]*\"/\"faultGameGenesisOutputRoot\": \"$GENESIS_OUTPUT_ROOT\"/" "$DEPLOY_CONFIG_TEMPLATE"
+else
+    sed -i "s/\"faultGameGenesisOutputRoot\": \"0x[^\"]*\"/\"faultGameGenesisOutputRoot\": \"$GENESIS_OUTPUT_ROOT\"/" "$DEPLOY_CONFIG_TEMPLATE"
+fi
+log_success "  템플릿에 prestate hash + genesis output root 적용 완료"
+echo ""
+
+# 9. 2차 devnet-allocs 실행 (올바른 값으로)
+log_info "9/9: 최종 .devnet 파일 재생성 중..."
+log_warning "  이 단계는 약 5분 소요됩니다..."
+rm -rf .devnet
+
+if make devnet-allocs > /tmp/devnet-allocs-2nd.log 2>&1; then
+    log_success "최종 .devnet 파일 생성 완료"
 
     # 생성된 devnetL1.json 검증
     DEPLOY_CONFIG="$PROJECT_ROOT/packages/tokamak/contracts-bedrock/deploy-config/devnetL1.json"
     if [ -f "$DEPLOY_CONFIG" ]; then
         DEPLOYED_PRESTATE=$(cat "$DEPLOY_CONFIG" | jq -r '.faultGameAbsolutePrestate')
-        log_info "  devnetL1.json의 Prestate Hash: $DEPLOYED_PRESTATE"
+        DEPLOYED_GENESIS_ROOT=$(cat "$DEPLOY_CONFIG" | jq -r '.faultGameGenesisOutputRoot')
 
-        if [ "$DEPLOYED_PRESTATE" == "$PRESTATE_HASH" ]; then
-            log_success "  ✓ Prestate Hash 일치 확인!"
+        log_info "  검증 중..."
+        log_info "    Prestate Hash:         $DEPLOYED_PRESTATE"
+        log_info "    Genesis Output Root:   $DEPLOYED_GENESIS_ROOT"
+
+        if [ "$DEPLOYED_PRESTATE" == "$PRESTATE_HASH" ] && [ "$DEPLOYED_GENESIS_ROOT" == "$GENESIS_OUTPUT_ROOT" ]; then
+            log_success "  ✓ 모든 값 일치 확인!"
         else
-            log_error "  ✗ Prestate Hash 불일치"
-            log_error "    예상: $PRESTATE_HASH"
-            log_error "    실제: $DEPLOYED_PRESTATE"
-            # 템플릿 복원 후 종료
+            log_error "  ✗ 값 불일치"
+            [ "$DEPLOYED_PRESTATE" != "$PRESTATE_HASH" ] && log_error "    Prestate Hash 불일치"
+            [ "$DEPLOYED_GENESIS_ROOT" != "$GENESIS_OUTPUT_ROOT" ] && log_error "    Genesis Output Root 불일치"
             mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
             exit 1
         fi
     else
         log_error "devnetL1.json이 생성되지 않았습니다"
-        # 템플릿 복원 후 종료
         mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
         exit 1
     fi
 else
-    log_error "devnet-allocs 실패. 로그: /tmp/devnet-allocs.log"
-    # 템플릿 복원 후 종료
+    log_error "2차 devnet-allocs 실패. 로그: /tmp/devnet-allocs-2nd.log"
     mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
     exit 1
 fi
@@ -197,23 +231,30 @@ mv "${DEPLOY_CONFIG_TEMPLATE}.backup-script" "$DEPLOY_CONFIG_TEMPLATE"
 log_info "  템플릿 원래 상태로 복원 완료"
 echo ""
 
-# 8. E2E 테스트 전 검증
+# 10. E2E 테스트 전 최종 검증
 log_info "=========================================="
-log_info "E2E 테스트 전 검증"
+log_info "E2E 테스트 전 최종 검증"
 log_info "=========================================="
 
 # prestate-proof-mt64.json과 devnetL1.json의 일치 확인
 PROOF_PRESTATE=$(cat op-program/bin/prestate-proof-mt64.json | jq -r '.pre')
 CONFIG_PRESTATE=$(cat "$DEPLOY_CONFIG" | jq -r '.faultGameAbsolutePrestate')
+CONFIG_GENESIS_ROOT=$(cat "$DEPLOY_CONFIG" | jq -r '.faultGameGenesisOutputRoot')
 
-log_info "prestate-proof-mt64.json: $PROOF_PRESTATE"
-log_info "devnetL1.json:             $CONFIG_PRESTATE"
+log_info "Prestate Hash (proof):        $PROOF_PRESTATE"
+log_info "Prestate Hash (config):       $CONFIG_PRESTATE"
+log_info "Genesis Output Root (config): $CONFIG_GENESIS_ROOT"
 
-if [ "$PROOF_PRESTATE" == "$CONFIG_PRESTATE" ]; then
-    log_success "✓ Prestate hash 일치"
-else
+ALL_MATCH=true
+if [ "$PROOF_PRESTATE" != "$CONFIG_PRESTATE" ]; then
     log_error "✗ Prestate hash 불일치!"
-    log_error "  E2E 테스트 전에 이 문제를 해결해야 합니다."
+    ALL_MATCH=false
+fi
+
+if [ "$ALL_MATCH" == "true" ]; then
+    log_success "✓ 모든 설정 검증 완료!"
+else
+    log_error "E2E 테스트 전에 문제를 해결해야 합니다."
     exit 1
 fi
 echo ""
@@ -234,10 +275,12 @@ echo "  - op-program/bin/op-program (macOS)"
 echo "  - op-program/bin/op-program-client64.elf (mips64)"
 echo "  - op-program/bin/prestate-mt64.bin.gz"
 echo "  - op-program/bin/prestate-proof-mt64.json"
-echo "  - .devnet/allocs-l1.json"
+echo "  - .devnet/allocs-l1.json (올바른 genesis output root 포함)"
 echo "  - .devnet/allocs-l2-*.json"
 echo "  - .devnet/addresses.json"
 echo ""
-log_info "검증된 Prestate Hash: $PRESTATE_HASH"
+log_info "검증된 값:"
+echo "  - Prestate Hash:         $PRESTATE_HASH"
+echo "  - Genesis Output Root:   $GENESIS_OUTPUT_ROOT"
 echo ""
 

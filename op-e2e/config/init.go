@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer"
 	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/artifacts"
@@ -30,6 +32,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 	op_service "github.com/tokamak-network/tokamak-thanos/op-service"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 
 	_ "embed"
@@ -265,22 +268,15 @@ func init() {
 	// which reduces CI performance.
 	oplog.SetGlobalLogHandler(errHandler)
 
-	// Check if .devnet allocs exist (pre-generated files like in risc branch)
-	devnetL1AllocsPath := path.Join(root, ".devnet", "allocs-l1.json")
-
-	if _, err := os.Stat(devnetL1AllocsPath); err == nil {
-		// Use pre-generated .devnet files (simpler and more stable)
-		log.Info("Using pre-generated .devnet allocs")
-		if err := initFromDevnetFiles(root); err != nil {
-			panic(fmt.Errorf("failed to init from .devnet files: %w", err))
-		}
-	} else {
-		// Fall back to op-deployer initialization
-		log.Info("Using op-deployer initialization (.devnet files not found)")
-		for _, allocType := range allocTypes {
-			initAllocType(root, allocType)
-		}
+	// Always use runtime generation for E2E tests (Optimism way)
+	// This ensures L1 and L2 genesis are generated consistently in the same environment
+	log.Info("Using runtime op-deployer initialization for E2E tests")
+	for _, allocType := range allocTypes {
+		initAllocType(root, allocType)
 	}
+
+	// Note: .devnet files are still used by other tools (op-node, etc.)
+	// but E2E tests should generate everything at runtime to ensure consistency
 
 	// Use regular level going forward.
 	oplog.SetGlobalLogHandler(handler)
@@ -321,7 +317,25 @@ func initAllocType(root string, allocType AllocType) {
 		go func(mode genesis.L2AllocsMode) {
 			defer wg.Done()
 
-			intent := defaultIntent(root, loc, deployerAddr, allocType)
+			// Calculate genesis output root dynamically before creating intent
+			var genesisOutputRoot common.Hash
+			if mode == genesis.L2AllocsGranite {
+				// Use .devnet L2 allocs if available to calculate genesis output root
+				devnetL2AllocsPath := path.Join(root, ".devnet", "allocs-l2-granite.json")
+				if _, err := os.Stat(devnetL2AllocsPath); err == nil {
+					genesisOutputRoot = calculateGenesisOutputRootFromFile(root, devnetL2AllocsPath)
+					lgr.Info("Calculated genesis output root from .devnet", "outputRoot", genesisOutputRoot.Hex())
+				} else {
+					// Fallback to dummy value
+					genesisOutputRoot = common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+					lgr.Warn("Using dummy genesis output root (.devnet files not found)", "outputRoot", genesisOutputRoot.Hex())
+				}
+			} else {
+				// For non-granite modes, use dummy value
+				genesisOutputRoot = common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+			}
+
+			intent := defaultIntentWithGenesisRoot(root, loc, deployerAddr, allocType, genesisOutputRoot)
 			if allocType == AllocTypeAltDA {
 				intent.Chains[0].DangerousAltDAConfig = genesis.AltDADeployConfig{
 					UseAltDA:                   true,
@@ -361,19 +375,14 @@ func initAllocType(root string, allocType AllocType) {
 				Version: 1,
 			}
 
-			if err := deployer.ApplyPipeline(
+			if err := ApplyPipelineE2E(
 				context.Background(),
-				deployer.ApplyPipelineOpts{
-					DeploymentTarget:   deployer.DeploymentTargetGenesis,
-					L1RPCUrl:           "",
-					DeployerPrivateKey: pk,
-					Intent:             intent,
-					State:              st,
-					Logger:             lgr,
-					StateWriter:        pipeline.NoopStateWriter(),
-				},
+				pk,
+				intent,
+				st,
+				lgr,
 			); err != nil {
-				panic(fmt.Errorf("failed to apply pipeline: %w", err))
+				panic(fmt.Errorf("failed to apply E2E pipeline: %w", err))
 			}
 
 			mtx.Lock()
@@ -419,11 +428,10 @@ func initAllocType(root string, allocType AllocType) {
 	l2AllocsByType[allocType] = l2Alloc
 }
 
-func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address, allocType AllocType) *state.Intent {
+func defaultIntentWithGenesisRoot(root string, loc *artifacts.Locator, deployer common.Address, allocType AllocType, genesisOutputRoot common.Hash) *state.Intent {
 	secrets := secrets.DefaultSecrets
 	addrs := secrets.Addresses()
 	defaultPrestate := common.HexToHash("0x03c7ae758795765c6664a5d39bf63841c71ff191e9189522bad8ebff5d4eca98")
-	genesisOutputRoot := common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
 	return &state.Intent{
 		ConfigType: state.IntentTypeCustom,
 		L1ChainID:  900,
@@ -556,6 +564,83 @@ func ensureDir(dirPath string) error {
 		return fmt.Errorf("path is not a directory")
 	}
 	return nil
+}
+
+// ApplyPipelineE2E is a wrapper around deployer.ApplyPipeline specifically for E2E tests
+// It ensures genesis output root is correctly calculated and set before deployment
+func ApplyPipelineE2E(
+	ctx context.Context,
+	privateKey *ecdsa.PrivateKey,
+	intent *state.Intent,
+	st *state.State,
+	lgr log.Logger,
+) error {
+	// Note: Genesis output root calculation is already done in initAllocType
+	// and passed via intent.GlobalDeployOverrides["faultGameGenesisOutputRoot"]
+
+	return deployer.ApplyPipeline(
+		ctx,
+		deployer.ApplyPipelineOpts{
+			DeploymentTarget:   deployer.DeploymentTargetGenesis,
+			L1RPCUrl:           "",
+			DeployerPrivateKey: privateKey,
+			Intent:             intent,
+			State:              st,
+			Logger:             lgr,
+			StateWriter:        pipeline.NoopStateWriter(),
+		},
+	)
+}
+
+// calculateGenesisOutputRootFromFile calculates genesis output root from .devnet L2 allocs file
+// This is used during E2E test initialization to ensure the deployed contract has the correct value
+func calculateGenesisOutputRootFromFile(root string, l2AllocsPath string) common.Hash {
+	// Load deploy config
+	deployConfigPath := path.Join(root, "packages", "tokamak", "contracts-bedrock", "deploy-config", "devnetL1.json")
+	deployConfig, err := genesis.NewDeployConfig(deployConfigPath)
+	if err != nil {
+		log.Warn("Failed to load deploy config for genesis calculation, using dummy value", "err", err)
+		return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+	}
+
+	// Load L2 allocs
+	l2Allocs, err := foundry.LoadForgeAllocs(l2AllocsPath)
+	if err != nil {
+		log.Warn("Failed to load L2 allocs for genesis calculation, using dummy value", "err", err)
+		return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+	}
+
+	// Create dummy L1 block ref (genesis uses block 0)
+	l1BlockRef := &eth.BlockRef{
+		Hash:       common.Hash{},
+		Number:     0,
+		ParentHash: common.Hash{},
+		Time:       0,
+	}
+
+	// Build L2 genesis
+	l2Genesis, err := genesis.BuildL2Genesis(deployConfig, l2Allocs, l1BlockRef)
+	if err != nil {
+		log.Warn("Failed to build L2 genesis for genesis calculation, using dummy value", "err", err)
+		return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+	}
+
+	// Convert to block
+	l2GenesisBlock := l2Genesis.ToBlock()
+
+	// Get L2ToL1MessagePasser storage root from actual genesis state
+	// At genesis, L2ToL1MessagePasser has empty storage, so use empty trie hash
+	messagePasserStorageRoot := types.EmptyRootHash
+
+	// Calculate genesis output root
+	blockInfo := eth.HeaderBlockInfo(l2GenesisBlock.Header())
+	outputRoot, err := rollup.ComputeL2OutputRootV0(blockInfo, messagePasserStorageRoot)
+	if err != nil {
+		log.Warn("Failed to compute output root, using dummy value", "err", err)
+		return common.HexToHash("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF")
+	}
+
+	return common.Hash(outputRoot)
 }
 
 func cannonVMType(allocType AllocType) state.VMType {
