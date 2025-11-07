@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { Script } from "forge-std/Script.sol";
 
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
+import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import { Claim } from "src/dispute/lib/Types.sol";
 
@@ -24,7 +25,7 @@ contract DeployAlphabetVM is Script {
         IPreimageOracle preimageOracle = _input.preimageOracle;
 
         vm.broadcast(msg.sender);
-        AlphabetVM alphabetVM = new AlphabetVM(absolutePrestate, preimageOracle);
+        AlphabetVM alphabetVM = new AlphabetVM(absolutePrestate, PreimageOracle(address(preimageOracle)));
 
         output_.alphabetVM = alphabetVM;
     }

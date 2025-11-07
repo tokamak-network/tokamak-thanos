@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 // Libraries
-import { Claim, Duration, GameType, Proposal } from "src/dispute/lib/Types.sol";
+import { Claim, Duration, GameType, OutputRoot } from "src/dispute/lib/Types.sol";
 
 // Interfaces
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
@@ -30,8 +30,7 @@ interface IOPContractsManagerContractsContainer {
 
     function __constructor__(
         IOPContractsManager.Blueprints memory _blueprints,
-        IOPContractsManager.Implementations memory _implementations,
-        bytes32 _devFeatureBitmap
+        IOPContractsManager.Implementations memory _implementations
     )
         external;
 
@@ -116,7 +115,7 @@ interface IOPContractsManagerInteropMigrator {
 
     struct MigrateInput {
         bool usePermissionlessGame;
-        Proposal startingAnchorRoot;
+        OutputRoot startingAnchorRoot;
         GameParameters gameParameters;
         IOPContractsManager.OpChainConfig[] opChainConfigs;
     }
@@ -194,6 +193,11 @@ interface IOPContractsManager {
         address permissionedDisputeGame2;
         address permissionlessDisputeGame1;
         address permissionlessDisputeGame2;
+        address superPermissionedDisputeGame1;
+        address superPermissionedDisputeGame2;
+        address superPermissionlessDisputeGame1;
+        address superPermissionlessDisputeGame2;
+        address rat;
     }
 
     /// @notice The latest implementation contracts for the OP Stack.
@@ -262,6 +266,9 @@ interface IOPContractsManager {
     /// @notice Address of the ProtocolVersions contract shared by all chains.
     function protocolVersions() external view returns (IProtocolVersions);
 
+    /// @notice Address of the superchain ProxyAdmin contract.
+    function superchainProxyAdmin() external view returns (IProxyAdmin);
+
     // -------- Errors --------
 
     /// @notice Thrown when an address is the zero address.
@@ -311,7 +318,9 @@ interface IOPContractsManager {
         IOPContractsManagerInteropMigrator _opcmInteropMigrator,
         IOPContractsManagerStandardValidator _opcmStandardValidator,
         ISuperchainConfig _superchainConfig,
-        IProtocolVersions _protocolVersions
+        IProtocolVersions _protocolVersions,
+        IProxyAdmin _superchainProxyAdmin,
+        address _upgradeController
     )
         external;
 

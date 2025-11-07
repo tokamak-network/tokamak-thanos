@@ -131,6 +131,7 @@ contract DeployImplementations is Script {
             protocolVersionsImpl: address(_output.protocolVersionsImpl),
             l1ERC721BridgeImpl: address(_output.l1ERC721BridgeImpl),
             optimismPortalImpl: address(_output.optimismPortalImpl),
+            optimismPortalInteropImpl: address(0), // Not deployed - Tokamak doesn't use Interop yet
             ethLockboxImpl: address(_output.ethLockboxImpl),
             systemConfigImpl: address(_output.systemConfigImpl),
             optimismMintableERC20FactoryImpl: address(_output.optimismMintableERC20FactoryImpl),
@@ -140,7 +141,10 @@ contract DeployImplementations is Script {
             anchorStateRegistryImpl: address(_output.anchorStateRegistryImpl),
             delayedWETHImpl: address(_output.delayedWETHImpl),
             mipsImpl: address(_output.mipsSingleton),
-            ratImpl: address(_output.ratImpl)
+            faultDisputeGameV2Impl: address(0), // Not deployed - using Blueprint pattern instead
+            permissionedDisputeGameV2Impl: address(0), // Not deployed - using Blueprint pattern instead
+            superFaultDisputeGameImpl: address(0), // Not deployed - Tokamak doesn't use Super games yet
+            superPermissionedDisputeGameImpl: address(0) // Not deployed - Tokamak doesn't use Super games yet
         });
 
         deployOPCMBPImplsContainer(_output, _blueprints, implementations);

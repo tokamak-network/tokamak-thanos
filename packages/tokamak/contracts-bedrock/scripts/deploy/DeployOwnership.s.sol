@@ -12,8 +12,8 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
-import { LivenessGuard } from "src/safe/LivenessGuard.sol";
-import { LivenessModule } from "src/safe/LivenessModule.sol";
+import { LivenessGuard } from "src/Safe/LivenessGuard.sol";
+import { LivenessModule } from "src/Safe/LivenessModule.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 import { Deploy } from "./Deploy.s.sol";

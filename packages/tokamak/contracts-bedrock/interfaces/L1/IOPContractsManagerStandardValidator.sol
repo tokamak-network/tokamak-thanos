@@ -91,8 +91,7 @@ interface IOPContractsManagerStandardValidator {
         ISuperchainConfig _superchainConfig,
         address _l1PAOMultisig,
         address _challenger,
-        uint256 _withdrawalDelaySeconds,
-        bytes32 _devFeatureBitmap
+        uint256 _withdrawalDelaySeconds
     )
         external;
 }

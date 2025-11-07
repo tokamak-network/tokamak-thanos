@@ -447,13 +447,14 @@ contract DeployOPChain is Script {
             disputeMaxGameDepth: _doi.disputeMaxGameDepth(),
             disputeSplitDepth: _doi.disputeSplitDepth(),
             disputeClockExtension: _doi.disputeClockExtension(),
-            disputeMaxClockDuration: _doi.disputeMaxClockDuration(),
-            deployRAT: _doi.deployRAT(),
-            perTestBondAmount: _doi.perTestBondAmount(),
-            evidenceSubmissionPeriod: _doi.evidenceSubmissionPeriod(),
-            minimumStakingBalance: _doi.minimumStakingBalance(),
-            ratTriggerProbability: _doi.ratTriggerProbability(),
-            ratManager: _doi.ratManager()
+            disputeMaxClockDuration: _doi.disputeMaxClockDuration()
+            // RAT-related fields commented out (not in Tokamak's IOPContractsManager)
+            // deployRAT: _doi.deployRAT(),
+            // perTestBondAmount: _doi.perTestBondAmount(),
+            // evidenceSubmissionPeriod: _doi.evidenceSubmissionPeriod(),
+            // minimumStakingBalance: _doi.minimumStakingBalance(),
+            // ratTriggerProbability: _doi.ratTriggerProbability(),
+            // ratManager: _doi.ratManager()
         });
 
         console.log("DeployOPChain: About to call opcm.deploy()");
@@ -479,9 +480,9 @@ contract DeployOPChain is Script {
         // vm.label(address(deployOutput.delayedWETHPermissionlessGameProxy), "delayedWETHPermissionlessGameProxy");
 
         // Label RAT if deployed
-        if (_doi.deployRAT() && address(deployOutput.ratProxy) != address(0)) {
-            vm.label(address(deployOutput.ratProxy), "ratProxy");
-        }
+        // if (_doi.deployRAT() && address(deployOutput.ratProxy) != address(0)) {
+        //     vm.label(address(deployOutput.ratProxy), "ratProxy");
+        // }
 
         console.log("DeployOPChain: Setting opChainProxyAdmin");
         _doo.set(_doo.opChainProxyAdmin.selector, address(deployOutput.opChainProxyAdmin));
@@ -519,18 +520,18 @@ contract DeployOPChain is Script {
         // );
 
         // Set RAT if deployed
-        console.log("DeployOPChain: Checking RAT deployment");
-        console.log("DeployOPChain: _doi.deployRAT() =", _doi.deployRAT());
-        console.log("DeployOPChain: deployOutput.ratProxy =", address(deployOutput.ratProxy));
-        if (_doi.deployRAT() && address(deployOutput.ratProxy) != address(0)) {
-            console.log("DeployOPChain: Setting RAT proxy");
-            console.log("DeployOPChain: _doo.ratProxy.selector =", uint32(_doo.ratProxy.selector));
-            _doo.set(_doo.ratProxy.selector, address(deployOutput.ratProxy));
-            console.log("DeployOPChain: RAT proxy set successfully");
+        // console.log("DeployOPChain: Checking RAT deployment");
+        // console.log("DeployOPChain: _doi.deployRAT() =", _doi.deployRAT());
+        // console.log("DeployOPChain: deployOutput.ratProxy =", address(deployOutput.ratProxy));
+        // if (_doi.deployRAT() && address(deployOutput.ratProxy) != address(0)) {
+        //     console.log("DeployOPChain: Setting RAT proxy");
+        //     console.log("DeployOPChain: _doo.ratProxy.selector =", uint32(_doo.ratProxy.selector));
+        //     _doo.set(_doo.ratProxy.selector, address(deployOutput.ratProxy));
+        //     console.log("DeployOPChain: RAT proxy set successfully");
 
-        } else {
-            console.log("DeployOPChain: RAT not deployed or address is zero");
-        }
+        // } else {
+        //     console.log("DeployOPChain: RAT not deployed or address is zero");
+        // }
 
         checkOutput(_doi, _doo);
     }

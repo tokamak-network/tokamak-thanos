@@ -23,7 +23,7 @@ import { StandardConstants } from "scripts/deploy/StandardConstants.sol";
 // Libraries
 import { Types } from "scripts/libraries/Types.sol";
 import { Duration } from "src/dispute/lib/LibUDT.sol";
-import { GameType, Claim, GameTypes, Proposal, Hash } from "src/dispute/lib/Types.sol";
+import { GameType, Claim, GameTypes, OutputRoot, Hash } from "src/dispute/lib/Types.sol";
 
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
@@ -360,9 +360,9 @@ contract Deploy is Deployer {
         artifacts.save("OptimismPortal2Proxy", address(deployOutput.optimismPortalProxy));
 
         // Save RAT proxy if deployed
-        if (cfg.deployRAT()) {
-            artifacts.save("RATProxy", address(deployOutput.ratProxy));
-        }
+        // if (cfg.deployRAT()) {
+        //     artifacts.save("RATProxy", address(deployOutput.ratProxy));
+        // }
 
         // Check if the permissionless game implementation is already set
         IDisputeGameFactory factory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
@@ -429,7 +429,7 @@ contract Deploy is Deployer {
             blobBasefeeScalar: cfg.blobbasefeeScalar(),
             l2ChainId: cfg.l2ChainID(),
             startingAnchorRoot: abi.encode(
-                Proposal({ root: Hash.wrap(cfg.faultGameGenesisOutputRoot()), l2SequenceNumber: cfg.faultGameGenesisBlock() })
+                OutputRoot({ root: Hash.wrap(cfg.faultGameGenesisOutputRoot()), l2BlockNumber: cfg.faultGameGenesisBlock() })
             ),
             saltMixer: saltMixer,
             gasLimit: uint64(cfg.l2GenesisBlockGasLimit()),
@@ -438,14 +438,14 @@ contract Deploy is Deployer {
             disputeMaxGameDepth: cfg.faultGameMaxDepth(),
             disputeSplitDepth: cfg.faultGameSplitDepth(),
             disputeClockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
-            disputeMaxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
-            // RAT configuration from deploy config
-            deployRAT: cfg.deployRAT(),
-            perTestBondAmount: cfg.perTestBondAmount(),
-            evidenceSubmissionPeriod: cfg.evidenceSubmissionPeriod(),
-            minimumStakingBalance: cfg.minimumStakingBalance(),
-            ratTriggerProbability: cfg.ratTriggerProbability(),
-            ratManager: cfg.ratManager()
+            disputeMaxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
+            // RAT configuration - commented out (not in Tokamak's IOPContractsManager)
+            // deployRAT: cfg.deployRAT(),
+            // perTestBondAmount: cfg.perTestBondAmount(),
+            // evidenceSubmissionPeriod: cfg.evidenceSubmissionPeriod(),
+            // minimumStakingBalance: cfg.minimumStakingBalance(),
+            // ratTriggerProbability: cfg.ratTriggerProbability(),
+            // ratManager: cfg.ratManager()
         });
     }
 }
