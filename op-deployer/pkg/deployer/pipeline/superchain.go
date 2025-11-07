@@ -18,7 +18,11 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 		return nil
 	}
 
-	lgr.Info("deploying superchain")
+	lgr.Info("deploying superchain - START")
+	lgr.Info("superchain input",
+		"proxyAdminOwner", intent.SuperchainRoles.SuperchainProxyAdminOwner,
+		"protocolVersionsOwner", intent.SuperchainRoles.ProtocolVersionsOwner,
+		"guardian", intent.SuperchainRoles.SuperchainGuardian)
 
 	dso, err := env.Scripts.DeploySuperchain.Run(
 		opcm.DeploySuperchainInput{
@@ -31,8 +35,11 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 		},
 	)
 	if err != nil {
+		lgr.Error("DeploySuperchain.Run FAILED", "err", err)
 		return fmt.Errorf("failed to deploy superchain: %w", err)
 	}
+
+	lgr.Info("deploying superchain - SUCCESS")
 
 	st.SuperchainDeployment = &addresses.SuperchainContracts{
 		SuperchainProxyAdminImpl: dso.SuperchainProxyAdmin,
