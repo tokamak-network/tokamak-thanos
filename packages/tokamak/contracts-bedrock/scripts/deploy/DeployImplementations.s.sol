@@ -39,6 +39,9 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
 import { ChainAssertions } from "scripts/deploy/ChainAssertions.sol";
 import { DeployOPChainInput } from "scripts/deploy/DeployOPChain.s.sol";
+import { DeployPreimageOracle2 } from "scripts/deploy/DeployPreimageOracle2.s.sol";
+import { DeployMIPS2 } from "scripts/deploy/DeployMIPS2.s.sol";
+import { StandardConstants } from "scripts/deploy/StandardConstants.sol";
 
 contract DeployImplementations is Script {
     struct Input {
@@ -387,19 +390,14 @@ contract DeployImplementations is Script {
     }
 
     function deployPreimageOracleSingleton(Input memory _input, Output memory _output) private {
-        uint256 minProposalSizeBytes = _input.minProposalSizeBytes;
-        uint256 challengePeriodSeconds = _input.challengePeriodSeconds;
-        IPreimageOracle singleton = IPreimageOracle(
-            DeployUtils.createDeterministic({
-                _name: "PreimageOracle",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IPreimageOracle.__constructor__, (minProposalSizeBytes, challengePeriodSeconds))
-                ),
-                _salt: _salt
+        DeployPreimageOracle2 deployer = new DeployPreimageOracle2();
+        DeployPreimageOracle2.Output memory output = deployer.run(
+            DeployPreimageOracle2.Input({
+                minProposalSize: _input.minProposalSizeBytes,
+                challengePeriod: _input.challengePeriodSeconds
             })
         );
-        vm.label(address(singleton), "PreimageOracleSingleton");
-        _output.preimageOracleSingleton = singleton;
+        _output.preimageOracleSingleton = output.preimageOracle;
     }
 
     function deployMipsSingleton(Input memory _input, Output memory _output) private {
@@ -413,15 +411,14 @@ contract DeployImplementations is Script {
             }
         }
 
-        IMIPS64 singleton = IMIPS64(
-            DeployUtils.createDeterministic({
-                _name: "MIPS64",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IMIPS64.__constructor__, (preimageOracle, mipsVersion))),
-                _salt: DeployUtils.DEFAULT_SALT
+        DeployMIPS2 deployer = new DeployMIPS2();
+        DeployMIPS2.Output memory output = deployer.run(
+            DeployMIPS2.Input({
+                preimageOracle: preimageOracle,
+                mipsVersion: mipsVersion
             })
         );
-        vm.label(address(singleton), "MIPSSingleton");
-        _output.mipsSingleton = singleton;
+        _output.mipsSingleton = output.mipsSingleton;
     }
 
     function deployDisputeGameFactoryImpl(Output memory _output) private {

@@ -57,25 +57,39 @@ contract DeploySuperchain is Script {
     // -------- Core Deployment Methods --------
 
     function run(Input memory _input) public returns (Output memory output_) {
+        console.log("=== DeploySuperchain.run START ===");
+        
         // Convert the external Input to InternalInput
         InternalInput memory internalInput = toInternalInput(_input);
+        console.log("Step 1: Converted input");
 
         // Make sure the inputs are all set
         assertValidInput(internalInput);
+        console.log("Step 2: Validated input");
 
         // Deploy the proxy admin, with the owner set to the deployer.
         deploySuperchainProxyAdmin(internalInput, output_);
+        console.log("Step 3: Deployed SuperchainProxyAdmin");
 
         // Deploy and initialize the superchain contracts.
         deploySuperchainImplementationContracts(internalInput, output_);
+        console.log("Step 4: Deployed implementation contracts");
+        
         deployAndInitializeSuperchainConfig(internalInput, output_);
+        console.log("Step 5: Deployed and initialized SuperchainConfig");
+        
         deployAndInitializeProtocolVersions(internalInput, output_);
+        console.log("Step 6: Deployed and initialized ProtocolVersions");
 
         // Transfer ownership of the ProxyAdmin from the deployer to the specified owner.
         transferProxyAdminOwnership(internalInput, output_);
+        console.log("Step 7: Transferred ProxyAdmin ownership");
 
         // Output assertions, to make sure outputs were assigned correctly.
         assertValidOutput(internalInput, output_);
+        console.log("Step 8: Validated output");
+        
+        console.log("=== DeploySuperchain.run SUCCESS ===");
     }
 
     // -------- Deployment Steps --------
