@@ -1206,6 +1206,14 @@ type L1Deployments struct {
 	DataAvailabilityChallengeProxy    common.Address `json:"DataAvailabilityChallengeProxy"`
 	RAT                               common.Address `json:"RAT"`
 	RATProxy                          common.Address `json:"RATProxy"`
+	// Fault Proof VMs
+	Mips            common.Address `json:"Mips"`
+	PreimageOracle  common.Address `json:"PreimageOracle"`
+	Riscv           common.Address `json:"Riscv"`
+	AnchorStateRegistry       common.Address `json:"AnchorStateRegistry"`
+	AnchorStateRegistryProxy  common.Address `json:"AnchorStateRegistryProxy"`
+	DelayedWETH               common.Address `json:"DelayedWETH"`
+	DelayedWETHProxy          common.Address `json:"DelayedWETHProxy"`
 }
 
 func CreateL1DeploymentsFromContracts(contracts *addresses.L1Contracts) *L1Deployments {
@@ -1235,6 +1243,13 @@ func CreateL1DeploymentsFromContracts(contracts *addresses.L1Contracts) *L1Deplo
 		DataAvailabilityChallengeProxy:    contracts.AltDAChallengeProxy,
 		RAT:                               contracts.RATImpl,
 		RATProxy:                          contracts.RATProxy,
+		// Fault Proof VMs
+		Mips:                      contracts.MipsImpl,
+		PreimageOracle:            contracts.PreimageOracleImpl,
+		AnchorStateRegistry:       contracts.AnchorStateRegistryImpl,
+		AnchorStateRegistryProxy:  contracts.AnchorStateRegistryProxy,
+		DelayedWETH:               contracts.DelayedWethImpl,
+		DelayedWETHProxy:          contracts.DelayedWethPermissionlessGameProxy,
 	}
 }
 
