@@ -127,16 +127,19 @@ contract DeputyGuardianModule is ISemver {
     }
 
     /// @notice Calls the Security Council Safe's `execTransactionFromModuleReturnData()`, with the arguments
-    ///      necessary to call `blacklistDisputeGame()` on the `OptimismPortal2` contract.
+    ///      necessary to call `blacklistDisputeGame()` on the `AnchorStateRegistry` contract.
+    ///      In Optimism v1.16.0, blacklistDisputeGame moved from OptimismPortal2 to AnchorStateRegistry.
     ///      Only the deputy guardian can call this function.
-    /// @param _portal The `OptimismPortal2` contract instance.
+    /// @param _portal The `OptimismPortal2` contract instance (used to get AnchorStateRegistry).
     /// @param _game The `IDisputeGame` contract instance.
     function blacklistDisputeGame(OptimismPortal2 _portal, IDisputeGame _game) external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(OptimismPortal2.blacklistDisputeGame, (_game));
+        // In v1.16.0, blacklistDisputeGame is on AnchorStateRegistry, not OptimismPortal2
+        address anchorStateRegistry = address(_portal.anchorStateRegistry());
+        bytes memory data = abi.encodeWithSignature("blacklistDisputeGame(address)", address(_game));
         (bool success, bytes memory returnData) =
-            SAFE.execTransactionFromModuleReturnData(address(_portal), 0, data, Enum.Operation.Call);
+            SAFE.execTransactionFromModuleReturnData(anchorStateRegistry, 0, data, Enum.Operation.Call);
         if (!success) {
             revert ExecutionFailed(string(returnData));
         }
@@ -144,16 +147,19 @@ contract DeputyGuardianModule is ISemver {
     }
 
     /// @notice Calls the Security Council Safe's `execTransactionFromModuleReturnData()`, with the arguments
-    ///      necessary to call `setRespectedGameType()` on the `OptimismPortal2` contract.
+    ///      necessary to call `setRespectedGameType()` on the `AnchorStateRegistry` contract.
+    ///      In Optimism v1.16.0, setRespectedGameType moved from OptimismPortal2 to AnchorStateRegistry.
     ///      Only the deputy guardian can call this function.
-    /// @param _portal The `OptimismPortal2` contract instance.
+    /// @param _portal The `OptimismPortal2` contract instance (used to get AnchorStateRegistry).
     /// @param _gameType The `GameType` to set as the respected game type.
     function setRespectedGameType(OptimismPortal2 _portal, GameType _gameType) external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(OptimismPortal2.setRespectedGameType, (_gameType));
+        // In v1.16.0, setRespectedGameType is on AnchorStateRegistry, not OptimismPortal2
+        address anchorStateRegistry = address(_portal.anchorStateRegistry());
+        bytes memory data = abi.encodeWithSignature("setRespectedGameType(uint32)", GameType.unwrap(_gameType));
         (bool success, bytes memory returnData) =
-            SAFE.execTransactionFromModuleReturnData(address(_portal), 0, data, Enum.Operation.Call);
+            SAFE.execTransactionFromModuleReturnData(anchorStateRegistry, 0, data, Enum.Operation.Call);
         if (!success) {
             revert ExecutionFailed(string(returnData));
         }
