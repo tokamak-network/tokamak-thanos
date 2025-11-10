@@ -193,10 +193,7 @@ interface IOPContractsManager {
         address permissionedDisputeGame2;
         address permissionlessDisputeGame1;
         address permissionlessDisputeGame2;
-        address superPermissionedDisputeGame1;
-        address superPermissionedDisputeGame2;
-        address superPermissionlessDisputeGame1;
-        address superPermissionlessDisputeGame2;
+        // Super games blueprints are not used in Tokamak
         address rat;
     }
 
@@ -206,7 +203,6 @@ interface IOPContractsManager {
         address protocolVersionsImpl;
         address l1ERC721BridgeImpl;
         address optimismPortalImpl;
-        address optimismPortalInteropImpl;
         address ethLockboxImpl;
         address systemConfigImpl;
         address optimismMintableERC20FactoryImpl;
@@ -216,10 +212,7 @@ interface IOPContractsManager {
         address anchorStateRegistryImpl;
         address delayedWETHImpl;
         address mipsImpl;
-        address faultDisputeGameV2Impl;
-        address permissionedDisputeGameV2Impl;
-        address superFaultDisputeGameImpl;
-        address superPermissionedDisputeGameImpl;
+        address ratImpl;
     }
 
     /// @notice The input required to identify a chain for upgrading.
@@ -315,7 +308,7 @@ interface IOPContractsManager {
         IOPContractsManagerGameTypeAdder _opcmGameTypeAdder,
         IOPContractsManagerDeployer _opcmDeployer,
         IOPContractsManagerUpgrader _opcmUpgrader,
-        IOPContractsManagerInteropMigrator _opcmInteropMigrator,
+        // IOPContractsManagerInteropMigrator _opcmInteropMigrator,  // Not used in Tokamak
         IOPContractsManagerStandardValidator _opcmStandardValidator,
         ISuperchainConfig _superchainConfig,
         IProtocolVersions _protocolVersions,
