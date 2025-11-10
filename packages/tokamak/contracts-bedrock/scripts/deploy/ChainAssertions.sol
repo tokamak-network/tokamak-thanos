@@ -50,6 +50,7 @@ library ChainAssertions {
     function checkProxyAdminCallFails(address _contract, bytes4 _errorSelector) internal view returns (bool) {
         (bool success, bytes memory data) =
             address(_contract).staticcall(abi.encodeCall(IProxyAdminOwnedBase.proxyAdmin, ()));
+
         return (!success && data.length == 4 && bytes4(data) == _errorSelector);
     }
 
@@ -378,45 +379,113 @@ library ChainAssertions {
     {
         console.log("Running chain assertions on the OPContractsManager at %s", address(_opcm));
         require(address(_opcm) != address(0), "CHECK-OPCM-10");
+        console.log("CHECK-OPCM-10: OK");
 
         require(bytes(_opcm.version()).length > 0, "CHECK-OPCM-15");
+        console.log("CHECK-OPCM-15: OK, version=%s", _opcm.version());
+
         require(address(_opcm.protocolVersions()) == _proxies.ProtocolVersions, "CHECK-OPCM-17");
+        console.log("CHECK-OPCM-17: OK");
+
         require(address(_opcm.superchainProxyAdmin()) == address(_superchainProxyAdmin), "CHECK-OPCM-18");
+        console.log("CHECK-OPCM-18: OK");
+
         require(address(_opcm.superchainConfig()) == _proxies.SuperchainConfig, "CHECK-OPCM-19");
+        console.log("CHECK-OPCM-19: OK");
 
         // Ensure that the OPCM impls are correctly saved
-        IOPContractsManager.Implementations memory impls = _opcm.implementations();
+        console.log("Getting implementations from OPCM...");
+        console.log("OPCM address: %s", address(_opcm));
+
+        address deployer = address(_opcm.opcmDeployer());
+        console.log("opcmDeployer address: %s", deployer);
+
+        // Check contractsContainer via low-level call to avoid revert
+        (bool success, bytes memory data) = deployer.staticcall(abi.encodeWithSignature("contractsContainer()"));
+        if (success && data.length >= 32) {
+            address container = abi.decode(data, (address));
+            console.log("contractsContainer address: %s", container);
+        } else {
+            console.log("Failed to get contractsContainer, success=%s, data.length=%d", success, data.length);
+        }
+
+        console.log("About to call _opcm.implementations() via low-level call...");
+        (bool success2, bytes memory returnData) = address(_opcm).staticcall(abi.encodeWithSignature("implementations()"));
+        console.log("Low-level call result: success=%s, returnData.length=%d", success2, returnData.length);
+        if (!success2) {
+            console.log("Call failed! returnData:");
+            console.logBytes(returnData);
+            revert("implementations() call failed via low-level call");
+        }
+        console.log("About to abi.decode...");
+        IOPContractsManager.Implementations memory impls = abi.decode(returnData, (IOPContractsManager.Implementations));
+        console.log("abi.decode succeeded!");
+        console.log("impls.l1ERC721BridgeImpl: %s", impls.l1ERC721BridgeImpl);
+        console.log("impls.ethLockboxImpl: %s", impls.ethLockboxImpl);
+
         require(impls.l1ERC721BridgeImpl == _impls.L1ERC721Bridge, "CHECK-OPCM-50");
+        console.log("CHECK-OPCM-50: OK");
+
         require(impls.optimismPortalImpl == _impls.OptimismPortal, "CHECK-OPCM-60");
+        console.log("CHECK-OPCM-60: OK");
+
         require(impls.systemConfigImpl == _impls.SystemConfig, "CHECK-OPCM-70");
+        console.log("CHECK-OPCM-70: OK");
+
         require(impls.optimismMintableERC20FactoryImpl == _impls.OptimismMintableERC20Factory, "CHECK-OPCM-80");
+        console.log("CHECK-OPCM-80: OK");
+
         require(impls.l1CrossDomainMessengerImpl == _impls.L1CrossDomainMessenger, "CHECK-OPCM-90");
+        console.log("CHECK-OPCM-90: OK");
+
         require(impls.l1StandardBridgeImpl == _impls.L1StandardBridge, "CHECK-OPCM-100");
+        console.log("CHECK-OPCM-100: OK");
+
         require(impls.disputeGameFactoryImpl == _impls.DisputeGameFactory, "CHECK-OPCM-110");
+        console.log("CHECK-OPCM-110: OK");
+
         require(impls.delayedWETHImpl == _impls.DelayedWETH, "CHECK-OPCM-120");
+        console.log("CHECK-OPCM-120: OK");
+
         require(impls.mipsImpl == address(_mips), "CHECK-OPCM-130");
+        console.log("CHECK-OPCM-130: OK");
+
         require(impls.superchainConfigImpl == _impls.SuperchainConfig, "CHECK-OPCM-140");
+        console.log("CHECK-OPCM-140: OK");
+
         require(impls.protocolVersionsImpl == _impls.ProtocolVersions, "CHECK-OPCM-150");
+        console.log("CHECK-OPCM-150: OK");
 
         // Verify that initCode is correctly set into the blueprints
+        console.log("Getting blueprints from OPCM...");
         IOPContractsManager.Blueprints memory blueprints = _opcm.blueprints();
+        console.log("Got blueprints");
+
+        console.log("Parsing AddressManager blueprint...");
         Blueprint.Preamble memory addressManagerPreamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.addressManager).code);
         require(keccak256(addressManagerPreamble.initcode) == keccak256(vm.getCode("AddressManager")), "CHECK-OPCM-160");
+        console.log("CHECK-OPCM-160: OK");
 
+        console.log("Parsing Proxy blueprint...");
         Blueprint.Preamble memory proxyPreamble = Blueprint.parseBlueprintPreamble(address(blueprints.proxy).code);
         require(keccak256(proxyPreamble.initcode) == keccak256(vm.getCode("Proxy")), "CHECK-OPCM-170");
+        console.log("CHECK-OPCM-170: OK");
 
+        console.log("Parsing ProxyAdmin blueprint...");
         Blueprint.Preamble memory proxyAdminPreamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.proxyAdmin).code);
         require(keccak256(proxyAdminPreamble.initcode) == keccak256(vm.getCode("ProxyAdmin")), "CHECK-OPCM-180");
+        console.log("CHECK-OPCM-180: OK");
 
+        console.log("Parsing L1ChugSplashProxy blueprint...");
         Blueprint.Preamble memory l1ChugSplashProxyPreamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.l1ChugSplashProxy).code);
         require(
             keccak256(l1ChugSplashProxyPreamble.initcode) == keccak256(vm.getCode("L1ChugSplashProxy")),
             "CHECK-OPCM-190"
         );
+        console.log("CHECK-OPCM-190: OK");
 
         Blueprint.Preamble memory rdProxyPreamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.resolvedDelegateProxy).code);

@@ -68,9 +68,7 @@ contract DeploySuperchain is Script {
 
         // Deploy and initialize the superchain contracts.
         deploySuperchainImplementationContracts(internalInput, output_);
-
         deployAndInitializeSuperchainConfig(internalInput, output_);
-
         deployAndInitializeProtocolVersions(internalInput, output_);
 
         // Transfer ownership of the ProxyAdmin from the deployer to the specified owner.
@@ -141,7 +139,7 @@ contract DeploySuperchain is Script {
         superchainProxyAdmin.upgradeAndCall(
             payable(address(superchainConfigProxy)),
             address(superchainConfigImpl),
-            abi.encodeCall(ISuperchainConfig.initialize, (guardian))
+            abi.encodeCall(ISuperchainConfig.initialize, (guardian, false))
         );
         vm.stopBroadcast();
 

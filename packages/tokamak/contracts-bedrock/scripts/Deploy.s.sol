@@ -30,6 +30,9 @@ import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC2
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { SystemConfigInterop } from "src/L1/SystemConfigInterop.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { DataAvailabilityChallenge } from "src/L1/DataAvailabilityChallenge.sol";
 import { Constants } from "src/libraries/Constants.sol";
@@ -1384,8 +1387,7 @@ contract Deploy is Deployer {
                 L1StandardBridge.initialize,
                 (
                     L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    SuperchainConfig(superchainConfigProxy),
-                    SystemConfig(systemConfigProxy)
+                    ISystemConfig(systemConfigProxy)
                 )
             )
         });
@@ -1402,7 +1404,7 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing L1ERC721Bridge proxy");
         address l1ERC721BridgeProxy = mustGetAddress("L1ERC721BridgeProxy");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         address l1ERC721Bridge;
 
@@ -1429,7 +1431,7 @@ contract Deploy is Deployer {
             _implementation: l1ERC721Bridge,
             _innerCallData: abi.encodeCall(
                 L1ERC721Bridge.initialize,
-                (L1CrossDomainMessenger(payable(l1CrossDomainMessengerProxy)), SuperchainConfig(superchainConfigProxy))
+                (L1CrossDomainMessenger(payable(l1CrossDomainMessengerProxy)), ISystemConfig(systemConfigProxy))
             )
         });
 
@@ -1546,9 +1548,9 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L1CrossDomainMessenger.initialize,
                 (
-                    SuperchainConfig(superchainConfigProxy),
-                    OptimismPortal(payable(optimismPortalProxy)),
-                    SystemConfig(systemConfigProxy)
+                    ISuperchainConfig(superchainConfigProxy),
+                    IOptimismPortal(payable(optimismPortalProxy)),
+                    ISystemConfig(systemConfigProxy)
                 )
             )
         });
