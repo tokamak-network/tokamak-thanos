@@ -28,8 +28,8 @@ contract L1StandardBridge_Getter_Test is Bridge_Initializer {
         assert(l1StandardBridge.OTHER_BRIDGE() == l2StandardBridge);
         assert(l1StandardBridge.messenger() == l1CrossDomainMessenger);
         assert(l1StandardBridge.MESSENGER() == l1CrossDomainMessenger);
-        assert(l1StandardBridge.superchainConfig() == superchainConfig);
-        assert(l1StandardBridge.systemConfig() == systemConfig);
+        assert(address(l1StandardBridge.superchainConfig()) == address(superchainConfig));
+        assert(address(l1StandardBridge.systemConfig()) == address(systemConfig));
     }
 }
 

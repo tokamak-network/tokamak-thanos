@@ -1,22 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
+import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
+import { StandardBridge } from "src/universal/StandardBridge.sol";
+import { OnApprove } from "./OnApprove.sol";
+
+// Libraries
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IOptimismMintableERC20 } from "src/universal/IOptimismMintableERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { StandardBridge } from "src/universal/StandardBridge.sol";
-import { ISemver } from "src/universal/ISemver.sol";
-import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
-import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
+
+// Interfaces
+import { IOptimismMintableERC20 } from "src/universal/IOptimismMintableERC20.sol";
+import { ISemver } from "src/universal/ISemver.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { OnApprove } from "./OnApprove.sol";
 
 /// @custom:proxied
 /// @title L1StandardBridge
@@ -28,7 +35,7 @@ import { OnApprove } from "./OnApprove.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
+contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, ReinitializableBase, OnApprove, ISemver {
     using SafeERC20 for IERC20;
 
     /// @custom:legacy
@@ -98,36 +105,38 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
     );
 
     /// @notice Semantic version.
-    /// @custom:semver 2.2.0
-    string public constant version = "2.2.0";
+    /// @custom:semver 2.6.0-tokamak
+    string public constant version = "2.6.0-tokamak";
 
-    /// @notice Address of the SuperchainConfig contract.
-    SuperchainConfig public superchainConfig;
+    /// @custom:legacy
+    /// @custom:spacer superchainConfig
+    /// @notice Spacer taking up the legacy `superchainConfig` slot.
+    address private spacer_50_0_20;
+
+    /// @custom:legacy
+    /// @custom:spacer systemConfig (concrete type)
+    /// @notice Spacer taking up the legacy `systemConfig` slot.
+    address private spacer_51_0_20;
 
     /// @notice Address of the SystemConfig contract.
-    SystemConfig public systemConfig;
+    ISystemConfig public systemConfig;
 
     /// @notice Constructs the L1StandardBridge contract.
-    constructor() StandardBridge() {
-        initialize({
-            _messenger: CrossDomainMessenger(address(0)),
-            _superchainConfig: SuperchainConfig(address(0)),
-            _systemConfig: SystemConfig(address(0))
-        });
+    constructor() StandardBridge() ReinitializableBase(2) {
+        _disableInitializers();
     }
 
     /// @notice Initializer.
-    /// @param _messenger        Contract for the CrossDomainMessenger on this network.
-    /// @param _superchainConfig Contract for the SuperchainConfig on this network.
+    /// @param _messenger    Contract for the CrossDomainMessenger on this network.
+    /// @param _systemConfig Contract for the SystemConfig on this network.
     function initialize(
         CrossDomainMessenger _messenger,
-        SuperchainConfig _superchainConfig,
-        SystemConfig _systemConfig
+        ISystemConfig _systemConfig
     )
-        public
-        initializer
+        external
+        reinitializer(initVersion())
     {
-        superchainConfig = _superchainConfig;
+        _assertOnlyProxyAdminOrProxyAdminOwner();
         systemConfig = _systemConfig;
         __StandardBridge_init({
             _messenger: _messenger,
@@ -135,9 +144,21 @@ contract L1StandardBridge is StandardBridge, OnApprove, ISemver {
         });
     }
 
+    /// @notice Allows the upgrader to update the contract.
+    /// @param _systemConfig New SystemConfig contract.
+    function upgrade(ISystemConfig _systemConfig) external reinitializer(initVersion()) {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+        systemConfig = _systemConfig;
+    }
+
     /// @inheritdoc StandardBridge
     function paused() public view override returns (bool) {
-        return superchainConfig.paused();
+        return superchainConfig().paused();
+    }
+
+    /// @notice Getter for the SuperchainConfig.
+    function superchainConfig() public view returns (ISuperchainConfig) {
+        return systemConfig.superchainConfig();
     }
 
     /// @notice Deposit ETH on L1 and receive ETH on L2.
