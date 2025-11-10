@@ -726,9 +726,12 @@ contract DeployImplementations is Script {
             _isProxy: false
         });
 
+        console.log("=== After checkOptimismPortal2 ===");
         // ChainAssertions.checkETHLockboxImpl(_output.ethLockboxImpl, _output.optimismPortalImpl);  // Tokamak doesn't use ETHLockbox
         // We can use DeployOPChainInput(address(0)) here because no method will be called on _doi when isProxy is false
+        console.log("=== About to call checkSystemConfig ===");
         ChainAssertions.checkSystemConfig(impls, DeployOPChainInput(address(0)), false);
+        console.log("=== checkSystemConfig OK ===");
         ChainAssertions.checkAnchorStateRegistryProxy(IAnchorStateRegistry(impls.AnchorStateRegistry), false);
     }
 }

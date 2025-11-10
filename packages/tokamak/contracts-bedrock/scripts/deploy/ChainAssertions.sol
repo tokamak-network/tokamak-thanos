@@ -69,9 +69,11 @@ library ChainAssertions {
             _isProxy ? "proxy" : "implementation",
             address(config)
         );
+        console.log("CHECK-SCFG-10: About to check initialization");
 
         // Check that the contract is initialized
         DeployUtils.assertInitialized({ _contractAddress: address(config), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        console.log("CHECK-SCFG-20: Initialization check passed");
 
         IResourceMetering.ResourceConfig memory resourceConfig = config.resourceConfig();
 
@@ -224,12 +226,16 @@ library ChainAssertions {
         console.log(
             "Running chain assertions on the OptimismMintableERC20Factory implementation at %s", address(_factory)
         );
+        console.log("CHECK-MERC20F-10: About to check initialization");
 
         // Check that the contract is initialized
         DeployUtils.assertInitialized({ _contractAddress: address(_factory), _isProxy: false, _slot: 0, _offset: 0 });
+        console.log("CHECK-MERC20F-20: Initialization check passed");
 
         require(_factory.BRIDGE() == address(0), "CHECK-MERC20F-30");
+        console.log("CHECK-MERC20F-30: OK");
         require(_factory.bridge() == address(0), "CHECK-MERC20F-40");
+        console.log("CHECK-MERC20F-40: OK");
     }
 
     /// @notice Asserts that the L1ERC721Bridge is setup correctly
@@ -268,10 +274,14 @@ library ChainAssertions {
             _isProxy ? "proxy" : "implementation",
             address(portal)
         );
+        console.log("CHECK-OP2-10: Checking portal address");
         require(address(portal) != address(0), "CHECK-OP2-10");
+        console.log("CHECK-OP2-10: OK");
 
+        console.log("CHECK-OP2-20: About to check initialization");
         // Check that the contract is initialized
         DeployUtils.assertInitialized({ _contractAddress: address(portal), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        console.log("CHECK-OP2-20: Initialization check passed");
 
         if (_isProxy) {
             require(address(portal.anchorStateRegistry()) == _contracts.AnchorStateRegistry, "CHECK-OP2-25");
@@ -281,15 +291,27 @@ library ChainAssertions {
             require(address(portal.ethLockbox()) == _contracts.ETHLockbox, "CHECK-OP2-80");
             require(portal.proxyAdminOwner() == _opChainProxyAdminOwner, "CHECK-OP2-90");
         } else {
+            console.log("CHECK-OP2-80: Checking anchorStateRegistry");
             require(address(portal.anchorStateRegistry()) == address(0), "CHECK-OP2-80");
+            console.log("CHECK-OP2-80: OK");
+            console.log("CHECK-OP2-90: Checking systemConfig");
             require(address(portal.systemConfig()) == address(0), "CHECK-OP2-90");
+            console.log("CHECK-OP2-90: OK");
+            console.log("CHECK-OP2-100: Checking systemConfig again");
             require(address(portal.systemConfig()) == address(0), "CHECK-OP2-100");
+            console.log("CHECK-OP2-100: OK");
+            console.log("CHECK-OP2-110: Checking l2Sender");
             require(portal.l2Sender() == address(0), "CHECK-OP2-110");
+            console.log("CHECK-OP2-110: OK");
+            console.log("CHECK-OP2-120: Checking ethLockbox");
             require(address(portal.ethLockbox()) == address(0), "CHECK-OP2-120");
+            console.log("CHECK-OP2-120: OK");
         }
         // This slot is the custom gas token _balance and this check ensures
         // that it stays unset for forwards compatibility with custom gas token.
+        console.log("CHECK-OP2-130: Checking custom gas token slot");
         require(vm.load(address(portal), bytes32(uint256(61))) == bytes32(0), "CHECK-OP2-130");
+        console.log("CHECK-OP2-130: OK");
     }
 
     /// @notice Asserts that the ETHLockbox is setup correctly
