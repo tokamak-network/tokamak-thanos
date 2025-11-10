@@ -293,17 +293,27 @@ func initAllocType(root string, allocType AllocType) {
 		panic(fmt.Errorf("failed to create artifacts locator: %w", err))
 	}
 
-	lgr := log.New()
+	// Create logger with INFO level for debugging
+	lgr := log.NewLogger(oplog.NewLogHandler(os.Stdout, oplog.CLIConfig{
+		Level:  log.LevelInfo,
+		Color:  false,
+		Format: oplog.FormatTerminal,
+	}))
 
+	// TEMPORARY: For debugging, only use Granite mode
 	allocModes := []genesis.L2AllocsMode{
-		genesis.L2AllocsInterop,
-		genesis.L2AllocsIsthmus,
-		genesis.L2AllocsHolocene,
 		genesis.L2AllocsGranite,
-		genesis.L2AllocsFjord,
-		genesis.L2AllocsEcotone,
-		genesis.L2AllocsDelta,
 	}
+	// Full list (commented out for debugging):
+	// allocModes := []genesis.L2AllocsMode{
+	// 	genesis.L2AllocsInterop,
+	// 	genesis.L2AllocsIsthmus,
+	// 	genesis.L2AllocsHolocene,
+	// 	genesis.L2AllocsGranite,
+	// 	genesis.L2AllocsFjord,
+	// 	genesis.L2AllocsEcotone,
+	// 	genesis.L2AllocsDelta,
+	// }
 
 	l2Alloc := make(map[genesis.L2AllocsMode]*foundry.ForgeAllocs)
 	var wg sync.WaitGroup
@@ -316,6 +326,8 @@ func initAllocType(root string, allocType AllocType) {
 		wg.Add(1)
 		go func(mode genesis.L2AllocsMode) {
 			defer wg.Done()
+
+			lgr.Info("=== Starting initAllocType goroutine ===", "mode", mode, "allocType", allocType)
 
 			// Calculate genesis output root dynamically before creating intent
 			var genesisOutputRoot common.Hash
@@ -375,6 +387,7 @@ func initAllocType(root string, allocType AllocType) {
 				Version: 1,
 			}
 
+			lgr.Info("Calling ApplyPipelineE2E", "mode", mode, "allocType", allocType)
 			if err := ApplyPipelineE2E(
 				context.Background(),
 				pk,
@@ -382,8 +395,10 @@ func initAllocType(root string, allocType AllocType) {
 				st,
 				lgr,
 			); err != nil {
+				lgr.Error("ApplyPipelineE2E FAILED", "mode", mode, "allocType", allocType, "err", err)
 				panic(fmt.Errorf("failed to apply E2E pipeline: %w", err))
 			}
+			lgr.Info("ApplyPipelineE2E SUCCESS", "mode", mode, "allocType", allocType)
 
 			mtx.Lock()
 			l2Alloc[mode] = st.Chains[0].Allocs.Data
@@ -578,7 +593,8 @@ func ApplyPipelineE2E(
 	// Note: Genesis output root calculation is already done in initAllocType
 	// and passed via intent.GlobalDeployOverrides["faultGameGenesisOutputRoot"]
 
-	return deployer.ApplyPipeline(
+	lgr.Info("ApplyPipelineE2E - calling deployer.ApplyPipeline")
+	err := deployer.ApplyPipeline(
 		ctx,
 		deployer.ApplyPipelineOpts{
 			DeploymentTarget:   deployer.DeploymentTargetGenesis,
@@ -590,6 +606,12 @@ func ApplyPipelineE2E(
 			StateWriter:        pipeline.NoopStateWriter(),
 		},
 	)
+	if err != nil {
+		lgr.Error("ApplyPipelineE2E - deployer.ApplyPipeline FAILED", "err", err)
+	} else {
+		lgr.Info("ApplyPipelineE2E - deployer.ApplyPipeline SUCCESS")
+	}
+	return err
 }
 
 // calculateGenesisOutputRootFromFile calculates genesis output root from .devnet L2 allocs file

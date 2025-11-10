@@ -20,7 +20,7 @@ func DeployImplementations(env *Env, intent *state.Intent, st *state.State) erro
 		return nil
 	}
 
-	lgr.Info("deploying implementations")
+	lgr.Info("deploying implementations - START")
 
 	proofParams, err := jsonutil.MergeJSON(
 		state.SuperchainProofParams{
@@ -34,8 +34,22 @@ func DeployImplementations(env *Env, intent *state.Intent, st *state.State) erro
 		intent.GlobalDeployOverrides,
 	)
 	if err != nil {
+		lgr.Error("failed to merge proof params", "err", err)
 		return fmt.Errorf("error merging proof params from overrides: %w", err)
 	}
+
+	lgr.Info("calling DeployImplementations.Run",
+		"withdrawalDelay", proofParams.WithdrawalDelaySeconds,
+		"minProposalSize", proofParams.MinProposalSizeBytes,
+		"challengePeriod", proofParams.ChallengePeriodSeconds,
+		"proofMaturityDelay", proofParams.ProofMaturityDelaySeconds,
+		"disputeGameFinalityDelay", proofParams.DisputeGameFinalityDelaySeconds,
+		"mipsVersion", proofParams.MIPSVersion,
+		"superchainConfigProxy", st.SuperchainDeployment.SuperchainConfigProxy,
+		"protocolVersionsProxy", st.SuperchainDeployment.ProtocolVersionsProxy,
+		"superchainProxyAdmin", st.SuperchainDeployment.SuperchainProxyAdminImpl,
+		"upgradeController", st.SuperchainRoles.SuperchainProxyAdminOwner,
+		"challenger", st.SuperchainRoles.Challenger)
 
 	dio, err := env.Scripts.DeployImplementations.Run(
 		opcm.DeployImplementationsInput{
@@ -53,8 +67,11 @@ func DeployImplementations(env *Env, intent *state.Intent, st *state.State) erro
 		},
 	)
 	if err != nil {
+		lgr.Error("DeployImplementations.Run FAILED", "err", err)
 		return fmt.Errorf("error deploying implementations: %w", err)
 	}
+
+	lgr.Info("DeployImplementations.Run SUCCESS", "opcm", dio.Opcm)
 
 	st.ImplementationsDeployment = &addresses.ImplementationsContracts{
 		OpcmImpl:                         dio.Opcm,

@@ -9,6 +9,11 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/tokamak-network/tokamak-thanos/devnet-sdk/proofs/prestate"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/script"
@@ -22,11 +27,6 @@ import (
 	opcrypto "github.com/tokamak-network/tokamak-thanos/op-service/crypto"
 	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
 	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
 )
 
@@ -418,10 +418,14 @@ func ApplyPipeline(
 	})
 
 	// Run through the pipeline.
+	opts.Logger.Info("=== Starting pipeline execution ===", "totalStages", len(pline))
 	for _, stage := range pline {
+		opts.Logger.Info("Executing pipeline stage", "stage", stage.name)
 		if err := stage.apply(); err != nil {
+			opts.Logger.Error("Pipeline stage FAILED", "stage", stage.name, "err", err)
 			return fmt.Errorf("error in pipeline stage apply: %w", err)
 		}
+		opts.Logger.Info("Pipeline stage SUCCESS", "stage", stage.name)
 		if _, err := pEnv.Broadcaster.Broadcast(ctx); err != nil {
 			return fmt.Errorf("failed to broadcast stage %s: %w", stage.name, err)
 		}
