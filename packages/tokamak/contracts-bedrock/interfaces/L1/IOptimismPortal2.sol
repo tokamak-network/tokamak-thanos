@@ -50,6 +50,7 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external view;
     function depositTransaction(
         address _to,
+        uint256 _mint,
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
@@ -102,5 +103,5 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     function systemConfig() external view returns (ISystemConfig);
     function version() external pure returns (string memory);
 
-    function __constructor__(uint256 _proofMaturityDelaySeconds) external;
+    function __constructor__(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) external;
 }

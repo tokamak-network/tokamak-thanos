@@ -1,83 +1,154 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// OpenZeppelin
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { OptimismPortal } from "src/L1/OptimismPortal.sol";
+
+// Contracts
+import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
-import { ISemver } from "src/universal/ISemver.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
+import { OnApprove } from "./OnApprove.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { OnApprove } from "./OnApprove.sol";
 
-/// @custom:proxied
+// Interfaces
+import { ISemver } from "src/universal/ISemver.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+
+/// @custom:proxied true
 /// @title L1CrossDomainMessenger
 /// @notice The L1CrossDomainMessenger is a message passing interface between L1 and L2 responsible
 ///         for sending and receiving data on the L1 side. Users are encouraged to use this
 ///         interface instead of interacting with lower-level contracts directly.
-contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
+/// @dev This version includes Tokamak's Native Token functionality while following Optimism v1.16.0 patterns.
+contract L1CrossDomainMessenger is
+    CrossDomainMessenger,
+    ProxyAdminOwnedBase,
+    ReinitializableBase,
+    OnApprove,
+    ISemver
+{
     using SafeERC20 for IERC20;
 
-    /// @notice Contract of the SuperchainConfig.
-    SuperchainConfig public superchainConfig;
+    /// @custom:legacy
+    /// @custom:spacer superchainConfig
+    /// @notice Spacer taking up the legacy `superchainConfig` slot.
+    address private spacer_251_0_20;
 
     /// @notice Contract of the OptimismPortal.
     /// @custom:network-specific
-    OptimismPortal public portal;
+    IOptimismPortal public portal;
 
-    /// @notice Address of the SystemConfig contract.
-    /// @custom:network-specific
-    SystemConfig public systemConfig;
+    /// @custom:legacy
+    /// @custom:spacer systemConfig (old location)
+    /// @notice Spacer taking up the legacy `systemConfig` slot.
+    address private spacer_253_0_20;
 
     /// @notice Semantic version.
-    /// @custom:semver 2.4.0
-    string public constant version = "2.4.0";
+    /// @custom:semver 2.9.0-tokamak
+    string public constant version = "2.9.0-tokamak";
+
+    /// @notice Contract of the SystemConfig.
+    ISystemConfig public systemConfig;
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
-    constructor() CrossDomainMessenger() {
-        initialize({
-            _superchainConfig: SuperchainConfig(address(0)),
-            _portal: OptimismPortal(payable(address(0))),
-            _systemConfig: SystemConfig(address(0))
-        });
+    constructor() ReinitializableBase(2) {
+        _disableInitializers();
     }
 
     /// @notice Initializes the contract.
-    /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
+    /// @param _superchainConfig Contract of the SuperchainConfig contract on this network (kept for Tokamak compatibility).
     /// @param _portal Contract of the OptimismPortal contract on this network.
     /// @param _systemConfig Contract of the SystemConfig contract on this network.
     function initialize(
-        SuperchainConfig _superchainConfig,
-        OptimismPortal _portal,
-        SystemConfig _systemConfig
+        ISuperchainConfig _superchainConfig,
+        IOptimismPortal _portal,
+        ISystemConfig _systemConfig
     )
-        public
-        initializer
+        external
+        reinitializer(initVersion())
     {
-        superchainConfig = _superchainConfig;
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        // Now perform initialization logic.
+        // Note: spacer_251_0_20 is where superchainConfig used to be stored, now we use SystemConfig
         portal = _portal;
         systemConfig = _systemConfig;
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
+    }
+
+    /// @notice Upgrades the contract to have a reference to the SystemConfig.
+    /// @param _systemConfig The new SystemConfig contract.
+    function upgrade(ISystemConfig _systemConfig) external reinitializer(initVersion()) {
+        // Upgrade transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        // Now perform upgrade logic.
+        systemConfig = _systemConfig;
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function paused() public view override returns (bool) {
+        return superchainConfig().paused();
+    }
+
+    /// @notice Returns the SuperchainConfig contract.
+    /// @return ISuperchainConfig The SuperchainConfig contract.
+    function superchainConfig() public view returns (ISuperchainConfig) {
+        return systemConfig.superchainConfig();
     }
 
     /// @notice Getter function for the OptimismPortal contract on this chain.
     ///         Public getter is legacy and will be removed in the future. Use `portal()` instead.
     /// @return Contract of the OptimismPortal on this chain.
     /// @custom:legacy
-    function PORTAL() external view returns (OptimismPortal) {
+    function PORTAL() external view returns (IOptimismPortal) {
         return portal;
     }
 
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+        // Tokamak: Deny direct ETH deposits, only accept Native Token
         require(msg.value == 0, "Deny depositing ETH");
+        // Tokamak: OptimismPortal expects 6 params (_to, _mint, _value, _gasLimit, _isCreation, _data)
+        // _mint and _value are both set to _value for native token functionality
         portal.depositTransaction(_to, _value, _value, _gasLimit, false, _data);
     }
+
+    /// @inheritdoc CrossDomainMessenger
+    function _isOtherMessenger() internal view override returns (bool) {
+        return msg.sender == address(portal) && portal.l2Sender() == address(otherMessenger);
+    }
+
+    /// @notice Checks whether the target address is excluded from receiving messages.
+    /// @param _target Address to check.
+    /// @return Whether or not the target address is excluded.
+    function _isUnsafeTarget(address _target) internal view override returns (bool) {
+        return _target == address(this) || _target == address(portal);
+    }
+
+    /// @notice Getter function for address of native token on this network
+    /// @return address The address of native token
+    function nativeTokenAddress() public view returns (address) {
+        return _nativeToken();
+    }
+
+    function _nativeToken() internal view returns (address) {
+        // Tokamak: SystemConfig has nativeTokenAddress() function
+        return ISystemConfig(address(systemConfig)).nativeTokenAddress();
+    }
+
+    // ==================== TOKAMAK NATIVE TOKEN FUNCTIONALITY ====================
 
     /// @notice unpack onApprove data
     /// @param _data     Data used in OnApprove contract
@@ -117,31 +188,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, OnApprove, ISemver {
         (address to, uint32 minGasLimit, bytes calldata message) = unpackOnApproveData(_data);
         _sendNativeTokenMessage(_owner, to, _amount, minGasLimit, message);
         return true;
-    }
-
-    /// @inheritdoc CrossDomainMessenger
-    function _isOtherMessenger() internal view override returns (bool) {
-        return msg.sender == address(portal) && portal.l2Sender() == address(otherMessenger);
-    }
-
-    /// @inheritdoc CrossDomainMessenger
-    function _isUnsafeTarget(address _target) internal view override returns (bool) {
-        return _target == address(this) || _target == address(portal);
-    }
-
-    /// @notice Getter function for address of native token on this network
-    /// @return address The address of native token
-    function nativeTokenAddress() public view returns (address) {
-        return _nativeToken();
-    }
-
-    function _nativeToken() internal view returns (address) {
-        return systemConfig.nativeTokenAddress();
-    }
-
-    /// @inheritdoc CrossDomainMessenger
-    function paused() public view override returns (bool) {
-        return superchainConfig.paused();
     }
 
     /// @notice Sends a deposit native token message to some target address on the other chain. Note that if the call

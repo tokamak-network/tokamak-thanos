@@ -98,6 +98,7 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function version() external pure returns (string memory);
     function paused() external view returns (bool);
     function superchainConfig() external view returns (ISuperchainConfig);
+    function nativeTokenAddress() external view returns (address);
     function guardian() external view returns (address);
     function setFeature(bytes32 _feature, bool _enabled) external;
     function isFeatureEnabled(bytes32) external view returns (bool);
