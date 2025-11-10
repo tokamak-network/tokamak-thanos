@@ -121,4 +121,11 @@ library Hashing {
             )
         );
     }
+
+    /// @notice Hashes a super root proof for validation.
+    /// @param _superRootProof Super root proof to hash.
+    /// @return Hashed super root proof.
+    function hashSuperRootProof(Types.SuperRootProof memory _superRootProof) internal pure returns (bytes32) {
+        return keccak256(Encoding.encodeSuperRootProof(_superRootProof));
+    }
 }
