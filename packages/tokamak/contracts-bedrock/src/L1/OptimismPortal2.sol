@@ -151,15 +151,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
 
     /// @notice Constructs the OptimismPortal contract.
     constructor(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) {
+        // NOTE: For implementation contracts, we disable initializers to prevent
+        // anyone from initializing the implementation contract itself.
+        // The proxy will call initialize() when it's deployed.
         PROOF_MATURITY_DELAY_SECONDS = _proofMaturityDelaySeconds;
         DISPUTE_GAME_FINALITY_DELAY_SECONDS = _disputeGameFinalityDelaySeconds;
-
-        initialize({
-            _disputeGameFactory: DisputeGameFactory(address(0)),
-            _systemConfig: SystemConfig(address(0)),
-            _superchainConfig: SuperchainConfig(address(0)),
-            _initialRespectedGameType: GameType.wrap(0)
-        });
+        _disableInitializers();
     }
 
     /// @notice Initializer.

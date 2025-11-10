@@ -31,6 +31,14 @@ struct OutputRoot {
     uint256 l2BlockNumber;
 }
 
+/// @notice Represents a proposal with L2 sequence number (used by Super games).
+/// @custom:field root The output root.
+/// @custom:field l2SequenceNumber The L2 Sequence Number (e.g. block number / timestamp) at which the root was generated.
+struct Proposal {
+    Hash root;
+    uint256 l2SequenceNumber;
+}
+
 /// @title GameTypes
 /// @notice A library that defines the IDs of games that can be played.
 library GameTypes {

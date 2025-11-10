@@ -121,6 +121,25 @@ error BlockNumberMatches();
 error L2BlockNumberChallenged();
 
 ////////////////////////////////////////////////////////////////
+//               `Super` Fault Dispute Game Errors             //
+////////////////////////////////////////////////////////////////
+
+/// @notice Thrown when attempting to finalize a game that is not yet finalized.
+error GameNotFinalized();
+
+/// @notice Thrown when an invalid bond distribution mode is supplied.
+error InvalidBondDistributionMode();
+
+/// @notice Thrown when attempting to access game results before the game is resolved.
+error GameNotResolved();
+
+/// @notice Thrown when attempting to use a reserved game type.
+error ReservedGameType();
+
+/// @notice Thrown when attempting to interact with a paused game.
+error GamePaused();
+
+////////////////////////////////////////////////////////////////
 //              `PermissionedDisputeGame` Errors              //
 ////////////////////////////////////////////////////////////////
 

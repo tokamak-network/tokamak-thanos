@@ -35,8 +35,11 @@ contract DelayedWETH is OwnableUpgradeable, WETH98, IDelayedWETH, ISemver {
 
     /// @param _delay The delay for withdrawals in seconds.
     constructor(uint256 _delay) {
+        // NOTE: For implementation contracts, we disable initializers to prevent
+        // anyone from initializing the implementation contract itself.
+        // The proxy will call initialize() when it's deployed.
         DELAY_SECONDS = _delay;
-        initialize({ _owner: address(0), _config: SuperchainConfig(address(0)) });
+        _disableInitializers();
     }
 
     /// @notice Initializes the contract.

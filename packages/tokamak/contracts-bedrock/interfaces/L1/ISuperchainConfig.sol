@@ -19,7 +19,7 @@ interface ISuperchainConfig is IProxyAdminOwnedBase {
     error ReinitializableBase_ZeroInitVersion();
 
     function guardian() external view returns (address);
-    function initialize(address _guardian) external;
+    function initialize(address _guardian, bool _paused) external;
     function pause(address _identifier) external;
     function unpause(address _identifier) external;
     function pausable(address _identifier) external view returns (bool);
