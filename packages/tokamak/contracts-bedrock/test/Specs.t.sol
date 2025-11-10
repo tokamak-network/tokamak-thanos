@@ -327,7 +327,8 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("minimumGasLimit(uint64)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("params()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("paused()") });
-        _addSpec({ _name: "OptimismPortal2", _sel: OptimismPortal2.proveWithdrawalTransaction.selector, _pausable: true });
+        // v1.16.0: proveWithdrawalTransaction has 2 overloads, using Output Root version signature
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proveWithdrawalTransaction((uint256,address,address,uint256,uint256,bytes),uint256,(bytes32,bytes32,bytes32,bytes32),bytes[])"), _pausable: true });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("provenWithdrawals(bytes32,address)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("superchainConfig()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("systemConfig()") });
@@ -808,7 +809,7 @@ contract Specification_Test is CommonTest {
     /// @notice Ensures that there's an auth spec for every L1 contract function.
     // function testContractAuth() public {
     //     string[] memory pathExcludes = new string[](4);
-    //     pathExcludes[0] = "src/dispute/interfaces/*";
+    //     pathExcludes[0] = "interfaces/dispute/*";
     //     pathExcludes[1] = "src/dispute/lib/*";
     //     pathExcludes[2] = "src/L1/L2NativeToken.sol";
     //     pathExcludes[3] = "src/L1/OnApprove.sol";

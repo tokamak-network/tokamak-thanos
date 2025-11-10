@@ -5,8 +5,9 @@ import "src/dispute/lib/Types.sol";
 import "src/dispute/lib/Errors.sol";
 
 import { Test } from "forge-std/Test.sol";
-import { DisputeGameFactory, IDisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { DelayedWETH } from "src/dispute/weth/DelayedWETH.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";

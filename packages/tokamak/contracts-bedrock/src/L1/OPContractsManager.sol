@@ -642,7 +642,7 @@ contract OPContractsManagerUpgrader is OPContractsManagerBase {
                             (
                                 _opChainConfigs[i].systemConfigProxy,
                                 dgf,
-                                OutputRoot({ root: root, l2BlockNumber: l2BlockNumber }),
+                                Proposal({ root: root, l2SequenceNumber: l2BlockNumber }),
                                 respectedGameType
                             )
                         )
@@ -1349,8 +1349,8 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         virtual
         returns (bytes memory)
     {
-        // Tokamak uses OutputRoot instead of Proposal
-        OutputRoot memory startingAnchorRoot = abi.decode(_input.startingAnchorRoot, (OutputRoot));
+        // v1.16.0: Use Proposal instead of OutputRoot
+        Proposal memory startingAnchorRoot = abi.decode(_input.startingAnchorRoot, (Proposal));
         return abi.encodeCall(
             IAnchorStateRegistry.initialize,
             (_output.systemConfigProxy, _output.disputeGameFactoryProxy, startingAnchorRoot, _input.disputeGameType)

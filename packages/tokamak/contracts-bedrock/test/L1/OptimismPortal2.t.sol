@@ -21,7 +21,8 @@ import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
 
-import { FaultDisputeGame, IDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import "src/dispute/lib/Types.sol";
 import "src/libraries/PortalErrors.sol";
 

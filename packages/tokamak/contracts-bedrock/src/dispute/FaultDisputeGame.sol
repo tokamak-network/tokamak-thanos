@@ -4,18 +4,16 @@ pragma solidity 0.8.15;
 import { FixedPointMathLib } from "@solady/utils/FixedPointMathLib.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
-import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol";
-import { IInitializable } from "src/dispute/interfaces/IInitializable.sol";
-import { IBigStepper, IPreimageOracle } from "src/dispute/interfaces/IBigStepper.sol";
-import { IAnchorStateRegistry } from "src/dispute/interfaces/IAnchorStateRegistry.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IInitializable } from "interfaces/dispute/IInitializable.sol";
+import { IBigStepper, IPreimageOracle } from "interfaces/dispute/IBigStepper.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 
 import { Clone } from "@solady/utils/Clone.sol";
 import { Types } from "src/libraries/Types.sol";
 import { ISemver } from "src/universal/ISemver.sol";
-
-import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { RLPReader } from "src/libraries/rlp/RLPReader.sol";
 import "src/dispute/lib/Types.sol";
@@ -79,7 +77,6 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     /// @notice The timestamp of the game's global resolution.
     Timestamp public resolvedAt;
 
-    /// @inheritdoc IDisputeGame
     GameStatus public status;
 
     /// @notice Flag for the `initialize` function to prevent re-initialization.
@@ -577,7 +574,6 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
     //                    `IDisputeGame` impl                     //
     ////////////////////////////////////////////////////////////////
 
-    /// @inheritdoc IDisputeGame
     function resolve() external returns (GameStatus status_) {
         // INVARIANT: Resolution cannot occur unless the game is currently in progress.
         if (status != GameStatus.IN_PROGRESS) revert GameNotInProgress();
@@ -591,9 +587,6 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
 
         // Update the status and emit the resolved event, note that we're performing an assignment here.
         emit Resolved(status = status_);
-
-        // Try to update the anchor state, this should not revert.
-        ANCHOR_STATE_REGISTRY.tryUpdateAnchorState();
     }
 
     /// @inheritdoc IFaultDisputeGame
@@ -698,34 +691,28 @@ contract FaultDisputeGame is IFaultDisputeGame, Clone, ISemver {
         }
     }
 
-    /// @inheritdoc IDisputeGame
     function gameType() public view override returns (GameType gameType_) {
         gameType_ = GAME_TYPE;
     }
 
-    /// @inheritdoc IDisputeGame
     function gameCreator() public pure returns (address creator_) {
         creator_ = _getArgAddress(0x00);
     }
 
-    /// @inheritdoc IDisputeGame
     function rootClaim() public pure returns (Claim rootClaim_) {
         rootClaim_ = Claim.wrap(_getArgBytes32(0x14));
     }
 
-    /// @inheritdoc IDisputeGame
     function l1Head() public pure returns (Hash l1Head_) {
         l1Head_ = Hash.wrap(_getArgBytes32(0x34));
     }
 
-    /// @inheritdoc IDisputeGame
     function extraData() public pure returns (bytes memory extraData_) {
         // The extra data starts at the second word within the cwia calldata and
         // is 32 bytes long.
         extraData_ = _getArgBytes(0x54, 0x20);
     }
 
-    /// @inheritdoc IDisputeGame
     function gameData() external view returns (GameType gameType_, Claim rootClaim_, bytes memory extraData_) {
         gameType_ = gameType();
         rootClaim_ = rootClaim();

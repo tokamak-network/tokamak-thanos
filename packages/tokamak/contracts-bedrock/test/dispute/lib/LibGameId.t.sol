@@ -3,7 +3,7 @@ pragma solidity ^0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import "src/dispute/lib/Types.sol";
 
 contract LibGameId_Test is Test {

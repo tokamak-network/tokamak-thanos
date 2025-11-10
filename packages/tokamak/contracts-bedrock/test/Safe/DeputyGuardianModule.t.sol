@@ -6,7 +6,7 @@ import { ForgeArtifacts, Abi } from "scripts/ForgeArtifacts.sol";
 import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
 import "test/safe-tools/SafeTestTools.sol";
 
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { DeputyGuardianModule } from "src/Safe/DeputyGuardianModule.sol";
 
 import "src/dispute/lib/Types.sol";

@@ -4,10 +4,10 @@ pragma solidity 0.8.15;
 import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 
-import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Unauthorized } from "src/libraries/PortalErrors.sol";
 import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
@@ -118,7 +118,8 @@ contract DeputyGuardianModule is ISemver {
     function setAnchorState(AnchorStateRegistry _registry, IFaultDisputeGame _game) external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(AnchorStateRegistry.setAnchorState, (_game));
+        // v1.16.0: Cast IFaultDisputeGame to IDisputeGame for setAnchorState
+        bytes memory data = abi.encodeCall(AnchorStateRegistry.setAnchorState, (IDisputeGame(address(_game))));
         (bool success, bytes memory returnData) =
             SAFE.execTransactionFromModuleReturnData(address(_registry), 0, data, Enum.Operation.Call);
         if (!success) {

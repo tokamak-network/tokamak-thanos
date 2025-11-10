@@ -4,10 +4,10 @@ pragma solidity ^0.8.15;
 import { Script } from "forge-std/Script.sol";
 import { console2 as console } from "forge-std/console2.sol";
 
-import { FaultDisputeGame_Init } from "test/dispute/FaultDisputeGame.t.sol";
+import { FaultDisputeGame_TestInit } from "test/dispute/FaultDisputeGame.t.sol";
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
 import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
-import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
 import "src/dispute/lib/Types.sol";
@@ -17,7 +17,7 @@ import "src/dispute/lib/Errors.sol";
  * @title FaultDisputeGameViz
  * @dev To run this script, make sure to install the `dagviz` & `eth_abi` python packages.
  */
-contract FaultDisputeGameViz is Script, FaultDisputeGame_Init {
+contract FaultDisputeGameViz is Script, FaultDisputeGame_TestInit {
     /// @dev The root claim of the game.
     Claim internal constant ROOT_CLAIM = Claim.wrap(bytes32(uint256(1)));
     /// @dev The absolute prestate of the trace.

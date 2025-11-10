@@ -2,10 +2,10 @@
 pragma solidity 0.8.15;
 
 import { Proxy } from "src/universal/Proxy.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { StdAssertions } from "forge-std/StdAssertions.sol";
 import "src/dispute/lib/Types.sol";
 import "scripts/Deploy.s.sol";

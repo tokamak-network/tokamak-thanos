@@ -53,7 +53,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Chains } from "scripts/Chains.sol";
 import { Config } from "scripts/Config.sol";
 
-import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
+import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import "src/dispute/lib/Types.sol";
@@ -87,7 +87,7 @@ contract Deploy is Deployer {
     ///         to finally adopt PUSHN and get rid of stack too deep once and for all.
     ///         Someday we will look back and laugh about stack too deep, today is not that day.
     struct FaultDisputeGameParams {
-        AnchorStateRegistry anchorStateRegistry;
+        IAnchorStateRegistry anchorStateRegistry;
         DelayedWETH weth;
         GameType gameType;
         Claim absolutePrestate;
@@ -1876,7 +1876,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.CANNON,
                 absolutePrestate: loadMipsAbsolutePrestate(),
@@ -1898,7 +1898,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.PERMISSIONED_CANNON,
                 absolutePrestate: loadMipsAbsolutePrestate(),
@@ -1920,7 +1920,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.ALPHABET,
                 absolutePrestate: outputAbsolutePrestate,
@@ -1944,7 +1944,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.FAST,
                 absolutePrestate: outputAbsolutePrestate,
@@ -1967,7 +1967,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.ASTERISC,
                 absolutePrestate: loadAsteriscAbsolutePrestate(),
@@ -1990,7 +1990,7 @@ contract Deploy is Deployer {
             _factory: factory,
             _allowUpgrade: _allowUpgrade,
             _params: FaultDisputeGameParams({
-                anchorStateRegistry: AnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
                 weth: weth,
                 gameType: GameTypes.ASTERISC_KONA,
                 absolutePrestate: loadKonaAbsolutePrestate(), // Kona-specific prestate

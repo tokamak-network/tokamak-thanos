@@ -4,8 +4,8 @@ pragma solidity 0.8.15;
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 
-import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
-import { IWETH } from "src/dispute/interfaces/IWETH.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
+import { IWETH } from "interfaces/dispute/IWETH.sol";
 import { WETH98 } from "src/dispute/weth/WETH98.sol";
 
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";

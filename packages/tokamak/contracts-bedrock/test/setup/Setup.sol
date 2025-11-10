@@ -235,4 +235,10 @@ contract Setup {
     function labelPreinstall(address _addr) internal {
         vm.label(_addr, Preinstalls.getName(_addr));
     }
+
+    /// @notice Indicates whether a test is running against a forked production network.
+    /// @dev Tokamak: Simplified version, always returns false for now.
+    function isForkTest() public pure returns (bool) {
+        return false;
+    }
 }
