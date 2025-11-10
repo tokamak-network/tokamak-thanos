@@ -40,7 +40,7 @@ contract DisputeGameFactory is OwnableUpgradeable, IDisputeGameFactory, ISemver 
 
     /// @notice Constructs a new DisputeGameFactory contract.
     constructor() OwnableUpgradeable() {
-        initialize(address(0));
+        _disableInitializers();
     }
 
     /// @notice Initializes the contract.
