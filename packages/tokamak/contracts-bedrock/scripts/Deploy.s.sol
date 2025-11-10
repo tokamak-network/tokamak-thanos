@@ -37,10 +37,12 @@ import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { DataAvailabilityChallenge } from "src/L1/DataAvailabilityChallenge.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
 import { PermissionedDisputeGame } from "src/dispute/PermissionedDisputeGame.sol";
 import { DelayedWETH } from "src/dispute/weth/DelayedWETH.sol";
 import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
 import { RISCV } from "src/vendor/asterisc/RISCV.sol";
@@ -942,8 +944,9 @@ contract Deploy is Deployer {
     /// @notice Deploy the AnchorStateRegistry
     function deployAnchorStateRegistry() public broadcast returns (address addr_) {
         console.log("Deploying AnchorStateRegistry implementation");
+        // v1.16.0: constructor(uint256 _disputeGameFinalityDelaySeconds)
         AnchorStateRegistry anchorStateRegistry =
-            new AnchorStateRegistry{ salt: _implSalt() }(DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy")));
+            new AnchorStateRegistry{ salt: _implSalt() }(cfg.disputeGameFinalityDelaySeconds());
         save("AnchorStateRegistry", address(anchorStateRegistry));
         console.log("AnchorStateRegistry deployed at %s", address(anchorStateRegistry));
 
@@ -1180,51 +1183,16 @@ contract Deploy is Deployer {
     function initializeAnchorStateRegistry() public broadcast {
         console.log("Upgrading and initializing AnchorStateRegistry proxy");
         address anchorStateRegistryProxy = mustGetAddress("AnchorStateRegistryProxy");
-        SuperchainConfig superchainConfig = SuperchainConfig(mustGetAddress("SuperchainConfigProxy"));
+        SystemConfig systemConfig = SystemConfig(mustGetAddress("SystemConfigProxy"));
+        DisputeGameFactory disputeGameFactory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
 
-        AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](6);
-        roots[0] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
+        // v1.16.0: Use single Proposal and GameType instead of StartingAnchorRoot[]
+        Proposal memory startingAnchorRoot = Proposal({
+            root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+            l2SequenceNumber: cfg.faultGameGenesisBlock()
         });
-        roots[1] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.PERMISSIONED_CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[2] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ASTERISC,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[3] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ASTERISC_KONA,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[4] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.FAST,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[5] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ALPHABET,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
+
+        GameType startingRespectedGameType = GameType.wrap(uint32(cfg.respectedGameType()));
 
         address anchorStateRegistry;
 
@@ -1237,10 +1205,9 @@ contract Deploy is Deployer {
                 console.log("Using existing implementation from JSON");
             } else {
                 console.log("Implementation from JSON not found on-chain, deploying new one");
+                // v1.16.0: constructor(uint256 _disputeGameFinalityDelaySeconds)
                 anchorStateRegistry = address(
-                    new AnchorStateRegistry{ salt: _implSalt() }(
-                        DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"))
-                    )
+                    new AnchorStateRegistry{ salt: _implSalt() }(cfg.disputeGameFinalityDelaySeconds())
                 );
                 require(anchorStateRegistry != address(0), "AnchorStateRegistry deployment failed");
                 save("AnchorStateRegistry", anchorStateRegistry);
@@ -1250,10 +1217,19 @@ contract Deploy is Deployer {
              anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
         }
 
+        // v1.16.0: initialize(ISystemConfig, IDisputeGameFactory, Proposal, GameType)
         _upgradeAndCallViaSafe({
             _proxy: payable(anchorStateRegistryProxy),
             _implementation: anchorStateRegistry,
-            _innerCallData: abi.encodeCall(AnchorStateRegistry.initialize, (roots, superchainConfig))
+            _innerCallData: abi.encodeCall(
+                AnchorStateRegistry.initialize,
+                (
+                    ISystemConfig(address(systemConfig)),
+                    IDisputeGameFactory(address(disputeGameFactory)),
+                    startingAnchorRoot,
+                    startingRespectedGameType
+                )
+            )
         });
 
         string memory version = AnchorStateRegistry(payable(anchorStateRegistryProxy)).version();

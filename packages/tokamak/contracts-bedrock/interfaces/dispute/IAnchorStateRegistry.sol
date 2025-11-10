@@ -5,7 +5,7 @@ import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { GameType, Hash, OutputRoot } from "src/dispute/lib/Types.sol";
+import { GameType, Hash, Proposal } from "src/dispute/lib/Types.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
@@ -31,7 +31,7 @@ interface IAnchorStateRegistry is IProxyAdminOwnedBase {
     function initialize(
         ISystemConfig _systemConfig,
         IDisputeGameFactory _disputeGameFactory,
-        OutputRoot memory _startingAnchorRoot,
+        Proposal memory _startingAnchorRoot,
         GameType _startingRespectedGameType
     )
         external;

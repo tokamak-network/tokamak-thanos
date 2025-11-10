@@ -3,7 +3,8 @@ pragma solidity 0.8.15;
 
 import { Proxy } from "src/universal/Proxy.sol";
 import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
-import { AnchorStateRegistry, IAnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
+import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
 import { StdAssertions } from "forge-std/StdAssertions.sol";
 import "src/dispute/lib/Types.sol";
@@ -92,29 +93,29 @@ contract FPACOPS is Deploy, StdAssertions {
 
     function initializeAnchorStateRegistryProxy() internal broadcast {
         console.log("Initializing AnchorStateRegistryProxy with AnchorStateRegistry.");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        SuperchainConfig superchainConfig = SuperchainConfig(superchainConfigProxy);
+        SystemConfig systemConfig = SystemConfig(mustGetAddress("SystemConfigProxy"));
+        DisputeGameFactory disputeGameFactory = DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
 
-        AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](2);
-        roots[0] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
+        // v1.16.0: Use single Proposal and GameType instead of StartingAnchorRoot[]
+        Proposal memory startingAnchorRoot = Proposal({
+            root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+            l2SequenceNumber: cfg.faultGameGenesisBlock()
         });
-        roots[1] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.PERMISSIONED_CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
+
+        GameType startingRespectedGameType = GameType.wrap(uint32(cfg.respectedGameType()));
 
         address asrProxy = mustGetAddress("AnchorStateRegistryProxy");
         Proxy(payable(asrProxy)).upgradeToAndCall(
             mustGetAddress("AnchorStateRegistry"),
-            abi.encodeCall(AnchorStateRegistry.initialize, (roots, superchainConfig))
+            abi.encodeCall(
+                AnchorStateRegistry.initialize,
+                (
+                    ISystemConfig(address(systemConfig)),
+                    IDisputeGameFactory(address(disputeGameFactory)),
+                    startingAnchorRoot,
+                    startingRespectedGameType
+                )
+            )
         );
     }
 

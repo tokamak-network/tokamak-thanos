@@ -353,39 +353,43 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
     }
 
     /// @dev Tests that `blacklistDisputeGame` reverts when called by a non-guardian.
+    /// NOTE: In v1.16.0, blacklistDisputeGame moved to AnchorStateRegistry
     function testFuzz_blacklist_onlyGuardian_reverts(address _act) external {
         vm.assume(_act != address(optimismPortal2.guardian()));
 
         vm.expectRevert(Unauthorized.selector);
-        optimismPortal2.blacklistDisputeGame(IDisputeGame(address(0xdead)));
+        anchorStateRegistry.blacklistDisputeGame(IDisputeGame(address(0xdead)));
     }
 
     /// @dev Tests that the guardian role can blacklist any dispute game.
+    /// NOTE: In v1.16.0, blacklistDisputeGame moved to AnchorStateRegistry
     function testFuzz_blacklist_guardian_succeeds(IDisputeGame _addr) external {
-        vm.expectEmit(address(optimismPortal2));
+        vm.expectEmit(address(anchorStateRegistry));
         emit DisputeGameBlacklisted(_addr);
 
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.blacklistDisputeGame(_addr);
+        anchorStateRegistry.blacklistDisputeGame(_addr);
 
-        assertTrue(optimismPortal2.disputeGameBlacklist(_addr));
+        assertTrue(anchorStateRegistry.disputeGameBlacklist(_addr));
     }
 
     /// @dev Tests that `setRespectedGameType` reverts when called by a non-guardian.
+    /// NOTE: In v1.16.0, setRespectedGameType moved to AnchorStateRegistry
     function testFuzz_setRespectedGameType_onlyGuardian_reverts(address _act, GameType _ty) external {
         vm.assume(_act != address(optimismPortal2.guardian()));
 
         vm.prank(_act);
         vm.expectRevert(Unauthorized.selector);
-        optimismPortal2.setRespectedGameType(_ty);
+        anchorStateRegistry.setRespectedGameType(_ty);
     }
 
     /// @dev Tests that the guardian role can set the respected game type to anything they want.
+    /// NOTE: In v1.16.0, setRespectedGameType moved to AnchorStateRegistry
     function testFuzz_setRespectedGameType_guardian_succeeds(GameType _ty) external {
-        vm.expectEmit(address(optimismPortal2));
+        vm.expectEmit(address(anchorStateRegistry));
         emit RespectedGameTypeSet(_ty, Timestamp.wrap(uint64(block.timestamp)));
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.setRespectedGameType(_ty);
+        anchorStateRegistry.setRespectedGameType(_ty);
 
         assertEq(optimismPortal2.respectedGameType().raw(), _ty.raw());
     }
@@ -505,9 +509,9 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
             _withdrawalProof: _withdrawalProof
         });
 
-        // Blacklist the dispute dispute game.
+        // Blacklist the dispute dispute game. (v1.16.0: moved to AnchorStateRegistry)
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.blacklistDisputeGame(IDisputeGame(address(game)));
+        anchorStateRegistry.blacklistDisputeGame(IDisputeGame(address(game)));
 
         // Mock the status of the dispute game we just proved against to be CHALLENGER_WINS.
         vm.mockCall(address(game), abi.encodeCall(game.status, ()), abi.encode(GameStatus.CHALLENGER_WINS));
@@ -578,9 +582,9 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
             _withdrawalProof: _withdrawalProof
         });
 
-        // Update the respected game type to 0xbeef.
+        // Update the respected game type to 0xbeef. (v1.16.0: moved to AnchorStateRegistry)
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.setRespectedGameType(GameType.wrap(0xbeef));
+        anchorStateRegistry.setRespectedGameType(GameType.wrap(0xbeef));
 
         // Create a new game and mock the game type as 0xbeef in the factory.
         IDisputeGame newGame =
@@ -1094,7 +1098,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         game.resolve();
 
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.blacklistDisputeGame(IDisputeGame(address(game)));
+        anchorStateRegistry.blacklistDisputeGame(IDisputeGame(address(game)));
 
         vm.warp(block.timestamp + optimismPortal2.proofMaturityDelaySeconds() + 1);
 
@@ -1156,7 +1160,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Change the respected game type in the portal.
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.setRespectedGameType(GameType.wrap(0xFF));
+        anchorStateRegistry.setRespectedGameType(GameType.wrap(0xFF));
 
         vm.expectRevert("OptimismPortal: invalid game type");
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
@@ -1185,7 +1189,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Change the respected game type in the portal.
         vm.prank(optimismPortal2.guardian());
-        optimismPortal2.setRespectedGameType(GameType.wrap(0xFF));
+        anchorStateRegistry.setRespectedGameType(GameType.wrap(0xFF));
 
         // Mock the game's type so that we pass the correct game type check.
         vm.mockCall(address(game), abi.encodeCall(game.gameType, ()), abi.encode(GameType.wrap(0xFF)));
