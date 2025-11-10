@@ -1,49 +1,52 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
+import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
+import { OnApprove } from "src/L1/OnApprove.sol";
+
+// Libraries
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { EOA } from "src/libraries/EOA.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import { DisputeGameFactory, IDisputeGame } from "src/dispute/DisputeGameFactory.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { ResourceMetering } from "src/L1/ResourceMetering.sol";
-import { ISemver } from "src/universal/ISemver.sol";
-import { Constants } from "src/libraries/Constants.sol";
-import { OnApprove } from "./OnApprove.sol";
+import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
 
-import "src/libraries/PortalErrors.sol";
-import "src/dispute/lib/Types.sol";
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
-/// @custom:proxied
+/// @custom:proxied true
 /// @title OptimismPortal2
-/// @notice The OptimismPortal2 is a low-level contract responsible for passing messages between L1
+/// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-/// It is implemented for supporting permissionless fault proofs to help OP Stack chains reach Stage 1.
-contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver {
+contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase, ProxyAdminOwnedBase, OnApprove, ISemver {
     using SafeERC20 for IERC20;
-
     /// @notice Represents a proven withdrawal.
-    /// @custom:field disputeGameProxy The address of the dispute game proxy that the withdrawal was proven against.
-    /// @custom:field timestamp        Timestamp at whcih the withdrawal was proven.
+    /// @custom:field disputeGameProxy Game that the withdrawal was proven against.
+    /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
     struct ProvenWithdrawal {
         IDisputeGame disputeGameProxy;
         uint64 timestamp;
     }
 
-    /// @notice The delay between when a withdrawal transaction is proven and when it may be finalized.
+    /// @notice The delay between when a withdrawal is proven and when it may be finalized.
     uint256 internal immutable PROOF_MATURITY_DELAY_SECONDS;
-
-    /// @notice The delay between when a dispute game is resolved and when a withdrawal proven against it may be
-    ///         finalized.
-    uint256 internal immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS;
 
     /// @notice Version of the deposit event.
     uint256 internal constant DEPOSIT_VERSION = 0;
@@ -52,8 +55,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     uint64 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 100_000;
 
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
-    ///         If the of this variable is the default L2 sender address, then we are NOT inside of
-    ///         a call to finalizeWithdrawalTransaction.
+    ///         If the value of this variable is the default L2 sender address, then we are NOT
+    ///         inside of a call to finalizeWithdrawalTransaction.
     address public l2Sender;
 
     /// @notice A list of withdrawal hashes which have been successfully finalized.
@@ -69,44 +72,65 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @notice Spacer for backwards compatibility.
     bool private spacer_53_0_1;
 
-    /// @notice Contract of the Superchain Config.
-    SuperchainConfig public superchainConfig;
+    /// @custom:legacy
+    /// @custom:spacer superchainConfig
+    /// @notice Spacer for backwards compatibility.
+    address private spacer_53_1_20;
 
     /// @custom:legacy
     /// @custom:spacer l2Oracle
     /// @notice Spacer taking up the legacy `l2Oracle` address slot.
     address private spacer_54_0_20;
 
-    /// @notice Contract of the SystemConfig.
+    /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
-    SystemConfig public systemConfig;
+    ISystemConfig public systemConfig;
 
-    /// @notice Address of the DisputeGameFactory.
     /// @custom:network-specific
-    DisputeGameFactory public disputeGameFactory;
+    /// @custom:legacy
+    /// @custom:spacer disputeGameFactory
+    /// @notice Spacer taking up the legacy `disputeGameFactory` address slot.
+    address private spacer_56_0_20;
 
-    /// @notice A mapping of withdrawal hashes to proof submitters to `ProvenWithdrawal` data.
+    /// @notice A mapping of withdrawal hashes to proof submitters to ProvenWithdrawal data.
     mapping(bytes32 => mapping(address => ProvenWithdrawal)) public provenWithdrawals;
 
-    /// @notice A mapping of dispute game addresses to whether or not they are blacklisted.
-    mapping(IDisputeGame => bool) public disputeGameBlacklist;
+    /// @custom:legacy
+    /// @custom:spacer disputeGameBlacklist
+    bytes32 private spacer_58_0_32;
 
-    /// @notice The game type that the OptimismPortal consults for output proposals.
-    GameType public respectedGameType;
+    /// @custom:legacy
+    /// @custom:spacer respectedGameType
+    GameType private spacer_59_0_4;
 
-    /// @notice The timestamp at which the respected game type was last updated.
-    uint64 public respectedGameTypeUpdatedAt;
+    /// @custom:legacy
+    /// @custom:spacer respectedGameTypeUpdatedAt
+    uint64 private spacer_59_4_8;
 
-    /// @notice Mapping of withdrawal hashes to addresses that have submitted a proof for the withdrawal.
+    /// @notice Mapping of withdrawal hashes to addresses that have submitted a proof for the
+    ///         withdrawal. Original OptimismPortal contract only allowed one proof to be submitted
+    ///         for any given withdrawal hash. Fault Proofs version of this contract must allow
+    ///         multiple proofs for the same withdrawal hash to prevent a malicious user from
+    ///         blocking other withdrawals by proving them against invalid proposals. Submitters
+    ///         are tracked in an array to simplify the off-chain process of determining which
+    ///         proof submission should be used when finalizing a withdrawal.
     mapping(bytes32 => address[]) public proofSubmitters;
 
-    /// @custom:spacer _balance (custom gas token)
-    /// @notice Spacer for forwards compatibility.
-    bytes32 private spacer_61_0_32;
+    /// @custom:legacy
+    /// @custom:spacer _balance
+    uint256 private spacer_61_0_32;
 
-    /// @notice Emitted when a transaction is deposited from L1 to L2.
-    ///         The parameters of this event are read by the rollup node and used to derive deposit
-    ///         transactions on L2.
+    /// @notice Address of the AnchorStateRegistry contract.
+    IAnchorStateRegistry public anchorStateRegistry;
+
+    /// @notice Address of the ETHLockbox contract.
+    IETHLockbox public ethLockbox;
+
+    /// @notice Whether the OptimismPortal is using Super Roots or Output Roots.
+    bool public superRootsActive;
+
+    /// @notice Emitted when a transaction is deposited from L1 to L2. The parameters of this event
+    ///         are read by the rollup node and used to derive deposit transactions on L2.
     /// @param from       Address that triggered the deposit transaction.
     /// @param to         Address that the deposit transaction is directed to.
     /// @param version    Version of this deposit transaction event.
@@ -119,8 +143,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @param to             Address that the withdrawal transaction is directed to.
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
 
-    /// @notice Emitted when a withdrawal transaction is proven. Exists as a separate event to allow for backwards
-    ///         compatibility for tooling that observes the `WithdrawalProven` event.
+    /// @notice Emitted when a withdrawal transaction is proven. Exists as a separate event to
+    ///         allow for backwards compatibility for tooling that observes the WithdrawalProven
+    ///         event.
     /// @param withdrawalHash Hash of the withdrawal transaction.
     /// @param proofSubmitter Address of the proof submitter.
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
@@ -130,92 +155,148 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
-    /// @notice Emitted when a dispute game is blacklisted by the Guardian.
-    /// @param disputeGame Address of the dispute game that was blacklisted.
-    event DisputeGameBlacklisted(IDisputeGame indexed disputeGame);
+    /// @notice Emitted when the total ETH balance is migrated to the ETHLockbox.
+    /// @param lockbox The address of the ETHLockbox contract.
+    /// @param ethBalance Amount of ETH migrated.
+    event ETHMigrated(address indexed lockbox, uint256 ethBalance);
 
-    /// @notice Emitted when the Guardian changes the respected game type in the portal.
-    /// @param newGameType The new respected game type.
-    /// @param updatedAt   The timestamp at which the respected game type was updated.
-    event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
+    /// @notice Emitted when the ETHLockbox contract is updated.
+    /// @param oldLockbox The address of the old ETHLockbox contract.
+    /// @param newLockbox The address of the new ETHLockbox contract.
+    /// @param oldAnchorStateRegistry The address of the old AnchorStateRegistry contract.
+    /// @param newAnchorStateRegistry The address of the new AnchorStateRegistry contract.
+    event PortalMigrated(
+        IETHLockbox oldLockbox,
+        IETHLockbox newLockbox,
+        IAnchorStateRegistry oldAnchorStateRegistry,
+        IAnchorStateRegistry newAnchorStateRegistry
+    );
 
-    /// @notice Reverts when paused.
-    modifier whenNotPaused() {
-        if (paused()) revert CallPaused();
-        _;
-    }
+    /// @notice Thrown when a withdrawal has already been finalized.
+    error OptimismPortal_AlreadyFinalized();
+
+    /// @notice Thrown when the target of a withdrawal is unsafe.
+    error OptimismPortal_BadTarget();
+
+    /// @notice Thrown when the calldata for a deposit is too large.
+    error OptimismPortal_CalldataTooLarge();
+
+    /// @notice Thrown when the portal is paused.
+    error OptimismPortal_CallPaused();
+
+    /// @notice Thrown when a gas estimation transaction is being executed.
+    error OptimismPortal_GasEstimation();
+
+    /// @notice Thrown when the gas limit for a deposit is too low.
+    error OptimismPortal_GasLimitTooLow();
+
+    /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
+    error OptimismPortal_ImproperDisputeGame();
+
+    /// @notice Thrown when a withdrawal has not been proven against a valid dispute game.
+    error OptimismPortal_InvalidDisputeGame();
+
+    /// @notice Thrown when a withdrawal has not been proven against a valid merkle proof.
+    error OptimismPortal_InvalidMerkleProof();
+
+    /// @notice Thrown when a withdrawal has not been proven against a valid output root proof.
+    error OptimismPortal_InvalidOutputRootProof();
+
+    /// @notice Thrown when a withdrawal's timestamp is not greater than the dispute game's creation timestamp.
+    error OptimismPortal_InvalidProofTimestamp();
+
+    /// @notice Thrown when the root claim of a dispute game is invalid.
+    error OptimismPortal_InvalidRootClaim();
+
+    /// @notice Thrown when a withdrawal is being finalized by a reentrant call.
+    error OptimismPortal_NoReentrancy();
+
+    /// @notice Thrown when a withdrawal has not been proven for long enough.
+    error OptimismPortal_ProofNotOldEnough();
+
+    /// @notice Thrown when a withdrawal has not been proven.
+    error OptimismPortal_Unproven();
+
+    /// @notice Thrown when the caller is not authorized to call the function.
+    error OptimismPortal_Unauthorized();
+
+    /// @notice Thrown when the wrong proof method is used.
+    error OptimismPortal_WrongProofMethod();
+
+    /// @notice Thrown when a super root proof is invalid.
+    error OptimismPortal_InvalidSuperRootProof();
+
+    /// @notice Thrown when an output root index is invalid.
+    error OptimismPortal_InvalidOutputRootIndex();
+
+    /// @notice Thrown when an output root chain id is invalid.
+    error OptimismPortal_InvalidOutputRootChainId();
+
+    /// @notice Thrown when trying to migrate to the same AnchorStateRegistry.
+    error OptimismPortal_MigratingToSameRegistry();
 
     /// @notice Semantic version.
-    /// @custom:semver 3.10.0
-    string public constant version = "3.10.0";
+    /// @custom:semver 4.6.0
+    function version() public pure virtual returns (string memory) {
+        return "4.6.0";
+    }
 
-    /// @notice Constructs the OptimismPortal contract.
-    constructor(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) {
-        // NOTE: For implementation contracts, we disable initializers to prevent
-        // anyone from initializing the implementation contract itself.
-        // The proxy will call initialize() when it's deployed.
+    /// @param _proofMaturityDelaySeconds The proof maturity delay in seconds.
+    constructor(uint256 _proofMaturityDelaySeconds) ReinitializableBase(2) {
         PROOF_MATURITY_DELAY_SECONDS = _proofMaturityDelaySeconds;
-        DISPUTE_GAME_FINALITY_DELAY_SECONDS = _disputeGameFinalityDelaySeconds;
         _disableInitializers();
     }
 
     /// @notice Initializer.
-    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
-    /// @param _systemConfig Contract of the SystemConfig.
-    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _systemConfig Address of the SystemConfig.
+    /// @param _anchorStateRegistry Address of the AnchorStateRegistry.
+    /// @param _ethLockbox Contract of the ETHLockbox.
     function initialize(
-        DisputeGameFactory _disputeGameFactory,
-        SystemConfig _systemConfig,
-        SuperchainConfig _superchainConfig,
-        GameType _initialRespectedGameType
+        ISystemConfig _systemConfig,
+        IAnchorStateRegistry _anchorStateRegistry,
+        IETHLockbox _ethLockbox
     )
-        public
-        initializer
+        external
+        reinitializer(initVersion())
     {
-        disputeGameFactory = _disputeGameFactory;
-        systemConfig = _systemConfig;
-        superchainConfig = _superchainConfig;
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
 
-        // Set the `l2Sender` slot, only if it is currently empty. This signals the first initialization of the
-        // contract.
+        // Now perform initialization logic.
+        systemConfig = _systemConfig;
+        anchorStateRegistry = _anchorStateRegistry;
+        ethLockbox = _ethLockbox;
+
+        // Set the l2Sender slot, only if it is currently empty. This signals the first
+        // initialization of the contract.
         if (l2Sender == address(0)) {
             l2Sender = Constants.DEFAULT_L2_SENDER;
-
-            // Set the `respectedGameTypeUpdatedAt` timestamp, to ignore all games of the respected type prior
-            // to this operation.
-            respectedGameTypeUpdatedAt = uint64(block.timestamp);
-
-            // Set the initial respected game type
-            respectedGameType = _initialRespectedGameType;
         }
 
         __ResourceMetering_init();
     }
 
-    /// @notice Getter function for the address of the guardian.
-    ///         Public getter is legacy and will be removed in the future. Use `SuperchainConfig.guardian()` instead.
-    /// @return Address of the guardian.
-    /// @custom:legacy
-    function guardian() public view returns (address) {
-        return superchainConfig.guardian();
+    /// @notice Upgrades the OptimismPortal contract to have a reference to the AnchorStateRegistry and SystemConfig
+    /// @param _anchorStateRegistry AnchorStateRegistry contract.
+    /// @param _ethLockbox ETHLockbox contract.
+    function upgrade(
+        IAnchorStateRegistry _anchorStateRegistry,
+        IETHLockbox _ethLockbox
+    )
+        external
+        reinitializer(initVersion())
+    {
+        // Upgrade transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        // Now perform upgrade logic.
+        anchorStateRegistry = _anchorStateRegistry;
+        ethLockbox = _ethLockbox;
     }
 
     /// @notice Getter for the current paused status.
     function paused() public view returns (bool) {
-        return superchainConfig.paused();
-    }
-
-    /// @notice Returns the address of the native token.
-    /// @dev This function provides an external interface to retrieve the native token address
-    ///      by calling the internal `_nativeToken()` function, which fetches the address from `systemConfig`.
-    /// @return The address of the native token in the current system.
-    function nativeTokenAddress() external view returns (address) {
-        return _nativeToken();
-    }
-
-    /// @notice Getter for the native token address
-    function _nativeToken() internal view returns (address) {
-        return systemConfig.nativeTokenAddress();
+        return systemConfig.paused();
     }
 
     /// @notice Getter for the proof maturity delay.
@@ -223,9 +304,64 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         return PROOF_MATURITY_DELAY_SECONDS;
     }
 
+    /// @notice Getter for the address of the DisputeGameFactory contract.
+    function disputeGameFactory() public view returns (IDisputeGameFactory) {
+        return anchorStateRegistry.disputeGameFactory();
+    }
+
+    /// @notice Returns the SuperchainConfig contract.
+    /// @return ISuperchainConfig The SuperchainConfig contract.
+    function superchainConfig() external view returns (ISuperchainConfig) {
+        return systemConfig.superchainConfig();
+    }
+
+    /// @notice Tokamak: Get the native token address
+    /// @dev This function provides an external interface to retrieve the native token address
+    ///      by calling the internal `_nativeToken()` function, which fetches the address from `systemConfig`.
+    /// @return The address of the native token in the current system.
+    function nativeTokenAddress() external view returns (address) {
+        return _nativeToken();
+    }
+
+    /// @notice Tokamak: Internal getter for the native token address
+    /// @return The address of the native token
+    function _nativeToken() internal view returns (address) {
+        return systemConfig.nativeTokenAddress();
+    }
+
+    /// @custom:legacy
+    /// @notice Getter function for the address of the guardian.
+    function guardian() external view returns (address) {
+        return systemConfig.guardian();
+    }
+
+    /// @custom:legacy
     /// @notice Getter for the dispute game finality delay.
-    function disputeGameFinalityDelaySeconds() public view returns (uint256) {
-        return DISPUTE_GAME_FINALITY_DELAY_SECONDS;
+    function disputeGameFinalityDelaySeconds() external view returns (uint256) {
+        return anchorStateRegistry.disputeGameFinalityDelaySeconds();
+    }
+
+    /// @custom:legacy
+    /// @notice Getter for the respected game type.
+    function respectedGameType() external view returns (GameType) {
+        return anchorStateRegistry.respectedGameType();
+    }
+
+    /// @custom:legacy
+    /// @notice Getter for the retirement timestamp. Note that this value NO LONGER reflects the
+    ///         timestamp at which the respected game type was updated. Game retirement and
+    ///         respected game type value have been decoupled, this function now only returns the
+    ///         retirement timestamp.
+    function respectedGameTypeUpdatedAt() external view returns (uint64) {
+        return anchorStateRegistry.retirementTimestamp();
+    }
+
+    /// @custom:legacy
+    /// @notice Getter for the dispute game blacklist.
+    /// @param _disputeGame The dispute game to check.
+    /// @return Whether the dispute game is blacklisted.
+    function disputeGameBlacklist(IDisputeGame _disputeGame) public view returns (bool) {
+        return anchorStateRegistry.disputeGameBlacklist(_disputeGame);
     }
 
     /// @notice Computes the minimum gas limit for a deposit.
@@ -236,35 +372,116 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @param _byteCount Number of bytes in the calldata.
     /// @return The minimum gas limit for a deposit.
     function minimumGasLimit(uint64 _byteCount) public pure returns (uint64) {
-        return _byteCount * 16 + 21000;
+        return _byteCount * 40 + 21000;
     }
 
-    /// @notice Not accept value so that users can send ETH directly to this contract
+    /// @notice Tokamak: Does not accept ETH directly since we use ERC20 native token.
+    ///         Users must use depositTransaction() or onApprove() callback.
     receive() external payable {
-        revert("Only allow native token");
-        // depositTransaction(msg.sender, msg.value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
+        revert("OptimismPortal: only native token (ERC20) deposits allowed");
     }
 
-    /// @notice Accepts ETH value without triggering a deposit to L2.
-    ///         This function mainly exists for the sake of the migration between the legacy
-    ///         Optimism system and Bedrock.
+    /// @notice Tokamak: Does not accept ETH donations since we use ERC20 native token.
     function donateETH() external payable {
-        // Intentionally empty.
+        revert("OptimismPortal: only native token (ERC20) donations allowed");
     }
 
-    /// @notice Getter for the resource config.
-    ///         Used internally by the ResourceMetering contract.
-    ///         The SystemConfig is the source of truth for the resource config.
-    /// @return ResourceMetering ResourceConfig
-    function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory) {
-        return systemConfig.resourceConfig();
+    /// @notice Migrates the total ETH balance to the ETHLockbox.
+    function migrateLiquidity() public {
+        // Liquidity migration can only be triggered by the ProxyAdmin owner.
+        _assertOnlyProxyAdminOwner();
+
+        // Migrate the liquidity.
+        uint256 ethBalance = address(this).balance;
+        ethLockbox.lockETH{ value: ethBalance }();
+        emit ETHMigrated(address(ethLockbox), ethBalance);
     }
 
-    /// @notice Proves a withdrawal transaction.
+    /// @notice Allows the owner of the ProxyAdmin to migrate the OptimismPortal to use a new
+    ///         lockbox, point at a new AnchorStateRegistry, and start to use the Super Roots proof
+    ///         method. Primarily used for OptimismPortal instances to join the interop set, but
+    ///         can also be used to swap the proof method from Output Roots to Super Roots if the
+    ///         provided lockbox is the same as the current one.
+    /// @dev    It is possible to change lockboxes without migrating liquidity. This can cause one
+    ///         of the OptimismPortal instances connected to the new lockbox to not be able to
+    ///         unlock sufficient ETH to finalize withdrawals which would trigger reverts. To avoid
+    ///         this issue, guarantee that this function is called atomically alongside the
+    ///         ETHLockbox.migrateLiquidity() function within the same transaction.
+    /// @param _newLockbox The address of the new ETHLockbox contract.
+    /// @param _newAnchorStateRegistry The address of the new AnchorStateRegistry contract.
+    function migrateToSuperRoots(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry) external {
+        // Migration can only be triggered when the system is not paused because the migration can
+        // potentially unpause the system as a result of the modified ETHLockbox address.
+        _assertNotPaused();
+
+        // Migration can only be triggered by the ProxyAdmin owner.
+        _assertOnlyProxyAdminOwner();
+
+        // Chains can use this method to swap the proof method from Output Roots to Super Roots
+        // without joining the interop set. In this case, the old and new lockboxes will be the
+        // same. However, whether or not a chain is joining the interop set, all chains will need a
+        // new AnchorStateRegistry when migrating to Super Roots. We therefore check that the new
+        // AnchorStateRegistry is different than the old one to prevent this function from being
+        // accidentally misused.
+        if (anchorStateRegistry == _newAnchorStateRegistry) {
+            revert OptimismPortal_MigratingToSameRegistry();
+        }
+
+        // Update the ETHLockbox.
+        IETHLockbox oldLockbox = ethLockbox;
+        ethLockbox = _newLockbox;
+
+        // Update the AnchorStateRegistry.
+        IAnchorStateRegistry oldAnchorStateRegistry = anchorStateRegistry;
+        anchorStateRegistry = _newAnchorStateRegistry;
+
+        // Set the proof method to Super Roots. We expect that migration will happen more than once
+        // for some chains (switching to single-chain Super Roots and then later joining the
+        // interop set) so we don't need to check that this is false.
+        superRootsActive = true;
+
+        // Emit a PortalMigrated event.
+        emit PortalMigrated(oldLockbox, _newLockbox, oldAnchorStateRegistry, _newAnchorStateRegistry);
+    }
+
+    /// @notice Proves a withdrawal transaction using a Super Root proof. Only callable when the
+    ///         OptimismPortal is using Super Roots (superRootsActive flag is true).
+    /// @param _tx               Withdrawal transaction to finalize.
+    /// @param _disputeGameProxy Address of the dispute game to prove the withdrawal against.
+    /// @param _outputRootIndex  Index of the target Output Root within the Super Root.
+    /// @param _superRootProof   Inclusion proof of the Output Root within the Super Root.
+    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser storage root.
+    /// @param _withdrawalProof  Inclusion proof of the withdrawal within the L2ToL1MessagePasser.
+    function proveWithdrawalTransaction(
+        Types.WithdrawalTransaction memory _tx,
+        IDisputeGame _disputeGameProxy,
+        uint256 _outputRootIndex,
+        Types.SuperRootProof calldata _superRootProof,
+        Types.OutputRootProof calldata _outputRootProof,
+        bytes[] calldata _withdrawalProof
+    )
+        external
+    {
+        // Cannot prove withdrawal transactions while the system is paused.
+        _assertNotPaused();
+
+        // Make sure that the OptimismPortal is using Super Roots.
+        if (!superRootsActive) {
+            revert OptimismPortal_WrongProofMethod();
+        }
+
+        // Prove the transaction.
+        _proveWithdrawalTransaction(
+            _tx, _disputeGameProxy, _outputRootIndex, _superRootProof, _outputRootProof, _withdrawalProof
+        );
+    }
+
+    /// @notice Proves a withdrawal transaction using an Output Root proof. Only callable when the
+    ///         OptimismPortal is using Output Roots (superRootsActive flag is false).
     /// @param _tx               Withdrawal transaction to finalize.
     /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
-    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser contract's storage root.
-    /// @param _withdrawalProof  Inclusion proof of the withdrawal in L2ToL1MessagePasser contract.
+    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser storage root.
+    /// @param _withdrawalProof  Inclusion proof of the withdrawal within the L2ToL1MessagePasser.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         uint256 _disputeGameIndex,
@@ -272,35 +489,105 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         bytes[] calldata _withdrawalProof
     )
         external
-        whenNotPaused
     {
-        // Prevent users from creating a deposit transaction where this address is the message
-        // sender on L2. Because this is checked here, we do not need to check again in
-        // `finalizeWithdrawalTransaction`.
-        require(_tx.target != address(this), "OptimismPortal: you cannot send messages to the portal contract");
+        // Cannot prove withdrawal transactions while the system is paused.
+        _assertNotPaused();
+
+        // Make sure that the OptimismPortal is using Output Roots.
+        if (superRootsActive) {
+            revert OptimismPortal_WrongProofMethod();
+        }
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
-        (GameType gameType,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
-        Claim outputRoot = gameProxy.rootClaim();
+        (,, IDisputeGame disputeGameProxy) = disputeGameFactory().gameAtIndex(_disputeGameIndex);
 
-        // The game type of the dispute game must be the respected game type.
-        require(gameType.raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
+        // Create a dummy super root proof to pass into the internal function. Note that this is
+        // not a valid Super Root proof but it isn't used anywhere in the internal function when
+        // using Output Roots.
+        Types.SuperRootProof memory superRootProof;
 
-        // Verify that the output root can be generated with the elements in the proof.
-        require(
-            outputRoot.raw() == Hashing.hashOutputRootProof(_outputRootProof),
-            "OptimismPortal: invalid output root proof"
-        );
+        // Prove the transaction.
+        _proveWithdrawalTransaction(_tx, disputeGameProxy, 0, superRootProof, _outputRootProof, _withdrawalProof);
+    }
+
+    /// @notice Internal function for proving a withdrawal transaction, used by both the Super Root
+    ///         and Output Root proof functions. Will eventually be replaced with a single function
+    ///         when the Output Root proof method is deprecated.
+    /// @param _tx               Withdrawal transaction to prove.
+    /// @param _disputeGameProxy Address of the dispute game to prove the withdrawal against.
+    /// @param _outputRootIndex  Index of the target Output Root within the Super Root.
+    /// @param _superRootProof   Inclusion proof of the Output Root within the Super Root.
+    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser storage root.
+    /// @param _withdrawalProof  Inclusion proof of the withdrawal within the L2ToL1MessagePasser.
+    function _proveWithdrawalTransaction(
+        Types.WithdrawalTransaction memory _tx,
+        IDisputeGame _disputeGameProxy,
+        uint256 _outputRootIndex,
+        Types.SuperRootProof memory _superRootProof,
+        Types.OutputRootProof memory _outputRootProof,
+        bytes[] memory _withdrawalProof
+    )
+        internal
+    {
+        // Make sure that the target address is safe.
+        if (_isUnsafeTarget(_tx.target)) {
+            revert OptimismPortal_BadTarget();
+        }
+
+        // Game must be a Proper Game.
+        if (!anchorStateRegistry.isGameProper(_disputeGameProxy)) {
+            revert OptimismPortal_ImproperDisputeGame();
+        }
+
+        // Game must have been respected game type when created.
+        if (!anchorStateRegistry.isGameRespected(_disputeGameProxy)) {
+            revert OptimismPortal_InvalidDisputeGame();
+        }
+
+        // Game must not have resolved in favor of the Challenger (invalid root claim).
+        if (_disputeGameProxy.status() == GameStatus.CHALLENGER_WINS) {
+            revert OptimismPortal_InvalidDisputeGame();
+        }
+
+        // As a sanity check, we make sure that the current timestamp is not less than or equal to
+        // the dispute game's creation timestamp. Not strictly necessary but extra layer of
+        // safety against weird bugs. Note that this blocks withdrawals from being proven in the
+        // same block that a dispute game is created.
+        if (block.timestamp <= _disputeGameProxy.createdAt().raw()) {
+            revert OptimismPortal_InvalidProofTimestamp();
+        }
+
+        // Validate the provided Output Root and/or Super Root proof depending on proof method.
+        if (superRootsActive) {
+            // Verify that the super root can be generated with the elements in the proof.
+            if (_disputeGameProxy.rootClaim().raw() != Hashing.hashSuperRootProof(_superRootProof)) {
+                revert OptimismPortal_InvalidSuperRootProof();
+            }
+
+            // Check that the index exists in the super root proof.
+            if (_outputRootIndex >= _superRootProof.outputRoots.length) {
+                revert OptimismPortal_InvalidOutputRootIndex();
+            }
+
+            // Check that the output root has the correct chain id.
+            Types.OutputRootWithChainId memory outputRoot = _superRootProof.outputRoots[_outputRootIndex];
+            if (outputRoot.chainId != systemConfig.l2ChainId()) {
+                revert OptimismPortal_InvalidOutputRootChainId();
+            }
+
+            // Verify that the output root can be generated with the elements in the proof.
+            if (outputRoot.root != Hashing.hashOutputRootProof(_outputRootProof)) {
+                revert OptimismPortal_InvalidOutputRootProof();
+            }
+        } else {
+            // Verify that the output root can be generated with the elements in the proof.
+            if (_disputeGameProxy.rootClaim().raw() != Hashing.hashOutputRootProof(_outputRootProof)) {
+                revert OptimismPortal_InvalidOutputRootProof();
+            }
+        }
 
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
-
-        // We do not allow for proving withdrawals against dispute games that have resolved against the favor
-        // of the root claim.
-        require(
-            gameProxy.status() != GameStatus.CHALLENGER_WINS,
-            "OptimismPortal: cannot prove against invalid dispute games"
-        );
 
         // Compute the storage slot of the withdrawal hash in the L2ToL1MessagePasser contract.
         // Refer to the Solidity documentation for more information on how storage layouts are
@@ -316,34 +603,34 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         // on L2. If this is true, under the assumption that the SecureMerkleTrie does not have
         // bugs, then we know that this withdrawal was actually triggered on L2 and can therefore
         // be relayed on L1.
-        require(
+        if (
             SecureMerkleTrie.verifyInclusionProof({
                 _key: abi.encode(storageKey),
                 _value: hex"01",
                 _proof: _withdrawalProof,
                 _root: _outputRootProof.messagePasserStorageRoot
-            }),
-            "OptimismPortal: invalid withdrawal inclusion proof"
-        );
+            }) == false
+        ) {
+            revert OptimismPortal_InvalidMerkleProof();
+        }
 
-        // Designate the withdrawalHash as proven by storing the `disputeGameProxy` & `timestamp` in the
-        // `provenWithdrawals` mapping. A `withdrawalHash` can only be proven once unless the dispute game it proved
-        // against resolves against the favor of the root claim.
+        // Designate the withdrawalHash as proven by storing the disputeGameProxy and timestamp in
+        // the provenWithdrawals mapping. A given user may re-prove a withdrawalHash multiple
+        // times, but each proof will reset the proof timer.
         provenWithdrawals[withdrawalHash][msg.sender] =
-            ProvenWithdrawal({ disputeGameProxy: gameProxy, timestamp: uint64(block.timestamp) });
-
-        // Emit a `WithdrawalProven` event.
-        emit WithdrawalProven(withdrawalHash, _tx.sender, _tx.target);
-        // Emit a `WithdrawalProvenExtension1` event.
-        emit WithdrawalProvenExtension1(withdrawalHash, msg.sender);
+            ProvenWithdrawal({ disputeGameProxy: _disputeGameProxy, timestamp: uint64(block.timestamp) });
 
         // Add the proof submitter to the list of proof submitters for this withdrawal hash.
         proofSubmitters[withdrawalHash].push(msg.sender);
+
+        // Emit a WithdrawalProven events.
+        emit WithdrawalProven(withdrawalHash, _tx.sender, _tx.target);
+        emit WithdrawalProvenExtension1(withdrawalHash, msg.sender);
     }
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external {
         finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
@@ -355,16 +642,23 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         address _proofSubmitter
     )
         public
-        whenNotPaused
     {
+        // Cannot finalize withdrawal transactions while the system is paused.
+        _assertNotPaused();
+
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
-        require(
-            l2Sender == Constants.DEFAULT_L2_SENDER, "OptimismPortal: can only trigger one withdrawal per transaction"
-        );
+        if (l2Sender != Constants.DEFAULT_L2_SENDER) {
+            revert OptimismPortal_NoReentrancy();
+        }
 
-        // Compute the withdrawal hash.
+        // Make sure that the target address is safe.
+        if (_isUnsafeTarget(_tx.target)) {
+            revert OptimismPortal_BadTarget();
+        }
+
+        // Grab the withdrawal.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Check that the withdrawal can be finalized.
@@ -373,17 +667,16 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
+        // Tokamak: Get native token address
         address _nativeTokenAddress = _nativeToken();
-
-        // Not allow to call native token contract because users can transfer all token out of the contract
-        require(
-            _tx.target != _nativeTokenAddress, "Optimism Portal: cannot make a direct call to native token contract"
-        );
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
 
-        if (_tx.value != 0) {
+        // Tokamak: Handle native token transfer for withdrawal
+        // If there's value and data, approve the target to spend the tokens
+        // Otherwise, just transfer the tokens
+        if (_tx.value > 0) {
             if (_tx.data.length != 0) {
                 IERC20(_nativeTokenAddress).approve(_tx.target, _tx.value);
             } else {
@@ -398,14 +691,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        bool success;
-        if (_tx.data.length != 0) {
-            success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, 0, _tx.data);
-        } else {
-            success = true;
-        }
+        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, 0, _tx.data); // Tokamak: value=0 (native token via ERC20)
 
-        // Reset approval after a call
+        // Tokamak: Clean up approval if call with data and value
         if (_tx.data.length != 0 && _tx.value != 0) {
             IERC20(_nativeTokenAddress).approve(_tx.target, 0);
         }
@@ -421,33 +709,136 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
         if (!success && tx.origin == Constants.ESTIMATION_ADDRESS) {
-            revert GasEstimation();
+            revert OptimismPortal_GasEstimation();
         }
     }
 
-    /// @notice unpack onApprove data
+    /// @notice Checks that a withdrawal has been proven and is ready to be finalized.
+    /// @param _withdrawalHash Hash of the withdrawal.
+    /// @param _proofSubmitter Address of the proof submitter.
+    function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) public view {
+        // Grab the withdrawal and dispute game proxy.
+        ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
+        IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
+
+        // Check that this withdrawal has not already been finalized, this is replay protection.
+        if (finalizedWithdrawals[_withdrawalHash]) {
+            revert OptimismPortal_AlreadyFinalized();
+        }
+
+        // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
+        // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
+        // a timestamp of zero.
+        if (provenWithdrawal.timestamp == 0) {
+            revert OptimismPortal_Unproven();
+        }
+
+        // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
+        // starting timestamp inside the Dispute Game. Not strictly necessary but extra layer of
+        // safety against weird bugs in the proving step. Note that this blocks withdrawals that
+        // are proven in the same block that a dispute game is created.
+        if (provenWithdrawal.timestamp <= disputeGameProxy.createdAt().raw()) {
+            revert OptimismPortal_InvalidProofTimestamp();
+        }
+
+        // A proven withdrawal must wait at least `PROOF_MATURITY_DELAY_SECONDS` before finalizing.
+        if (block.timestamp - provenWithdrawal.timestamp <= PROOF_MATURITY_DELAY_SECONDS) {
+            revert OptimismPortal_ProofNotOldEnough();
+        }
+
+        // Check that the root claim is valid.
+        if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
+            revert OptimismPortal_InvalidRootClaim();
+        }
+    }
+
+    /// @notice Tokamak: Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
+    ///         use in deriving deposit transactions. Note that if a deposit is made by a contract, its
+    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
+    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @param _to         Target address on L2.
+    /// @param _mint       Native token value to deposit into L2's recipient (locked in Portal).
+    /// @param _value      Callvalue for L2's transaction (msg.value on L2).
+    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
+    /// @param _isCreation Whether or not the transaction is a contract creation.
+    /// @param _data       Data to trigger the recipient with.
+    function depositTransaction(
+        address _to,
+        uint256 _mint,
+        uint256 _value,
+        uint64 _gasLimit,
+        bool _isCreation,
+        bytes memory _data
+    )
+        external
+        metered(_gasLimit)
+    {
+        address _nativeTokenAddress = _nativeToken();
+
+        // Tokamak: Lock native token in this contract (Portal)
+        if (_mint > 0) {
+            IERC20(_nativeTokenAddress).safeTransferFrom(msg.sender, address(this), _mint);
+        }
+
+        // Just to be safe, make sure that people specify address(0) as the target when doing
+        // contract creations.
+        if (_isCreation && _to != address(0)) {
+            revert OptimismPortal_BadTarget();
+        }
+
+        // Prevent depositing transactions that have too small of a gas limit. Users should pay
+        // more for more resource usage.
+        if (_gasLimit < minimumGasLimit(uint64(_data.length))) {
+            revert OptimismPortal_GasLimitTooLow();
+        }
+
+        // Prevent the creation of deposit transactions that have too much calldata. This gives an
+        // upper limit on the size of unsafe blocks over the p2p network. 120kb is chosen to ensure
+        // that the transaction can fit into the p2p network policy of 128kb even though deposit
+        // transactions are not gossipped over the p2p network.
+        if (_data.length > 120_000) {
+            revert OptimismPortal_CalldataTooLarge();
+        }
+
+        // Transform the from-address to its alias if the caller is a contract.
+        address from = msg.sender;
+        if (!EOA.isSenderEOA()) {
+            from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+        }
+
+        // Tokamak: Compute the opaque data with _mint instead of msg.value
+        // We use opaque data so that we can update the TransactionDeposited event in the future
+        // without breaking the current interface.
+        bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data);
+
+        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
+        // transaction for this deposit.
+        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
+    }
+
+    /// @notice Tokamak: Unpack onApprove data
     /// @param _data     Data used in OnApprove contract
     function unpackOnApproveData(bytes calldata _data)
         internal
         pure
-        returns (address _to, uint256 _value, uint32 _gasLimit, bytes calldata _message)
+        returns (address _to, uint256 _value, uint64 _gasLimit, bytes calldata _message)
     {
         require(_data.length >= 56, "invalid onApprove data");
         assembly {
             // The layout of a "bytes calldata" is:
             // The first 20 bytes: _to
             // The next 32 bytes: _value
-            // The next 4 bytes: _gasLimit
+            // The next 4 bytes: _gasLimit (uint32, but we return uint64)
             // The rest: _message
             _to := shr(96, calldataload(_data.offset))
             _value := calldataload(add(_data.offset, 20))
-            _gasLimit := shr(224, calldataload(add(_data.offset, 52)))
+            _gasLimit := shr(224, calldataload(add(_data.offset, 52))) // uint32 -> uint64 conversion
             _message.offset := add(_data.offset, 56)
             _message.length := sub(_data.length, 56)
         }
     }
 
-    /// @notice ERC20 onApprove callback
+    /// @notice Tokamak: ERC20 onApprove callback for native token deposits
     /// @param _owner    Account that called approveAndCall
     /// @param _amount   Approved amount
     /// @param _data     Data used in OnApprove contract
@@ -461,180 +852,40 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
         override
         returns (bool)
     {
-        (address to, uint256 value, uint32 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
+        (address to, uint256 value, uint64 gasLimit, bytes calldata message) = unpackOnApproveData(_data);
         if (msg.sender == _nativeToken()) {
-            _depositTransaction(_owner, to, _amount, value, gasLimit, to == address(0), message);
+            // Use the public depositTransaction with the unpacked parameters
+            address _nativeTokenAddress = _nativeToken();
+
+            // Transfer tokens from owner to portal
+            IERC20(_nativeTokenAddress).safeTransferFrom(_owner, address(this), _amount);
+
+            // Process deposit transaction logic
+            if (to == address(0) || to != address(0)) {
+                // Just to be safe, make sure that people specify address(0) as the target when doing
+                // contract creations.
+                if (to == address(0)) {
+                    require(gasLimit >= minimumGasLimit(uint64(message.length)), "OptimismPortal: gas limit too small");
+                }
+            }
+
+            if (message.length > 120_000) {
+                revert OptimismPortal_CalldataTooLarge();
+            }
+
+            // Transform the from-address to its alias if the caller is a contract.
+            address from = _owner;
+            if (!EOA.isSenderEOA()) {
+                from = AddressAliasHelper.applyL1ToL2Alias(_owner);
+            }
+
+            bytes memory opaqueData = abi.encodePacked(_amount, value, gasLimit, to == address(0), message);
+            emit TransactionDeposited(from, to, DEPOSIT_VERSION, opaqueData);
+
             return true;
         } else {
             return false;
         }
-    }
-
-    // @notice Public interface for Accepting deposits of L1's ERC20 as L2's native token and data, and emits a
-    // TransactionDeposited event for use
-    // in
-    ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
-    ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
-    ///         using the CrossDomainMessenger contracts for a simpler developer experience.
-    /// @param _to         Target address on L2.
-    /// @param _mint       Native token value to deposit into L2.
-    /// @param _value      Native token value to send to the recipient.
-    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
-    /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(
-        address _to,
-        uint256 _mint,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes calldata _data
-    )
-        external
-    {
-        _depositTransaction(msg.sender, _to, _mint, _value, _gasLimit, _isCreation, _data);
-    }
-
-    /// @notice Accepts deposits of L2's native token and data, and emits a TransactionDeposited event for
-    /// use in deriving deposit transactions. Note that if a deposit is made by a contract, its
-    /// address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
-    /// using the CrossDomainMessenger contracts for a simpler developer experience.
-    /// @param _sender              Sender address
-    /// @param _to                  Target address on L2.
-    /// @param _mint                Native token value to deposit into L2's recipient.
-    /// @param _value               Callvalue for L2's transaction
-    /// @param _gasLimit            Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation          Whether or not the transaction is a contract creation.
-    /// @param _data                Data to trigger the recipient with.
-    function _depositTransaction(
-        address _sender,
-        address _to,
-        uint256 _mint,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes calldata _data
-    )
-        internal
-        metered(_gasLimit)
-    {
-        address _nativeTokenAddress = _nativeToken();
-
-        // Lock token in this contract
-        if (_mint > 0) {
-            IERC20(_nativeTokenAddress).safeTransferFrom(_sender, address(this), _mint);
-        }
-
-        if (_isCreation) {
-            require(_to == address(0), "OptimismPortal: must send to address(0) when creating a contract");
-        }
-
-        // Prevent depositing transactions that have too small of a gas limit. Users should pay
-        // more for more resource usage.
-        require(_gasLimit >= minimumGasLimit(uint64(_data.length)), "OptimismPortal: gas limit too small");
-
-        // Prevent the creation of deposit transactions that have too much calldata. This gives an
-        // upper limit on the size of unsafe blocks over the p2p network. 120kb is chosen to ensure
-        // that the transaction can fit into the p2p network policy of 128kb even though deposit
-        // transactions are not gossipped over the p2p network.
-        require(_data.length <= 120_000, "OptimismPortal: data too large");
-
-        // Transform the from-address to its alias if the caller is a contract.
-        address from = ((_sender != tx.origin)) ? AddressAliasHelper.applyL1ToL2Alias(_sender) : _sender;
-
-        // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
-        // We use opaque data so that we can update the TransactionDeposited event in the future
-        // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data);
-
-        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
-        // transaction for this deposit.
-        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
-    }
-
-    /// @notice Blacklists a dispute game. Should only be used in the event that a dispute game resolves incorrectly.
-    /// @param _disputeGame Dispute game to blacklist.
-    function blacklistDisputeGame(IDisputeGame _disputeGame) external {
-        if (msg.sender != guardian()) revert Unauthorized();
-        disputeGameBlacklist[_disputeGame] = true;
-        emit DisputeGameBlacklisted(_disputeGame);
-    }
-
-    /// @notice Sets the respected game type. Changing this value can alter the security properties of the system,
-    ///         depending on the new game's behavior.
-    /// @param _gameType The game type to consult for output proposals.
-    function setRespectedGameType(GameType _gameType) external {
-        if (msg.sender != guardian()) revert Unauthorized();
-        respectedGameType = _gameType;
-        respectedGameTypeUpdatedAt = uint64(block.timestamp);
-        emit RespectedGameTypeSet(_gameType, Timestamp.wrap(respectedGameTypeUpdatedAt));
-    }
-
-    /// @notice Checks if a withdrawal can be finalized. This function will revert if the withdrawal cannot be
-    ///         finalized, and otherwise has no side-effects.
-    /// @param _withdrawalHash Hash of the withdrawal to check.
-    /// @param _proofSubmitter The submitter of the proof for the withdrawal hash
-    function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) public view {
-        ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
-        IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
-
-        // The dispute game must not be blacklisted.
-        require(!disputeGameBlacklist[disputeGameProxy], "OptimismPortal: dispute game has been blacklisted");
-
-        // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
-        // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
-        // a timestamp of zero.
-        require(
-            provenWithdrawal.timestamp != 0,
-            "OptimismPortal: withdrawal has not been proven by proof submitter address yet"
-        );
-
-        uint64 createdAt = disputeGameProxy.createdAt().raw();
-
-        // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
-        // starting timestamp inside the Dispute Game. Not strictly necessary but extra layer of
-        // safety against weird bugs in the proving step.
-        require(
-            provenWithdrawal.timestamp > createdAt,
-            "OptimismPortal: withdrawal timestamp less than dispute game creation timestamp"
-        );
-
-        // A proven withdrawal must wait at least `PROOF_MATURITY_DELAY_SECONDS` before finalizing.
-        require(
-            block.timestamp - provenWithdrawal.timestamp > PROOF_MATURITY_DELAY_SECONDS,
-            "OptimismPortal: proven withdrawal has not matured yet"
-        );
-
-        // A proven withdrawal must wait until the dispute game it was proven against has been
-        // resolved in favor of the root claim (the output proposal). This is to prevent users
-        // from finalizing withdrawals proven against non-finalized output roots.
-        require(
-            disputeGameProxy.status() == GameStatus.DEFENDER_WINS,
-            "OptimismPortal: output proposal has not been validated"
-        );
-
-        // The game type of the dispute game must be the respected game type. This was also checked in
-        // `proveWithdrawalTransaction`, but we check it again in case the respected game type has changed since
-        // the withdrawal was proven.
-        require(disputeGameProxy.gameType().raw() == respectedGameType.raw(), "OptimismPortal: invalid game type");
-
-        // The game must have been created after `respectedGameTypeUpdatedAt`. This is to prevent users from creating
-        // invalid disputes against a deployed game type while the off-chain challenge agents are not watching.
-        require(
-            createdAt >= respectedGameTypeUpdatedAt,
-            "OptimismPortal: dispute game created before respected game type was updated"
-        );
-
-        // Before a withdrawal can be finalized, the dispute game it was proven against must have been
-        // resolved for at least `DISPUTE_GAME_FINALITY_DELAY_SECONDS`. This is to allow for manual
-        // intervention in the event that a dispute game is resolved incorrectly.
-        require(
-            block.timestamp - disputeGameProxy.resolvedAt().raw() > DISPUTE_GAME_FINALITY_DELAY_SECONDS,
-            "OptimismPortal: output proposal in air-gap"
-        );
-
-        // Check that this withdrawal has not already been finalized, this is replay protection.
-        require(!finalizedWithdrawals[_withdrawalHash], "OptimismPortal: withdrawal has already been finalized");
     }
 
     /// @notice External getter for the number of proof submitters for a withdrawal hash.
@@ -642,5 +893,28 @@ contract OptimismPortal2 is Initializable, ResourceMetering, OnApprove, ISemver 
     /// @return The number of proof submitters for the withdrawal hash.
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
         return proofSubmitters[_withdrawalHash].length;
+    }
+
+    /// @notice Asserts that the contract is not paused.
+    function _assertNotPaused() internal view {
+        if (paused()) {
+            revert OptimismPortal_CallPaused();
+        }
+    }
+
+    /// @notice Checks if a target address is unsafe.
+    function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
+        // Prevent users from targeting an unsafe target address on a withdrawal transaction.
+        return _target == address(this) || _target == address(ethLockbox);
+    }
+
+    /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
+    ///         The SystemConfig is the source of truth for the resource config.
+    /// @return config_ ResourceMetering ResourceConfig
+    function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory config_) {
+        IResourceMetering.ResourceConfig memory config = systemConfig.resourceConfig();
+        assembly ("memory-safe") {
+            config_ := config
+        }
     }
 }
