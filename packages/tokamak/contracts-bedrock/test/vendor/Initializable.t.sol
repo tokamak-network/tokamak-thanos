@@ -7,6 +7,9 @@ import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { ForgeArtifacts } from "scripts/ForgeArtifacts.sol";
@@ -62,7 +65,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: deploy.mustGetAddress("L1CrossDomainMessenger"),
                 initCalldata: abi.encodeCall(
-                    l1CrossDomainMessenger.initialize, (superchainConfig, optimismPortal, systemConfig)
+                    l1CrossDomainMessenger.initialize, (ISuperchainConfig(address(superchainConfig)), IOptimismPortal(payable(address(optimismPortal))), ISystemConfig(address(systemConfig)))
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1CrossDomainMessenger")
             })
@@ -72,7 +75,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: address(l1CrossDomainMessenger),
                 initCalldata: abi.encodeCall(
-                    l1CrossDomainMessenger.initialize, (superchainConfig, optimismPortal, systemConfig)
+                    l1CrossDomainMessenger.initialize, (ISuperchainConfig(address(superchainConfig)), IOptimismPortal(payable(address(optimismPortal))), ISystemConfig(address(systemConfig)))
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1CrossDomainMessengerProxy")
             })
@@ -264,7 +267,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: deploy.mustGetAddress("L1StandardBridge"),
                 initCalldata: abi.encodeCall(
-                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, ISystemConfig(address(systemConfig)))
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1StandardBridge")
             })
@@ -274,7 +277,7 @@ contract Initializer_Test is Bridge_Initializer {
             InitializeableContract({
                 target: address(l1StandardBridge),
                 initCalldata: abi.encodeCall(
-                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, ISystemConfig(address(systemConfig)))
                 ),
                 initializedSlotVal: deploy.loadInitializedSlot("L1StandardBridgeProxy")
             })
@@ -291,7 +294,7 @@ contract Initializer_Test is Bridge_Initializer {
         contracts.push(
             InitializeableContract({
                 target: deploy.mustGetAddress("L1ERC721Bridge"),
-                initCalldata: abi.encodeCall(l1ERC721Bridge.initialize, (l1CrossDomainMessenger, superchainConfig)),
+                initCalldata: abi.encodeCall(l1ERC721Bridge.initialize, (l1CrossDomainMessenger, ISystemConfig(address(systemConfig)))),
                 initializedSlotVal: deploy.loadInitializedSlot("L1ERC721Bridge")
             })
         );
@@ -299,7 +302,7 @@ contract Initializer_Test is Bridge_Initializer {
         contracts.push(
             InitializeableContract({
                 target: address(l1ERC721Bridge),
-                initCalldata: abi.encodeCall(l1ERC721Bridge.initialize, (l1CrossDomainMessenger, superchainConfig)),
+                initCalldata: abi.encodeCall(l1ERC721Bridge.initialize, (l1CrossDomainMessenger, ISystemConfig(address(systemConfig)))),
                 initializedSlotVal: deploy.loadInitializedSlot("L1ERC721BridgeProxy")
             })
         );
