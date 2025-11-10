@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 // Force recompile for RAT impl
 
 import { Script } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
 
 // Libraries
 import { Chains } from "scripts/libraries/Chains.sol";
@@ -90,7 +91,6 @@ contract DeployImplementations is Script {
 
     function run(Input memory _input) public returns (Output memory output_) {
         assertValidInput(_input);
-
         // Deploy the implementations.
         deploySuperchainConfigImpl(output_);
         deployProtocolVersionsImpl(output_);
@@ -100,17 +100,41 @@ contract DeployImplementations is Script {
         deployL1StandardBridgeImpl(output_);
         deployOptimismMintableERC20FactoryImpl(output_);
         deployOptimismPortalImpl(_input, output_);
+        // ETHLockbox: Set to address(0) for Tokamak (ERC20 ETH on L2)
         deployETHLockboxImpl(output_);
         deployDelayedWETHImpl(_input, output_);
         deployPreimageOracleSingleton(_input, output_);
         deployMipsSingleton(_input, output_);
         deployDisputeGameFactoryImpl(output_);
+        console.log("=== Deploy deployAnchorStateRegistryImpl ===");
+
         deployAnchorStateRegistryImpl(_input, output_);
+        // RAT: Set to address(0) for Tokamak (not used)
         deployRATImpl(output_);
 
         // Deploy the OP Contracts Manager with the new implementations set.
-        deployOPContractsManager(_input, output_);
+        console.log("=== Before deployOPContractsManager ===");
+        console.log("=== Checking output_ values ===");
+        console.log("superchainConfigImpl: %s", address(output_.superchainConfigImpl));
+        console.log("protocolVersionsImpl: %s", address(output_.protocolVersionsImpl));
+        console.log("l1CrossDomainMessengerImpl: %s", address(output_.l1CrossDomainMessengerImpl));
+        console.log("l1ERC721BridgeImpl: %s", address(output_.l1ERC721BridgeImpl));
+        console.log("l1StandardBridgeImpl: %s", address(output_.l1StandardBridgeImpl));
+        console.log("optimismPortalImpl: %s", address(output_.optimismPortalImpl));
+        console.log("systemConfigImpl: %s", address(output_.systemConfigImpl));
+        console.log("optimismMintableERC20FactoryImpl: %s", address(output_.optimismMintableERC20FactoryImpl));
+        console.log("disputeGameFactoryImpl: %s", address(output_.disputeGameFactoryImpl));
+        console.log("anchorStateRegistryImpl: %s", address(output_.anchorStateRegistryImpl));
+        console.log("delayedWETHImpl: %s", address(output_.delayedWETHImpl));
+        console.log("mipsSingleton: %s", address(output_.mipsSingleton));
+        console.log("ethLockboxImpl: %s", address(output_.ethLockboxImpl));
+        console.log("ratImpl: %s", address(output_.ratImpl));
 
+        deployOPContractsManager(_input, output_);
+        console.log("=== After deployOPContractsManager ===");
+        console.log("opcm address: %s", address(output_.opcm));
+
+        console.log("=== Before assertValidOutput ===");
         assertValidOutput(_input, output_);
     }
 
@@ -126,12 +150,12 @@ contract DeployImplementations is Script {
         private
         returns (IOPContractsManager opcm_)
     {
+        console.log("=== createOPCMContract: Building implementations struct ===");
         IOPContractsManager.Implementations memory implementations = IOPContractsManager.Implementations({
             superchainConfigImpl: address(_output.superchainConfigImpl),
             protocolVersionsImpl: address(_output.protocolVersionsImpl),
             l1ERC721BridgeImpl: address(_output.l1ERC721BridgeImpl),
             optimismPortalImpl: address(_output.optimismPortalImpl),
-            optimismPortalInteropImpl: address(0), // Not deployed - Tokamak doesn't use Interop yet
             ethLockboxImpl: address(_output.ethLockboxImpl),
             systemConfigImpl: address(_output.systemConfigImpl),
             optimismMintableERC20FactoryImpl: address(_output.optimismMintableERC20FactoryImpl),
@@ -141,17 +165,29 @@ contract DeployImplementations is Script {
             anchorStateRegistryImpl: address(_output.anchorStateRegistryImpl),
             delayedWETHImpl: address(_output.delayedWETHImpl),
             mipsImpl: address(_output.mipsSingleton),
-            faultDisputeGameV2Impl: address(0), // Not deployed - using Blueprint pattern instead
-            permissionedDisputeGameV2Impl: address(0), // Not deployed - using Blueprint pattern instead
-            superFaultDisputeGameImpl: address(0), // Not deployed - Tokamak doesn't use Super games yet
-            superPermissionedDisputeGameImpl: address(0) // Not deployed - Tokamak doesn't use Super games yet
+            ratImpl: address(_output.ratImpl)
         });
+
+        console.log("superchainConfigImpl: %s", implementations.superchainConfigImpl);
+        console.log("protocolVersionsImpl: %s", implementations.protocolVersionsImpl);
+        console.log("l1ERC721BridgeImpl: %s", implementations.l1ERC721BridgeImpl);
+        console.log("optimismPortalImpl: %s", implementations.optimismPortalImpl);
+        console.log("systemConfigImpl: %s", implementations.systemConfigImpl);
+        console.log("l1CrossDomainMessengerImpl: %s", implementations.l1CrossDomainMessengerImpl);
+        console.log("l1StandardBridgeImpl: %s", implementations.l1StandardBridgeImpl);
+        console.log("disputeGameFactoryImpl: %s", implementations.disputeGameFactoryImpl);
+        console.log("anchorStateRegistryImpl: %s", implementations.anchorStateRegistryImpl);
+        console.log("delayedWETHImpl: %s", implementations.delayedWETHImpl);
+        console.log("mipsImpl: %s", implementations.mipsImpl);
+        console.log("=== Calling deployOPCMBPImplsContainer ===");
 
         deployOPCMBPImplsContainer(_output, _blueprints, implementations);
         deployOPCMGameTypeAdder(_output);
         deployOPCMDeployer(_input, _output);
         deployOPCMUpgrader(_output);
-        deployOPCMInteropMigrator(_output);
+        // deployOPCMInteropMigrator(_output);  // Not used in Tokamak
+        // Set dummy address for opcmInteropMigrator to avoid null pointer issues
+        _output.opcmInteropMigrator = IOPContractsManagerInteropMigrator(address(0));
         deployOPCMStandardValidator(_input, _output, implementations);
 
         // Semgrep rule will fail because the arguments are encoded inside of a separate function.
@@ -188,7 +224,7 @@ contract DeployImplementations is Script {
                     _output.opcmGameTypeAdder,
                     _output.opcmDeployer,
                     _output.opcmUpgrader,
-                    _output.opcmInteropMigrator,
+                    // _output.opcmInteropMigrator,  // Not used in Tokamak
                     _output.opcmStandardValidator,
                     _input.superchainConfigProxy,
                     _input.protocolVersionsProxy,
@@ -219,8 +255,7 @@ contract DeployImplementations is Script {
         // But for Blueprint, the initcode is stored as runtime code, that's why it's necessary to split into 2 parts.
         (blueprints.permissionedDisputeGame1, blueprints.permissionedDisputeGame2) = DeployUtils.createDeterministicBlueprint(vm.getCode("PermissionedDisputeGame"), _salt);
         (blueprints.permissionlessDisputeGame1, blueprints.permissionlessDisputeGame2) = DeployUtils.createDeterministicBlueprint(vm.getCode("FaultDisputeGame"), _salt);
-        (blueprints.superPermissionedDisputeGame1, blueprints.superPermissionedDisputeGame2) = DeployUtils.createDeterministicBlueprint(vm.getCode("SuperPermissionedDisputeGame"), _salt);
-        (blueprints.superPermissionlessDisputeGame1, blueprints.superPermissionlessDisputeGame2) = DeployUtils.createDeterministicBlueprint(vm.getCode("SuperFaultDisputeGame"), _salt);
+        // Super games blueprints are not deployed in Tokamak
         // forgefmt: disable-end
         vm.stopBroadcast();
 
@@ -367,11 +402,12 @@ contract DeployImplementations is Script {
 
     function deployOptimismPortalImpl(Input memory _input, Output memory _output) private {
         uint256 proofMaturityDelaySeconds = _input.proofMaturityDelaySeconds;
+        uint256 disputeGameFinalityDelaySeconds = _input.disputeGameFinalityDelaySeconds;
         IOptimismPortal impl = IOptimismPortal(
             DeployUtils.createDeterministic({
                 _name: "OptimismPortal2",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOptimismPortal.__constructor__, (proofMaturityDelaySeconds))
+                    abi.encodeCall(IOptimismPortal.__constructor__, (proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds))
                 ),
                 _salt: _salt
             })
@@ -471,17 +507,38 @@ contract DeployImplementations is Script {
     )
         private
     {
-        IOPContractsManagerContractsContainer impl = IOPContractsManagerContractsContainer(
-            DeployUtils.createDeterministic({
-                _name: "OPContractsManager.sol:OPContractsManagerContractsContainer",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOPContractsManagerContractsContainer.__constructor__, (_blueprints, _implementations))
-                ),
-                _salt: _salt
-            })
-        );
+        console.log("=== deployOPCMBPImplsContainer: Creating container ===");
+        console.log("Before DeployUtils.createDeterministic...");
+
+        address containerAddr;
+        try this.deployContainerExternal(_blueprints, _implementations) returns (address addr) {
+            containerAddr = addr;
+            console.log("Container deployed at: %s", containerAddr);
+        } catch Error(string memory reason) {
+            console.log("Deploy failed with reason: %s", reason);
+            revert(reason);
+        } catch (bytes memory lowLevelData) {
+            console.log("Deploy failed with low-level error, data.length=%d", lowLevelData.length);
+            revert("Container deployment failed");
+        }
+
+        IOPContractsManagerContractsContainer impl = IOPContractsManagerContractsContainer(containerAddr);
         vm.label(address(impl), "OPContractsManagerBPImplsContainerImpl");
         _output.opcmContractsContainer = impl;
+        console.log("Container set successfully");
+    }
+
+    function deployContainerExternal(
+        IOPContractsManager.Blueprints memory _blueprints,
+        IOPContractsManager.Implementations memory _implementations
+    ) external returns (address) {
+        return DeployUtils.createDeterministic({
+            _name: "OPContractsManager.sol:OPContractsManagerContractsContainer",
+            _args: DeployUtils.encodeConstructor(
+                abi.encodeCall(IOPContractsManagerContractsContainer.__constructor__, (_blueprints, _implementations))
+            ),
+            _salt: _salt
+        });
     }
 
     function deployOPCMGameTypeAdder(Output memory _output) private {
@@ -627,9 +684,9 @@ contract DeployImplementations is Script {
             address(_output.l1StandardBridgeImpl),
             address(_output.optimismMintableERC20FactoryImpl),
             address(_output.disputeGameFactoryImpl),
-            address(_output.anchorStateRegistryImpl),
-            address(_output.ethLockboxImpl),
-            address(_output.ratImpl)
+            address(_output.anchorStateRegistryImpl)
+            // address(_output.ethLockboxImpl)  // Tokamak doesn't use ETHLockbox
+            // address(_output.ratImpl)  // RAT not used in Tokamak
         );
 
         DeployUtils.assertValidContractAddresses(Solarray.extend(addrs1, addrs2));
@@ -652,6 +709,7 @@ contract DeployImplementations is Script {
         Types.ContractSet memory proxies;
         proxies.SuperchainConfig = address(_input.superchainConfigProxy);
         proxies.ProtocolVersions = address(_input.protocolVersionsProxy);
+        console.log("=== checkOPContractsManager ===");
         ChainAssertions.checkOPContractsManager({
             _impls: impls,
             _proxies: proxies,
@@ -667,7 +725,8 @@ contract DeployImplementations is Script {
             _opChainProxyAdminOwner: address(0),
             _isProxy: false
         });
-        ChainAssertions.checkETHLockboxImpl(_output.ethLockboxImpl, _output.optimismPortalImpl);
+
+        // ChainAssertions.checkETHLockboxImpl(_output.ethLockboxImpl, _output.optimismPortalImpl);  // Tokamak doesn't use ETHLockbox
         // We can use DeployOPChainInput(address(0)) here because no method will be called on _doi when isProxy is false
         ChainAssertions.checkSystemConfig(impls, DeployOPChainInput(address(0)), false);
         ChainAssertions.checkAnchorStateRegistryProxy(IAnchorStateRegistry(impls.AnchorStateRegistry), false);
