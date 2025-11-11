@@ -1,6 +1,8 @@
 module github.com/tokamak-network/tokamak-thanos
 
-go 1.22.6
+go 1.23.0
+
+toolchain go1.23.8
 
 require (
 	github.com/BurntSushi/toml v1.3.2
@@ -9,8 +11,8 @@ require (
 	github.com/btcsuite/btcd v0.24.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/cockroachdb/pebble v0.0.0-20231018212520-f6cde3fc2fa4
-	github.com/consensys/gnark-crypto v0.16.0
-	github.com/crate-crypto/go-kzg-4844 v0.7.0
+	github.com/consensys/gnark-crypto v0.18.0
+	github.com/crate-crypto/go-kzg-4844 v1.1.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240603085035-9c8f6081266e
@@ -47,10 +49,10 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
-	golang.org/x/sync v0.10.0
-	golang.org/x/term v0.28.0
+	golang.org/x/sync v0.11.0
+	golang.org/x/term v0.29.0
 	golang.org/x/time v0.5.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.10
@@ -73,7 +75,6 @@ require (
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
-	github.com/consensys/bavard v0.1.27 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -164,7 +165,6 @@ require (
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.1 // indirect
-	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
@@ -228,8 +228,8 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -237,14 +237,13 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-// replace github.com/ethereum/go-ethereum => ../tokamak-thanos-geth
+// Development: Use local tokamak-thanos-geth (uncomment for local development)
+replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251110095609-7d6105f7fb33
 
-//replace github.com/ethereum/go-ethereum v1.13.9 => ../op-geth
-// TODO: Change to the correct version when the merge is complete
-replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251105095450-7c8e347d19eb
+// Production: Use remote tokamak-thanos-geth with commit 0a428baeb619
+// replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251106090936-0a428baeb619
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 

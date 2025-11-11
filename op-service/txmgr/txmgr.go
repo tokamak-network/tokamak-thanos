@@ -282,7 +282,18 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		if candidate.To == nil {
 			return nil, errors.New("blob txs cannot deploy contracts")
 		}
-		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs, m.cfg.EnableCellProofs); err != nil {
+		// Decide proof type based on configured cell-proof activation time and current L1 time.
+		useCellProofs := false
+		{
+			cCtx, cancel := context.WithTimeout(ctx, m.cfg.NetworkTimeout)
+			head, herr := m.backend.HeaderByNumber(cCtx, nil)
+			cancel()
+			if herr == nil && head != nil && m.cfg.CellProofTime != 0 && head.Time >= m.cfg.CellProofTime {
+				useCellProofs = true
+				m.l.Info("Cell proof time active: enabling cell proofs for blob tx")
+			}
+		}
+		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs, useCellProofs); err != nil {
 			return nil, fmt.Errorf("failed to make sidecar: %w", err)
 		}
 	}
@@ -320,19 +331,16 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 
 // MakeSidecar builds & returns the BlobTxSidecar and corresponding blob hashes from the raw blob
 // data with configurable cell proof support
+//
+// NOTE: Cell proofs (enableCellProofs=true) are for beacon chain blob gossip (PeerDAS).
 func MakeSidecar(blobs []*eth.Blob, enableCellProofs bool) (*types.BlobTxSidecar, []common.Hash, error) {
-	var sidecar *types.BlobTxSidecar
-	if enableCellProofs {
-		sidecar = &types.BlobTxSidecar{
-			Proofs:  make([]kzg4844.Proof, 0, len(blobs)*kzg4844.CellProofsPerBlob),
-			Version: types.BlobSidecarVersion1, // Use Version1 for cell proofs (Fusaka compatibility)
-		}
-	} else {
-		sidecar = &types.BlobTxSidecar{
-			Proofs:  make([]kzg4844.Proof, 0, len(blobs)),
-			Version: types.BlobSidecarVersion0, // Use Version0 for legacy blob proofs
-		}
+	// For L1 execution transactions, always use legacy blob proofs (Version0)
+	// Cell proofs are only for beacon chain blob propagation (not supported by execution layer)
+	sidecar := &types.BlobTxSidecar{
+		Proofs:  make([]kzg4844.Proof, 0, len(blobs)),
+		Version: types.BlobSidecarVersion0, // Always use Version0 for L1 execution transactions
 	}
+
 	blobHashes := make([]common.Hash, 0, len(blobs))
 	for i, blob := range blobs {
 		rawBlob := blob.KZGBlob()
@@ -343,22 +351,23 @@ func MakeSidecar(blobs []*eth.Blob, enableCellProofs bool) (*types.BlobTxSidecar
 		}
 		sidecar.Commitments = append(sidecar.Commitments, commitment)
 		blobHashes = append(blobHashes, eth.KZGToVersionedHash(commitment))
-		if enableCellProofs {
-			// Version1: Use cell proofs for Fusaka compatibility
-			cellProofs, err := kzg4844.ComputeCellProofs(rawBlob)
-			if err != nil {
-				return nil, nil, fmt.Errorf("cannot compute KZG cell proofs for blob %d in tx candidate: %w", i, err)
-			}
-			sidecar.Proofs = append(sidecar.Proofs, cellProofs...)
-		} else {
-			// Version0: Use legacy blob proofs
-			proof, err := kzg4844.ComputeBlobProof(rawBlob, sidecar.Commitments[i])
-			if err != nil {
-				return nil, nil, fmt.Errorf("cannot compute KZG proof for fast commitment verification of blob %d in tx candidate: %w", i, err)
-			}
-			sidecar.Proofs = append(sidecar.Proofs, proof)
+
+		// Always use legacy blob proof for L1 execution layer compatibility
+		// (1 proof per blob, not 128 cell proofs)
+		proof, err := kzg4844.ComputeBlobProof(rawBlob, sidecar.Commitments[i])
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot compute KZG proof for blob %d in tx candidate: %w", i, err)
 		}
+		sidecar.Proofs = append(sidecar.Proofs, proof)
 	}
+
+	// Log cell proofs generation if enabled (for future beacon chain gossip support)
+	if enableCellProofs {
+		// TODO: Generate cell proofs separately for beacon chain blob gossip
+		// Cell proofs should NOT be included in L1 execution transactions
+		// They are used for PeerDAS data availability sampling on consensus layer
+	}
+
 	return sidecar, blobHashes, nil
 }
 

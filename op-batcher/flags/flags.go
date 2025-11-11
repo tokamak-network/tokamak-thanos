@@ -151,12 +151,6 @@ var (
 		Value:   false,
 		EnvVars: prefixEnvVars("WAIT_NODE_SYNC"),
 	}
-	TxMgrEnableCellProofsFlag = &cli.BoolFlag{
-		Name:    txmgr.EnableCellProofsFlagName,
-		Usage:   "Enable cell proofs in transaction manager (Fusaka readiness)",
-		Value:   false,
-		EnvVars: prefixEnvVars("TXMGR_ENABLE_CELL_PROOFS"),
-	}
 	// Legacy Flags
 	SequencerHDPathFlag = txmgr.SequencerHDPathFlag
 )
@@ -184,7 +178,6 @@ var optionalFlags = []cli.Flag{
 	DataAvailabilityTypeFlag,
 	ActiveSequencerCheckDurationFlag,
 	CompressionAlgoFlag,
-	TxMgrEnableCellProofsFlag,
 }
 
 func init() {
