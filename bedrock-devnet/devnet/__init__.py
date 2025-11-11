@@ -191,6 +191,8 @@ def init_admin_geth(paths):
         "balance": "10000000000000000000"
     }
     genesis['alloc'] = alloc
+    genesis["config"]["shanghaiTime"] = 0
+    genesis["config"]["cancunTime"] = 0
 
     write_file(pjoin(paths.bedrock_devnet_path, 'keystore'), paths.admin_key[2:])
     write_file(pjoin(paths.bedrock_devnet_path, 'password'), '1234')
