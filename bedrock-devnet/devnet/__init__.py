@@ -12,6 +12,8 @@ import subprocess
 import time
 from collections import namedtuple
 from multiprocessing import Process, Queue
+import ssl
+import urllib.parse
 
 pjoin = os.path.join
 
@@ -139,8 +141,10 @@ def main():
         log.info('Skipping docker images build')
     else:
         log.info(f'Building docker images for git commit {git_commit} ({git_date})')
+        # Build only selected services; exclude op-challenger, da-server, sentinel
         run_command(['docker', 'compose', 'build', '--progress', 'plain',
-                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'],
+                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}',
+                    'l1', 'l2', 'op-node', 'op-proposer', 'op-batcher'],
                 cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
@@ -182,7 +186,6 @@ def init_admin_geth(paths):
     genesis = read_json(pjoin(paths.bedrock_devnet_path, 'genesis.json'))
 
     genesis["config"]["chainId"] = 900
-
     alloc = genesis['alloc']
     alloc[admin_address] = {
         "balance": "10000000000000000000"
