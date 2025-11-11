@@ -111,17 +111,33 @@ type DeployConfig struct {
 	// L1UseClique represents whether or not to use the clique consensus engine.
 	L1UseClique bool `json:"l1UseClique"`
 
-	L1BlockTime                 uint64         `json:"l1BlockTime"`
-	L1GenesisBlockTimestamp     hexutil.Uint64 `json:"l1GenesisBlockTimestamp"`
-	L1GenesisBlockNonce         hexutil.Uint64 `json:"l1GenesisBlockNonce"`
-	L1GenesisBlockGasLimit      hexutil.Uint64 `json:"l1GenesisBlockGasLimit"`
-	L1GenesisBlockDifficulty    *hexutil.Big   `json:"l1GenesisBlockDifficulty"`
-	L1GenesisBlockMixHash       common.Hash    `json:"l1GenesisBlockMixHash"`
-	L1GenesisBlockCoinbase      common.Address `json:"l1GenesisBlockCoinbase"`
-	L1GenesisBlockNumber        hexutil.Uint64 `json:"l1GenesisBlockNumber"`
-	L1GenesisBlockGasUsed       hexutil.Uint64 `json:"l1GenesisBlockGasUsed"`
-	L1GenesisBlockParentHash    common.Hash    `json:"l1GenesisBlockParentHash"`
-	L1GenesisBlockBaseFeePerGas *hexutil.Big   `json:"l1GenesisBlockBaseFeePerGas"`
+	L1BlockTime                 uint64          `json:"l1BlockTime"`
+	L1GenesisBlockTimestamp     hexutil.Uint64  `json:"l1GenesisBlockTimestamp"`
+	L1GenesisBlockNonce         hexutil.Uint64  `json:"l1GenesisBlockNonce"`
+	L1GenesisBlockGasLimit      hexutil.Uint64  `json:"l1GenesisBlockGasLimit"`
+	L1GenesisBlockDifficulty    *hexutil.Big    `json:"l1GenesisBlockDifficulty"`
+	L1GenesisBlockMixHash       common.Hash     `json:"l1GenesisBlockMixHash"`
+	L1GenesisBlockCoinbase      common.Address  `json:"l1GenesisBlockCoinbase"`
+	L1GenesisBlockNumber        hexutil.Uint64  `json:"l1GenesisBlockNumber"`
+	L1GenesisBlockGasUsed       hexutil.Uint64  `json:"l1GenesisBlockGasUsed"`
+	L1GenesisBlockParentHash    common.Hash     `json:"l1GenesisBlockParentHash"`
+	L1GenesisBlockBaseFeePerGas *hexutil.Big    `json:"l1GenesisBlockBaseFeePerGas"`
+	L1GenesisBlockExcessBlobGas *hexutil.Uint64 `json:"l1GenesisBlockExcessBlobGas,omitempty"` // EIP-4844
+	L1GenesisBlockBlobGasUsed   *hexutil.Uint64 `json:"l1GenesisBlockblobGasUsed,omitempty"`   // EIP-4844
+	// When Prague activates. Relative to L1 genesis.
+	L1PragueTimeOffset *hexutil.Uint64 `json:"l1PragueTimeOffset,omitempty"`
+	// When Osaka activates. Relative to L1 genesis.
+	L1OsakaTimeOffset *hexutil.Uint64 `json:"l1OsakaTimeOffset,omitempty"`
+	// When BPO1 activates. Relative to L1 genesis.
+	L1BPO1TimeOffset *hexutil.Uint64 `json:"l1BPO1TimeOffset,omitempty"`
+	// When BPO2 activates. Relative to L1 genesis.
+	L1BPO2TimeOffset *hexutil.Uint64 `json:"l1BPO2TimeOffset,omitempty"`
+	// When BPO3 activates. Relative to L1 genesis.
+	L1BPO3TimeOffset *hexutil.Uint64 `json:"l1BPO3TimeOffset,omitempty"`
+	// When BPO4 activates. Relative to L1 genesis.
+	L1BPO4TimeOffset *hexutil.Uint64 `json:"l1BPO4TimeOffset,omitempty"`
+	// Blob schedule config.
+	BlobScheduleConfig *params.BlobScheduleConfig `json:"blobScheduleConfig,omitempty"`
 
 	L2GenesisBlockNonce         hexutil.Uint64 `json:"l2GenesisBlockNonce"`
 	L2GenesisBlockGasLimit      hexutil.Uint64 `json:"l2GenesisBlockGasLimit"`
