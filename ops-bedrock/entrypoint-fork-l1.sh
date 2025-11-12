@@ -4,7 +4,8 @@ set -exu
 GENESIS_FILE_PATH="${GENESIS_FILE_PATH:-/genesis.json}"
 CHAIN_ID=$(jq -r .config.chainId "$GENESIS_FILE_PATH")
 GAS_LIMIT=$(jq -r .gasLimit "$GENESIS_FILE_PATH")
-GAS_LIMIT_VALUE=$(echo "GAS_LIMIT" | awk '{ printf("%d", $0) }')
+# Convert hex (e.g. 0x392a220) to decimal for anvil --gas-limit
+GAS_LIMIT_VALUE=$(python3 -c "print(int('$GAS_LIMIT', 0))")
 
 RPC_PORT="${RPC_PORT:-8545}"
 L1_RPC="${L1_RPC}"
@@ -15,6 +16,7 @@ exec anvil \
   --fork-block-number "$BLOCK_NUMBER" \
   --host "0.0.0.0" \
   --port "$RPC_PORT" \
+  --hardfork "cancun" \
   --base-fee "1" \
   --block-time "12" \
   --gas-limit "$GAS_LIMIT_VALUE" \
