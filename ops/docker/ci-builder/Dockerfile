@@ -42,7 +42,7 @@ FROM debian:bullseye-slim as go-build
 
 RUN apt-get update && apt-get install -y curl ca-certificates jq binutils
 
-ENV GO_VERSION=1.21.1
+ENV GO_VERSION=1.23.8
 
 ARG TARGETARCH
 # Fetch go manually, rather than using a Go base image, so we can copy the installation into the final stage
