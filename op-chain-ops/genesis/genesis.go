@@ -145,6 +145,7 @@ func NewL1Genesis(config *DeployConfig) (*core.Genesis, error) {
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        u64ptr(0),
 		CancunTime:          u64ptr(0),
+		OsakaTime:           u64ptr(0), // Default to 0 (genesis time) if L1OsakaTimeOffset is not set
 		// use default Ethereum prod blob schedules
 		BlobScheduleConfig: params.DefaultBlobSchedule,
 	}
@@ -167,6 +168,12 @@ func NewL1Genesis(config *DeployConfig) (*core.Genesis, error) {
 	if timestamp == 0 {
 		timestamp = hexutil.Uint64(time.Now().Unix())
 	}
+	// Override PragueTime if L1PragueTimeOffset is explicitly set
+	if config.L1PragueTimeOffset != nil {
+		pragueTime := uint64(timestamp) + uint64(*config.L1PragueTimeOffset)
+		chainConfig.PragueTime = &pragueTime
+	}
+	// Override OsakaTime if L1OsakaTimeOffset is explicitly set
 	if config.L1OsakaTimeOffset != nil {
 		osakaTime := uint64(timestamp) + uint64(*config.L1OsakaTimeOffset)
 		chainConfig.OsakaTime = &osakaTime
