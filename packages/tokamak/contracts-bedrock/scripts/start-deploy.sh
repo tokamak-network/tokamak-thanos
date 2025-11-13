@@ -140,8 +140,8 @@ installGo() {
   if ! go version &> /dev/null; then
     echo "Installing Go..."
     cd /root
-    wget https://go.dev/dl/go1.21.13.linux-amd64.tar.gz
-    tar xvzf go1.21.13.linux-amd64.tar.gz
+    wget https://go.dev/dl/go1.23.8.linux-amd64.tar.gz
+    tar xvzf go1.23.8.linux-amd64.tar.gz
     mv go /usr/local
     export PATH=$PATH:/usr/local/go/bin
     echo PATH=$PATH:/usr/local/go/bin >> ~/.bashrc
