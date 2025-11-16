@@ -828,8 +828,8 @@ github.com/tklauser/go-sysconf v0.3.12 h1:0QaGUFOdQaIVdPgfITYzaTegZvdCjmYO52cSFA
 github.com/tklauser/go-sysconf v0.3.12/go.mod h1:Ho14jnntGE1fpdOqQEEaiKRpvIavV0hSfmBq8nJbHYI=
 github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+Fk=
 github.com/tklauser/numcpus v0.6.1/go.mod h1:1XfjsgE2zo8GVw7POkMbHENHzVg3GzmoZ9fESEdAacY=
-github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251110095609-7d6105f7fb33 h1:zUMtmetHE5ivUTHupWxpE67PDfvsqMSK30ipfN8xmyE=
-github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251110095609-7d6105f7fb33/go.mod h1:VI7APyG3cZlR2PwReaR0kPaAlQJD00u3/ckjNy1MYxU=
+github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251113144059-1af23c2d7113 h1:y5svPv6cTMH3jaSORr2ldoCYaIpIZNRDB5IN+np4iW0=
+github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251113144059-1af23c2d7113/go.mod h1:z49DPUFU74l4Wy7b12omtCrJyibcR+E+jCb/VG+1LiA=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/tyler-smith/go-bip39 v1.1.0 h1:5eUemwrMargf3BSLRRCalXT93Ns6pQJIjYQN2nyfOP8=
 github.com/tyler-smith/go-bip39 v1.1.0/go.mod h1:gUYDtqQw1JS3ZJ8UWVcGTGqqr6YIN3CWg+kkNaLt55U=
