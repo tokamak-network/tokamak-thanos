@@ -238,7 +238,7 @@ require (
 )
 
 // Development: Use local tokamak-thanos-geth (uncomment for local development)
-replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251113144059-1af23c2d7113
+replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251116130232-15269e1ceb47
 
 // Production: Use remote tokamak-thanos-geth with commit 0a428baeb619
 // replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251106090936-0a428baeb619
