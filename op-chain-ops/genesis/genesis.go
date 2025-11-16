@@ -127,25 +127,27 @@ func NewL1Genesis(config *DeployConfig) (*core.Genesis, error) {
 	}
 
 	chainConfig := params.ChainConfig{
-		ChainID:             uint642Big(config.L1ChainID),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		ArrowGlacierBlock:   big.NewInt(0),
-		GrayGlacierBlock:    big.NewInt(0),
-		ShanghaiTime:        u64ptr(0),
-		CancunTime:          u64ptr(0),
-		OsakaTime:           u64ptr(0), // Default to 0 (genesis time) if L1OsakaTimeOffset is not set
+		ChainID:                 uint642Big(config.L1ChainID),
+		HomesteadBlock:          big.NewInt(0),
+		DAOForkBlock:            nil,
+		DAOForkSupport:          false,
+		EIP150Block:             big.NewInt(0),
+		EIP155Block:             big.NewInt(0),
+		EIP158Block:             big.NewInt(0),
+		ByzantiumBlock:          big.NewInt(0),
+		ConstantinopleBlock:     big.NewInt(0),
+		PetersburgBlock:         big.NewInt(0),
+		IstanbulBlock:           big.NewInt(0),
+		MuirGlacierBlock:        big.NewInt(0),
+		BerlinBlock:             big.NewInt(0),
+		LondonBlock:             big.NewInt(0),
+		ArrowGlacierBlock:       big.NewInt(0),
+		GrayGlacierBlock:        big.NewInt(0),
+		ShanghaiTime:            u64ptr(0),
+		CancunTime:              u64ptr(0),
+		PragueTime:              u64ptr(0),
+		OsakaTime:               u64ptr(0),     // Default to 0 (genesis time) if L1OsakaTimeOffset is not set
+		TerminalTotalDifficulty: big.NewInt(0), // Required for PoS networks (Geth v1.16+)
 		// use default Ethereum prod blob schedules
 		BlobScheduleConfig: params.DefaultBlobSchedule,
 	}
