@@ -2,8 +2,6 @@ module github.com/tokamak-network/tokamak-thanos/op-exporter
 
 go 1.23.8
 
-toolchain go1.23.8
-
 require (
 	github.com/ethereum/go-ethereum v1.12.1
 	github.com/prometheus/client_golang v1.14.0
