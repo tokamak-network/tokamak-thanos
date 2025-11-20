@@ -3,7 +3,7 @@ name: Publish Docker images (nightly)
 on:
   push:
     branches:
-      - feat/upgrade-fusaka-compatible
+      - main
 
 jobs:
   version:
