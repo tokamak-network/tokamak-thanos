@@ -127,32 +127,69 @@ func NewL1Genesis(config *DeployConfig) (*core.Genesis, error) {
 	}
 
 	chainConfig := params.ChainConfig{
-		ChainID:                 uint642Big(config.L1ChainID),
-		HomesteadBlock:          big.NewInt(0),
-		DAOForkBlock:            nil,
-		DAOForkSupport:          false,
-		EIP150Block:             big.NewInt(0),
-		EIP155Block:             big.NewInt(0),
-		EIP158Block:             big.NewInt(0),
-		ByzantiumBlock:          big.NewInt(0),
-		ConstantinopleBlock:     big.NewInt(0),
-		PetersburgBlock:         big.NewInt(0),
-		IstanbulBlock:           big.NewInt(0),
-		MuirGlacierBlock:        big.NewInt(0),
-		BerlinBlock:             big.NewInt(0),
-		LondonBlock:             big.NewInt(0),
-		ArrowGlacierBlock:       big.NewInt(0),
-		GrayGlacierBlock:        big.NewInt(0),
-		ShanghaiTime:            u64ptr(0),
-		CancunTime:              u64ptr(0),
-		PragueTime:              u64ptr(0),
-		OsakaTime:               u64ptr(0),     // Default to 0 (genesis time) if L1OsakaTimeOffset is not set
-		TerminalTotalDifficulty: big.NewInt(0), // Required for PoS networks (Geth v1.16+)
+		ChainID:             uint642Big(config.L1ChainID),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		// PoS hardforks: conditionally set based on l1UseClique
+		ShanghaiTime:            nil,
+		CancunTime:              nil,
+		PragueTime:              nil,
+		OsakaTime:               nil,
+		TerminalTotalDifficulty: nil, // Will be set conditionally below
 		// use default Ethereum prod blob schedules
 		BlobScheduleConfig: params.DefaultBlobSchedule,
 	}
 
 	extraData := make([]byte, 0)
+
+	// Configure consensus mechanism
+	if config.L1UseClique {
+		// Clique (PoA) configuration
+		blockTime := config.L1BlockTime
+		if blockTime == 0 {
+			blockTime = 6
+		}
+		chainConfig.Clique = &params.CliqueConfig{
+			Period: blockTime,
+			Epoch:  30000,
+		}
+
+		// Generate Clique extraData: 32 bytes vanity + signer address + 65 bytes seal
+		signer := config.CliqueSignerAddress
+		if signer == (common.Address{}) {
+			return nil, errors.New("cliqueSignerAddress required when l1UseClique is true")
+		}
+		vanity := make([]byte, 32)
+		seal := make([]byte, 65)
+		extraData = append(vanity, signer.Bytes()...)
+		extraData = append(extraData, seal...)
+
+		// For Clique, do not set terminalTotalDifficulty (leave as nil)
+		// This requires Geth v1.13.x which supports pure PoA without TTD
+		// chainConfig.TerminalTotalDifficulty remains nil
+
+		// Keep PoS hardforks disabled (already nil)
+	} else {
+		// PoS mode: enable hardforks at genesis by default
+		chainConfig.ShanghaiTime = u64ptr(0)
+		chainConfig.CancunTime = u64ptr(0)
+		chainConfig.PragueTime = u64ptr(0)
+		chainConfig.OsakaTime = u64ptr(0)
+		chainConfig.TerminalTotalDifficulty = big.NewInt(0) // Enable PoS immediately
+	}
 
 	gasLimit := config.L1GenesisBlockGasLimit
 	if gasLimit == 0 {
