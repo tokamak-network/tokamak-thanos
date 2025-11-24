@@ -12,7 +12,6 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -169,7 +168,7 @@ func (m *SimpleTxManager) Close() {
 }
 
 func (m *SimpleTxManager) txLogger(tx *types.Transaction, logGas bool) log.Logger {
-	fields := []any{"tx", tx.Hash(), "nonce", tx.Nonce()}
+	fields := []any{"tx", tx.Hash().Hex(), "nonce", tx.Nonce()}
 	if logGas {
 		fields = append(fields, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap(), "gasLimit", tx.Gas())
 	}
@@ -258,33 +257,69 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 	}
 	gasFeeCap := calcGasFeeCap(baseFee, gasTipCap)
 
-	gasLimit := candidate.GasLimit
-
-	// If the gas limit is set, we can use that as the gas
-	if gasLimit == 0 {
-		// Calculate the intrinsic gas for the transaction
-		gas, err := m.backend.EstimateGas(ctx, ethereum.CallMsg{
-			From:      m.cfg.From,
-			To:        candidate.To,
-			GasTipCap: gasTipCap,
-			GasFeeCap: gasFeeCap,
-			Data:      candidate.TxData,
-			Value:     candidate.Value,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to estimate gas: %w", err)
-		}
-		gasLimit = gas
-	}
-
 	var sidecar *types.BlobTxSidecar
 	var blobHashes []common.Hash
 	if len(candidate.Blobs) > 0 {
 		if candidate.To == nil {
 			return nil, errors.New("blob txs cannot deploy contracts")
 		}
-		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs); err != nil {
+		// Enable cell proofs based on wall-clock with small buffer (optimism behavior)
+		now := time.Now()
+		thresholdTime := uint64(now.Add(-12 * time.Second).Unix())
+		useCellProofs := m.cfg.CellProofTime != 0 && m.cfg.CellProofTime < thresholdTime
+
+		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs, useCellProofs); err != nil {
 			return nil, fmt.Errorf("failed to make sidecar: %w", err)
+		}
+	}
+
+	// Prepare call message for gas estimation, include blob fields if present (optimism behavior)
+	callMsg := ethereum.CallMsg{
+		From:      m.cfg.From,
+		To:        candidate.To,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Data:      candidate.TxData,
+		Value:     candidate.Value,
+	}
+	if len(blobHashes) > 0 {
+		callMsg.BlobGasFeeCap = blobBaseFee
+		callMsg.BlobHashes = blobHashes
+	}
+
+	gasLimit := candidate.GasLimit
+	if gasLimit == 0 {
+		gas, err := m.backend.EstimateGas(ctx, callMsg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to estimate gas: %w", err)
+		}
+		gasLimit = gas
+
+		latestHeader, headerErr := m.backend.HeaderByNumber(ctx, nil)
+		if headerErr == nil && latestHeader != nil {
+			// EIP-7825 (Osaka fork) MaxTxGas 제한: 16,777,216 (0x1000000)
+			const maxTxGasEIP7825 uint64 = 1 << 24 // 16,777,216
+
+			// EIP-7825 제한 확인 (Osaka fork 활성화 시)
+			if gasLimit > maxTxGasEIP7825 {
+				return nil, fmt.Errorf("transaction gas limit too high (EIP-7825 cap: %d, tx: %d): transaction exceeds EIP-7825 MaxTxGas limit. Consider reducing transaction size or splitting into multiple transactions", maxTxGasEIP7825, gasLimit)
+			}
+		}
+	} else {
+		callMsg.Gas = gasLimit
+		if _, err := m.backend.CallContract(ctx, callMsg, nil); err != nil {
+			return nil, fmt.Errorf("failed to call: %w", err)
+		}
+
+		latestHeader, headerErr := m.backend.HeaderByNumber(ctx, nil)
+		if headerErr == nil && latestHeader != nil {
+			// EIP-7825 (Osaka fork) MaxTxGas 제한: 16,777,216 (0x1000000)
+			const maxTxGasEIP7825 uint64 = 1 << 24 // 16,777,216
+
+			// EIP-7825 제한 확인 (Osaka fork 활성화 시)
+			if gasLimit > maxTxGasEIP7825 {
+				return nil, fmt.Errorf("transaction gas limit too high (EIP-7825 cap: %d, tx: %d): transaction exceeds EIP-7825 MaxTxGas limit. Consider reducing transaction size or splitting into multiple transactions", maxTxGasEIP7825, gasLimit)
+			}
 		}
 	}
 
@@ -320,25 +355,71 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 }
 
 // MakeSidecar builds & returns the BlobTxSidecar and corresponding blob hashes from the raw blob
-// data.
-func MakeSidecar(blobs []*eth.Blob) (*types.BlobTxSidecar, []common.Hash, error) {
-	sidecar := &types.BlobTxSidecar{}
+// data with configurable cell proof support
+//
+// NOTE: Cell proofs (enableCellProofs=true) are for beacon chain blob gossip (PeerDAS).
+func MakeSidecar(blobs []*eth.Blob, enableCellProofs bool) (*types.BlobTxSidecar, []common.Hash, error) {
+	var sidecar *types.BlobTxSidecar
+	if enableCellProofs {
+		// Version1: cell proofs (Fusaka compatibility)
+		sidecar = &types.BlobTxSidecar{
+			Proofs:  make([]kzg4844.Proof, 0, len(blobs)*kzg4844.CellProofsPerBlob),
+			Version: types.BlobSidecarVersion1,
+		}
+	} else {
+		// Version0: legacy single proof per blob
+		sidecar = &types.BlobTxSidecar{
+			Proofs:  make([]kzg4844.Proof, 0, len(blobs)),
+			Version: types.BlobSidecarVersion0,
+		}
+	}
+
 	blobHashes := make([]common.Hash, 0, len(blobs))
 	for i, blob := range blobs {
-		rawBlob := *blob.KZGBlob()
-		sidecar.Blobs = append(sidecar.Blobs, rawBlob)
+		rawBlob := blob.KZGBlob()
+		sidecar.Blobs = append(sidecar.Blobs, *rawBlob)
 		commitment, err := kzg4844.BlobToCommitment(rawBlob)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot compute KZG commitment of blob %d in tx candidate: %w", i, err)
 		}
 		sidecar.Commitments = append(sidecar.Commitments, commitment)
-		proof, err := kzg4844.ComputeBlobProof(rawBlob, commitment)
-		if err != nil {
-			return nil, nil, fmt.Errorf("cannot compute KZG proof for fast commitment verification of blob %d in tx candidate: %w", i, err)
-		}
-		sidecar.Proofs = append(sidecar.Proofs, proof)
 		blobHashes = append(blobHashes, eth.KZGToVersionedHash(commitment))
+
+		if enableCellProofs {
+			// Generate cell proofs for Version1
+			cellProofs, err := kzg4844.ComputeCellProofs(rawBlob)
+			if err != nil {
+				return nil, nil, fmt.Errorf("cannot compute KZG cell proofs for blob %d in tx candidate: %w", i, err)
+			}
+			if len(cellProofs) != int(kzg4844.CellProofsPerBlob) {
+				return nil, nil, fmt.Errorf("unexpected number of cell proofs: got %d, expected %d", len(cellProofs), kzg4844.CellProofsPerBlob)
+			}
+			sidecar.Proofs = append(sidecar.Proofs, cellProofs...)
+		} else {
+			// Legacy single proof per blob (Version0)
+			proof, err := kzg4844.ComputeBlobProof(rawBlob, sidecar.Commitments[i])
+			if err != nil {
+				return nil, nil, fmt.Errorf("cannot compute KZG proof for blob %d in tx candidate: %w", i, err)
+			}
+			sidecar.Proofs = append(sidecar.Proofs, proof)
+		}
 	}
+
+	expectedProofs := len(blobs)
+	if enableCellProofs {
+		expectedProofs = len(blobs) * int(kzg4844.CellProofsPerBlob)
+	}
+	if len(sidecar.Proofs) != expectedProofs {
+		return nil, nil, fmt.Errorf("sidecar proof count mismatch: got %d proofs, expected %d (blobs=%d, enableCellProofs=%v)",
+			len(sidecar.Proofs), expectedProofs, len(blobs), enableCellProofs)
+	}
+	if sidecar.Version == types.BlobSidecarVersion1 && !enableCellProofs {
+		return nil, nil, fmt.Errorf("sidecar version mismatch: version is V1 but enableCellProofs is false")
+	}
+	if sidecar.Version == types.BlobSidecarVersion0 && enableCellProofs {
+		return nil, nil, fmt.Errorf("sidecar version mismatch: version is V0 but enableCellProofs is true")
+	}
+
 	return sidecar, blobHashes, nil
 }
 
@@ -373,9 +454,12 @@ func (m *SimpleTxManager) signWithNextNonce(ctx context.Context, txMessage types
 	default:
 		return nil, fmt.Errorf("unrecognized tx type: %T", x)
 	}
+
+	unsignedTx := types.NewTx(txMessage)
+
 	ctx, cancel := context.WithTimeout(ctx, m.cfg.NetworkTimeout)
 	defer cancel()
-	tx, err := m.cfg.Signer(ctx, m.cfg.From, types.NewTx(txMessage))
+	tx, err := m.cfg.Signer(ctx, m.cfg.From, unsignedTx)
 	if err != nil {
 		// decrement the nonce, so we can retry signing with the same nonce next time
 		// signWithNextNonce is called
@@ -467,6 +551,7 @@ func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, 
 			l.Warn("TxManager closed, aborting transaction submission")
 			return tx, false
 		}
+
 		if bumpFeesImmediately {
 			newTx, err := m.increaseGasPrice(ctx, tx)
 			if err != nil {
@@ -474,6 +559,7 @@ func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, 
 				m.metr.TxPublished("bump_failed")
 				return tx, false
 			}
+
 			tx = newTx
 			sendState.bumpCount++
 			l = m.txLogger(tx, true)
@@ -599,7 +685,7 @@ func (m *SimpleTxManager) queryReceipt(ctx context.Context, txHash common.Hash, 
 
 	m.metr.RecordBaseFee(tip.BaseFee)
 	if tip.ExcessBlobGas != nil {
-		blobFee := eip4844.CalcBlobFee(*tip.ExcessBlobGas)
+		blobFee := eth.CalcBlobFeeCancun(*tip.ExcessBlobGas)
 		m.metr.RecordBlobBaseFee(blobFee)
 	}
 
@@ -682,6 +768,7 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 		if err := m.checkBlobFeeLimits(blobBaseFee, bumpedBlobFee); err != nil {
 			return nil, err
 		}
+
 		message := &types.BlobTx{
 			Nonce:      tx.Nonce(),
 			To:         *tx.To(),
@@ -690,9 +777,11 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 			BlobHashes: tx.BlobHashes(),
 			Sidecar:    tx.BlobTxSidecar(),
 		}
+
 		if err := finishBlobTx(message, tx.ChainId(), bumpedTip, bumpedFee, bumpedBlobFee, tx.Value()); err != nil {
 			return nil, err
 		}
+
 		newTx = types.NewTx(message)
 	} else {
 		newTx = types.NewTx(&types.DynamicFeeTx{
@@ -755,7 +844,7 @@ func (m *SimpleTxManager) suggestGasPriceCaps(ctx context.Context) (*big.Int, *b
 
 	var blobFee *big.Int
 	if head.ExcessBlobGas != nil {
-		blobFee = eip4844.CalcBlobFee(*head.ExcessBlobGas)
+		blobFee = eth.CalcBlobFeeCancun(*head.ExcessBlobGas)
 		m.metr.RecordBlobBaseFee(blobFee)
 	}
 	return tip, baseFee, blobFee, nil

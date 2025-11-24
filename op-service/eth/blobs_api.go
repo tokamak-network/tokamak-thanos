@@ -63,6 +63,13 @@ type APIVersionResponse struct {
 	Data VersionInformation `json:"data"`
 }
 
+// APIBeaconBlobsResponse represents the response from the post-Fulu
+// eth/v1/beacon/blobs/<slot>?versioned_hashes=... endpoint.
+// Only the fields we consume are modeled here.
+type APIBeaconBlobsResponse struct {
+	Data []*Blob `json:"data"`
+}
+
 type VersionInformation struct {
 	Version string `json:"version"`
 }

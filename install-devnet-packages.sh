@@ -160,18 +160,18 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     STEP=$((STEP + 1))
     echo
 
-    # 4. Install Go (v1.22.6)
-    # 4-1. Install Go (v1.22.6)
-    echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+    # 4. Install Go (v1.23.8)
+    # 4-1. Install Go (v1.23.8)
+    echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.23.8)..."
     export PATH="$PATH:/usr/local/go/bin"
 
     # Save the current Go version
     current_go_version=$(go version 2>/dev/null)
 
-    # Check if the current version is not v1.22.6
-    if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
+    # Check if the current version is not v1.23.8
+    if ! echo "$current_go_version" | grep 'go1.23.8' &>/dev/null ; then
 
-        # If Go is not installed, install Go 1.22.6 directly
+        # If Go is not installed, install Go 1.23.8 directly
         if ! command -v go &> /dev/null; then
             echo "Go not found, installing..."
 
@@ -182,7 +182,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
                 echo "curl is already installed."
             fi
 
-            GO_FILE_NAME="go1.22.6.darwin-${ARCH}.tar.gz"
+            GO_FILE_NAME="go1.23.8.darwin-${ARCH}.tar.gz"
             GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
 
             sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
@@ -209,7 +209,7 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
 
             export PATH="$PATH:/usr/local/go/bin"
 
-        # If Go is installed and the current version is Go 1.22.6, install GVM.
+        # If Go is installed and the current version is Go 1.23.8, install GVM.
         else
             # 4-2. Install GVM
             echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
@@ -253,23 +253,23 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
                 echo "gvm is already installed."
             fi
 
-            # 4-3. Install Go v1.22.6 using GVM
-            echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
-            if ! gvm list | grep 'go1.22.6' &> /dev/null; then
-                echo "Go v1.22.6 not found, installing..."
-                gvm install go1.22.6
+            # 4-3. Install Go v1.23.8 using GVM
+            echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.23.8 using GVM..."
+            if ! gvm list | grep 'go1.23.8' &> /dev/null; then
+                echo "Go v1.23.8 not found, installing..."
+                gvm install go1.23.8
             else
-                echo "Go v1.22.6 is already installed."
+                echo "Go v1.23.8 is already installed."
             fi
 
-            # 4-4. Set Go v1.22.6 as the default version
-            echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
-            echo "Switching to Go v1.22.6..."
-            gvm use --default go1.22.6
-            echo "Go v1.22.6 is now set as the default version."
+            # 4-4. Set Go v1.23.8 as the default version
+            echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.23.8 as the default version..."
+            echo "Switching to Go v1.23.8..."
+            gvm use --default go1.23.8
+            echo "Go v1.23.8 is now set as the default version."
         fi
     else
-        echo "Go 1.22.6 is already installed."
+        echo "Go 1.23.8 is already installed."
     fi
 
     STEP=$((STEP + 1))
@@ -508,18 +508,18 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
         STEP=$((STEP + 1))
         echo
 
-        # 4. Install Go (v1.22.6)
-        # 4-1. Install Go (v1.22.6)
-        echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.22.6)..."
+        # 4. Install Go (v1.23.8)
+        # 4-1. Install Go (v1.23.8)
+        echo "[$STEP/$TOTAL_STEPS] ----- Installing Go (v1.23.8)..."
         export PATH="$PATH:/usr/local/go/bin"
 
         # Save the current Go version
         current_go_version=$(go version 2>/dev/null)
 
-        # Check if the current version is not v1.22.6
-        if ! echo "$current_go_version" | grep 'go1.22.6' &>/dev/null ; then
+        # Check if the current version is not v1.23.8
+        if ! echo "$current_go_version" | grep 'go1.23.8' &>/dev/null ; then
 
-            # If Go is not installed, install Go 1.22.6 directly
+            # If Go is not installed, install Go 1.23.8 directly
             if ! command -v go &> /dev/null; then
                 echo "Go not found, installing..."
 
@@ -530,7 +530,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                     echo "curl is already installed."
                 fi
 
-                GO_FILE_NAME="go1.22.6.linux-${ARCH}.tar.gz"
+                GO_FILE_NAME="go1.23.8.linux-${ARCH}.tar.gz"
                 GO_DOWNLOAD_URL="https://go.dev/dl/${GO_FILE_NAME}"
 
                 sudo curl -L -o "${GO_FILE_NAME}" "${GO_DOWNLOAD_URL}"
@@ -557,7 +557,7 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
 
                 export PATH="$PATH:/usr/local/go/bin"
 
-            # If Go is installed and the current version is Go 1.22.6, install GVM.
+            # If Go is installed and the current version is Go 1.23.8, install GVM.
             else
                 # 4-2. Install GVM
                 echo "[$STEP/$TOTAL_STEPS] ----- Installing GVM..."
@@ -601,23 +601,23 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
                     echo "gvm is already installed."
                 fi
 
-                # 4-3. Install Go v1.22.6 using GVM
-                echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.22.6 using GVM..."
-                if ! gvm list | grep 'go1.22.6' &> /dev/null; then
-                    echo "Go v1.22.6 not found, installing..."
-                    gvm install go1.22.6
+                # 4-3. Install Go v1.23.8 using GVM
+                echo "[$STEP/$TOTAL_STEPS] ----- Installing Go v1.23.8 using GVM..."
+                if ! gvm list | grep 'go1.23.8' &> /dev/null; then
+                    echo "Go v1.23.8 not found, installing..."
+                    gvm install go1.23.8
                 else
-                    echo "Go v1.22.6 is already installed."
+                    echo "Go v1.23.8 is already installed."
                 fi
 
-                # 4-4. Set Go v1.22.6 as the default version
-                echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.22.6 as the default version..."
-                echo "Switching to Go v1.22.6..."
-                gvm use --default go1.22.6
-                echo "Go v1.22.6 is now set as the default version."
+                # 4-4. Set Go v1.23.8 as the default version
+                echo "[$STEP/$TOTAL_STEPS] ----- Setting Go v1.23.8 as the default version..."
+                echo "Switching to Go v1.23.8..."
+                gvm use --default go1.23.8
+                echo "Go v1.23.8 is now set as the default version."
             fi
         else
-            echo "Go 1.22.6 is already installed."
+            echo "Go 1.23.8 is already installed."
         fi
 
         STEP=$((STEP + 1))
@@ -904,8 +904,8 @@ if [[ "$OS_TYPE" == "darwin" ]]; then
     # Check Xcode
     check_command_version xcode-select "" "xcode-select --version"
 
-    # Check Go (Expect version 1.22.6)
-    check_command_version go "go1.22.6" "go version"
+    # Check Go (Expect version 1.23.8)
+    check_command_version go "go1.23.8" "go version"
 
     # Check Node.js (Expect version 20.16.0)
     check_command_version node "v20.16.0" "node -v"
@@ -937,8 +937,8 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     # Check gcc (Instead build-essential)
     check_command_version gcc "" "gcc --version"
 
-    # Check Go (Expect version 1.22.6)
-    check_command_version go "go1.22.6" "go version"
+    # Check Go (Expect version 1.23.8)
+    check_command_version go "go1.23.8" "go version"
 
     # Check Node.js (Expect version 20.16.0)
     check_command_version node "v20.16.0" "node -v"

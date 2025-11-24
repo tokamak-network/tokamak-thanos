@@ -1,8 +1,8 @@
 module claim
 
-go 1.21
+go 1.23.8
 
-toolchain go1.21.1
+toolchain go1.23.8
 
 require github.com/tokamak-network/tokamak-thanos v0.0.0
 
