@@ -173,6 +173,15 @@ pre-devnet: submodules
 	@if ! [ -x "$(command -v geth)" ]; then \
 		make install-geth; \
 	fi
+	# @if ! [ -x "$(command -v eth-genesis-state-generator)" ]; then \
+	# 	make install-eth-beacon-genesis; \
+	# fi
+	# @if ! [ -x "$(command -v eth2-val-tools)" ]; then \
+	# 	make install-eth2-val-tools; \
+	# fi
+	@if ! [ -x "$(command -v eth2-testnet-genesis)" ]; then \
+	make install-eth2-testnet-genesis; \
+	fi
 	@if [ ! -e op-program/bin ]; then \
 		make cannon-prestate; \
 	fi
@@ -247,3 +256,21 @@ install-geth:
  			go install -v github.com/ethereum/go-ethereum/cmd/geth@$(shell jq -r .geth < versions.json); \
  			echo "Installed geth!"; true)
 .PHONY: install-geth
+
+install-eth-beacon-genesis:
+	@echo "Building eth-beacon-genesis from source..."
+	@TMP_DIR=$$(mktemp -d) && \
+	trap "rm -rf $$TMP_DIR" EXIT && \
+	cd $$TMP_DIR && \
+	git clone --depth 1 https://github.com/ethpandaops/eth-beacon-genesis.git . && \
+	go build -o $$(go env GOPATH)/bin/eth-genesis-state-generator ./cmd/eth-genesis-state-generator && \
+	echo "eth-genesis-state-generator installed successfully"
+.PHONY: install-eth-beacon-genesis
+
+install-eth2-val-tools:
+	go install -v github.com/protolambda/eth2-val-tools@latest
+.PHONY: install-eth2-val-tools
+
+install-eth2-testnet-genesis:
+	go install -v github.com/protolambda/eth2-testnet-genesis@latest
+.PHONY: install-eth2-testnet-genesis

@@ -1,0 +1,6 @@
+- mnemonic: "test test test test test test test test test test test junk"                                             # a 24 word BIP 39 mnemonic
+  start: 0                                                 # account index to start from
+  count: 100                                               # number of validators to generate
+  balance: 32000000000                                     # effective balance
+  wd_address: "0x1234567890123456789012345678901234567890" # withdrawal address
+  wd_prefix: "0x02"                                        # withdrawal credentials prefix
