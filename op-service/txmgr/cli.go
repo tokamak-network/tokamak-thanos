@@ -36,6 +36,7 @@ const (
 	TxSendTimeoutFlagName             = "txmgr.send-timeout"
 	TxNotInMempoolTimeoutFlagName     = "txmgr.not-in-mempool-timeout"
 	ReceiptQueryIntervalFlagName      = "txmgr.receipt-query-interval"
+	CellProofTimeFlagName             = "txmgr.cell-proof-time"
 )
 
 var (
@@ -65,6 +66,7 @@ type DefaultFlagValues struct {
 	TxSendTimeout             time.Duration
 	TxNotInMempoolTimeout     time.Duration
 	ReceiptQueryInterval      time.Duration
+	CellProofTime             uint64
 }
 
 var (
@@ -80,6 +82,7 @@ var (
 		TxSendTimeout:             0 * time.Second,
 		TxNotInMempoolTimeout:     2 * time.Minute,
 		ReceiptQueryInterval:      12 * time.Second,
+		CellProofTime:             0, // If set, enable cell proofs on/after this L1 timestamp
 	}
 	DefaultChallengerFlagValues = DefaultFlagValues{
 		NumConfirmations:          uint64(3),
@@ -186,6 +189,12 @@ func CLIFlagsWithDefaults(envPrefix string, defaults DefaultFlagValues) []cli.Fl
 			Value:   defaults.ReceiptQueryInterval,
 			EnvVars: prefixEnvVars("TXMGR_RECEIPT_QUERY_INTERVAL"),
 		},
+		&cli.Uint64Flag{
+			Name:    CellProofTimeFlagName,
+			Usage:   "Unix timestamp (seconds) when to switch to cell proofs for blob transactions (Fusaka readiness). 0 to disable.",
+			Value:   defaults.CellProofTime,
+			EnvVars: prefixEnvVars("TXMGR_CELL_PROOF_TIME"),
+		},
 	}, opsigner.CLIFlags(envPrefix)...)
 }
 
@@ -208,6 +217,7 @@ type CLIConfig struct {
 	NetworkTimeout            time.Duration
 	TxSendTimeout             time.Duration
 	TxNotInMempoolTimeout     time.Duration
+	CellProofTime             uint64
 }
 
 func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
@@ -224,6 +234,7 @@ func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
 		TxSendTimeout:             defaults.TxSendTimeout,
 		TxNotInMempoolTimeout:     defaults.TxNotInMempoolTimeout,
 		ReceiptQueryInterval:      defaults.ReceiptQueryInterval,
+		CellProofTime:             defaults.CellProofTime,
 		SignerCLIConfig:           opsigner.NewCLIConfig(),
 	}
 }
@@ -283,6 +294,7 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		NetworkTimeout:            ctx.Duration(NetworkTimeoutFlagName),
 		TxSendTimeout:             ctx.Duration(TxSendTimeoutFlagName),
 		TxNotInMempoolTimeout:     ctx.Duration(TxNotInMempoolTimeoutFlagName),
+		CellProofTime:             ctx.Uint64(CellProofTimeFlagName),
 	}
 }
 
@@ -349,6 +361,7 @@ func NewConfig(cfg CLIConfig, l log.Logger) (Config, error) {
 		SafeAbortNonceTooLowCount: cfg.SafeAbortNonceTooLowCount,
 		Signer:                    signerFactory(chainID),
 		From:                      from,
+		CellProofTime:             cfg.CellProofTime,
 	}, nil
 }
 
@@ -407,6 +420,10 @@ type Config struct {
 	// Signer is used to sign transactions when the gas price is increased.
 	Signer opcrypto.SignerFn
 	From   common.Address
+
+	// CellProofTime is the L1 unix timestamp when cell proofs should be used for blob txs.
+	// If 0, legacy blob proofs are used unless inferred otherwise by the network.
+	CellProofTime uint64
 }
 
 func (m Config) Check() error {

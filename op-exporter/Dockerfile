@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.20.7-alpine3.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.23.8-alpine3.21 as builder
 
 # build from root of repo
 COPY ./op-exporter /app

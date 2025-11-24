@@ -1,3 +1,5 @@
 module hello
 
-go 1.20
+go 1.23.8
+
+toolchain go1.23.8

@@ -7,8 +7,6 @@ on:
 jobs:
   go-lint:
     runs-on: ubuntu-latest
-    container:
-      image: tokamaknetwork/thanos-ci-builder:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.0
@@ -18,6 +16,8 @@ jobs:
 
       - name: Setup Go
         uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.8'
 
       - name: Go mod tidy
         run: make mod-tidy && git diff --exit-code

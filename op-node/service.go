@@ -6,14 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
 	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/urfave/cli/v2"
@@ -37,6 +40,12 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	l1ChainConfig, err := NewL1ChainConfig(rollupConfig.L1ChainID, ctx, log)
+	if err != nil {
+		return nil, err
+	}
+	_ = l1ChainConfig // Store this for future use with blob fee calculations
 
 	if !ctx.Bool(flags.RollupLoadProtocolVersions.Name) {
 		log.Info("Not opted in to ProtocolVersions signal loading, disabling ProtocolVersions contract now.")
@@ -296,4 +305,62 @@ func NewSyncConfig(ctx *cli.Context, log log.Logger) (*sync.Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func NewL1ChainConfig(chainId *big.Int, ctx *cli.Context, log log.Logger) (*params.ChainConfig, error) {
+	if chainId == nil {
+		panic("l1 chain id is nil")
+	}
+
+	if cfg := eth.L1ChainConfigByChainID(chainId); cfg != nil {
+		return cfg, nil
+	}
+
+	// if the chain id is not known, we fallback to the CLI config
+	if !ctx.IsSet(flags.L1ChainConfig.Name) {
+		return nil, fmt.Errorf("L1 chain ID %v is not a known chain (Mainnet, Sepolia, Holesky). Please provide L1 chain config via --%s flag", chainId, flags.L1ChainConfig.Name)
+	}
+
+	cf, err := NewL1ChainConfigFromCLI(log, ctx)
+	if err != nil {
+		return nil, err
+	}
+	if cf.ChainID.Cmp(chainId) != 0 {
+		return nil, fmt.Errorf("l1 chain config chain ID mismatch: %v != %v", cf.ChainID, chainId)
+	}
+	// BlobScheduleConfig may not exist in older versions, skip check for compatibility
+	return cf, nil
+}
+
+func NewL1ChainConfigFromCLI(log log.Logger, ctx *cli.Context) (*params.ChainConfig, error) {
+	l1ChainConfigPath := ctx.String(flags.L1ChainConfig.Name)
+	file, err := os.Open(l1ChainConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chain spec: %w", err)
+	}
+	defer file.Close()
+
+	// Attempt to decode directly as a ChainConfig
+	var chainConfig params.ChainConfig
+	dec := json.NewDecoder(file)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&chainConfig); err == nil {
+		return &chainConfig, nil
+	}
+
+	// If that fails, try to load the config from the .config property.
+	// This should work if the provided file is a genesis file / chainspec
+	file.Seek(0, 0) // Reset file pointer
+
+	var genesisFile struct {
+		Config *params.ChainConfig `json:"config"`
+	}
+	dec2 := json.NewDecoder(file)
+	if err := dec2.Decode(&genesisFile); err != nil {
+		return nil, fmt.Errorf("failed to decode genesis file: %w", err)
+	}
+	if genesisFile.Config == nil {
+		return nil, fmt.Errorf("no config field found in genesis file")
+	}
+	return genesisFile.Config, nil
 }
