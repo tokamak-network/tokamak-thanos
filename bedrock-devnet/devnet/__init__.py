@@ -1,6 +1,7 @@
 import argparse
 import concurrent.futures
 import datetime
+import glob
 import gzip
 import http.client
 import json
@@ -141,10 +142,17 @@ def main():
         log.info('Skipping docker images build')
     else:
         log.info(f'Building docker images for git commit {git_commit} ({git_date})')
-        # Build only selected services; exclude op-challenger, da-server, sentinel
+        # Build all services by default
+        build_services = ['l1', 'l2', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server']
+        # Exclude op-challenger, da-server, and sentinel when DEVNET_L2OO is true
+        if DEVNET_L2OO:
+            log.info('DEVNET_L2OO=true: Excluding op-challenger, da-server, and sentinel from build')
+        else:
+            # Include op-challenger, da-server, and sentinel when DEVNET_L2OO is false
+            build_services.extend(['op-challenger', 'da-server', 'sentinel'])
+
         run_command(['docker', 'compose', 'build', '--progress', 'plain',
-                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}',
-                    'l1', 'l2', 'op-node', 'op-proposer', 'op-batcher'],
+                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'] + build_services,
                 cwd=paths.ops_bedrock_dir, env={
             'PWD': paths.ops_bedrock_dir,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
@@ -171,6 +179,10 @@ def init_devnet_l1_deploy_config(paths, update_timestamp=False, temp=True):
         deploy_config['usePlasma'] = True
     if GENERIC_PLASMA:
         deploy_config['daCommitmentType'] = "GenericCommitment"
+
+    # Disable Ecotone to avoid Beacon Node dependency
+    deploy_config['l2GenesisEcotoneTimeOffset'] = None
+
     write_json(paths.devnet_config_path, deploy_config)
 
 def init_admin_geth(paths):
@@ -191,8 +203,9 @@ def init_admin_geth(paths):
         "balance": "10000000000000000000"
     }
     genesis['alloc'] = alloc
-    genesis["config"]["shanghaiTime"] = 0
-    genesis["config"]["cancunTime"] = 0
+    # Disable Cancun to avoid Beacon Node dependency
+    genesis["config"]["shanghaiTime"] = None
+    genesis["config"]["cancunTime"] = None
 
     write_file(pjoin(paths.bedrock_devnet_path, 'keystore'), paths.admin_key[2:])
     write_file(pjoin(paths.bedrock_devnet_path, 'password'), '1234')

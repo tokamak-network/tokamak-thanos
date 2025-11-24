@@ -673,10 +673,12 @@ func (d *DeployConfig) FjordTime(genesisTime uint64) *uint64 {
 	if d.L2GenesisFjordTimeOffset == nil {
 		return nil
 	}
-	v := uint64(0)
-	if offset := *d.L2GenesisFjordTimeOffset; offset > 0 {
-		v = genesisTime + uint64(offset)
+	offset := *d.L2GenesisFjordTimeOffset
+	if offset == 0 {
+		// Activate at genesis
+		return &genesisTime
 	}
+	v := genesisTime + uint64(offset)
 	return &v
 }
 
@@ -710,7 +712,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		}
 	}
 
-	return &rollup.Config{
+	rollupCfg := &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1: eth.BlockID{
 				Hash:   l1StartBlock.Hash(),
@@ -744,7 +746,25 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		FjordTime:              d.FjordTime(l1StartBlock.Time()),
 		InteropTime:            d.InteropTime(l1StartBlock.Time()),
 		PlasmaConfig:           plasma,
-	}, nil
+	}
+
+	// Validate that FjordTime is properly set when L2GenesisFjordTimeOffset is configured
+	// This ensures brotli compression can be used from genesis if Fjord is activated at genesis
+	if d.L2GenesisFjordTimeOffset != nil {
+		fjordTime := rollupCfg.FjordTime
+		if fjordTime == nil {
+			return nil, fmt.Errorf("L2GenesisFjordTimeOffset is set (%d) but FjordTime is nil. This will prevent brotli compression from being used", *d.L2GenesisFjordTimeOffset)
+		}
+		expectedTime := l1StartBlock.Time()
+		if *d.L2GenesisFjordTimeOffset > 0 {
+			expectedTime += uint64(*d.L2GenesisFjordTimeOffset)
+		}
+		if *fjordTime != expectedTime {
+			return nil, fmt.Errorf("FjordTime (%d) does not match expected time (%d) based on L2GenesisFjordTimeOffset (%d) and genesis time (%d). This may prevent brotli compression from being used correctly", *fjordTime, expectedTime, *d.L2GenesisFjordTimeOffset, l1StartBlock.Time())
+		}
+	}
+
+	return rollupCfg, nil
 }
 
 // NewDeployConfig reads a config file given a path on the filesystem.
