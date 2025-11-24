@@ -1,10 +1,11 @@
 # Copy docker buildx in order to generate the absolute prestate
 # in the CI pipeline for reproducible fault proof builds
-FROM --platform=linux/amd64 docker as buildx
+ARG BUILDPLATFORM=linux/amd64
+FROM --platform=$BUILDPLATFORM docker AS buildx
 COPY --from=docker/buildx-bin /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 RUN docker buildx version
 
-FROM --platform=linux/amd64 debian:bullseye-slim as rust-build
+FROM --platform=$BUILDPLATFORM debian:bullseye-slim AS rust-build
 
 SHELL ["/bin/bash", "-c"]
 
@@ -30,7 +31,7 @@ COPY ./ops/scripts/install-foundry.sh ./install-foundry.sh
 RUN curl -L https://foundry.paradigm.xyz | bash
 RUN source $HOME/.profile && ./install-foundry.sh
 
-FROM ghcr.io/crytic/echidna/echidna:v2.0.4 as echidna-test
+FROM ghcr.io/crytic/echidna/echidna:v2.0.4 AS echidna-test
 
 RUN strip /root/.foundry/bin/forge && \
   strip /root/.foundry/bin/cast && \
@@ -38,7 +39,7 @@ RUN strip /root/.foundry/bin/forge && \
   strip /root/.cargo/bin/svm && \
   strip /root/.cargo/bin/just
 
-FROM debian:bullseye-slim as go-build
+FROM debian:bullseye-slim AS go-build
 
 RUN apt-get update && apt-get install -y curl ca-certificates jq binutils
 
@@ -70,7 +71,7 @@ RUN strip /go/bin/gotestsum && \
   strip /go/bin/geth && \
   strip /go/bin/yq
 
-FROM --platform=linux/amd64 debian:bullseye-slim as base-builder
+FROM --platform=$BUILDPLATFORM debian:bullseye-slim AS base-builder
 
 ENV GOPATH=/go
 ENV PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
@@ -149,7 +150,7 @@ ENV BASH=/bin/bash
 
 ENTRYPOINT ["/bin/bash", "-c"]
 
-FROM base-builder as rust-builder
+FROM base-builder AS rust-builder
 
 # Install clang & lld
 RUN apt-get update && apt-get install -y clang lld
