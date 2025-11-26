@@ -1,0 +1,19 @@
+{
+    "name": "safe-transaction-proposal",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "sign": "tsx signTransaction.ts",
+        "execute": "tsx executeTransaction.ts"
+    },
+    "dependencies": {
+        "@safe-global/api-kit": "^2.5.11",
+        "@safe-global/protocol-kit": "^4.1.7",
+        "dotenv": "^16.6.1",
+        "ethers": "^6.15.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.19.25",
+        "tsx": "^4.20.6"
+    }
+}
