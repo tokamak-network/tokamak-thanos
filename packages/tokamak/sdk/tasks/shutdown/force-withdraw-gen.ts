@@ -185,6 +185,7 @@ task(
     String(CHUNK_SIZE_DEFAULT)
   )
   .addOptionalParam('maxRetries', 'Maximum retry attempts', String(MAX_RETRIES))
+  .addFlag('skipVerify', 'Skip on-chain verification after generation (faster)')
   .setAction(async (args, hre) => {
     runEnvChecker()
 
@@ -520,5 +521,226 @@ task(
           entry.data.length
         } holders, ${ethers.utils.formatEther(totalAmount)} total`
       )
+    }
+
+    // Step 4: On-chain verification (unless skipped)
+    const skipVerify = args.skipVerify as boolean
+    if (skipVerify) {
+      console.log(
+        yellow('\n⚠️ On-chain verification skipped (--skip-verify flag)')
+      )
+      console.log(
+        yellow(
+          'Warning: Generated data has NOT been verified against blockchain state'
+        )
+      )
+      return
+    }
+
+    console.log(
+      blue.bgGreen.bold(
+        '\n\nStep 4: Verifying generated data against on-chain state...'
+      )
+    )
+
+    let totalVerified = 0
+    let hashErrors = 0
+    let balanceErrors = 0
+    const totalSupplyWarnings = 0
+    let totalSupplyErrors = 0
+
+    for (let verifyIndex = 0; verifyIndex < result.length; verifyIndex++) {
+      const entry = result[verifyIndex]
+      const { l1Token, l2Token, tokenName, data: claims } = entry
+
+      console.log(
+        `\n⦿ [${verifyIndex + 1}/${result.length}] Verifying: ${tokenName}`
+      )
+
+      const l2TokenContract = new ethers.Contract(l2Token, ERC20, l2Provider)
+
+      let processedCount = 0
+      const totalClaimsForToken = claims.length
+
+      for (const claim of claims) {
+        processedCount++
+        totalVerified++
+
+        if (
+          processedCount % 10 === 0 ||
+          processedCount === totalClaimsForToken
+        ) {
+          progressBar(processedCount, totalClaimsForToken, 'Verifying')
+        }
+
+        const { claimer, amount, hash } = claim
+
+        // Hash verification
+        const calculatedHash = ethers.utils.solidityKeccak256(
+          ['address', 'address', 'uint256'],
+          [l1Token, claimer, amount]
+        )
+
+        if (calculatedHash !== hash) {
+          hashErrors++
+          console.log(
+            red(
+              `\n  ❌ Hash mismatch for ${claimer}: expected ${hash}, got ${calculatedHash}`
+            )
+          )
+        }
+
+        // Balance verification
+        try {
+          const actualBalance: BigNumber = await withRetry(
+            () => l2TokenContract.balanceOf(claimer),
+            maxRetries,
+            RETRY_DELAY,
+            `Balance ${claimer.slice(0, 10)}`
+          )
+
+          if (actualBalance.toString() !== amount) {
+            balanceErrors++
+            console.log(
+              red(
+                `\n  ❌ Balance mismatch for ${claimer}: file=${amount}, chain=${actualBalance.toString()}`
+              )
+            )
+          }
+        } catch (err: any) {
+          balanceErrors++
+          console.log(
+            red(
+              `\n  ❌ Failed to verify balance for ${claimer}: ${err.message}`
+            )
+          )
+        }
+      }
+
+      // Total supply check
+      try {
+        const totalSupply: BigNumber = await withRetry(
+          () => l2TokenContract.totalSupply(),
+          maxRetries,
+          RETRY_DELAY,
+          'Total supply'
+        )
+
+        const sumOfBalances = claims.reduce(
+          (sum, claim) => sum.add(BigNumber.from(claim.amount)),
+          BigNumber.from(0)
+        )
+
+        // Handle zero total supply case
+        if (totalSupply.isZero()) {
+          if (sumOfBalances.isZero()) {
+            console.log(
+              green(
+                `  ✅ Supply check: Total supply is 0, sum of claims is also 0 (valid empty token)`
+              )
+            )
+          } else {
+            totalSupplyErrors++
+            console.log(
+              red(
+                `\n  ❌ CRITICAL: Total supply is 0 but sum of claims is ${sumOfBalances.toString()}!`
+              )
+            )
+            console.log(
+              red(
+                '     This indicates a severe data integrity issue - claims exist for a token with no supply.'
+              )
+            )
+          }
+        } else if (sumOfBalances.gt(totalSupply)) {
+          // Sum exceeds total supply - critical error
+          totalSupplyErrors++
+          console.log(
+            red(
+              `\n  ❌ CRITICAL: Sum of claims (${sumOfBalances.toString()}) exceeds total supply (${totalSupply.toString()})`
+            )
+          )
+          console.log(
+            red('     This is impossible and indicates corrupted data.')
+          )
+        } else if (sumOfBalances.eq(totalSupply)) {
+          // Perfect match
+          console.log(
+            green(
+              `  ✅ Supply check: Sum of claims equals total supply (${ethers.utils.formatEther(
+                totalSupply
+              )}) - perfect match`
+            )
+          )
+        } else {
+          // Sum is less than total supply - normal case
+          const diff = totalSupply.sub(sumOfBalances)
+          const percentDiff = diff.mul(10000).div(totalSupply).toNumber() / 100
+          console.log(
+            green(
+              `  ✅ Supply check: ${ethers.utils.formatEther(
+                diff
+              )} (${percentDiff.toFixed(
+                2
+              )}%) unaccounted (expected for contract-held tokens)`
+            )
+          )
+        }
+      } catch (err: any) {
+        totalSupplyErrors++
+        console.log(red(`\n  ❌ Failed to get total supply: ${err.message}`))
+        console.log(
+          red(
+            '     Cannot verify token integrity without total supply information.'
+          )
+        )
+      }
+    }
+
+    // Verification summary
+    console.log(white.bgBlue.bold('\n\n🔍 Verification Summary:\n'))
+    console.log(`  Total claims verified: ${totalVerified}`)
+    console.log(`  Hash errors: ${hashErrors}`)
+    console.log(`  Balance errors: ${balanceErrors}`)
+    console.log(`  Total supply errors: ${totalSupplyErrors}`)
+    console.log(`  Total supply warnings: ${totalSupplyWarnings}`)
+
+    const hasErrors =
+      hashErrors > 0 || balanceErrors > 0 || totalSupplyErrors > 0
+
+    if (!hasErrors) {
+      console.log(green.bold('\n✅ On-chain verification PASSED!'))
+      console.log(
+        green('All generated data is consistent with blockchain state.')
+      )
+      if (totalSupplyWarnings > 0) {
+        console.log(
+          yellow(
+            `\n⚠️ Note: ${totalSupplyWarnings} tokens had non-critical supply warnings (this may be normal).`
+          )
+        )
+      }
+    } else {
+      console.log(red.bold('\n❌ On-chain verification FAILED!'))
+
+      const errorDetails: string[] = []
+      if (hashErrors > 0) {
+        errorDetails.push(`${hashErrors} hash mismatches`)
+      }
+      if (balanceErrors > 0) {
+        errorDetails.push(`${balanceErrors} balance mismatches`)
+      }
+      if (totalSupplyErrors > 0) {
+        errorDetails.push(`${totalSupplyErrors} total supply errors`)
+      }
+
+      console.log(red(`  Found: ${errorDetails.join(', ')}`))
+      console.log(
+        red(
+          '\n  The generated file contains errors and MUST NOT be used for force withdrawals.'
+        )
+      )
+      console.log(red('  Please investigate the errors above and regenerate.'))
+      process.exit(1)
     }
   })
