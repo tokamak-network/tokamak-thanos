@@ -10,17 +10,36 @@ import Artifact__WNativeToken from '@tokamak-network/thanos-contracts/forge-arti
 
 import { CrossChainMessenger, MessageStatus, Portals } from '../src'
 
-const privateKey = process.env.PRIVATE_KEY as BytesLike
+// Lazy initialization to avoid module-level errors
+let _l1Provider: ethers.providers.StaticJsonRpcProvider | null = null
+let _l2Provider: ethers.providers.StaticJsonRpcProvider | null = null
+let _l1Wallet: ethers.Wallet | null = null
+let _l2Wallet: ethers.Wallet | null = null
 
-const l1Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L1_URL
-)
-const l2Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L2_URL
-)
+const getProviders = () => {
+  if (!_l1Provider) {
+    _l1Provider = new ethers.providers.StaticJsonRpcProvider(process.env.L1_URL)
+  }
+  if (!_l2Provider) {
+    _l2Provider = new ethers.providers.StaticJsonRpcProvider(process.env.L2_URL)
+  }
+  return { l1Provider: _l1Provider, l2Provider: _l2Provider }
+}
 
-const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+const getWallets = () => {
+  const privateKey = process.env.PRIVATE_KEY as BytesLike
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY environment variable is not set')
+  }
+  const { l1Provider, l2Provider } = getProviders()
+  if (!_l1Wallet) {
+    _l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  }
+  if (!_l2Wallet) {
+    _l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+  }
+  return { l1Wallet: _l1Wallet, l2Wallet: _l2Wallet }
+}
 
 const zeroAddr = '0x'.padEnd(42, '0')
 
@@ -140,6 +159,9 @@ const createOptimismMintableERC20 = async (
 }
 
 const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
+  const { l1Wallet, l2Wallet } = getWallets()
+  const { l2Provider } = getProviders()
+
   const l1ChainId = await l1Wallet.getChainId()
   const l2ChainId = await l2Wallet.getChainId()
 
@@ -248,6 +270,9 @@ const depositWTON = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 const withdrawWTON = async (hre: HardhatRuntimeEnvironment) => {
+  const { l1Wallet, l2Wallet } = getWallets()
+  const { l1Provider, l2Provider } = getProviders()
+
   const l1ChainId = (await l1Provider.getNetwork()).chainId
   const l2ChainId = (await l2Provider.getNetwork()).chainId
 

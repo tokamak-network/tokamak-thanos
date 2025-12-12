@@ -5,12 +5,17 @@ import { task, types } from 'hardhat/config'
 
 import { NumberLike } from '../src'
 
-const privateKey = process.env.PRIVATE_KEY as BytesLike
-
-const l1Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L1_URL
-)
-const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+// Lazy initialization to avoid module-level errors
+const getL1Wallet = () => {
+  const privateKey = process.env.PRIVATE_KEY as BytesLike
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY environment variable is not set')
+  }
+  const l1Provider = new ethers.providers.StaticJsonRpcProvider(
+    process.env.L1_URL
+  )
+  return new ethers.Wallet(privateKey, l1Provider)
+}
 
 const erc20ABI = [
   {
@@ -39,15 +44,15 @@ const erc20ABI = [
   },
 ]
 
-const l2NativeToken = process.env.NATIVE_TOKEN || ''
-
-const l2NativeTokenContract = new ethers.Contract(
-  l2NativeToken,
-  erc20ABI,
-  l1Wallet
-)
-
 const fundNativeToken = async (amount: NumberLike) => {
+  const l1Wallet = getL1Wallet()
+  const l2NativeToken = process.env.NATIVE_TOKEN || ''
+  const l2NativeTokenContract = new ethers.Contract(
+    l2NativeToken,
+    erc20ABI,
+    l1Wallet
+  )
+
   console.log('Faucet amount:', amount)
 
   console.log('Native token address:', l2NativeToken)

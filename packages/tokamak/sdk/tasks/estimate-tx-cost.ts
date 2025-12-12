@@ -3,20 +3,41 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 import { BytesLike, ethers } from 'ethers'
 
-import { asL2Provider } from '../src'
+import { asL2Provider, L2Provider } from '../src'
 
 console.log('Setup task...')
 
-const privateKey = process.env.PRIVATE_KEY as BytesLike
+// Lazy initialization to avoid module-level errors
+let _l2Provider: L2Provider<ethers.providers.StaticJsonRpcProvider> | null =
+  null
+let _l2Wallet: ethers.Wallet | null = null
 
-const l2Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L2_URL
-)
-const provider = asL2Provider(l2Provider)
+const getL2Provider = () => {
+  if (!_l2Provider) {
+    const baseProvider = new ethers.providers.StaticJsonRpcProvider(
+      process.env.L2_URL
+    )
+    _l2Provider = asL2Provider(baseProvider)
+  }
+  return _l2Provider
+}
 
-const l2Wallet = new ethers.Wallet(privateKey, provider)
+const getL2Wallet = () => {
+  const privateKey = process.env.PRIVATE_KEY as BytesLike
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY environment variable is not set')
+  }
+  const provider = getL2Provider()
+  if (!_l2Wallet) {
+    _l2Wallet = new ethers.Wallet(privateKey, provider)
+  }
+  return _l2Wallet
+}
 
 const estimateL1Gas = async () => {
+  const l2Wallet = getL2Wallet()
+  const provider = getL2Provider()
+
   const tx = await l2Wallet.populateTransaction({
     to: '0x1000000000000000000000000000000000000000',
     value: ethers.utils.parseEther('0.01'),
