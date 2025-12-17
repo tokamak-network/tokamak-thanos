@@ -46,7 +46,7 @@ jobs:
           npm install --global pnpm@10.8.0
 
       - name: Restore PNPM Package Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: pnpm-packages-v2-slither-${{ hashFiles('pnpm-lock.yaml') }}
@@ -55,7 +55,7 @@ jobs:
         run: pnpm fetch --frozen-lockfile --prefer-offline
 
       - name: Save PNPM Package Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: pnpm-packages-v2-slither-${{ hashFiles('pnpm-lock.yaml') }}
