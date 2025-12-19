@@ -17,6 +17,7 @@ kontrol_prove_report.xml
 
 # Scripts
 scripts/go-ffi/go-ffi
+scripts/safe/data
 
 # Environment Variables
 .envrc
