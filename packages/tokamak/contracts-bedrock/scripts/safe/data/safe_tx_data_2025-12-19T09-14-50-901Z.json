@@ -1,0 +1,34 @@
+{
+  "safeAddress": "0x24d16804218C2279bf6A4B3cB88e9c929B903409",
+  "chainId": "11155111",
+  "threshold": "3",
+  "nonce": "19",
+  "to": "0x24d16804218C2279bf6A4B3cB88e9c929B903409",
+  "value": "0",
+  "data": "0x00",
+  "operation": 0,
+  "safeTxGas": "0",
+  "baseGas": "0",
+  "gasPrice": "0",
+  "gasToken": "0x0000000000000000000000000000000000000000",
+  "refundReceiver": "0x0000000000000000000000000000000000000000",
+  "txHash": "0x69f0fa78dc2216be8c15b9d1eb828d2dedf74fad107f2b7ce56b8517889e9ded",
+  "owners": [
+    "0xA2101482b28E3D99ff6ced517bA41EFf4971a386",
+    "0xeEfb04f3A4406363b399A1c3d194d75ca81A2d1B",
+    "0x7220c734653ae8Ca014d4D82A84041EE4169499c"
+  ],
+  "signatures": [
+    {
+      "signer": "0x7220c734653ae8Ca014d4D82A84041EE4169499c",
+      "signature": "0xaf1744e6407907322a015ace735770f83eaaac924ef91769ae2a201388b5962f5603ed348f9b18adc66ed4857d88a0cfcecd632aa3795a90c3bdd89aba95f5a31c"
+    },
+    {
+      "signer": "0xeEfb04f3A4406363b399A1c3d194d75ca81A2d1B",
+      "signature": "0xb8301e4cafb20068d65b7087b32e2cd5c23720c803ae1f542dfdc625fca2b8946c3f081bc0c727808495fffec7628c44bbf7c0444a6bc616c667e2ef5a3eb4ec1b"
+    }
+  ],
+  "signaturesBytes": "0xaf1744e6407907322a015ace735770f83eaaac924ef91769ae2a201388b5962f5603ed348f9b18adc66ed4857d88a0cfcecd632aa3795a90c3bdd89aba95f5a31cb8301e4cafb20068d65b7087b32e2cd5c23720c803ae1f542dfdc625fca2b8946c3f081bc0c727808495fffec7628c44bbf7c0444a6bc616c667e2ef5a3eb4ec1b",
+  "mode": "RAW",
+  "timestamp": "2025-12-19T09:14:50.900Z"
+}
