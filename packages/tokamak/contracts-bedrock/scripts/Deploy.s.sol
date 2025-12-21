@@ -11,7 +11,6 @@ import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
 import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
 import { GnosisSafeProxyFactory as SafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
 import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
-import { SafeExtender } from "src/Safe/SafeExtender.sol";
 import { Deployer } from "scripts/Deployer.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
@@ -195,11 +194,11 @@ contract Deploy is Deployer {
     ////////////////////////////////////////////////////////////////
 
     /// @notice Gets the address of the SafeProxyFactory and Safe singleton for use in deploying a new GnosisSafe.
-    function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, SafeExtender safeSingleton_) {
+    function _getSafeFactory() internal returns (SafeProxyFactory safeProxyFactory_, Safe safeSingleton_) {
         if (getAddress("SafeProxyFactory") != address(0)) {
             // The SafeProxyFactory is already saved, we can just use it.
             safeProxyFactory_ = SafeProxyFactory(getAddress("SafeProxyFactory"));
-            safeSingleton_ = SafeExtender(getAddress("SafeSingleton"));
+            safeSingleton_ = Safe(getAddress("SafeSingleton"));
             return (safeProxyFactory_, safeSingleton_);
         }
 
@@ -211,7 +210,7 @@ contract Deploy is Deployer {
             ? safeProxyFactory_ = new SafeProxyFactory()
             : safeProxyFactory_ = SafeProxyFactory(safeProxyFactory);
 
-        safeSingleton_ = new SafeExtender();
+        safeSingleton_ = new Safe();
         save("SafeProxyFactory", address(safeProxyFactory_));
         save("SafeSingleton", address(safeSingleton_));
     }
@@ -502,7 +501,7 @@ contract Deploy is Deployer {
     {
         bytes32 salt = keccak256(abi.encode(_name, _implSalt()));
         console.log("Deploying safe: %s with salt %s", _name, vm.toString(salt));
-        (SafeProxyFactory safeProxyFactory, SafeExtender safeSingleton) = _getSafeFactory();
+        (SafeProxyFactory safeProxyFactory, Safe safeSingleton) = _getSafeFactory();
 
         address[] memory expandedOwners = new address[](_owners.length + 1);
         if (_keepDeployer) {

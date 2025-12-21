@@ -72,6 +72,12 @@ contract L1ContractVerification is
   uint256 internal constant REQUIRED_SAFE_THRESHOLD = 3;
   uint256 internal constant REQUIRED_SAFE_OWNERS_COUNT = 3;
 
+  // Storage slot for Safe's fallback handler
+  // This is the keccak-256 hash of "fallback_manager.handler.address" and is used
+  // by Gnosis Safe v1.3.0+ to store the fallback handler address
+  bytes32 internal constant FALLBACK_HANDLER_STORAGE_SLOT =
+    0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+
   // The expected native token (TON) address
   address public expectedNativeToken;
 
@@ -380,6 +386,27 @@ contract L1ContractVerification is
   }
 
   /**
+   * @notice Get the fallback handler address from a Safe wallet
+   * @param safeWalletAddress The address of the Safe wallet to query
+   * @return The address of the fallback handler (address(0) if none set)
+   * @dev Reads the fallback handler directly from Safe's storage slot using getStorageAt.
+   */
+  function _getFallbackHandler(address safeWalletAddress) private view returns (address) {
+    // Read 32 bytes (1 word) from the fallback handler storage slot
+    bytes memory result = IGnosisSafe(safeWalletAddress).getStorageAt(
+      uint256(FALLBACK_HANDLER_STORAGE_SLOT),
+      1
+    );
+
+    // Convert bytes to address (the storage slot contains an address padded to 32 bytes)
+    address handler;
+    assembly {
+      handler := mload(add(result, 0x20))
+    }
+    return handler;
+  }
+
+  /**
    * @notice Verify the Safe wallet for a specific operator
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _safeWalletAddress The safe wallet address for the operator
@@ -409,8 +436,8 @@ contract L1ContractVerification is
     (address[] memory modules, address next) = IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 100);
     if (modules.length != 0 || next != SENTINEL_MODULES) revert SafeWalletUnauthorizedModules();
 
-    // verify fallback handler
-    if (IGnosisSafe(safeWalletAddress).getFallbackHandler() != address(0)) revert SafeWalletInvalidFallbackHandler();
+    // verify fallback handler using storage slot read
+    if (_getFallbackHandler(safeWalletAddress) != address(0)) revert SafeWalletInvalidFallbackHandler();
 
     // Verify threshold
     if (IGnosisSafe(safeWalletAddress).getThreshold() != safeWalletConfig.requiredThreshold) revert SafeWalletInvalidThreshold();
