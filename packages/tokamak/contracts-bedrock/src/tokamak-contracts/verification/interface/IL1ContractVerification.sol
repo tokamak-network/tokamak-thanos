@@ -3,15 +3,13 @@ pragma solidity 0.8.15;
 
 import {IProxyAdmin} from "./IProxyAdmin.sol";
 
-interface IStorageAccessible {
-  function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory);
-}
 
-interface IGnosisSafe is IStorageAccessible {
+interface IGnosisSafe {
   function getThreshold() external view returns (uint256);
   function getOwners() external view returns (address[] memory);
   function masterCopy() external view returns (address);
   function getModulesPaginated(address, uint256) external view returns (address[] memory,address);
+  function getStorageAt(uint256 offset, uint256 length) external view returns (bytes memory);
 }
 
 interface ISystemConfig {
