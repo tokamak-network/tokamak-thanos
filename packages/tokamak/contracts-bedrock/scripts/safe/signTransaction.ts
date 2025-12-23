@@ -176,7 +176,7 @@ async function registerWithSafeService(params: {
   }
 
   const apiRoot = baseUrl.replace(/\/+$/, '')
-  const txEndpoint = `${apiRoot}/api/v1/multisig-transactions/`
+  const txEndpoint = `${apiRoot}/api/v1/safes/${safeTx.safeAddress}/multisig-transactions/`
   console.log(`🔎 Safe API tx endpoint: ${txEndpoint}`)
 
   const headers: Record<string, string> = {
