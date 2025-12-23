@@ -371,10 +371,6 @@ contract FallbackHandlerTest is Test {
             1
         );
 
-        address handler;
-        assembly {
-            handler := mload(add(result, 0x20))
-        }
-        return handler;
+        return abi.decode(result, (address));
     }
 }
