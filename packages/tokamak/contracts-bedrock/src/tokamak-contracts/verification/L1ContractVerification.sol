@@ -392,18 +392,12 @@ contract L1ContractVerification is
    * @dev Reads the fallback handler directly from Safe's storage slot using getStorageAt.
    */
   function _getFallbackHandler(address safeWalletAddress) private view returns (address) {
-    // Read 32 bytes (1 word) from the fallback handler storage slot
     bytes memory result = IGnosisSafe(safeWalletAddress).getStorageAt(
       uint256(FALLBACK_HANDLER_STORAGE_SLOT),
       1
     );
 
-    // Convert bytes to address (the storage slot contains an address padded to 32 bytes)
-    address handler;
-    assembly {
-      handler := mload(add(result, 0x20))
-    }
-    return handler;
+    return abi.decode(result, (address));
   }
 
   /**
