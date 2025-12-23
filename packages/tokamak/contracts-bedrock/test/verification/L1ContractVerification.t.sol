@@ -1553,9 +1553,10 @@ contract L1ContractVerificationTest is Test {
         modules[0] = moduleAddress;
 
         // Mock the getModulesPaginated function to return modules
+        // Use correct parameters: (SENTINEL_MODULES, 100) to match the actual call in _verifySafe
         vm.mockCall(
             address(maliciousSafe),
-            abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 1),
+            abi.encodeWithSignature("getModulesPaginated(address,uint256)", address(1), 100),
             abi.encode(modules, address(1))
         );
 
