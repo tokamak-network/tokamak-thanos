@@ -72,6 +72,16 @@ contract L1ContractVerification is
   uint256 internal constant REQUIRED_SAFE_THRESHOLD = 3;
   uint256 internal constant REQUIRED_SAFE_OWNERS_COUNT = 3;
 
+  // Storage slot for Safe's fallback handler
+  // This is the keccak-256 hash of "fallback_manager.handler.address"
+  bytes32 internal constant FALLBACK_HANDLER_STORAGE_SLOT =
+    0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+
+  address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
+
+  // The type of rollup configuration is hardcoded to 2 as only rolltype 2 is required by l1bridgeRegistry
+  uint8 internal constant TYPE = 2;
+
   // The expected native token (TON) address
   address public expectedNativeToken;
 
@@ -83,11 +93,6 @@ contract L1ContractVerification is
 
   // Flag to control if verification is possible
   bool public isVerificationPossible;
-
-  address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
-
-  // The type of rollup configuration is hardcoded to 2 as only rolltype 2 is required by l1bridgeRegistry
-  uint8 internal constant TYPE = 2;
 
   // Logic contract information storage
   LogicContractInfo public systemConfig;
@@ -380,6 +385,21 @@ contract L1ContractVerification is
   }
 
   /**
+   * @notice Get the fallback handler address from a Safe wallet
+   * @param safeWalletAddress The address of the Safe wallet to query
+   * @return The address of the fallback handler (address(0) if none set)
+   * @dev Reads the fallback handler directly from Safe's storage slot using getStorageAt.
+   */
+  function _getFallbackHandler(address safeWalletAddress) private view returns (address) {
+    bytes memory result = IGnosisSafe(safeWalletAddress).getStorageAt(
+      uint256(FALLBACK_HANDLER_STORAGE_SLOT),
+      1
+    );
+
+    return abi.decode(result, (address));
+  }
+
+  /**
    * @notice Verify the Safe wallet for a specific operator
    * @param _proxyAdmin The address of the ProxyAdmin contract
    * @param _safeWalletAddress The safe wallet address for the operator
@@ -409,8 +429,8 @@ contract L1ContractVerification is
     (address[] memory modules, address next) = IGnosisSafe(safeWalletAddress).getModulesPaginated(SENTINEL_MODULES, 100);
     if (modules.length != 0 || next != SENTINEL_MODULES) revert SafeWalletUnauthorizedModules();
 
-    // verify fallback handler
-    if (IGnosisSafe(safeWalletAddress).getFallbackHandler() != address(0)) revert SafeWalletInvalidFallbackHandler();
+    // verify fallback handler using storage slot read
+    if (_getFallbackHandler(safeWalletAddress) != address(0)) revert SafeWalletInvalidFallbackHandler();
 
     // Verify threshold
     if (IGnosisSafe(safeWalletAddress).getThreshold() != safeWalletConfig.requiredThreshold) revert SafeWalletInvalidThreshold();
