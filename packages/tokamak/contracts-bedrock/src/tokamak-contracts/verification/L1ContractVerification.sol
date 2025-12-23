@@ -73,10 +73,14 @@ contract L1ContractVerification is
   uint256 internal constant REQUIRED_SAFE_OWNERS_COUNT = 3;
 
   // Storage slot for Safe's fallback handler
-  // This is the keccak-256 hash of "fallback_manager.handler.address" and is used
-  // by Gnosis Safe v1.3.0+ to store the fallback handler address
+  // This is the keccak-256 hash of "fallback_manager.handler.address"
   bytes32 internal constant FALLBACK_HANDLER_STORAGE_SLOT =
     0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+
+  address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
+
+  // The type of rollup configuration is hardcoded to 2 as only rolltype 2 is required by l1bridgeRegistry
+  uint8 internal constant TYPE = 2;
 
   // The expected native token (TON) address
   address public expectedNativeToken;
@@ -89,11 +93,6 @@ contract L1ContractVerification is
 
   // Flag to control if verification is possible
   bool public isVerificationPossible;
-
-  address internal constant L2_TON_ADDRESS = address(0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000);
-
-  // The type of rollup configuration is hardcoded to 2 as only rolltype 2 is required by l1bridgeRegistry
-  uint8 internal constant TYPE = 2;
 
   // Logic contract information storage
   LogicContractInfo public systemConfig;
