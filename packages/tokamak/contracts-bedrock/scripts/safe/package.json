@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "sign": "tsx signTransaction.ts",
-        "execute": "tsx executeTransaction.ts"
+        "execute": "tsx executeTransaction.ts",
+        "check-owner": "tsx checkOwner.ts"
     },
     "dependencies": {
         "@safe-global/api-kit": "^2.5.11",
