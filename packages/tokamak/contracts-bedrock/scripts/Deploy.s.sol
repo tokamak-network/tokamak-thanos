@@ -14,6 +14,7 @@ import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 import { Deployer } from "scripts/Deployer.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { AddressManager } from "src/legacy/AddressManager.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
@@ -60,6 +61,7 @@ import { Process } from "scripts/libraries/Process.sol";
 import { L2NativeToken } from "src/L1/L2NativeToken.sol";
 import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
 import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
+import { AuthorityForwarder } from "src/L1/AuthorityForwarder.sol";
 
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.
@@ -336,6 +338,15 @@ contract Deploy is Deployer {
         }
         setupOpChain();
         console.log("set up op chain!");
+
+        // Deploy AuthorityForwarder and transfer ownership
+        console.log("Setting up AuthorityForwarder...");
+        deployAuthorityForwarder();
+        console.log("AuthorityForwarder deployed!");
+
+        transferOwnershipToAuthorityForwarder();
+        console.log("Ownership transferred to AuthorityForwarder!");
+        console.log("L1 Deploy complete!");
     }
 
     ////////////////////////////////////////////////////////////////
@@ -1992,4 +2003,133 @@ contract Deploy is Deployer {
         require(dac.bondSize() == daBondSize);
         require(dac.resolverRefundPercentage() == daResolverRefundPercentage);
     }
+
+    ////////////////////////////////////////////////////////////////
+    //          AuthorityForwarder Deployment Functions           //
+    ////////////////////////////////////////////////////////////////
+
+    /// @notice Deploy the AuthorityForwarder contract
+    /// @dev The operator is set to the SystemOwnerSafe
+    function deployAuthorityForwarder() public broadcast returns (address addr_) {
+        console.log("Deploying AuthorityForwarder");
+
+        address operator = mustGetAddress("SystemOwnerSafe");
+        console.log("Operator (SystemOwnerSafe):", operator);
+
+        AuthorityForwarder forwarder = new AuthorityForwarder(operator);
+
+        save("AuthorityForwarder", address(forwarder));
+        console.log("AuthorityForwarder deployed at:", address(forwarder));
+        console.log("Current Phase:", uint256(forwarder.currentPhase()));
+        console.log("Operator:", forwarder.OPERATOR());
+        console.log("DAO:", forwarder.DAO());
+
+        addr_ = address(forwarder);
+    }
+
+    /// @notice Transfer ownership of all critical L1 contracts to AuthorityForwarder
+    /// @dev This should be called after deploying AuthorityForwarder
+    function transferOwnershipToAuthorityForwarder() public broadcast {
+        address forwarderAddress = mustGetAddress("AuthorityForwarder");
+        AuthorityForwarder forwarder = AuthorityForwarder(payable(forwarderAddress));
+
+        console.log("=== Transfer Ownership to AuthorityForwarder ===");
+        console.log("AuthorityForwarder:", forwarderAddress);
+        console.log("Operator:", forwarder.OPERATOR());
+        console.log("Current Phase:", uint256(forwarder.currentPhase()));
+
+        // List of contracts to transfer
+        string[10] memory contractNames = [
+            "SystemConfigProxy",
+            "ProxyAdmin",
+            "OptimismPortalProxy",
+            "L1CrossDomainMessengerProxy",
+            "L1StandardBridgeProxy",
+            "L1ERC721BridgeProxy",
+            "OptimismMintableERC20FactoryProxy",
+            "DelayedWETHProxy",
+            "PermissionedDelayedWETHProxy",
+            "SuperchainConfigProxy"
+        ];
+
+        console.log("\n=== Transferring Ownership ===");
+        for (uint256 i = 0; i < contractNames.length; i++) {
+            _transferOwnershipToForwarder(contractNames[i], forwarderAddress);
+        }
+
+        console.log("\n=== Transfer Complete ===");
+    }
+
+    /// @notice Internal function to transfer ownership of a single contract
+    /// @param _name The name of the contract
+    /// @param _newOwner The new owner address (AuthorityForwarder)
+    function _transferOwnershipToForwarder(string memory _name, address _newOwner) internal {
+        address contractAddr = getAddress(_name);
+
+        if (contractAddr == address(0)) {
+            console.log("Skipping %s - Not deployed", _name);
+            return;
+        }
+
+        try Ownable(contractAddr).owner() returns (address currentOwner) {
+            if (currentOwner == _newOwner) {
+                console.log("Skipping %s - Already owned by AuthorityForwarder", _name);
+                return;
+            }
+
+            console.log("Transferring %s ownership...", _name);
+            console.log("  From:", currentOwner);
+            console.log("  To:", _newOwner);
+
+            Ownable(contractAddr).transferOwnership(_newOwner);
+            console.log("  [SUCCESS]");
+        } catch {
+            console.log("Skipping %s - Not Ownable or failed to get owner", _name);
+        }
+    }
+
+    /// @notice Set the DAO address on AuthorityForwarder (Phase 1 -> Phase 2 transition)
+    /// @dev This is a ONE-TIME operation and cannot be reversed
+    ///      The DAO address is read from the DAOCommitteeProxy deployment
+    function setDAOOnAuthorityForwarder() public broadcast {
+        address forwarderAddress = mustGetAddress("AuthorityForwarder");
+        address daoAddress = mustGetAddress("DAOCommitteeProxy");
+
+        AuthorityForwarder forwarder = AuthorityForwarder(payable(forwarderAddress));
+
+        console.log("=== Set DAO on AuthorityForwarder ===");
+        console.log("AuthorityForwarder:", forwarderAddress);
+        console.log("Current Operator:", forwarder.OPERATOR());
+        console.log("Current DAO:", forwarder.DAO());
+        console.log("Current Phase:", uint256(forwarder.currentPhase()));
+        console.log("\nNew DAO Address:", daoAddress);
+
+        // Verify DAO is a contract
+        uint256 codeSize;
+        assembly {
+            codeSize := extcodesize(daoAddress)
+        }
+        require(codeSize > 0, "SetDAO: DAO address is not a contract");
+        console.log("DAO Code Size:", codeSize, "bytes");
+
+        // Verify caller is operator
+        require(msg.sender == forwarder.OPERATOR(), "SetDAO: Caller is not the operator");
+
+        // Verify DAO is not already set
+        require(forwarder.DAO() == address(0), "SetDAO: DAO already set");
+
+        console.log("\nWARNING: This operation is IRREVERSIBLE!");
+        console.log("WARNING: After setting DAO, dangerous functions will be blocked for the operator.");
+
+        // Set DAO
+        forwarder.setDAO(daoAddress);
+
+        console.log("\n=== DAO Set Successfully ===");
+        console.log("New DAO:", forwarder.DAO());
+        console.log("New Phase:", uint256(forwarder.currentPhase()));
+        console.log("\n[SUCCESS] Phase transition complete: Initial -> DAOControlled");
+        console.log("[SUCCESS] Dangerous functions are now blocked for operator");
+        console.log("[SUCCESS] Only DAO can execute dangerous functions via governance");
+    }
 }
+
