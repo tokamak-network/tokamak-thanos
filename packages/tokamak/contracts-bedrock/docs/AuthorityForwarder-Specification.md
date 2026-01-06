@@ -652,7 +652,7 @@ function _isEmergencyFunction(bytes4 selector) internal pure returns (bool) {
 
 ## Function Classification
 
-### Dangerous Functions (9 total)
+### Dangerous Functions (10 total)
 
 **Definition**: Functions that can directly steal funds, halt the system, or transfer control.
 
@@ -662,11 +662,12 @@ function _isEmergencyFunction(bytes4 selector) internal pure returns (bool) {
 | 2 | `upgradeAndCall(address,address,bytes)` | ProxyAdmin | Upgrade + initialize in one tx | `0x9623609d` |
 | 3 | `changeProxyAdmin(address,address)` | ProxyAdmin | Transfer upgrade control | `0x7eff275e` |
 | 4 | `setAddress(string,address)` | AddressManager | Redirect critical addresses | `0x9b2ea4bd` |
-| 5 | `setBatcherHash(bytes32)` | SystemConfig | Halt L2 block production (DoS) | `0xc9b26f61` |
-| 6 | `setImplementation(uint32,address)` | DisputeGameFactory | Steal withdrawal bonds | `0x17cd45b2` |
-| 7 | `transferOwnership(address)` | Ownable | Transfer contract ownership | `0xf2fde38b` |
-| 8 | `recover(uint256)` | DelayedWETH | Steal WETH from delayed withdrawals | `0x3ccfd60b` |
-| 9 | `hold(address,uint256)` | DelayedWETH | Lock user withdrawal funds | `0xd0fb0203` |
+| 5 | `setAddressManager(address)` | ProxyAdmin | Redirect legacy routing | `0x0652b57a` |
+| 6 | `setBatcherHash(bytes32)` | SystemConfig | Halt L2 block production (DoS) | `0xc9b26f61` |
+| 7 | `setImplementation(uint32,address)` | DisputeGameFactory | Steal withdrawal bonds | `0x14f6b1a3` |
+| 8 | `transferOwnership(address)` | Ownable | Transfer contract ownership | `0xf2fde38b` |
+| 9 | `recover(uint256)` | DelayedWETH | Steal WETH from delayed withdrawals | `0x0ca35682` |
+| 10 | `hold(address,uint256)` | DelayedWETH | Lock user withdrawal funds | `0x977a5ec5` |
 
 **Access**:
 - Phase 1: Operator ✅
@@ -674,16 +675,17 @@ function _isEmergencyFunction(bytes4 selector) internal pure returns (bool) {
 
 ---
 
-### Emergency Functions (4 total) (Included in Plan v1)
+### Emergency Functions (5 total) (Included in Plan v1)
 
 **Definition**: Functions for immediate circuit-breaker response (TIER 1 emergency governance).
 
 | # | Function Signature | Contract | Purpose | Response Time | Selector |
 |---|-------------------|----------|---------|---------------|----------|
 | 1 | `pause()` | SuperchainConfig | Pause withdrawals system-wide | Minutes | `0x8456cb59` |
-| 2 | `unpause()` | SuperchainConfig | Resume normal operations | Minutes | `0x3f4ba83a` |
-| 3 | `blacklistDisputeGame(address)` | OptimismPortal2 | Block invalid withdrawal proof | Minutes | `0x1c0d8ae7` |
-| 4 | `setRespectedGameType(uint32)` | OptimismPortal2 | Switch to secure game type | Minutes | `0xf5c547c1` |
+| 2 | `pause(string)` | SuperchainConfig | Pause with identifier | Minutes | `0x6da66355` |
+| 3 | `unpause()` | SuperchainConfig | Resume normal operations | Minutes | `0x3f4ba83a` |
+| 4 | `blacklistDisputeGame(address)` | OptimismPortal2 | Block invalid withdrawal proof | Minutes | `0x7d6be8dc` |
+| 5 | `setRespectedGameType(uint32)` | OptimismPortal2 | Switch to secure game type | Minutes | `0x7fc48504` |
 
 **Access**:
 - Phase 1: Operator ✅ (as Guardian)
@@ -1263,7 +1265,7 @@ forwarder.setDAO(
 | **setDAO() Parameters** | 1 (dao) | 3 (dao, sc, config) ⭐ |
 | **Guardian Transfer** | Manual | Atomic ⭐ |
 | **Security Council** | Not supported | Integrated ⭐ |
-| **Emergency Functions** | Not defined | 4 functions ⭐ |
+| **Emergency Functions** | Not defined | 5 functions ⭐ |
 | **Gas Optimization** | Runtime keccak256 | Precomputed selectors ⭐ |
 | **Event Parameters** | 2 (target, success) | 4 (target, selector, caller, success) ⭐ |
 | **Input Validation** | None | target + calldata ⭐ |

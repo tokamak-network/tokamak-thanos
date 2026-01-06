@@ -90,11 +90,13 @@ function forwardCall(address _target, bytes calldata _data) external payable {
 
     revert("Auth: Not authorized");
 }
+```
 
 ### 2.2 Function Classification
 
 **Dangerous Functions** (DAO-only after Phase 2):
 - `upgrade()`, `upgradeAndCall()`, `changeProxyAdmin()`
+- `setAddress()`, `setAddressManager()`
 - `setBatcherHash()`, `setImplementation()`
 - `transferOwnership()`, `recover()`, `hold()`
 
@@ -219,90 +221,16 @@ contract SuperchainConfig {
 - Guardian must be a contract (not EOA) to prevent key loss and ensure proper governance
 - Guardian cannot be set to zero address
 
-#### Deployment Sequence
-
-```mermaid
-graph TD
-    A[Current State] --> B[Step 1: Develop setGuardian function]
-    B --> C[Step 2: Audit new SuperchainConfig implementation]
-    C --> D[Step 3: Deploy new SuperchainConfig implementation]
-    D --> E[Step 4: Operator upgrades SuperchainConfigProxy]
-    E --> F[Step 5: Verify setGuardian is callable]
-    F --> G[Step 6: Deploy AuthorityForwarder Plan v1]
-    G --> H[Step 7: Transfer contract ownership to AuthorityForwarder]
-    H --> I[Step 8: Operator calls AuthorityForwarder.setDAO]
-    I --> J[✅ Plan v1 Fully Operational]
-
-    style A fill:#e0e0e0
-    style J fill:#ccffcc
-    style E fill:#ffffcc
-```
-
-**Detailed Steps**:
-
-1. **Develop `setGuardian()` function** (1 week)
-   - Add function to SuperchainConfig
-   - Include proper access control and validation
-   - Write unit tests
-
-2. **Audit new implementation** (2-3 weeks)
-   - Security audit of `setGuardian()` function
-   - Verify no regressions in existing functionality
-   - Test upgrade path
-
-3. **Deploy new implementation** (1 day)
-   - Deploy new SuperchainConfig implementation to L1
-   - Verify deployment and code
-
-4. **Upgrade SuperchainConfigProxy** (1 week)
-   - Operator prepares upgrade transaction via ProxyAdmin
-   - Execute upgrade through governance if required
-   - Verify proxy points to new implementation
-
-5. **Verify functionality** (1 day)
-   - Call `setGuardian()` with test address to verify it works
-   - Confirm Guardian slot updates correctly
-   - Revert test call if successful
-
-6. **Deploy AuthorityForwarder Plan v1** (1 week)
-   - Deploy AuthorityForwarder with Operator address
-   - Verify deployment
-
-7. **Transfer ownership** (1 week)
-   - Transfer ownership of all critical contracts to AuthorityForwarder
-   - ProxyAdmin, SystemConfig, SuperchainConfig, etc.
-   - Verify all transfers successful
-
-8. **Call setDAO()** (1 day)
-   - Operator calls `AuthorityForwarder.setDAO(DAO_addr, SC_addr, SuperchainConfig_addr)`
-   - Guardian automatically transferred to Security Council
-   - Verify Phase 2 is active
-
-**Timeline**: ~6-8 weeks total
-
-**Risks**:
-- 🟡 SuperchainConfig upgrade could introduce bugs → Mitigation: Thorough audit
-- 🟡 Upgrade transaction could fail → Mitigation: Test on testnet first
-- 🟢 AuthorityForwarder deployment is straightforward (low risk)
-
 ### 4.2 Security Council Entity Setup
 
 Before calling `setDAO()`, the **Security Council entity must exist** and be properly configured.
 
-**Requirements**:
 **Requirements**:
 - Security Council must be a Safe multisig contract.
 - **Composition**: 3 members from the **Tokamak Foundation**.
 - **Relationship**: These 3 members are the **owners/signers of the Multisig wallet** that holds the DAO authority (DAO Owner).
 - **Threshold**: 2/3 (recommended for operational agility in emergencies).
 - Geographic distribution among members is recommended for 24/7 emergency coverage.
-
-**Setup Steps**:
-1. Deploy Safe multisig for Security Council
-2. Add all council members as signers
-3. Set threshold (e.g., 6/9)
-4. Test multisig functionality
-5. Document council member identities and contact info
 
 ---
 
@@ -345,7 +273,7 @@ assertEq(forwarder.DAO(), address(0));
 
 **Why Critical**: Prevents dangerous partial authority transfer where Operator is blocked from upgrades but still controls pause.
 
-## 6. Action Plan for Guardian Transfer
+## 6. Action Plan for Authority Transfer
 
 To ensure a seamless transition of the Guardian role during DAO registration, the following steps must be executed:
 
@@ -415,7 +343,7 @@ If critical issues are discovered after registration:
 2.  **Emergency Options**:
     - DAO can upgrade AuthorityForwarder to new implementation (if necessary)
     - Security Council can pause system to prevent damage
-    - DAO can override Security Council decisions if needed
+    - DAO can override Security Council decisions if needed (need to pass the agenda)
 3.  **Prevention is Key**: Thorough testing on testnet before mainnet registration
 
 ---
@@ -577,16 +505,18 @@ function _isDangerousFunction(bytes4 selector) internal pure returns (bool) {
     bytes4 constant UPGRADE_AND_CALL = 0x9623609d;           // upgradeAndCall(address,address,bytes)
     bytes4 constant CHANGE_PROXY_ADMIN = 0x7eff275e;         // changeProxyAdmin(address,address)
     bytes4 constant SET_ADDRESS = 0x9b2ea4bd;                // setAddress(string,address)
+    bytes4 constant SET_ADDRESS_MANAGER = 0x0652b57a;        // setAddressManager(address)
     bytes4 constant SET_BATCHER_HASH = 0xc9b26f61;           // setBatcherHash(bytes32)
-    bytes4 constant SET_IMPLEMENTATION = 0x17cd45b2;         // setImplementation(uint32,address)
+    bytes4 constant SET_IMPLEMENTATION = 0x14f6b1a3;         // setImplementation(uint32,address)
     bytes4 constant TRANSFER_OWNERSHIP = 0xf2fde38b;         // transferOwnership(address)
-    bytes4 constant RECOVER = 0x3ccfd60b;                    // recover(uint256)
-    bytes4 constant HOLD = 0xd0fb0203;                       // hold(address,uint256)
+    bytes4 constant RECOVER = 0x0ca35682;                    // recover(uint256)
+    bytes4 constant HOLD = 0x977a5ec5;                       // hold(address,uint256)
 
     return selector == UPGRADE ||
            selector == UPGRADE_AND_CALL ||
            selector == CHANGE_PROXY_ADMIN ||
            selector == SET_ADDRESS ||
+           selector == SET_ADDRESS_MANAGER ||
            selector == SET_BATCHER_HASH ||
            selector == SET_IMPLEMENTATION ||
            selector == TRANSFER_OWNERSHIP ||
@@ -611,11 +541,13 @@ function _isDangerousFunction(bytes4 selector) internal pure returns (bool) {
 function _isEmergencyFunction(bytes4 selector) internal pure returns (bool) {
     // Precomputed selectors for gas optimization
     bytes4 constant PAUSE = 0x8456cb59;                      // pause()
+    bytes4 constant PAUSE_WITH_ID = 0x6da66355;              // pause(string)
     bytes4 constant UNPAUSE = 0x3f4ba83a;                    // unpause()
-    bytes4 constant BLACKLIST_DISPUTE_GAME = 0x1c0d8ae7;     // blacklistDisputeGame(address)
-    bytes4 constant SET_RESPECTED_GAME_TYPE = 0xf5c547c1;    // setRespectedGameType(uint32)
+    bytes4 constant BLACKLIST_DISPUTE_GAME = 0x7d6be8dc;     // blacklistDisputeGame(address)
+    bytes4 constant SET_RESPECTED_GAME_TYPE = 0x7fc48504;    // setRespectedGameType(uint32)
 
     return selector == PAUSE ||
+           selector == PAUSE_WITH_ID ||
            selector == UNPAUSE ||
            selector == BLACKLIST_DISPUTE_GAME ||
            selector == SET_RESPECTED_GAME_TYPE;
@@ -700,20 +632,22 @@ Complete signatures for all dangerous and emergency functions:
 | `upgradeAndCall` | `upgradeAndCall(address proxy, address implementation, bytes data)` | ProxyAdmin | `0x9623609d` | Upgrade and call initialization |
 | `changeProxyAdmin` | `changeProxyAdmin(address proxy, address newAdmin)` | ProxyAdmin | `0x7eff275e` | Change proxy admin (dangerous) |
 | `setAddress` | `setAddress(string name, address addr)` | AddressManager | `0x9b2ea4bd` | Set address in registry |
+| `setAddressManager` | `setAddressManager(address newAddressManager)` | ProxyAdmin | `0x0652b57a` | Change AddressManager (dangerous) |
 | `setBatcherHash` | `setBatcherHash(bytes32 batcherHash)` | SystemConfig | `0xc9b26f61` | Set sequencer batcher (revenue theft risk) |
-| `setImplementation` | `setImplementation(uint32 gameType, address impl)` | DisputeGameFactory | `0x17cd45b2` | Set game implementation |
+| `setImplementation` | `setImplementation(uint32 gameType, address impl)` | DisputeGameFactory | `0x14f6b1a3` | Set game implementation |
 | `transferOwnership` | `transferOwnership(address newOwner)` | Ownable | `0xf2fde38b` | Transfer contract ownership |
-| `recover` | `recover(uint256 amount)` | Custom | `0x3ccfd60b` | Recover stuck funds (if implemented) |
-| `hold` | `hold(address token, uint256 amount)` | Custom | `0xd0fb0203` | Hold tokens (if implemented) |
+| `recover` | `recover(uint256 amount)` | Custom | `0x0ca35682` | Recover stuck funds (if implemented) |
+| `hold` | `hold(address token, uint256 amount)` | Custom | `0x977a5ec5` | Hold tokens (if implemented) |
 
 #### Emergency Functions (Security Council)
 
 | Function | Full Signature | Contract | Selector | Description |
 |----------|---------------|----------|----------|-------------|
 | `pause` | `pause()` | SuperchainConfig | `0x8456cb59` | Pause withdrawals system-wide |
+| `pause` | `pause(string)` | SuperchainConfig | `0x6da66355` | Pause withdrawals with identifier |
 | `unpause` | `unpause()` | SuperchainConfig | `0x3f4ba83a` | Resume normal operations |
-| `blacklistDisputeGame` | `blacklistDisputeGame(address game)` | OptimismPortal2 | `0x1c0d8ae7` | Blacklist invalid game |
-| `setRespectedGameType` | `setRespectedGameType(uint32 gameType)` | OptimismPortal2 | `0xf5c547c1` | Switch to secure game type |
+| `blacklistDisputeGame` | `blacklistDisputeGame(address game)` | OptimismPortal2 | `0x7d6be8dc` | Blacklist invalid game |
+| `setRespectedGameType` | `setRespectedGameType(uint32 gameType)` | OptimismPortal2 | `0x7fc48504` | Switch to secure game type |
 
 **Note**: Selectors computed via `cast sig "functionName(paramTypes)"`
 
@@ -742,7 +676,7 @@ constructor(address _operator) {
 
 ### 9.5 Optional: Delegation Mechanism (future versions)
 
-For advanced governance patterns, the contract MAY include function delegation:
+For advanced governance patterns, the contract MAY include function delegation (e.g., Slasher on the fault proof game):
 
 ```solidity
 /// @notice Mapping of delegated function executors: [target][selector] -> executor
@@ -888,35 +822,6 @@ new AuthorityForwarder(
 
 // Example
 new AuthorityForwarder(0x1234...5678)  // Operator Safe on Sepolia
-```
-
-#### DAO (OpenZeppelin TimelockController)
-
-```solidity
-// Constructor
-new TimelockController(
-    uint256 minDelay,           // 1555200 seconds (18 days)
-    address[] proposers,        // Empty array [] (use AccessControl to add)
-    address[] executors,        // Empty array [] (anyone can execute after delay)
-    address admin               // Deployer address (renounce after setup)
-)
-
-// Example
-new TimelockController(
-    1555200,                    // 18-day delay
-    new address[](0),           // No initial proposers
-    new address[](0),           // No initial executors
-    msg.sender                  // Deployer admin
-)
-```
-
-#### Security Council (Gnosis Safe)
-
-```bash
-# Deploy via Gnosis Safe UI or Factory
-# Parameters:
-owners: [0xFoundation1, 0xFoundation2, 0xFoundation3]  # 3 Tokamak Foundation members
-threshold: 2                                            # 2/3 required
 ```
 
 #### SuperchainConfig (Upgraded Implementation)
@@ -1078,31 +983,6 @@ The **Plan v1 Action Plan** significantly enhances ecosystem safety by ensuring 
 **Prerequisites**:
 - 🔴 **CRITICAL**: SuperchainConfig upgrade with `setGuardian()` function
 - 🟡 **IMPORTANT**: Security Council entity setup (Safe multisig)
-- 🟡 **IMPORTANT**: DAO Timelock deployment
 - 🟢 **RECOMMENDED**: Comprehensive testing on testnet
 
-**Timeline to Deployment**: 6-8 weeks (primarily SuperchainConfig upgrade)
-
-### Limitations and Future Work
-
-**Current Plan v1 Scope**:
-- ✅ TIER 1 emergency response (pause/unpause)
-- ✅ Complete authority separation
-- ✅ Atomic Guardian transfer
-
-**Future Enhancements**:
-- ⚠️ TIER 2 emergency fixes (pre-approved upgrades)
-- ⚠️ DAO ratification mechanism
-- ⚠️ Enhanced transparency and action tracking
-
-**Assessment**: Plan v1 provides **essential safety guarantees** for DAO ecosystem participation while maintaining pragmatic emergency response capabilities. Future enhancements will bring Tokamak in line with industry-leading L2 governance standards (Optimism, Arbitrum, Base).
-
 ---
-
-## References
-
-- [Guardian Risk Assessment](./Guardian-Risk-Assessment-After-DAO-Authority-Transfer.md) - Analysis of Guardian-related risks
-- [Emergency Governance Proposal](./Emergency.md) - Emergency response framework
-- [Emergency Governance Utility Assessment](./Emergency-Governance-Utility-Assessment.md) - Evaluation of emergency mechanisms
-- [SystemOwnerSafe Permission Risk Assessment](./SystemOwnerSafe-permission-risk-assessment.md) - Analysis of high-risk functions
-
