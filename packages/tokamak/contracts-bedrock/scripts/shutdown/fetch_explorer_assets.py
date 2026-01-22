@@ -15,7 +15,7 @@ ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
-# 설정
+# Configuration
 BASE_V2_URL = "https://explorer.thanos-sepolia.tokamak.network/api/v2"
 OUTPUT_DIR = "/Users/theo/workspace_tokamak/tokamak-thanos/packages/tokamak/contracts-bedrock/data"
 
@@ -40,12 +40,12 @@ DEFAULT_L1_NATIVE_TOKEN = "0xa30fe40285B8f5c0457DbC3B7C8A280373c40044"
 
 def fetch_v2_all_pages(description, endpoint, address_key="address"):
     """
-    Explorer V2 API에서 모든 페이지의 데이터를 수집합니다.
+    Collects all pages of data from the Explorer V2 API.
     """
     all_addresses = set()
     next_page_params = {}
 
-    log(f"🚀 {description} 수집 시작 (V2 API)...")
+    log(f"🚀 {description} collection started (V2 API)...")
 
     while True:
         # Encode parameters
@@ -83,7 +83,7 @@ def fetch_v2_all_pages(description, endpoint, address_key="address"):
                     if addr and isinstance(addr, str):
                         all_addresses.add(addr.lower())
 
-                log(f"  📦 {len(items)}개 항목 처리됨. (누적 고유 주소: {len(all_addresses)})")
+                log(f"  📦 Processed {len(items)} items. (Total unique addresses: {len(all_addresses)})")
 
                 # Pagination
                 next_params = data.get('next_page_params')
@@ -94,7 +94,7 @@ def fetch_v2_all_pages(description, endpoint, address_key="address"):
                 time.sleep(0.1)  # Rate limit
 
         except Exception as e:
-            log(f"  ❌ 오류 발생: {e}")
+            log(f"  ❌ Error occurred: {e}")
             break
 
     return sorted(list(all_addresses))
@@ -107,7 +107,7 @@ def fetch_token_holders_for_tokens(tokens):
     if not tokens:
         return []
 
-    log("\n📌 토큰 홀더 목록 수집 시작")
+    log("\n📌 Token holder collection started")
     for idx, token in enumerate(tokens, start=1):
         endpoint = f"/tokens/{token}/holders"
         holders = fetch_v2_all_pages(
@@ -118,7 +118,7 @@ def fetch_token_holders_for_tokens(tokens):
         for h in holders:
             all_holders.add(h)
 
-    log(f"✅ 토큰 홀더 수집 완료 (고유 주소: {len(all_holders)})")
+    log(f"✅ Token holder collection complete (unique addresses: {len(all_holders)})")
     return sorted(list(all_holders))
 
 def rpc_call(url, method, params):
@@ -305,7 +305,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
     else:
         end_block = end_block_env
 
-    log("\n📌 미완료 출금(MessagePassed) 수집 시작")
+    log("\n📌 Unclaimed withdrawals (MessagePassed) collection started")
     log(f"  - L2 range: {start_block} ~ {end_block}")
     log(f"  - MessagePasser: {message_passer}")
     log(f"  - Filter: all MessagePassed events (scanning for bridge calls)")
@@ -329,7 +329,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
         try:
             logs = rpc_call(l2_rpc_url, "eth_getLogs", params)
         except Exception as e:
-            log(f"  ❌ eth_getLogs 실패: {e}")
+            log(f"  ❌ eth_getLogs failed: {e}")
             break
 
         for entry in logs:
@@ -345,7 +345,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
             try:
                 finalized = is_finalized(l1_rpc_url, optimism_portal, withdrawal_hash)
             except Exception as e:
-                log(f"  ❌ finalizedWithdrawals 조회 실패: {e}")
+                log(f"  ❌ finalizedWithdrawals query failed: {e}")
                 continue
 
             if finalized:
@@ -376,7 +376,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
     with open(out_path, "w") as f:
         json.dump(items, f, indent=2)
 
-    log(f"✅ unclaimed withdrawals 저장: {filename} (count: {len(withdrawal_hashes)})")
+    log(f"✅ Unclaimed withdrawals saved: {filename} (count: {len(withdrawal_hashes)})")
     return filename, len(withdrawal_hashes)
 
 def main():
@@ -393,7 +393,7 @@ def main():
 
     # 1. Accounts (Holders) - /addresses
     holders = fetch_v2_all_pages(
-        "전체 계정(Holders) 목록",
+        "Account holders list",
         "/addresses",
         address_key="hash",
     )
@@ -402,13 +402,13 @@ def main():
         json.dump(holders, f, indent=2)
 
     # 2. Contracts (CA List) - /smart-contracts
-    contracts = fetch_v2_all_pages("배포된 컨트랙트(CA) 목록", "/smart-contracts", address_key="address")
+    contracts = fetch_v2_all_pages("Deployed contracts (CA) list", "/smart-contracts", address_key="address")
     filename_contracts = f"l2-contracts{chain_id_suffix}.json"
     with open(os.path.join(OUTPUT_DIR, filename_contracts), "w") as f:
         json.dump(contracts, f, indent=2)
 
     # 3. Tokens (ERC20 List) - /tokens
-    tokens = fetch_v2_all_pages("ERC20 토큰 목록", "/tokens", address_key="address")
+    tokens = fetch_v2_all_pages("ERC20 token list", "/tokens", address_key="address")
     filename_tokens = f"l2-tokens{chain_id_suffix}.json"
     with open(os.path.join(OUTPUT_DIR, filename_tokens), "w") as f:
         json.dump(tokens, f, indent=2)
@@ -425,12 +425,12 @@ def main():
     filename_unclaimed, unclaimed_count = fetch_unclaimed_withdrawals(chain_id_suffix)
 
     log("\n====================================================")
-    log("✅ 데이터 수집 완료 및 파일 저장 성공!")
-    log(f"📂 경로: {OUTPUT_DIR}")
-    log(f"  - {filename_holders:<20} : {len(merged_holders):>5} 주소 (accounts + token holders)")
-    log(f"  - {filename_contracts:<20} : {len(contracts):>5} 주소 (스마트 컨트랙트)")
-    log(f"  - {filename_tokens:<20} : {len(tokens):>5} 주소 (ERC20 토큰)")
-    log(f"  - {filename_unclaimed:<20} : {unclaimed_count:>5} 항목 (미완료 출금)")
+    log("✅ Data collection complete and files saved!")
+    log(f"📂 Path: {OUTPUT_DIR}")
+    log(f"  - {filename_holders:<20} : {len(merged_holders):>5} addresses (accounts + token holders)")
+    log(f"  - {filename_contracts:<20} : {len(contracts):>5} addresses (smart contracts)")
+    log(f"  - {filename_tokens:<20} : {len(tokens):>5} addresses (ERC20 tokens)")
+    log(f"  - {filename_unclaimed:<20} : {unclaimed_count:>5} entries (unclaimed withdrawals)")
     log("====================================================")
 
     # FFI requirement: output hex string to stdout
