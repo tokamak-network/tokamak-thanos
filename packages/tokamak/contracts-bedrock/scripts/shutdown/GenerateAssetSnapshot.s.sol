@@ -31,10 +31,10 @@ interface IMulticall3 {
 /**
  * @title GenerateAssetSnapshot
  * @notice L2 asset snapshot generator
- * @dev 핵심 원칙:
- *      1. 데이터 수집 → Python 스크립트
- *      2. Solidity → 검증 + 변환 + JSON 생성만
- *      3. 복잡한 이벤트 스캔 제거
+ * @dev Key principles:
+ *      1. Data collection via Python scripts
+ *      2. Solidity only handles validation, conversion, and JSON output
+ *      3. Avoid complex event scanning
  */
 contract GenerateAssetSnapshot is Script {
   using stdJson for string;
@@ -102,7 +102,7 @@ contract GenerateAssetSnapshot is Script {
   function setUp() public {
     console.log('=== Asset Snapshot Generator ===\n');
 
-    // 1.1 환경 변수 로드 및 L2 Chain ID 설정
+    // 1.1 Load environment variables and set L2 chain ID
     l1RpcUrl = vm.envString('L1_RPC_URL');
     l2RpcUrl = vm.envString('L2_RPC_URL');
 
@@ -136,7 +136,7 @@ contract GenerateAssetSnapshot is Script {
     }
     console.log();
 
-    // 1.2 Python으로 데이터 수집 (Chain ID 전달) - SKIP_FETCH=true 인 경우 스킵
+    // 1.2 Fetch data via Python (pass chain ID) - skip when SKIP_FETCH=true
     bool skipFetch = vm.envOr('SKIP_FETCH', false);
     if (skipFetch) {
       console.log('[INFO] SKIP_FETCH=true, skipping Python data fetching...\n');
@@ -144,7 +144,7 @@ contract GenerateAssetSnapshot is Script {
       _fetchDataViaPython(l2ChainId);
     }
 
-    // 1.3 토큰 목록 로드
+    // 1.3 Load token list
     _loadTokens();
 
     // 1.4 Load L2 burn adjustments
@@ -596,15 +596,15 @@ contract GenerateAssetSnapshot is Script {
     if (l1Locked == l2Supply) return '';
 
     if (l1Locked > l2Supply) {
-      // L1이 더 많음 - 일반적인 케이스
+      // L1 is larger - common case
       return
         '  Possible causes: In-flight withdrawals, Pending deposits, Failed L2 mints';
     } else {
-      // L2가 더 많음
+      // L2 is larger
       if (_isL2Native(l2Token, l1Token, tokenName, tokenSymbol)) {
         return '  [INFO] L2 Native token - L1 deposit = 0 is expected';
       } else {
-        // Bridged token이지만 L1 deposit이 없는 경우
+        // Bridged token with missing L1 deposits
         return
           '  [WARN] Bridged token with missing L1 deposits - Check custom bridge or L1 token mapping';
       }
