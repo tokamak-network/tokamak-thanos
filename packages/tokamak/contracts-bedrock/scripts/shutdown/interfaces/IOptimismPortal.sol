@@ -8,4 +8,6 @@ interface IOptimismPortal {
     bytes32 withdrawalHash,
     uint256 index
   ) external view returns (address);
+
+  function sweepNativeToken(address _to, uint256 _amount) external;
 }
