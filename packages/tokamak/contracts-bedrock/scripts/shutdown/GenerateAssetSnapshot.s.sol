@@ -161,10 +161,12 @@ contract GenerateAssetSnapshot is Script {
     fetchInputs[1] = 'scripts/shutdown/fetch_explorer_assets.py';
     fetchInputs[2] = vm.toString(chainId);
 
+    require(vm.exists(fetchInputs[1]), 'fetch_explorer_assets.py not found');
     try vm.ffi(fetchInputs) {
       console.log('[OK] Explorer assets fetched');
     } catch {
-      console.log('[WARN] Explorer assets fetch failed (check ffi=true)');
+      console.log('[ERROR] Explorer assets fetch failed (check ffi=true)');
+      revert('Explorer assets fetch failed');
     }
 
     string[] memory burnInputs = new string[](4);
@@ -173,10 +175,12 @@ contract GenerateAssetSnapshot is Script {
     burnInputs[2] = l2RpcUrl;
     burnInputs[3] = vm.toString(chainId);
 
+    require(vm.exists(burnInputs[1]), 'compute_l2_burns.py not found');
     try vm.ffi(burnInputs) {
       console.log('[OK] L2 burn adjustments fetched\n');
     } catch {
-      console.log('[WARN] L2 burn adjustment fetch failed (check ffi=true)\n');
+      console.log('[ERROR] L2 burn adjustment fetch failed (check ffi=true)\n');
+      revert('L2 burn adjustment fetch failed');
     }
   }
 
@@ -187,6 +191,10 @@ contract GenerateAssetSnapshot is Script {
       vm.toString(l2ChainId),
       '.json'
     );
+    uint256 skippedZeroCount = 0;
+    uint256 skippedMappingCount = 0;
+    address firstZeroToken = address(0);
+    address firstMappingToken = address(0);
 
     if (!vm.exists(path)) {
       console.log(
@@ -230,19 +238,44 @@ contract GenerateAssetSnapshot is Script {
       }
 
       // Check if this is a custom bridge token
-      if (l2Tokens[i] == PREDEPLOY_USDC && l2UsdcBridge != address(0)) {
+      if (l2Tokens[i] == PREDEPLOY_USDC) {
+        if (l2UsdcBridge == address(0)) {
+          if (skippedMappingCount == 0) {
+            firstMappingToken = l2Tokens[i];
+          }
+          skippedMappingCount++;
+          continue;
+        }
         // USDC uses custom bridge
         try IL2UsdcBridge(l2UsdcBridge).l1Usdc() returns (address _l1Usdc) {
           l1Token = _l1Usdc;
           console.log('[Custom Bridge] USDC L1 Token:', vm.toString(l1Token));
         } catch {
-          console.log('[WARN] Failed to get L1 USDC from custom bridge');
+          console.log(
+            '[ERROR] Failed to get L1 USDC from custom bridge:',
+            vm.toString(l2Tokens[i])
+          );
+          revert('Failed to get L1 USDC from custom bridge');
         }
       } else {
         // Standard OptimismMintableERC20
         try IL2StandardToken(l2Tokens[i]).l1Token() returns (address _l1) {
           l1Token = _l1;
-        } catch {}
+        } catch {
+          if (skippedMappingCount == 0) {
+            firstMappingToken = l2Tokens[i];
+          }
+          skippedMappingCount++;
+          continue;
+        }
+      }
+
+      if (l1Token == address(0)) {
+        if (skippedZeroCount == 0) {
+          firstZeroToken = l2Tokens[i];
+        }
+        skippedZeroCount++;
+        continue;
       }
 
       string memory name = _getTokenName(l2Tokens[i]);
@@ -257,6 +290,23 @@ contract GenerateAssetSnapshot is Script {
           l2TotalSupply: 0,
           burnAdjustment: 0
         })
+      );
+    }
+
+    if (skippedZeroCount > 0) {
+      console.log(
+        '[INFO] Skipped tokens with zero L1 mapping:',
+        vm.toString(skippedZeroCount),
+        'example:',
+        vm.toString(firstZeroToken)
+      );
+    }
+    if (skippedMappingCount > 0) {
+      console.log(
+        '[INFO] Skipped tokens without L1 mapping:',
+        vm.toString(skippedMappingCount),
+        'example:',
+        vm.toString(firstMappingToken)
       );
     }
   }
@@ -286,10 +336,7 @@ contract GenerateAssetSnapshot is Script {
       '.json'
     );
 
-    if (!vm.exists(path)) {
-      console.log('[WARN] No unclaimed withdrawals file found, skipping...\n');
-      return;
-    }
+    require(vm.exists(path), 'Unclaimed withdrawals file not found');
 
     string memory json = vm.readFile(path);
     if (_isEmptyJsonArray(json)) {
@@ -340,9 +387,8 @@ contract GenerateAssetSnapshot is Script {
       }
 
       if (!found) {
-        console.log('[WARN] Unclaimed withdrawal token not in list:');
-        console.log('       L1:', vm.toString(l1Token));
-        console.log('       L2:', vm.toString(l2Token));
+        // Skip unclaimed entries for tokens not in the active token list.
+        continue;
       }
     }
     console.log('[INFO] Unclaimed withdrawals aggregated\n');
@@ -355,10 +401,7 @@ contract GenerateAssetSnapshot is Script {
       '.json'
     );
 
-    if (!vm.exists(path)) {
-      console.log('[WARN] No L2 burn adjustment file found, skipping...\n');
-      return;
-    }
+    require(vm.exists(path), 'L2 burn adjustment file not found');
 
     string memory json = vm.readFile(path);
     if (_isEmptyJsonArray(json)) {
@@ -374,6 +417,8 @@ contract GenerateAssetSnapshot is Script {
 
     console.log('[INFO] Processing L2 burn adjustments:', count);
 
+    uint256 missingTokenCount = 0;
+    address firstMissingToken = address(0);
     for (uint i = 0; i < count; i++) {
       string memory base = string.concat('$[', vm.toString(i), '].');
       address l2Token = json.readAddress(string.concat(base, 'l2Token'));
@@ -391,9 +436,19 @@ contract GenerateAssetSnapshot is Script {
       }
 
       if (!found) {
-        console.log('[WARN] Burn adjustment token not in list:');
-        console.log('       L2:', vm.toString(l2Token));
+        if (missingTokenCount == 0) {
+          firstMissingToken = l2Token;
+        }
+        missingTokenCount++;
       }
+    }
+    if (missingTokenCount > 0) {
+      console.log(
+        '[INFO] Burn adjustment tokens not in list:',
+        vm.toString(missingTokenCount),
+        'example:',
+        vm.toString(firstMissingToken)
+      );
     }
     console.log('[INFO] L2 burn adjustments aggregated\n');
   }
@@ -450,9 +505,11 @@ contract GenerateAssetSnapshot is Script {
   }
 
   function _computeFinalizedNativeWithdrawals() internal returns (uint256) {
+    string memory scriptPath = 'scripts/shutdown/compute_finalized_native_withdrawals.py';
+    require(vm.exists(scriptPath), 'compute_finalized_native_withdrawals.py not found');
     string[] memory inputs = new string[](4);
     inputs[0] = 'python3';
-    inputs[1] = 'scripts/shutdown/compute_finalized_native_withdrawals.py';
+    inputs[1] = scriptPath;
     inputs[2] = l1RpcUrl;
     inputs[3] = vm.toString(l1Bridge);
 
@@ -460,10 +517,8 @@ contract GenerateAssetSnapshot is Script {
       string memory output = string(stdout);
       return _parseUint(output);
     } catch {
-      console.log(
-        '[WARN] Failed to compute finalized native withdrawals, defaulting to 0'
-      );
-      return 0;
+      console.log('[ERROR] Failed to compute finalized native withdrawals');
+      revert('Failed to compute finalized native withdrawals');
     }
   }
 

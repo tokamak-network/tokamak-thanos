@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Script} from 'forge-std/Script.sol';
 import {console} from 'forge-std/console.sol';
 import {stdJson} from 'forge-std/StdJson.sol';
-import {UpgradeL1BridgeV1} from '../../src/shutdown/UpgradeL1BridgeV1.sol';
+import {UpgradeL1BridgeV1} from '../../src/shutdown/ForceWithdrawBridge.sol';
 import {
   ShutdownOptimismPortal
 } from '../../src/shutdown/ShutdownOptimismPortal.sol';
