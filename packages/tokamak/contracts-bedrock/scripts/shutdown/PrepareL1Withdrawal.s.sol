@@ -68,11 +68,7 @@ contract PrepareL1Withdrawal is Script {
     _step3_upgradeOptimismPortal(proxyAdmin, systemOwnerSafe);
 
     // Step 4: Upgrade L1 USDC bridge
-    _step4_upgradeL1UsdcBridge(
-      proxyAdmin,
-      systemOwnerSafe,
-      deployerAddress
-    );
+    _step4_upgradeL1UsdcBridge(proxyAdmin, systemOwnerSafe, deployerAddress);
 
     // Step 5: Set closer
     _step5_setCloser(
@@ -250,23 +246,17 @@ contract PrepareL1Withdrawal is Script {
       console.log('[INFO] Safe upgrade enforced; EOA path disabled');
     }
 
-    if (useProxyAdmin) {
-      _upgradeProxyWithSafe(
-        l1UsdcBridge,
-        proxyAdminToUse,
-        _systemOwnerSafe,
-        deployedUsdcBridgeImpl,
-        'L1 USDC Bridge Upgrade'
-      );
-    } else {
+    if (!useProxyAdmin) {
       address adminToUse = l1UsdcBridgeAdmin != address(0)
         ? l1UsdcBridgeAdmin
         : adminFromSlot;
       require(adminToUse != address(0), 'D1: L1 USDC bridge admin not set');
-      require(
-        adminFromSlot == address(0) || adminFromSlot == adminToUse,
-        'D1: L1 USDC bridge admin mismatch'
-      );
+
+      bool isDryRun = vm.envOr('DRY_RUN', false);
+      if (adminToUse != _deployerAddress && !isDryRun) {
+        revert('D1: caller is not admin');
+      }
+
       _upgradeProxyDirectWithSafe(
         l1UsdcBridge,
         adminToUse,
@@ -310,17 +300,24 @@ contract PrepareL1Withdrawal is Script {
 
       _logSafeTx(safe, _bridgeProxy, setCloserData, 'Set Closer');
 
-      bool success = _execViaSafe(safe, _bridgeProxy, setCloserData, 'Set Closer');
+      bool success = _execViaSafe(
+        safe,
+        _bridgeProxy,
+        setCloserData,
+        'Set Closer'
+      );
       if (success) {
         console.log('[SUCCESS] Closer set via Safe');
       } else {
-        console.log('[WARN] Safe execution skipped or failed. Proposal must be signed.');
+        console.log(
+          '[WARN] Safe execution skipped (Threshold > 1 or simulation). Proposing TX...'
+        );
       }
     } else {
-      require(
-        ownerToUse == _deployerAddress,
-        'D1: caller is not owner for setCloser'
-      );
+      bool isDryRun = vm.envOr('DRY_RUN', false);
+      if (ownerToUse != _deployerAddress && !isDryRun) {
+        revert('D1: caller is not owner for setCloser');
+      }
       console.log('[ACTION] Executing direct setCloser via EOA...');
       (bool success, ) = _bridgeProxy.call(setCloserData);
       require(success, 'D1: setCloser failed');
@@ -518,13 +515,15 @@ contract PrepareL1Withdrawal is Script {
       if (success) {
         console.log('[SUCCESS] Proxy upgraded via Safe');
       } else {
-        console.log('[WARN] Safe execution skipped or failed. Proposal must be signed.');
+        console.log(
+          '[WARN] Safe execution skipped (Threshold > 1 or simulation). Proposing TX...'
+        );
       }
     } else {
-      require(
-        ownerToUse == vm.addr(vm.envUint('PRIVATE_KEY')),
-        'D1: caller is not owner'
-      );
+      bool isDryRun = vm.envOr('DRY_RUN', false);
+      if (ownerToUse != vm.addr(vm.envUint('PRIVATE_KEY')) && !isDryRun) {
+        revert('D1: caller is not owner');
+      }
       console.log('[ACTION] Executing direct upgrade via EOA...');
       (bool success, ) = _proxyAdmin.call(upgradeData);
       require(success, 'D1: proxy upgrade failed');
