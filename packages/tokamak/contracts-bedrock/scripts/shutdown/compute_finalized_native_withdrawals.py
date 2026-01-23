@@ -13,6 +13,15 @@ def main():
     bridge_address = sys.argv[2]
 
     sig = "NativeTokenWithdrawalFinalized(address,address,uint256,bytes)"
+    import os
+    l1_start_block = os.environ.get("L1_START_BLOCK", "earliest")
+
+    # Alchemy Free Tier workaround: don't use 0 to latest if start block isn't specified.
+    # If using Alchemy, 'earliest' might fail. Better to use a specific number.
+    if l1_start_block == "earliest":
+        # Using 'latest' is the safest default for Alchemy Free Tier (range = 0)
+        l1_start_block = "latest"
+
     cmd = [
         "cast",
         "logs",
@@ -20,7 +29,7 @@ def main():
         "--address",
         bridge_address,
         "--from-block",
-        "0",
+        l1_start_block,
         "--to-block",
         "latest",
         "--rpc-url",
