@@ -53,7 +53,8 @@ fs_permissions = [
   { access='write', path='./semver-lock.json' },
   { access='read-write', path='./.testdata/' },
   { access='read-write', path='./data/' },
-  { access='read', path='./kout-deployment' }
+  { access='read', path='./kout-deployment' },
+  { access='read', path='./scripts/' }
 ]
 libs = ["node_modules", "lib"]
 

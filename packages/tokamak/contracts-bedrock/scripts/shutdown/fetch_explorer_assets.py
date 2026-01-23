@@ -95,7 +95,7 @@ def fetch_v2_all_pages(description, endpoint, address_key="address"):
 
         except Exception as e:
             log(f"  ❌ Error occurred: {e}")
-            break
+            raise RuntimeError("Explorer V2 API fetch failed") from e
 
     return sorted(list(all_addresses))
 
@@ -277,8 +277,9 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
     l1_usdc_bridge = os.environ.get("L1_USDC_BRIDGE_PROXY")
 
     if not l1_rpc_url or not l2_rpc_url or not l1_bridge or not optimism_portal:
-        log("⚠️ unclaimed withdrawals: missing L1_RPC_URL/L2_RPC_URL/BRIDGE_PROXY/OPTIMISM_PORTAL_PROXY")
-        return
+        msg = "❌ Missing required env vars (L1_RPC_URL/L2_RPC_URL/BRIDGE_PROXY/OPTIMISM_PORTAL_PROXY)"
+        log(msg)
+        raise RuntimeError(msg)
 
     # All bridge addresses to scan (Standard + Custom)
     bridge_addresses = [l1_bridge]
@@ -294,8 +295,8 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
     latest_hex = rpc_call(l2_rpc_url, "eth_blockNumber", [])
     latest_block = int(latest_hex, 16)
 
-    # Default to scanning only recent blocks to find "unclaimed" ones quickly
-    default_start = max(0, latest_block - 100000)
+    # Default to scanning from genesis when L2_START_BLOCK is not set
+    default_start = 0
     start_block = int(os.environ.get("L2_START_BLOCK", str(default_start)))
     end_block_env = int(os.environ.get("L2_END_BLOCK", "0"))
     step = int(os.environ.get("L2_LOGS_STEP", "10000"))
@@ -330,7 +331,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
             logs = rpc_call(l2_rpc_url, "eth_getLogs", params)
         except Exception as e:
             log(f"  ❌ eth_getLogs failed: {e}")
-            break
+            raise RuntimeError("eth_getLogs failed while scanning MessagePassed") from e
 
         for entry in logs:
             withdrawal_hash, bridge_data, target = parse_message_passed_data(entry)
@@ -346,7 +347,7 @@ def fetch_unclaimed_withdrawals(chain_id_suffix):
                 finalized = is_finalized(l1_rpc_url, optimism_portal, withdrawal_hash)
             except Exception as e:
                 log(f"  ❌ finalizedWithdrawals query failed: {e}")
-                continue
+                raise RuntimeError("finalizedWithdrawals query failed") from e
 
             if finalized:
                 continue
