@@ -27,6 +27,8 @@ contract UpgradeL1BridgeV1 is L1StandardBridge {
 
   /// @notice Error thrown when caller is not the proxy owner
   error FW_ONLY_OWNER();
+  /// @notice Error thrown when proxy admin owner lookup fails
+  error FW_OWNER_LOOKUP_FAILED();
 
   /// @notice Error thrown when caller is not the designated closer
   error FW_ONLY_CLOSER();
@@ -144,7 +146,9 @@ contract UpgradeL1BridgeV1 is L1StandardBridge {
           _;
           return;
         }
-      } catch {}
+      } catch {
+        revert FW_OWNER_LOOKUP_FAILED();
+      }
     }
 
     revert FW_ONLY_OWNER();
