@@ -6,12 +6,12 @@ import { console2 as console } from "forge-std/console2.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Target contracts
-import { UpgradeL1BridgeV1 } from "src/shutdown/ForceWithdrawBridge.sol";
+import { ForceWithdrawBridge } from "src/shutdown/ForceWithdrawBridge.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
 import { L1ChugSplashProxy } from "src/legacy/L1ChugSplashProxy.sol";
 
 // Test helper - GenFWStorage
-import { GenFWStorage1 } from "test/shutdown/GenFWStorage1.sol";
+import { GenFWStorage } from "src/shutdown/GenFWStorage.sol";
 
 /// @title MockERC20
 /// @notice Simple ERC20 for testing
@@ -32,9 +32,9 @@ contract ForceWithdrawBridge_Unit_Test is Test {
     // Contracts
     L1ChugSplashProxy public proxy;
     L1StandardBridge public standardBridge;
-    UpgradeL1BridgeV1 public upgradeBridge;
-    UpgradeL1BridgeV1 public bridgeProxy; // Proxy pointing to UpgradeL1BridgeV1
-    GenFWStorage1 public genStorage1;
+    ForceWithdrawBridge public upgradeBridge;
+    ForceWithdrawBridge public bridgeProxy; // Proxy pointing to ForceWithdrawBridge
+    GenFWStorage public genStorage1;
     MockERC20 public token;
 
     // Actors
@@ -67,7 +67,7 @@ contract ForceWithdrawBridge_Unit_Test is Test {
         // Step 0: Deploy initial contracts
         _deployInitialContracts();
 
-        // Step 1: Upgrade to UpgradeL1BridgeV1
+        // Step 1: Upgrade to ForceWithdrawBridge
         _upgradeBridge();
 
         // Step 2: Deploy GenFWStorage
@@ -107,23 +107,23 @@ contract ForceWithdrawBridge_Unit_Test is Test {
     }
 
     /// ========================================
-    /// Step 1: Upgrade to UpgradeL1BridgeV1
+    /// Step 1: Upgrade to ForceWithdrawBridge
     /// ========================================
 
     function _upgradeBridge() internal {
-        console.log("Step 1: Upgrading bridge to UpgradeL1BridgeV1...");
+        console.log("Step 1: Upgrading bridge to ForceWithdrawBridge...");
 
-        // Deploy UpgradeL1BridgeV1 implementation
-        upgradeBridge = new UpgradeL1BridgeV1();
-        console.log("  UpgradeL1BridgeV1 deployed at:", address(upgradeBridge));
+        // Deploy ForceWithdrawBridge implementation
+        upgradeBridge = new ForceWithdrawBridge();
+        console.log("  ForceWithdrawBridge deployed at:", address(upgradeBridge));
 
         // Upgrade proxy via setCode
         bytes memory bytecode = address(upgradeBridge).code;
         proxy.setCode(bytecode);
-        console.log("  Proxy upgraded to UpgradeL1BridgeV1");
+        console.log("  Proxy upgraded to ForceWithdrawBridge");
 
-        // Wrap proxy in UpgradeL1BridgeV1 interface
-        bridgeProxy = UpgradeL1BridgeV1(payable(address(proxy)));
+        // Wrap proxy in ForceWithdrawBridge interface
+        bridgeProxy = ForceWithdrawBridge(payable(address(proxy)));
 
         // Verify upgrade
         address proxyOwner = bridgeProxy.getProxyOwner();
@@ -140,25 +140,25 @@ contract ForceWithdrawBridge_Unit_Test is Test {
     function _deployGenStorage() internal {
         console.log("Step 2: Deploying GenFWStorage...");
 
-        genStorage1 = new GenFWStorage1();
-        console.log("  GenFWStorage1 deployed at:", address(genStorage1));
+        genStorage1 = new GenFWStorage();
+        console.log("  GenFWStorage deployed at:", address(genStorage1));
 
         console.log("  [OK] Step 2 complete\n");
     }
 
     function _setupGenStorageHashes() internal {
-        // Setup hash1 in GenFWStorage1
+        // Setup hash1 in GenFWStorage
         // Function signature: _<hash>()
         string memory funcName1 = string(abi.encodePacked("_", _bytes32ToHexString(hash1), "()"));
         bytes4 funcSig1 = bytes4(keccak256(bytes(funcName1)));
         genStorage1.setHash(funcSig1, hash1);
 
-        // Setup hash2 in GenFWStorage1
+        // Setup hash2 in GenFWStorage
         string memory funcName2 = string(abi.encodePacked("_", _bytes32ToHexString(hash2), "()"));
         bytes4 funcSig2 = bytes4(keccak256(bytes(funcName2)));
         genStorage1.setHash(funcSig2, hash2);
 
-        console.log("  Hashes configured in GenFWStorage1");
+        console.log("  Hashes configured in GenFWStorage");
     }
 
     /// ========================================
@@ -344,7 +344,7 @@ contract ForceWithdrawBridge_Unit_Test is Test {
         bytes32 wrongHash = keccak256(abi.encodePacked(address(token), user1, uint256(999 ether)));
         string memory hashStr = _bytes32ToHexString(wrongHash);
 
-        vm.expectRevert(UpgradeL1BridgeV1.FW_INVALID_HASH.selector);
+        vm.expectRevert(ForceWithdrawBridge.FW_INVALID_HASH.selector);
         vm.prank(user1);
         bridgeProxy.forceWithdrawClaim(
             address(genStorage1),
@@ -386,7 +386,7 @@ contract ForceWithdrawBridge_Unit_Test is Test {
         address fakeStorage = makeAddr("fakeStorage");
         string memory hashStr = _bytes32ToHexString(hash1);
 
-        vm.expectRevert(UpgradeL1BridgeV1.FW_NOT_AVAILABLE_POSITION.selector);
+        vm.expectRevert(ForceWithdrawBridge.FW_NOT_AVAILABLE_POSITION.selector);
         vm.prank(user1);
         bridgeProxy.forceWithdrawClaim(fakeStorage, hashStr, address(token), CLAIM_AMOUNT_1, user1);
 
@@ -403,9 +403,9 @@ contract ForceWithdrawBridge_Unit_Test is Test {
         _setupForceWithdrawal();
 
         // Prepare batch claim params
-        UpgradeL1BridgeV1.ForceClaimParam[] memory params = new UpgradeL1BridgeV1.ForceClaimParam[](2);
+        ForceWithdrawBridge.ForceClaimParam[] memory params = new ForceWithdrawBridge.ForceClaimParam[](2);
 
-        params[0] = UpgradeL1BridgeV1.ForceClaimParam({
+        params[0] = ForceWithdrawBridge.ForceClaimParam({
             position: address(genStorage1),
             hashed: _bytes32ToHexString(hash1),
             token: address(token),
@@ -413,7 +413,7 @@ contract ForceWithdrawBridge_Unit_Test is Test {
             getAddress: user1
         });
 
-        params[1] = UpgradeL1BridgeV1.ForceClaimParam({
+        params[1] = ForceWithdrawBridge.ForceClaimParam({
             position: address(genStorage1),
             hashed: _bytes32ToHexString(hash2),
             token: address(0),

@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 import {Script} from 'forge-std/Script.sol';
 import {console} from 'forge-std/console.sol';
 import {stdJson} from 'forge-std/StdJson.sol';
-import {UpgradeL1BridgeV1} from '../../src/shutdown/ForceWithdrawBridge.sol';
+import {ForceWithdrawBridge} from '../../src/shutdown/ForceWithdrawBridge.sol';
 import {
   ShutdownOptimismPortal
 } from '../../src/shutdown/ShutdownOptimismPortal.sol';
 import {
   ShutdownOptimismPortal2
 } from '../../src/shutdown/ShutdownOptimismPortal2.sol';
-import {GenFWStorage1} from '../../test/shutdown/GenFWStorage1.sol';
+import {GenFWStorage} from '../../src/shutdown/GenFWStorage.sol';
 import {ProxyAdmin} from '../../src/universal/ProxyAdmin.sol';
 import {IGnosisSafe, Enum} from '../interfaces/IGnosisSafe.sol';
 import {
@@ -97,10 +97,10 @@ contract PrepareL1Withdrawal is Script {
 
   function _step1_deployImplementation() internal {
     console.log('------------------------------------------');
-    console.log('[STEP 1] Deploying UpgradeL1BridgeV1 Implementation');
+    console.log('[STEP 1] Deploying ForceWithdrawBridge Implementation');
     console.log('------------------------------------------');
 
-    UpgradeL1BridgeV1 impl = new UpgradeL1BridgeV1();
+    ForceWithdrawBridge impl = new ForceWithdrawBridge();
     deployedImpl = address(impl);
 
     console.log('[SUCCESS] Implementation deployed at:', deployedImpl);
@@ -332,10 +332,10 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 6] Deploying GenFWStorage Contract');
     console.log('------------------------------------------');
 
-    GenFWStorage1 storage1 = new GenFWStorage1();
+    GenFWStorage storage1 = new GenFWStorage();
     deployedStorage = address(storage1);
 
-    console.log('[INFO] Deployed GenFWStorage1 at:', deployedStorage);
+    console.log('[INFO] Deployed GenFWStorage at:', deployedStorage);
     console.log('[INFO] Registering hashes from snapshot data...');
 
     uint256 totalClaims = 0;
@@ -373,7 +373,7 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 6] Registering Storage with Bridge');
     console.log('------------------------------------------');
 
-    UpgradeL1BridgeV1 bridge = UpgradeL1BridgeV1(payable(_bridgeProxy));
+    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
 
     address[] memory positions = new address[](1);
     positions[0] = deployedStorage;
@@ -393,7 +393,7 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 7] Activating Force Withdrawal Mode');
     console.log('------------------------------------------');
 
-    UpgradeL1BridgeV1 bridge = UpgradeL1BridgeV1(payable(_bridgeProxy));
+    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
 
     bool currentState = bridge.active();
     console.log(

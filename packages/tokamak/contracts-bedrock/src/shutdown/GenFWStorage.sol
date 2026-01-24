@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-/// @title GenFWStorage1
+/// @title GenFWStorage
 /// @notice Test contract for storing force withdrawal hashes with dynamic function dispatch
 /// @dev Uses fallback with payable to allow hash retrieval via function calls
-contract GenFWStorage1 {
+contract GenFWStorage {
     mapping(bytes4 => bytes32) private hashes;
 
     function setHash(bytes4 functionSig, bytes32 value) external {

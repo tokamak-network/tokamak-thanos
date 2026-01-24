@@ -11,7 +11,7 @@ interface IProxyAdminOwner {
   function owner() external view returns (address);
 }
 
-/// @title UpgradeL1BridgeV1
+/// @title ForceWithdrawBridge
 /// @notice Extension of L1StandardBridge that adds force withdrawal functionality for L2 shutdown scenarios.
 ///         This contract enables users to claim their L2 assets directly from the L1 bridge when the L2 network
 ///         is no longer operational. It verifies claims against on-chain hash storage (GenFWStorage contracts)
@@ -22,7 +22,7 @@ interface IProxyAdminOwner {
 ///      - Compatible with L1ChugSplashProxy (setCode upgrade pattern)
 ///      - Simplified modifiers using assembly for proxy storage slots
 ///      - Added getProxyOwner() for compatibility with upgrade tasks
-contract UpgradeL1BridgeV1 is L1StandardBridge {
+contract ForceWithdrawBridge is L1StandardBridge {
   using SafeERC20 for IERC20;
 
   /// @notice Error thrown when caller is not the proxy owner
