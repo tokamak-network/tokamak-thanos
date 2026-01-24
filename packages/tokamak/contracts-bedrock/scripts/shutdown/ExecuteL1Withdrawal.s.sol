@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Script} from 'forge-std/Script.sol';
 import {console} from 'forge-std/console.sol';
 import {stdJson} from 'forge-std/StdJson.sol';
-import {UpgradeL1BridgeV1} from '../../src/shutdown/ForceWithdrawBridge.sol';
+import {ForceWithdrawBridge} from '../../src/shutdown/ForceWithdrawBridge.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {ProxyAdmin} from '../../src/universal/ProxyAdmin.sol';
 import {IGnosisSafe, Enum} from '../interfaces/IGnosisSafe.sol';
@@ -57,7 +57,7 @@ contract ExecuteL1Withdrawal is Script {
     console.log('[STEP 8] Activating Force Withdrawal Mode');
     console.log('------------------------------------------');
 
-    UpgradeL1BridgeV1 bridge = UpgradeL1BridgeV1(payable(_bridge));
+    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridge));
     bool currentState = bridge.active();
     console.log(
       '[INFO] Current active state:',
@@ -170,7 +170,7 @@ contract ExecuteL1Withdrawal is Script {
     console.log('[STEP 9] Executing Force Withdrawal Claims');
     console.log('------------------------------------------');
 
-    UpgradeL1BridgeV1 bridge = UpgradeL1BridgeV1(payable(_bridgeProxy));
+    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
     uint256 tokenCount = _countTokens(assetsJsonContent);
 
     console.log('[INFO] Bridge proxy:', _bridgeProxy);
