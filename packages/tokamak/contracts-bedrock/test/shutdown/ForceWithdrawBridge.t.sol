@@ -6,7 +6,7 @@ import { console2 as console } from "forge-std/console2.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Target contracts
-import { UpgradeL1BridgeV1 } from "src/shutdown/UpgradeL1BridgeV1.sol";
+import { UpgradeL1BridgeV1 } from "src/shutdown/ForceWithdrawBridge.sol";
 import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
 import { L1ChugSplashProxy } from "src/legacy/L1ChugSplashProxy.sol";
 
@@ -25,10 +25,10 @@ contract MockERC20 is ERC20 {
     }
 }
 
-/// @title UpgradeL1BridgeV1_E2E_Test
-/// @notice End-to-end test for the complete force withdrawal workflow
+/// @title ForceWithdrawBridge_Unit_Test
+/// @notice Unit-level test for the force withdrawal workflow
 /// @dev Tests the full flow: Deploy → Upgrade → Register → Activate → Claim
-contract UpgradeL1BridgeV1_E2E_Test is Test {
+contract ForceWithdrawBridge_Unit_Test is Test {
     // Contracts
     L1ChugSplashProxy public proxy;
     L1StandardBridge public standardBridge;
@@ -61,7 +61,7 @@ contract UpgradeL1BridgeV1_E2E_Test is Test {
         user2 = makeAddr("user2");
 
         console.log("\n===========================================");
-        console.log("E2E Test: Force Withdrawal Workflow");
+        console.log("Unit Test: Force Withdrawal Workflow");
         console.log("===========================================\n");
 
         // Step 0: Deploy initial contracts
