@@ -11,6 +11,10 @@ import {IGnosisSafe, Enum} from '../interfaces/IGnosisSafe.sol';
 import {IL1UsdcBridge} from './interfaces/IL1UsdcBridge.sol';
 import {IOptimismPortal} from './interfaces/IOptimismPortal.sol';
 
+import {ShutdownConfig} from './lib/ShutdownConfig.sol';
+import {JsonUtils} from './lib/JsonUtils.sol';
+import {SafeUtils} from './lib/SafeUtils.sol';
+
 /**
  * @title ExecuteL1Withdrawal
  * @notice Phase 2 of L2 shutdown: activation and execution (steps 8-9).
@@ -84,85 +88,130 @@ contract ExecuteL1Withdrawal is Script {
     console.log('------------------------------------------');
     console.log('[STEP 9] Sweeping Liquidity to Bridge');
     console.log('------------------------------------------');
-
-    address optimismPortal = vm.envOr('OPTIMISM_PORTAL_PROXY', address(0));
-    address l1NativeToken = vm.envOr('L1_NATIVE_TOKEN', address(0));
-    address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
-    address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
-
-    address l1UsdcToken = address(0);
-    if (l1UsdcBridge != address(0)) {
-      l1UsdcToken = IL1UsdcBridge(l1UsdcBridge).l1Usdc();
-    }
-
-    address ownerToUse = _systemOwnerSafe != address(0)
-      ? _systemOwnerSafe
-      : ProxyAdmin(vm.envAddress('PROXY_ADMIN')).owner();
-
-    uint256 requiredNative = _sumClaimsForToken(l1NativeToken);
-    uint256 requiredUsdc = _sumClaimsForToken(l1UsdcToken);
-
     console.log('[INFO] Bridge proxy:', _bridgeProxy);
-    console.log('[INFO] Owner to Use:', ownerToUse);
-    console.log('[INFO] Required native token:', requiredNative);
-    console.log('[INFO] Required USDC:', requiredUsdc);
+    console.log('[INFO] Owner to Use:', _resolveOwner(_systemOwnerSafe));
 
-    if (l1NativeToken != address(0)) {
-      uint256 bridgeBalance = _getBalance(_bridgeProxy, l1NativeToken);
-      uint256 remaining = requiredNative > bridgeBalance
-        ? requiredNative - bridgeBalance
-        : 0;
-      if (remaining > 0) {
-        _sweepFromPortal(
-          optimismPortal,
-          ownerToUse,
-          _deployerAddress,
-          _bridgeProxy,
-          remaining,
-          'OptimismPortal'
-        );
-      } else {
-        console.log('[INFO] Native token already sufficient on bridge');
-      }
-    } else {
-      console.log('[WARN] L1_NATIVE_TOKEN not set, skipping sweep');
-    }
-
-    if (l1UsdcToken != address(0) && l1UsdcBridge != address(0)) {
-      uint256 bridgeBalance = _getBalance(_bridgeProxy, l1UsdcToken);
-      uint256 remaining = requiredUsdc > bridgeBalance
-        ? requiredUsdc - bridgeBalance
-        : 0;
-      if (remaining > 0) {
-        uint256 escrowBalance = _getBalance(l1UsdcBridge, l1UsdcToken);
-        uint256 amount = remaining < escrowBalance ? remaining : escrowBalance;
-        if (amount > 0) {
-          address adminFromSlot = _getEip1967Admin(l1UsdcBridge);
-          address sweepOwner = ownerToUse;
-          if (l1UsdcBridgeAdmin != address(0)) {
-            sweepOwner = l1UsdcBridgeAdmin;
-          } else if (adminFromSlot != address(0)) {
-            sweepOwner = adminFromSlot;
-          }
-          console.log('[INFO] Sweeping USDC amount:', amount);
-          _execSweepUsdc(
-            sweepOwner,
-            _deployerAddress,
-            l1UsdcBridge,
-            _bridgeProxy,
-            amount
-          );
-        } else {
-          console.log('[WARN] L1 USDC bridge balance insufficient');
-        }
-      } else {
-        console.log('[INFO] USDC already sufficient on bridge');
-      }
-    } else {
-      console.log('[WARN] L1_USDC_BRIDGE_PROXY not set, skipping sweep');
-    }
+    _sweepNativeLiquidity(_bridgeProxy, _systemOwnerSafe, _deployerAddress);
+    _sweepUsdcLiquidity(_bridgeProxy, _systemOwnerSafe, _deployerAddress);
 
     console.log('------------------------------------------\n');
+  }
+
+  function _resolveOwner(address _systemOwnerSafe) internal view returns (address) {
+    return _systemOwnerSafe != address(0)
+      ? _systemOwnerSafe
+      : ProxyAdmin(vm.envAddress('PROXY_ADMIN')).owner();
+  }
+
+  function _sweepNativeLiquidity(
+    address _bridgeProxy,
+    address _systemOwnerSafe,
+    address _deployerAddress
+  ) internal {
+    address l1NativeToken = vm.envOr('L1_NATIVE_TOKEN', address(0));
+    if (l1NativeToken == address(0)) {
+      console.log('[WARN] L1_NATIVE_TOKEN not set, skipping sweep');
+      return;
+    }
+
+    address optimismPortal = vm.envOr('OPTIMISM_PORTAL_PROXY', address(0));
+    address ownerToUse = _resolveOwner(_systemOwnerSafe);
+    uint256 requiredNative = _sumClaimsForToken(l1NativeToken);
+
+    console.log('[INFO] Required native token:', requiredNative);
+
+    uint256 remaining = _remainingAmount(
+      _bridgeProxy,
+      l1NativeToken,
+      requiredNative
+    );
+    if (remaining > 0) {
+      _sweepFromPortal(
+        optimismPortal,
+        ownerToUse,
+        _deployerAddress,
+        _bridgeProxy,
+        remaining,
+        'OptimismPortal'
+      );
+    } else {
+      console.log('[INFO] Native token already sufficient on bridge');
+    }
+  }
+
+  function _sweepUsdcLiquidity(
+    address _bridgeProxy,
+    address _systemOwnerSafe,
+    address _deployerAddress
+  ) internal {
+    address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
+    if (l1UsdcBridge == address(0)) {
+      console.log('[WARN] L1_USDC_BRIDGE_PROXY not set, skipping sweep');
+      return;
+    }
+
+    address l1UsdcToken = IL1UsdcBridge(l1UsdcBridge).l1Usdc();
+    uint256 requiredUsdc = _sumClaimsForToken(l1UsdcToken);
+
+    console.log('[INFO] Required USDC:', requiredUsdc);
+
+    uint256 remaining = _remainingAmount(
+      _bridgeProxy,
+      l1UsdcToken,
+      requiredUsdc
+    );
+    if (remaining == 0) {
+      console.log('[INFO] USDC already sufficient on bridge');
+      return;
+    }
+
+    uint256 amount = _min(
+      remaining,
+      _getBalance(l1UsdcBridge, l1UsdcToken)
+    );
+    if (amount == 0) {
+      console.log('[WARN] L1 USDC bridge balance insufficient');
+      return;
+    }
+
+    console.log('[INFO] Sweeping USDC amount:', amount);
+    _execSweepUsdc(
+      _resolveUsdcSweepOwner(l1UsdcBridge, _systemOwnerSafe),
+      _deployerAddress,
+      l1UsdcBridge,
+      _bridgeProxy,
+      amount
+    );
+  }
+
+  function _resolveUsdcSweepOwner(
+    address _l1UsdcBridge,
+    address _systemOwnerSafe
+  ) internal view returns (address) {
+    address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
+    if (l1UsdcBridgeAdmin != address(0)) {
+      return l1UsdcBridgeAdmin;
+    }
+
+    address adminFromSlot = _getEip1967Admin(_l1UsdcBridge);
+    if (adminFromSlot != address(0)) {
+      return adminFromSlot;
+    }
+
+    return _resolveOwner(_systemOwnerSafe);
+  }
+
+  function _remainingAmount(
+    address holder,
+    address token,
+    uint256 required
+  ) internal view returns (uint256) {
+    uint256 balance = _getBalance(holder, token);
+    return required > balance ? required - balance : 0;
+  }
+
+  function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+    return a < b ? a : b;
   }
 
   function _step9_executeClaims(address _bridgeProxy) internal {
@@ -171,7 +220,7 @@ contract ExecuteL1Withdrawal is Script {
     console.log('------------------------------------------');
 
     ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
-    uint256 tokenCount = _countTokens(assetsJsonContent);
+    uint256 tokenCount = JsonUtils.countTokens(assetsJsonContent);
 
     console.log('[INFO] Bridge proxy:', _bridgeProxy);
     console.log('[INFO] Position contract:', deployedStorage);
@@ -183,7 +232,7 @@ contract ExecuteL1Withdrawal is Script {
         assetsJsonContent,
         string.concat('[', vm.toString(i), '].l1Token')
       );
-      uint256 claimCount = _countClaimsInToken(assetsJsonContent, i);
+      uint256 claimCount = JsonUtils.countClaimsInToken(assetsJsonContent, i);
 
       console.log('[INFO] Processing token:', l1Token);
       console.log('[INFO] Claim count:', claimCount);
@@ -196,7 +245,7 @@ contract ExecuteL1Withdrawal is Script {
           vm.toString(j),
           ']'
         );
-        string memory hashString = _strip0x(
+        string memory hashString = JsonUtils.strip0x(
           vm.parseJsonString(assetsJsonContent, string.concat(base, '.hash'))
         );
         uint256 amount = vm.parseUint(
@@ -236,7 +285,7 @@ contract ExecuteL1Withdrawal is Script {
     if (token == address(0)) {
       return 0;
     }
-    uint256 tokenCount = _countTokens(assetsJsonContent);
+    uint256 tokenCount = JsonUtils.countTokens(assetsJsonContent);
     uint256 total = 0;
     for (uint256 i = 0; i < tokenCount; i++) {
       address l1Token = vm.parseJsonAddress(
@@ -244,7 +293,7 @@ contract ExecuteL1Withdrawal is Script {
         string.concat('[', vm.toString(i), '].l1Token')
       );
       if (l1Token != token) continue;
-      uint256 claimCount = _countClaimsInToken(assetsJsonContent, i);
+      uint256 claimCount = JsonUtils.countClaimsInToken(assetsJsonContent, i);
       for (uint256 j = 0; j < claimCount; j++) {
         string memory base = string.concat(
           '[',
@@ -323,8 +372,8 @@ contract ExecuteL1Withdrawal is Script {
     bytes memory data,
     string memory label
   ) internal {
-    if (_isContract(ownerToUse)) {
-      bool executed = _execViaSafe(IGnosisSafe(ownerToUse), target, data, label);
+    if (SafeUtils.isContract(ownerToUse)) {
+      bool executed = SafeUtils.execViaSafeFromEnv(IGnosisSafe(ownerToUse), target, data, label);
       require(executed, 'D1: safe execution failed');
       return;
     }
@@ -334,135 +383,10 @@ contract ExecuteL1Withdrawal is Script {
     require(success, 'D1: sweep call failed');
   }
 
-  function _execViaSafe(
-    IGnosisSafe _safe,
-    address _target,
-    bytes memory _data,
-    string memory _label
-  ) internal returns (bool executed_) {
-    uint256 threshold = _safe.getThreshold();
-    address caller = vm.addr(vm.envUint('PRIVATE_KEY'));
-
-    require(threshold == 1, 'D1: safe threshold > 1');
-    require(_safe.isOwner(caller), 'D1: caller not safe owner');
-
-    bytes memory signature = abi.encodePacked(
-      uint256(uint160(caller)),
-      bytes32(0),
-      uint8(1)
-    );
-    executed_ = _safe.execTransaction({
-      to: _target,
-      value: 0,
-      data: _data,
-      operation: Enum.Operation.Call,
-      safeTxGas: 0,
-      baseGas: 0,
-      gasPrice: 0,
-      gasToken: address(0),
-      refundReceiver: payable(address(0)),
-      signatures: signature
-    });
-    require(executed_, 'D1: safe execTransaction failed');
-  }
-
-  function _isContract(address _addr) internal view returns (bool) {
-    return _addr.code.length > 0;
-  }
-
   function _getEip1967Admin(
     address _proxy
   ) internal view returns (address admin_) {
-    bytes32 slot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-    bytes32 data = vm.load(_proxy, slot);
+    bytes32 data = vm.load(_proxy, ShutdownConfig.PROXY_ADMIN_SLOT);
     admin_ = address(uint160(uint256(data)));
-  }
-
-  function _strip0x(string memory value) internal pure returns (string memory) {
-    bytes memory data = bytes(value);
-    if (
-      data.length >= 2 &&
-      data[0] == bytes1('0') &&
-      (data[1] == bytes1('x') || data[1] == bytes1('X'))
-    ) {
-      bytes memory trimmed = new bytes(data.length - 2);
-      for (uint256 i = 2; i < data.length; i++) {
-        trimmed[i - 2] = data[i];
-      }
-      return string(trimmed);
-    }
-    return value;
-  }
-
-  function _countTokens(string memory json) internal pure returns (uint256) {
-    return _countOccurrences(json, '"l1Token"');
-  }
-
-  function _countClaimsInToken(
-    string memory json,
-    uint256 tokenIdx
-  ) internal pure returns (uint256) {
-    return _countOccurrencesInTokenData(json, tokenIdx, '"hash"');
-  }
-
-  function _countOccurrencesInTokenData(
-    string memory json,
-    uint256 tokenIdx,
-    string memory pattern
-  ) internal pure returns (uint256) {
-    bytes memory bJson = bytes(json);
-    bytes memory bPattern = bytes(pattern);
-    bytes memory bL1Token = bytes('"l1Token"');
-    uint256 count = 0;
-    uint256 tokenFoundCount = 0;
-
-    for (uint256 i = 0; i <= bJson.length - bL1Token.length; i++) {
-      if (_isMatch(bJson, i, bL1Token)) {
-        if (tokenFoundCount == tokenIdx) {
-          for (
-            uint256 j = i + bL1Token.length;
-            j <= bJson.length - bPattern.length;
-            j++
-          ) {
-            if (_isMatch(bJson, j, bL1Token)) break;
-
-            if (_isMatch(bJson, j, bPattern)) {
-              count++;
-            }
-          }
-          return count;
-        }
-        tokenFoundCount++;
-      }
-    }
-    return 0;
-  }
-
-  function _countOccurrences(
-    string memory json,
-    string memory pattern
-  ) internal pure returns (uint256) {
-    bytes memory bJson = bytes(json);
-    bytes memory bPattern = bytes(pattern);
-    uint256 count = 0;
-    if (bJson.length < bPattern.length) return 0;
-    for (uint256 i = 0; i <= bJson.length - bPattern.length; i++) {
-      if (_isMatch(bJson, i, bPattern)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  function _isMatch(
-    bytes memory data,
-    uint256 index,
-    bytes memory pattern
-  ) internal pure returns (bool) {
-    if (index + pattern.length > data.length) return false;
-    for (uint256 i = 0; i < pattern.length; i++) {
-      if (data[index + i] != pattern[i]) return false;
-    }
-    return true;
   }
 }

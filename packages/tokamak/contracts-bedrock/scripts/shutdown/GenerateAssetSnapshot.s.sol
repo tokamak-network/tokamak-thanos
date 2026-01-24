@@ -12,6 +12,9 @@ import {IOptimismPortal} from './interfaces/IOptimismPortal.sol';
 import {IL1UsdcBridge} from './interfaces/IL1UsdcBridge.sol';
 import {IL2UsdcBridge} from './interfaces/IL2UsdcBridge.sol';
 
+import {ShutdownConfig} from './lib/ShutdownConfig.sol';
+import {JsonUtils} from './lib/JsonUtils.sol';
+
 interface IMulticall3 {
   struct Call3 {
     address target;
@@ -51,16 +54,8 @@ contract GenerateAssetSnapshot is Script {
   address l1UsdcBridge;
   address l2UsdcBridge;
 
-  address constant NATIVE_TOKEN = address(0);
-  address constant L1_NATIVE_TOKEN = 0xa30fe40285B8f5c0457DbC3B7C8A280373c40044;
-
-  // Predeploy addresses - L2 Native tokens
-  address constant PREDEPLOY_ETH = 0x4200000000000000000000000000000000000486;
-  address constant PREDEPLOY_USDC = 0x4200000000000000000000000000000000000778;
-
-  address constant MULTICALL3 = 0xcA11bde05977b3631167028862bE2a173976CA11;
-  uint256 constant MULTICALL_BATCH_SIZE = 200;
-  uint256 constant NATIVE_BALANCE_TOLERANCE = 1e16; // 0.01 with 18 decimals
+  // L1 Native Token (chain-specific, loaded from environment)
+  address l1NativeToken;
 
   // ========== Data Structures ==========
   struct TokenInfo {
@@ -109,6 +104,9 @@ contract GenerateAssetSnapshot is Script {
     // Require .env.example.thanos-sepolia keys.
     l1Bridge = vm.envAddress('BRIDGE_PROXY');
     optimismPortal = vm.envAddress('OPTIMISM_PORTAL_PROXY');
+
+    // L1 Native Token (required for native token handling)
+    l1NativeToken = vm.envAddress(ShutdownConfig.ENV_L1_NATIVE_TOKEN);
 
     // Finalized native withdrawals total on L1 (sum of NativeTokenWithdrawalFinalized).
     // Used to reconcile L2 native balances with L1 deposit accounting.
@@ -218,8 +216,8 @@ contract GenerateAssetSnapshot is Script {
     // Add Native Token
     tokens.push(
       TokenInfo({
-        l1Token: L1_NATIVE_TOKEN,
-        l2Token: NATIVE_TOKEN,
+        l1Token: l1NativeToken,
+        l2Token: ShutdownConfig.NATIVE_TOKEN,
         name: 'Tokamak Network',
         l1Deposit: 0,
         unclaimedWithdrawals: 0,
@@ -238,7 +236,7 @@ contract GenerateAssetSnapshot is Script {
       }
 
       // Check if this is a custom bridge token
-      if (l2Tokens[i] == PREDEPLOY_USDC) {
+      if (l2Tokens[i] == ShutdownConfig.PREDEPLOY_USDC) {
         if (l2UsdcBridge == address(0)) {
           if (skippedMappingCount == 0) {
             firstMappingToken = l2Tokens[i];
@@ -339,7 +337,7 @@ contract GenerateAssetSnapshot is Script {
     require(vm.exists(path), 'Unclaimed withdrawals file not found');
 
     string memory json = vm.readFile(path);
-    if (_isEmptyJsonArray(json)) {
+    if (JsonUtils.isEmptyJsonArray(json)) {
       console.log('[INFO] No unclaimed withdrawals\n');
       return;
     }
@@ -347,7 +345,7 @@ contract GenerateAssetSnapshot is Script {
     // Parse JSON array manually (simplified approach)
     console.log('[Load] Unclaimed withdrawals file found');
 
-    uint256 count = _countUnclaimedEntries(json);
+    uint256 count = JsonUtils.countOccurrences(json, '"withdrawalHash"');
     if (count == 0) {
       console.log('[INFO] No unclaimed withdrawals\n');
       return;
@@ -363,7 +361,7 @@ contract GenerateAssetSnapshot is Script {
       bytes32 withdrawalHash = json.readBytes32(
         string.concat(base, 'withdrawalHash')
       );
-      uint256 amount = _parseUint(
+      uint256 amount = JsonUtils.parseUint(
         json.readString(string.concat(base, 'amount'))
       );
       unclaimedWithdrawals.push(
@@ -404,12 +402,12 @@ contract GenerateAssetSnapshot is Script {
     require(vm.exists(path), 'L2 burn adjustment file not found');
 
     string memory json = vm.readFile(path);
-    if (_isEmptyJsonArray(json)) {
+    if (JsonUtils.isEmptyJsonArray(json)) {
       console.log('[INFO] No L2 burn adjustments\n');
       return;
     }
 
-    uint256 count = _countEntries(json, bytes('"l2Token"'));
+    uint256 count = JsonUtils.countOccurrences(json, '"l2Token"');
     if (count == 0) {
       console.log('[INFO] No L2 burn adjustments\n');
       return;
@@ -422,7 +420,7 @@ contract GenerateAssetSnapshot is Script {
     for (uint i = 0; i < count; i++) {
       string memory base = string.concat('$[', vm.toString(i), '].');
       address l2Token = json.readAddress(string.concat(base, 'l2Token'));
-      uint256 extraBurn = _parseUint(
+      uint256 extraBurn = JsonUtils.parseUint(
         json.readString(string.concat(base, 'extraBurn'))
       );
 
@@ -453,57 +451,6 @@ contract GenerateAssetSnapshot is Script {
     console.log('[INFO] L2 burn adjustments aggregated\n');
   }
 
-  function _parseUint(string memory value) internal pure returns (uint256) {
-    bytes memory data = bytes(value);
-    require(data.length > 0, 'Invalid uint string');
-    uint256 start = 0;
-    uint256 end = data.length;
-
-    // Trim leading/trailing whitespace from FFI output.
-    while (start < end && _isWhitespace(data[start])) {
-      start++;
-    }
-    while (end > start && _isWhitespace(data[end - 1])) {
-      end--;
-    }
-    require(end > start, 'Invalid uint string');
-    uint256 result = 0;
-
-    // Accept hex-encoded output (e.g., "0x...") from FFI.
-    if (
-      end - start >= 2 &&
-      data[start] == '0' &&
-      (data[start + 1] == 'x' || data[start + 1] == 'X')
-    ) {
-      start += 2;
-      for (uint i = start; i < end; i++) {
-        uint8 c = uint8(data[i]);
-        if (c >= 48 && c <= 57) {
-          result = (result << 4) + (c - 48);
-        } else if (c >= 65 && c <= 70) {
-          result = (result << 4) + (c - 55);
-        } else if (c >= 97 && c <= 102) {
-          result = (result << 4) + (c - 87);
-        } else {
-          revert('Invalid uint string');
-        }
-      }
-      return result;
-    }
-
-    // Extract first contiguous decimal number from output (e.g., "DEC:123").
-    uint256 i = start;
-    while (i < end && (uint8(data[i]) < 48 || uint8(data[i]) > 57)) {
-      i++;
-    }
-    require(i < end, 'Invalid uint string');
-    while (i < end && uint8(data[i]) >= 48 && uint8(data[i]) <= 57) {
-      result = result * 10 + (uint8(data[i]) - 48);
-      i++;
-    }
-    return result;
-  }
-
   function _computeFinalizedNativeWithdrawals() internal returns (uint256) {
     string memory scriptPath = 'scripts/shutdown/compute_finalized_native_withdrawals.py';
     require(vm.exists(scriptPath), 'compute_finalized_native_withdrawals.py not found');
@@ -515,82 +462,11 @@ contract GenerateAssetSnapshot is Script {
 
     try vm.ffi(inputs) returns (bytes memory stdout) {
       string memory output = string(stdout);
-      return _parseUint(output);
+      return JsonUtils.parseUint(output);
     } catch {
       console.log('[ERROR] Failed to compute finalized native withdrawals');
       revert('Failed to compute finalized native withdrawals');
     }
-  }
-
-  function _countUnclaimedEntries(
-    string memory json
-  ) internal pure returns (uint256) {
-    return _countEntries(json, bytes('"withdrawalHash"'));
-  }
-
-  function _countEntries(
-    string memory json,
-    bytes memory needle
-  ) internal pure returns (uint256) {
-    if (needle.length == 0) {
-      return 0;
-    }
-
-    bytes memory data = bytes(json);
-    if (data.length < needle.length) {
-      return 0;
-    }
-
-    uint256 count = 0;
-    for (uint256 i = 0; i + needle.length <= data.length; i++) {
-      bool matchFound = true;
-      for (uint256 j = 0; j < needle.length; j++) {
-        if (data[i + j] != needle[j]) {
-          matchFound = false;
-          break;
-        }
-      }
-      if (matchFound) {
-        count++;
-        i += needle.length - 1;
-      }
-    }
-    return count;
-  }
-
-  function _isEmptyJsonArray(string memory json) internal pure returns (bool) {
-    bytes memory data = bytes(json);
-    uint256 i = 0;
-
-    while (i < data.length && _isWhitespace(data[i])) {
-      i++;
-    }
-    if (i >= data.length || data[i] != '[') {
-      return false;
-    }
-    i++;
-    while (i < data.length && _isWhitespace(data[i])) {
-      i++;
-    }
-    if (i >= data.length || data[i] != ']') {
-      return false;
-    }
-    i++;
-    while (i < data.length) {
-      if (!_isWhitespace(data[i])) {
-        return false;
-      }
-      i++;
-    }
-    return true;
-  }
-
-  function _isWhitespace(bytes1 c) internal pure returns (bool) {
-    return c == 0x20 || c == 0x0a || c == 0x0d || c == 0x09;
-  }
-
-  function _abs(uint256 a, uint256 b) internal pure returns (uint256) {
-    return a > b ? a - b : b - a;
   }
 
   function _isL2Native(
@@ -631,8 +507,8 @@ contract GenerateAssetSnapshot is Script {
     // L2 tokens with no L1 counterpart (l1Token = 0x000 and not ETH)
     if (
       l1Token == address(0) &&
-      l2Token != PREDEPLOY_ETH &&
-      l2Token != NATIVE_TOKEN
+      l2Token != ShutdownConfig.PREDEPLOY_ETH &&
+      l2Token != ShutdownConfig.NATIVE_TOKEN
     ) {
       return true;
     }
@@ -683,34 +559,6 @@ contract GenerateAssetSnapshot is Script {
       );
     }
     return string.concat(json, '\n    ]');
-  }
-
-  function _escapeJson(
-    string memory str
-  ) internal pure returns (string memory) {
-    bytes memory strBytes = bytes(str);
-    uint escapeCount = 0;
-
-    // Count characters that need escaping
-    for (uint i = 0; i < strBytes.length; i++) {
-      if (strBytes[i] == '"' || strBytes[i] == '\\') {
-        escapeCount++;
-      }
-    }
-
-    if (escapeCount == 0) return str;
-
-    // Create new string with escaped characters
-    bytes memory result = new bytes(strBytes.length + escapeCount);
-    uint j = 0;
-    for (uint i = 0; i < strBytes.length; i++) {
-      if (strBytes[i] == '"' || strBytes[i] == '\\') {
-        result[j++] = '\\';
-      }
-      result[j++] = strBytes[i];
-    }
-
-    return string(result);
   }
 
   function _makeHash(
@@ -768,15 +616,15 @@ contract GenerateAssetSnapshot is Script {
       // Skip L2 native tokens (l1Token = 0x00 and not ETH/Native) - no log output
       if (
         t.l1Token == address(0) &&
-        t.l2Token != PREDEPLOY_ETH &&
-        t.l2Token != NATIVE_TOKEN
+        t.l2Token != ShutdownConfig.PREDEPLOY_ETH &&
+        t.l2Token != ShutdownConfig.NATIVE_TOKEN
       ) {
         continue;
       }
 
       // First, check L2 supply to detect broken tokens early
       vm.createSelectFork(l2RpcUrl);
-      if (t.l2Token == NATIVE_TOKEN) {
+      if (t.l2Token == ShutdownConfig.NATIVE_TOKEN) {
         t.l2TotalSupply = vm.envOr('L2_NATIVE_TOTAL_SUPPLY', uint256(0));
       } else {
         try IERC20(t.l2Token).totalSupply() returns (uint256 supply) {
@@ -790,7 +638,7 @@ contract GenerateAssetSnapshot is Script {
       if (
         t.l2TotalSupply == 0 &&
         t.unclaimedWithdrawals == 0 &&
-        t.l2Token != NATIVE_TOKEN
+        t.l2Token != ShutdownConfig.NATIVE_TOKEN
       ) {
         continue;
       }
@@ -810,22 +658,22 @@ contract GenerateAssetSnapshot is Script {
 
       // Get L1 deposit
       vm.createSelectFork(l1RpcUrl);
-      if (t.l2Token == NATIVE_TOKEN) {
+      if (t.l2Token == ShutdownConfig.NATIVE_TOKEN) {
         if (t.l1Token == address(0)) {
           t.l1Deposit = optimismPortal.balance;
         } else {
           t.l1Deposit = IERC20(t.l1Token).balanceOf(optimismPortal);
         }
-      } else if (t.l2Token == PREDEPLOY_ETH) {
+      } else if (t.l2Token == ShutdownConfig.PREDEPLOY_ETH) {
         // ETH (predeploy) is bridged via L1StandardBridge deposits mapping.
-        try IL1StandardBridge(l1Bridge).deposits(address(0), PREDEPLOY_ETH) returns (
+        try IL1StandardBridge(l1Bridge).deposits(address(0), ShutdownConfig.PREDEPLOY_ETH) returns (
           uint256 deposit
         ) {
           t.l1Deposit = deposit;
         } catch {
           console.log('  [WARN] Failed to get L1 ETH deposit from bridge');
         }
-      } else if (t.l2Token == PREDEPLOY_USDC && l1UsdcBridge != address(0)) {
+      } else if (t.l2Token == ShutdownConfig.PREDEPLOY_USDC && l1UsdcBridge != address(0)) {
         // USDC uses custom bridge
         if (t.l1Token == address(0)) {
           console.log('  [WARN] L1 USDC token is not set');
@@ -873,7 +721,7 @@ contract GenerateAssetSnapshot is Script {
         t.unclaimedWithdrawals +
         t.burnAdjustment;
 
-      if (t.l2Token == NATIVE_TOKEN) {
+      if (t.l2Token == ShutdownConfig.NATIVE_TOKEN) {
         console.log('  L2 Supply:              (Calculated in Phase 3)');
       } else {
         console.log('  L2 Supply:             ', vm.toString(t.l2TotalSupply));
@@ -882,7 +730,7 @@ contract GenerateAssetSnapshot is Script {
           console.log('  Status: [OK] Match');
         } else {
           console.log('  Status: [WARN] Mismatch');
-          uint256 diff = _abs(t.l1Deposit, expectedL1);
+          uint256 diff = ShutdownConfig.abs(t.l1Deposit, expectedL1);
           console.log('  Difference:            ', vm.toString(diff));
 
           // Diagnose the mismatch on L2 fork
@@ -929,8 +777,8 @@ contract GenerateAssetSnapshot is Script {
       // Skip L2 native tokens (l1Token = 0x00 and not ETH/Native) - no log output
       if (
         t.l1Token == address(0) &&
-        t.l2Token != PREDEPLOY_ETH &&
-        t.l2Token != NATIVE_TOKEN
+        t.l2Token != ShutdownConfig.PREDEPLOY_ETH &&
+        t.l2Token != ShutdownConfig.NATIVE_TOKEN
       ) {
         continue;
       }
@@ -939,7 +787,7 @@ contract GenerateAssetSnapshot is Script {
       if (
         t.l2TotalSupply == 0 &&
         t.unclaimedWithdrawals == 0 &&
-        t.l2Token != NATIVE_TOKEN
+        t.l2Token != ShutdownConfig.NATIVE_TOKEN
       ) {
         continue;
       }
@@ -966,14 +814,14 @@ contract GenerateAssetSnapshot is Script {
       uint256 len = holders.length;
       for (uint j = 0; j < len; ) {
         uint256 currentBatch = len - j;
-        if (currentBatch > MULTICALL_BATCH_SIZE) {
-          currentBatch = MULTICALL_BATCH_SIZE;
+        if (currentBatch > ShutdownConfig.DEFAULT_MULTICALL_BATCH_SIZE) {
+          currentBatch = ShutdownConfig.DEFAULT_MULTICALL_BATCH_SIZE;
         }
 
         IMulticall3.Call3[] memory calls = new IMulticall3.Call3[](
           currentBatch
         );
-        if (t.l2Token == NATIVE_TOKEN) {
+        if (t.l2Token == ShutdownConfig.NATIVE_TOKEN) {
           // Native token (ETH) - individual calls to avoid multicall self-call issues in fork
           for (uint k = 0; k < currentBatch; k++) {
             uint256 bal = holders[j + k].balance;
@@ -999,7 +847,7 @@ contract GenerateAssetSnapshot is Script {
           }
 
           // Execute batch
-          IMulticall3.Result[] memory results = IMulticall3(MULTICALL3)
+          IMulticall3.Result[] memory results = IMulticall3(ShutdownConfig.MULTICALL3)
             .aggregate3(calls);
 
           // Process results
@@ -1025,7 +873,7 @@ contract GenerateAssetSnapshot is Script {
       uint256 expected = t.l2TotalSupply;
       string memory label = 'Expected (L2 Supply):';
 
-      if (t.l2Token == NATIVE_TOKEN) {
+      if (t.l2Token == ShutdownConfig.NATIVE_TOKEN) {
         expected = t.l1Deposit + finalizedNativeWithdrawals;
         label = 'Expected (L1 Deposit + Finalized Withdrawals):';
       }
@@ -1034,14 +882,14 @@ contract GenerateAssetSnapshot is Script {
 
       if (
         total == expected ||
-        (t.l2Token == NATIVE_TOKEN && _abs(total, expected) <= NATIVE_BALANCE_TOLERANCE)
+        (t.l2Token == ShutdownConfig.NATIVE_TOKEN && ShutdownConfig.abs(total, expected) <= ShutdownConfig.DEFAULT_NATIVE_BALANCE_TOLERANCE)
       ) {
         console.log('  Status: [OK] Match');
       } else {
         console.log('  Status: [WARN] Mismatch');
         console.log(
           '  Difference:          ',
-          vm.toString(_abs(total, expected))
+          vm.toString(ShutdownConfig.abs(total, expected))
         );
       }
       console.log('');
@@ -1187,7 +1035,7 @@ contract GenerateAssetSnapshot is Script {
     address token,
     address user
   ) internal view returns (uint256) {
-    if (token == NATIVE_TOKEN) {
+    if (token == ShutdownConfig.NATIVE_TOKEN) {
       return user.balance;
     }
     try IERC20(token).balanceOf(user) returns (uint256 bal) {
@@ -1214,7 +1062,7 @@ contract GenerateAssetSnapshot is Script {
         vm.toString(ta.l2Token),
         '",\n',
         '    "tokenName": "',
-        _escapeJson(ta.tokenName),
+        JsonUtils.escapeJson(ta.tokenName),
         '",\n',
         '    "holders": ',
         _serializeHolders(ta.holders),
@@ -1244,8 +1092,8 @@ contract GenerateAssetSnapshot is Script {
       // Filter out L2 native tokens (l1Token = 0x00 and not ETH/Native) - no log output
       if (
         ta.l1Token == address(0) &&
-        ta.l2Token != PREDEPLOY_ETH &&
-        ta.l2Token != NATIVE_TOKEN
+        ta.l2Token != ShutdownConfig.PREDEPLOY_ETH &&
+        ta.l2Token != ShutdownConfig.NATIVE_TOKEN
       ) {
         continue;
       }
@@ -1282,7 +1130,7 @@ contract GenerateAssetSnapshot is Script {
         vm.toString(ta.l2Token),
         '",\n',
         '    "tokenName": "',
-        _escapeJson(ta.tokenName),
+        JsonUtils.escapeJson(ta.tokenName),
         '",\n',
         '    "data": ',
         _serializeWithHash(ta.l1Token, ta.holders),

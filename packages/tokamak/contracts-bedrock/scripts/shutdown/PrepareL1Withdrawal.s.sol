@@ -18,6 +18,10 @@ import {
   ShutdownL1UsdcBridge
 } from '../../src/shutdown/ShutdownL1UsdcBridge.sol';
 
+import {ShutdownConfig} from './lib/ShutdownConfig.sol';
+import {JsonUtils} from './lib/JsonUtils.sol';
+import {SafeUtils} from './lib/SafeUtils.sol';
+
 interface IOptimismPortal2 {
   function proofMaturityDelaySeconds() external view returns (uint256);
   function disputeGameFinalityDelaySeconds() external view returns (uint256);
@@ -140,7 +144,7 @@ contract PrepareL1Withdrawal is Script {
       'D1: SYSTEM_OWNER_SAFE required for OptimismPortal upgrade'
     );
     require(
-      _isContract(_systemOwnerSafe),
+      SafeUtils.isContract(_systemOwnerSafe),
       'D1: SYSTEM_OWNER_SAFE must be a contract (Safe)'
     );
 
@@ -195,7 +199,7 @@ contract PrepareL1Withdrawal is Script {
       'D1: SYSTEM_OWNER_SAFE required for L1 USDC bridge upgrade'
     );
     require(
-      _isContract(_systemOwnerSafe),
+      SafeUtils.isContract(_systemOwnerSafe),
       'D1: SYSTEM_OWNER_SAFE must be a contract (Safe)'
     );
 
@@ -294,13 +298,13 @@ contract PrepareL1Withdrawal is Script {
     console.log('[INFO] Closer Address:', _closerAddress);
     console.log('[INFO] Owner to Use:', ownerToUse);
 
-    if (_isContract(ownerToUse)) {
+    if (SafeUtils.isContract(ownerToUse)) {
       console.log('[INFO] Owner is a contract (Safe). Preparing Safe TX...');
       IGnosisSafe safe = IGnosisSafe(ownerToUse);
 
-      _logSafeTx(safe, _bridgeProxy, setCloserData, 'Set Closer');
+      SafeUtils.logSafeTx(safe, _bridgeProxy, setCloserData, 'Set Closer');
 
-      bool success = _execViaSafe(
+      bool success = SafeUtils.execViaSafeFromEnv(
         safe,
         _bridgeProxy,
         setCloserData,
@@ -339,10 +343,10 @@ contract PrepareL1Withdrawal is Script {
     console.log('[INFO] Registering hashes from snapshot data...');
 
     uint256 totalClaims = 0;
-    uint256 tokenCount = _countTokens(assetsJsonContent);
+    uint256 tokenCount = JsonUtils.countTokens(assetsJsonContent);
 
     for (uint256 i = 0; i < tokenCount; i++) {
-      uint256 claimCount = _countClaimsInToken(assetsJsonContent, i);
+      uint256 claimCount = JsonUtils.countClaimsInToken(assetsJsonContent, i);
 
       for (uint256 j = 0; j < claimCount; j++) {
         string memory hashPath = string.concat(
@@ -358,7 +362,7 @@ contract PrepareL1Withdrawal is Script {
         );
 
         bytes32 hashValue = vm.parseBytes32(hashString);
-        bytes4 sig = _hashToSelector(hashString);
+        bytes4 sig = JsonUtils.hashToSelector(hashString);
         storage1.setHash(sig, hashValue);
         totalClaims++;
       }
@@ -412,76 +416,6 @@ contract PrepareL1Withdrawal is Script {
     console.log('------------------------------------------\n');
   }
 
-  function _logSafeTx(
-    IGnosisSafe _safe,
-    address _target,
-    bytes memory _data,
-    string memory _label
-  ) internal view {
-    uint256 nonce = _safe.nonce();
-    bytes32 txHash = _safe.getTransactionHash(
-      _target,
-      0,
-      _data,
-      Enum.Operation.Call,
-      0,
-      0,
-      0,
-      address(0),
-      address(0),
-      nonce
-    );
-    console.log('--- Safe TX Preview ---');
-    console.log('Label:', _label);
-    console.log('Safe:', address(_safe));
-    console.log('Target:', _target);
-    console.log('Nonce:', vm.toString(nonce));
-    console.log('SafeTxHash:');
-    console.logBytes32(txHash);
-  }
-
-  function _execViaSafe(
-    IGnosisSafe _safe,
-    address _target,
-    bytes memory _data,
-    string memory _label
-  ) internal returns (bool executed_) {
-    uint256 threshold = _safe.getThreshold();
-    address caller = vm.addr(vm.envUint('PRIVATE_KEY'));
-
-    if (threshold != 1) {
-      console.log('Safe execution skipped (threshold > 1) for:', _label);
-      return false;
-    }
-
-    if (!_safe.isOwner(caller)) {
-      console.log('Safe execution skipped (caller not owner) for:', _label);
-      return false;
-    }
-
-    bytes memory signature = abi.encodePacked(
-      uint256(uint160(caller)),
-      bytes32(0),
-      uint8(1)
-    );
-    executed_ = _safe.execTransaction({
-      to: _target,
-      value: 0,
-      data: _data,
-      operation: Enum.Operation.Call,
-      safeTxGas: 0,
-      baseGas: 0,
-      gasPrice: 0,
-      gasToken: address(0),
-      refundReceiver: payable(address(0)),
-      signatures: signature
-    });
-  }
-
-  function _isContract(address _addr) internal view returns (bool) {
-    return _addr.code.length > 0;
-  }
-
   function _upgradeProxyWithSafe(
     address _proxy,
     address _proxyAdmin,
@@ -505,13 +439,13 @@ contract PrepareL1Withdrawal is Script {
       : adminOwner;
     console.log('[INFO] ProxyAdmin Owner:', adminOwner);
 
-    if (_isContract(ownerToUse)) {
+    if (SafeUtils.isContract(ownerToUse)) {
       console.log('[INFO] Owner is a contract (Safe). Preparing Safe TX...');
       IGnosisSafe safe = IGnosisSafe(ownerToUse);
 
-      _logSafeTx(safe, _proxyAdmin, upgradeData, _label);
+      SafeUtils.logSafeTx(safe, _proxyAdmin, upgradeData, _label);
 
-      bool success = _execViaSafe(safe, _proxyAdmin, upgradeData, _label);
+      bool success = SafeUtils.execViaSafeFromEnv(safe, _proxyAdmin, upgradeData, _label);
       if (success) {
         console.log('[SUCCESS] Proxy upgraded via Safe');
       } else {
@@ -547,11 +481,11 @@ contract PrepareL1Withdrawal is Script {
       _newImpl
     );
 
-    if (_isContract(_admin)) {
+    if (SafeUtils.isContract(_admin)) {
       IGnosisSafe safe = IGnosisSafe(_admin);
-      _logSafeTx(safe, _proxy, upgradeData, _label);
+      SafeUtils.logSafeTx(safe, _proxy, upgradeData, _label);
 
-      bool success = _execViaSafe(safe, _proxy, upgradeData, _label);
+      bool success = SafeUtils.execViaSafeFromEnv(safe, _proxy, upgradeData, _label);
       require(success, 'D1: safe execTransaction failed');
       console.log('[SUCCESS] Proxy upgraded via Safe (direct admin)');
       return;
@@ -567,104 +501,8 @@ contract PrepareL1Withdrawal is Script {
   function _getEip1967Admin(
     address _proxy
   ) internal view returns (address admin_) {
-    bytes32 slot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-    bytes32 data = vm.load(_proxy, slot);
+    bytes32 data = vm.load(_proxy, ShutdownConfig.PROXY_ADMIN_SLOT);
     admin_ = address(uint160(uint256(data)));
-  }
-
-  function _hashToSelector(
-    string memory hashString
-  ) internal pure returns (bytes4) {
-    string memory stripped = _strip0x(hashString);
-    return bytes4(keccak256(abi.encodePacked('_', stripped, '()')));
-  }
-
-  function _strip0x(string memory value) internal pure returns (string memory) {
-    bytes memory data = bytes(value);
-    if (
-      data.length >= 2 &&
-      data[0] == bytes1('0') &&
-      (data[1] == bytes1('x') || data[1] == bytes1('X'))
-    ) {
-      bytes memory trimmed = new bytes(data.length - 2);
-      for (uint256 i = 2; i < data.length; i++) {
-        trimmed[i - 2] = data[i];
-      }
-      return string(trimmed);
-    }
-    return value;
-  }
-
-  function _countTokens(string memory json) internal pure returns (uint256) {
-    return _countOccurrences(json, '"l1Token"');
-  }
-
-  function _countClaimsInToken(
-    string memory json,
-    uint256 tokenIdx
-  ) internal pure returns (uint256) {
-    return _countOccurrencesInTokenData(json, tokenIdx, '"hash"');
-  }
-
-  function _countOccurrencesInTokenData(
-    string memory json,
-    uint256 tokenIdx,
-    string memory pattern
-  ) internal pure returns (uint256) {
-    bytes memory bJson = bytes(json);
-    bytes memory bPattern = bytes(pattern);
-    bytes memory bL1Token = bytes('"l1Token"');
-    uint256 count = 0;
-    uint256 tokenFoundCount = 0;
-
-    for (uint256 i = 0; i <= bJson.length - bL1Token.length; i++) {
-      if (_isMatch(bJson, i, bL1Token)) {
-        if (tokenFoundCount == tokenIdx) {
-          for (
-            uint256 j = i + bL1Token.length;
-            j <= bJson.length - bPattern.length;
-            j++
-          ) {
-            if (_isMatch(bJson, j, bL1Token)) break;
-
-            if (_isMatch(bJson, j, bPattern)) {
-              count++;
-            }
-          }
-          return count;
-        }
-        tokenFoundCount++;
-      }
-    }
-    return 0;
-  }
-
-  function _countOccurrences(
-    string memory json,
-    string memory pattern
-  ) internal pure returns (uint256) {
-    bytes memory bJson = bytes(json);
-    bytes memory bPattern = bytes(pattern);
-    uint256 count = 0;
-    if (bJson.length < bPattern.length) return 0;
-    for (uint256 i = 0; i <= bJson.length - bPattern.length; i++) {
-      if (_isMatch(bJson, i, bPattern)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  function _isMatch(
-    bytes memory data,
-    uint256 index,
-    bytes memory pattern
-  ) internal pure returns (bool) {
-    if (index + pattern.length > data.length) return false;
-    for (uint256 i = 0; i < pattern.length; i++) {
-      if (data[index + i] != pattern[i]) return false;
-    }
-    return true;
   }
 
   function _loadAssetsJson(string memory _path) internal {

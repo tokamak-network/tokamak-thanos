@@ -8,6 +8,8 @@ import {ProxyAdmin} from 'src/universal/ProxyAdmin.sol';
 import {SuperchainConfig} from 'src/L1/SuperchainConfig.sol';
 import {IGnosisSafe, Enum} from '../interfaces/IGnosisSafe.sol';
 
+import {SafeUtils} from './lib/SafeUtils.sol';
+
 /**
  * @title BlockDepositsWithdrawals
  * @notice Forge script to block deposits and withdrawals during shutdown.
@@ -39,43 +41,43 @@ contract BlockDepositsWithdrawals is Script {
     bytes memory upgradeData =
       abi.encodeCall(ProxyAdmin.upgrade, (payable(portalProxyAddr), address(closingImpl)));
     console.log('Prepared upgrade calldata:', vm.toString(upgradeData));
-    if (!_isContract(systemOwnerSafeAddr)) {
+    if (!SafeUtils.isContract(systemOwnerSafeAddr)) {
       revert('SYSTEM_OWNER_SAFE must be a Safe contract');
     }
-    _logSafeOwnership(IGnosisSafe(systemOwnerSafeAddr), 'SYSTEM_OWNER_SAFE', derivedCaller);
-    _logSafeTx({
-      _safe: IGnosisSafe(systemOwnerSafeAddr),
-      _target: proxyAdminAddr,
-      _data: upgradeData,
-      _label: 'Portal upgrade'
-    });
+    SafeUtils.logSafeOwnership(IGnosisSafe(systemOwnerSafeAddr), 'SYSTEM_OWNER_SAFE', derivedCaller);
+    SafeUtils.logSafeTx(
+      IGnosisSafe(systemOwnerSafeAddr),
+      proxyAdminAddr,
+      upgradeData,
+      'Portal upgrade'
+    );
 
-    bool upgradeExecuted = _execViaSafe({
-      _safe: IGnosisSafe(systemOwnerSafeAddr),
-      _target: proxyAdminAddr,
-      _data: upgradeData,
-      _label: 'Portal upgrade'
-    });
+    bool upgradeExecuted = SafeUtils.execViaSafeFromEnv(
+      IGnosisSafe(systemOwnerSafeAddr),
+      proxyAdminAddr,
+      upgradeData,
+      'Portal upgrade'
+    );
 
     // 3. Prepare Safe transaction for pausing SuperchainConfig
     bytes memory pauseData = abi.encodeCall(SuperchainConfig.pause, ('Chain shutdown initiated'));
     console.log('Prepared pause calldata:', vm.toString(pauseData));
     bool pauseExecuted = false;
-    if (_isContract(guardianSafeAddr)) {
-      _logSafeOwnership(IGnosisSafe(guardianSafeAddr), 'GUARDIAN_SAFE', derivedCaller);
-      _logSafeTx({
-        _safe: IGnosisSafe(guardianSafeAddr),
-        _target: superchainConfigAddr,
-        _data: pauseData,
-        _label: 'Superchain pause'
-      });
+    if (SafeUtils.isContract(guardianSafeAddr)) {
+      SafeUtils.logSafeOwnership(IGnosisSafe(guardianSafeAddr), 'GUARDIAN_SAFE', derivedCaller);
+      SafeUtils.logSafeTx(
+        IGnosisSafe(guardianSafeAddr),
+        superchainConfigAddr,
+        pauseData,
+        'Superchain pause'
+      );
 
-      pauseExecuted = _execViaSafe({
-        _safe: IGnosisSafe(guardianSafeAddr),
-        _target: superchainConfigAddr,
-        _data: pauseData,
-        _label: 'Superchain pause'
-      });
+      pauseExecuted = SafeUtils.execViaSafeFromEnv(
+        IGnosisSafe(guardianSafeAddr),
+        superchainConfigAddr,
+        pauseData,
+        'Superchain pause'
+      );
     } else {
       if (derivedCaller != guardianSafeAddr) {
         console.log('GUARDIAN_SAFE is EOA. Caller is not guardian, skip pause.');
@@ -113,35 +115,6 @@ contract BlockDepositsWithdrawals is Script {
     _assertReceiveBlocked(_portal);
     _assertOnApproveBlocked(_portal, _caller);
     console.log('All systems successfully shutdown.');
-  }
-
-  function _logSafeTx(
-    IGnosisSafe _safe,
-    address _target,
-    bytes memory _data,
-    string memory _label
-  ) internal view {
-    uint256 nonce = _safe.nonce();
-    bytes32 txHash = _safe.getTransactionHash(
-      _target,
-      0,
-      _data,
-      Enum.Operation.Call,
-      0,
-      0,
-      0,
-      address(0),
-      address(0),
-      nonce
-    );
-    console.log('--- Safe TX Preview ---');
-    console.log('Label:', _label);
-    console.log('Safe:', address(_safe));
-    console.log('Target:', _target);
-    console.log('Value:', vm.toString(uint256(0)));
-    console.log('Nonce:', vm.toString(nonce));
-    console.log('SafeTxHash:');
-    console.logBytes32(txHash);
   }
 
   function _assertDepositBlocked(address _portal, address _caller) internal {
@@ -206,57 +179,4 @@ contract BlockDepositsWithdrawals is Script {
     reason = abi.decode(_data, (string));
   }
 
-  function _logSafeOwnership(IGnosisSafe _safe, string memory _label, address _caller) internal view {
-    address caller = _caller;
-    uint256 threshold = _safe.getThreshold();
-    address[] memory owners = _safe.getOwners();
-
-    console.log('--- Safe Ownership ---');
-    console.log('Label:', _label);
-    console.log('Safe:', address(_safe));
-    console.log('Caller:', caller);
-    console.log('Threshold:', vm.toString(threshold));
-    console.log('Owner count:', vm.toString(owners.length));
-    for (uint256 i = 0; i < owners.length; i++) {
-      console.log('Owner:', owners[i]);
-    }
-    console.log('Is caller owner:', _safe.isOwner(caller));
-  }
-
-  function _execViaSafe(
-    IGnosisSafe _safe,
-    address _target,
-    bytes memory _data,
-    string memory _label
-  ) internal returns (bool executed_) {
-    uint256 threshold = _safe.getThreshold();
-    if (threshold != 1) {
-      console.log('Safe execution skipped (threshold != 1) for:', _label);
-      return false;
-    }
-    address caller = vm.addr(vm.envUint('PRIVATE_KEY'));
-    if (!_safe.isOwner(caller)) {
-      console.log('Safe execution skipped (caller not owner) for:', _label);
-      return false;
-    }
-
-    bytes memory signature = abi.encodePacked(uint256(uint160(caller)), bytes32(0), uint8(1));
-    executed_ = _safe.execTransaction({
-      to: _target,
-      value: 0,
-      data: _data,
-      operation: Enum.Operation.Call,
-      safeTxGas: 0,
-      baseGas: 0,
-      gasPrice: 0,
-      gasToken: address(0),
-      refundReceiver: payable(address(0)),
-      signatures: signature
-    });
-    require(executed_, 'Safe execution failed');
-  }
-
-  function _isContract(address _addr) internal view returns (bool isContract_) {
-    isContract_ = _addr.code.length > 0;
-  }
 }
