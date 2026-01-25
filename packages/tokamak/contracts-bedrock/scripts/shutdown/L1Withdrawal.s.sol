@@ -100,10 +100,6 @@ contract L1Withdrawal is Script {
     address l1NativeToken = vm.envOr('L1_NATIVE_TOKEN', address(0));
     address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
     address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
-    address l1UsdcBridgeProxyAdmin = vm.envOr(
-      'L1_USDC_BRIDGE_PROXY_ADMIN',
-      address(0)
-    );
 
     console.log('==============================================');
     console.log('L2 OPERATOR: ENABLE L1 WITHDRAWAL');
@@ -118,7 +114,6 @@ contract L1Withdrawal is Script {
     console.log('  L1_NATIVE_TOKEN:', l1NativeToken);
     console.log('  L1_USDC_BRIDGE_PROXY:', l1UsdcBridge);
     console.log('  L1_USDC_BRIDGE_ADMIN:', l1UsdcBridgeAdmin);
-    console.log('  L1_USDC_BRIDGE_PROXY_ADMIN:', l1UsdcBridgeProxyAdmin);
     console.log('  DATA_PATH:', dataPath);
     console.log('  EXECUTE_CLAIMS (Verification):', executeClaims);
     console.log('==============================================\n');
@@ -337,46 +332,30 @@ contract L1Withdrawal is Script {
 
     address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
     address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
-    address l1UsdcBridgeProxyAdmin = vm.envOr(
-      'L1_USDC_BRIDGE_PROXY_ADMIN',
-      address(0)
-    );
     if (l1UsdcBridge == address(0)) {
       console.log('[WARN] L1_USDC_BRIDGE_PROXY not set, skipping');
       console.log('------------------------------------------\n');
       return;
     }
 
+    // Resolve admin from env or EIP-1967 slot
+    if (l1UsdcBridgeAdmin == address(0)) {
+      l1UsdcBridgeAdmin = _getEip1967Admin(l1UsdcBridge);
+    }
+    require(l1UsdcBridgeAdmin != address(0), 'L1 USDC bridge admin not found');
+    require(
+      l1UsdcBridgeAdmin == _deployerAddress,
+      'L1 USDC bridge admin must be deployer (EOA)'
+    );
+
     ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge();
     deployedUsdcBridgeImpl = address(impl);
 
     console.log('[INFO] L1 USDC Bridge Proxy:', l1UsdcBridge);
+    console.log('[INFO] L1 USDC Bridge Admin (EOA):', l1UsdcBridgeAdmin);
     console.log('[INFO] New Implementation:', deployedUsdcBridgeImpl);
 
-    address adminFromSlot = _getEip1967Admin(l1UsdcBridge);
-    address proxyAdminToUse = l1UsdcBridgeProxyAdmin != address(0)
-      ? l1UsdcBridgeProxyAdmin
-      : _proxyAdmin;
-    if (adminFromSlot != address(0) && adminFromSlot != proxyAdminToUse) {
-      if (l1UsdcBridgeAdmin == address(0)) {
-        l1UsdcBridgeAdmin = adminFromSlot;
-      }
-    }
-
-    if (
-      l1UsdcBridgeAdmin != address(0) && l1UsdcBridgeAdmin == _deployerAddress
-    ) {
-      console.log('[INFO] Using EOA admin for L1 USDC bridge upgrade');
-      _upgradeProxyByEoa(l1UsdcBridge, deployedUsdcBridgeImpl);
-    } else {
-      _upgradeProxyWithSafe(
-        l1UsdcBridge,
-        proxyAdminToUse,
-        _systemOwnerSafe,
-        deployedUsdcBridgeImpl,
-        'L1 USDC Bridge Upgrade'
-      );
-    }
+    _upgradeProxyByEoa(l1UsdcBridge, deployedUsdcBridgeImpl);
 
     console.log('------------------------------------------\n');
   }
