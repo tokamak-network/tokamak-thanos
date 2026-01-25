@@ -29,22 +29,33 @@ contract BlockDepositsWithdrawals is Script {
     vm.startBroadcast(deployerPrivateKey);
 
     ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdminAddr);
-    address currentImplementation = proxyAdmin.getProxyImplementation(portalProxyAddr);
+    address currentImplementation = proxyAdmin.getProxyImplementation(
+      portalProxyAddr
+    );
     console.log('Current implementation:', currentImplementation);
 
     // 1. Deploy the Closing Implementation
+    // 1. Deploy the Closing Implementation
     console.log('Deploying OptimismPortalClosing...');
-    OptimismPortalClosing closingImpl = new OptimismPortalClosing(currentImplementation);
+    OptimismPortalClosing closingImpl = new OptimismPortalClosing{
+      salt: bytes32(uint256(9999))
+    }(currentImplementation);
     console.log('New Implementation deployed at:', address(closingImpl));
 
     // 2. Prepare Safe transaction for upgrading the Portal Proxy
-    bytes memory upgradeData =
-      abi.encodeCall(ProxyAdmin.upgrade, (payable(portalProxyAddr), address(closingImpl)));
+    bytes memory upgradeData = abi.encodeCall(
+      ProxyAdmin.upgrade,
+      (payable(portalProxyAddr), address(closingImpl))
+    );
     console.log('Prepared upgrade calldata:', vm.toString(upgradeData));
     if (!SafeUtils.isContract(systemOwnerSafeAddr)) {
       revert('SYSTEM_OWNER_SAFE must be a Safe contract');
     }
-    SafeUtils.logSafeOwnership(IGnosisSafe(systemOwnerSafeAddr), 'SYSTEM_OWNER_SAFE', derivedCaller);
+    SafeUtils.logSafeOwnership(
+      IGnosisSafe(systemOwnerSafeAddr),
+      'SYSTEM_OWNER_SAFE',
+      derivedCaller
+    );
     SafeUtils.logSafeTx(
       IGnosisSafe(systemOwnerSafeAddr),
       proxyAdminAddr,
@@ -60,11 +71,18 @@ contract BlockDepositsWithdrawals is Script {
     );
 
     // 3. Prepare Safe transaction for pausing SuperchainConfig
-    bytes memory pauseData = abi.encodeCall(SuperchainConfig.pause, ('Chain shutdown initiated'));
+    bytes memory pauseData = abi.encodeCall(
+      SuperchainConfig.pause,
+      ('Chain shutdown initiated')
+    );
     console.log('Prepared pause calldata:', vm.toString(pauseData));
     bool pauseExecuted = false;
     if (SafeUtils.isContract(guardianSafeAddr)) {
-      SafeUtils.logSafeOwnership(IGnosisSafe(guardianSafeAddr), 'GUARDIAN_SAFE', derivedCaller);
+      SafeUtils.logSafeOwnership(
+        IGnosisSafe(guardianSafeAddr),
+        'GUARDIAN_SAFE',
+        derivedCaller
+      );
       SafeUtils.logSafeTx(
         IGnosisSafe(guardianSafeAddr),
         superchainConfigAddr,
@@ -80,10 +98,14 @@ contract BlockDepositsWithdrawals is Script {
       );
     } else {
       if (derivedCaller != guardianSafeAddr) {
-        console.log('GUARDIAN_SAFE is EOA. Caller is not guardian, skip pause.');
+        console.log(
+          'GUARDIAN_SAFE is EOA. Caller is not guardian, skip pause.'
+        );
       } else {
         console.log('Executing pause via guardian EOA...');
-        SuperchainConfig(superchainConfigAddr).pause('Chain shutdown initiated');
+        SuperchainConfig(superchainConfigAddr).pause(
+          'Chain shutdown initiated'
+        );
         pauseExecuted = true;
       }
     }
@@ -98,7 +120,11 @@ contract BlockDepositsWithdrawals is Script {
     }
   }
 
-  function _verify(address _portal, address _superchain, address _caller) internal {
+  function _verify(
+    address _portal,
+    address _superchain,
+    address _caller
+  ) internal {
     bool isPaused = SuperchainConfig(_superchain).paused();
     string memory ver = OptimismPortalClosing(payable(_portal)).version();
 
@@ -134,7 +160,9 @@ contract BlockDepositsWithdrawals is Script {
   }
 
   function _assertReceiveBlocked(address _portal) internal {
-    (bool success, bytes memory returndata) = payable(_portal).call{value: 1}('');
+    (bool success, bytes memory returndata) = payable(_portal).call{value: 1}(
+      ''
+    );
     require(!success, 'Verification Failed: receive is not blocked');
     _requireShutdownRevert('receive', returndata);
   }
@@ -152,17 +180,28 @@ contract BlockDepositsWithdrawals is Script {
     _requireShutdownRevert('onApprove', returndata);
   }
 
-  function _requireShutdownRevert(string memory _label, bytes memory _returndata) internal {
+  function _requireShutdownRevert(
+    string memory _label,
+    bytes memory _returndata
+  ) internal {
     string memory reason = _decodeRevertReason(_returndata);
     console.log('Deposit block reason for', _label, ':', reason);
-    require(bytes(reason).length > 0, 'Verification Failed: missing revert reason');
     require(
-      keccak256(bytes(reason)) == keccak256(bytes('OptimismPortal: deposits are disabled due to chain shutdown')),
+      bytes(reason).length > 0,
+      'Verification Failed: missing revert reason'
+    );
+    require(
+      keccak256(bytes(reason)) ==
+        keccak256(
+          bytes('OptimismPortal: deposits are disabled due to chain shutdown')
+        ),
       'Verification Failed: unexpected deposit revert reason'
     );
   }
 
-  function _decodeRevertReason(bytes memory _data) internal pure returns (string memory reason) {
+  function _decodeRevertReason(
+    bytes memory _data
+  ) internal pure returns (string memory reason) {
     if (_data.length < 4) {
       return '';
     }
@@ -178,5 +217,4 @@ contract BlockDepositsWithdrawals is Script {
     }
     reason = abi.decode(_data, (string));
   }
-
 }
