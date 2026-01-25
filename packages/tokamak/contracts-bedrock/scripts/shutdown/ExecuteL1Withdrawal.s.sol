@@ -97,10 +97,13 @@ contract ExecuteL1Withdrawal is Script {
     console.log('------------------------------------------\n');
   }
 
-  function _resolveOwner(address _systemOwnerSafe) internal view returns (address) {
-    return _systemOwnerSafe != address(0)
-      ? _systemOwnerSafe
-      : ProxyAdmin(vm.envAddress('PROXY_ADMIN')).owner();
+  function _resolveOwner(
+    address _systemOwnerSafe
+  ) internal view returns (address) {
+    return
+      _systemOwnerSafe != address(0)
+        ? _systemOwnerSafe
+        : ProxyAdmin(vm.envAddress('PROXY_ADMIN')).owner();
   }
 
   function _sweepNativeLiquidity(
@@ -151,6 +154,16 @@ contract ExecuteL1Withdrawal is Script {
     }
 
     address l1UsdcToken = IL1UsdcBridge(l1UsdcBridge).l1Usdc();
+
+    // Check if L1 USDC token contract exists
+    if (l1UsdcToken.code.length == 0) {
+      console.log('[WARN] L1 USDC token contract not found at:', l1UsdcToken);
+      console.log(
+        '[WARN] Skipping USDC sweep (for devnet. USDC token not deployed to L1).'
+      );
+      return;
+    }
+
     uint256 requiredUsdc = _sumClaimsForToken(l1UsdcToken);
 
     console.log('[INFO] Required USDC:', requiredUsdc);
@@ -165,10 +178,7 @@ contract ExecuteL1Withdrawal is Script {
       return;
     }
 
-    uint256 amount = _min(
-      remaining,
-      _getBalance(l1UsdcBridge, l1UsdcToken)
-    );
+    uint256 amount = _min(remaining, _getBalance(l1UsdcBridge, l1UsdcToken));
     if (amount == 0) {
       console.log('[WARN] L1 USDC bridge balance insufficient');
       return;
@@ -373,7 +383,12 @@ contract ExecuteL1Withdrawal is Script {
     string memory label
   ) internal {
     if (SafeUtils.isContract(ownerToUse)) {
-      bool executed = SafeUtils.execViaSafeFromEnv(IGnosisSafe(ownerToUse), target, data, label);
+      bool executed = SafeUtils.execViaSafeFromEnv(
+        IGnosisSafe(ownerToUse),
+        target,
+        data,
+        label
+      );
       require(executed, 'D1: safe execution failed');
       return;
     }

@@ -104,7 +104,9 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 1] Deploying ForceWithdrawBridge Implementation');
     console.log('------------------------------------------');
 
-    ForceWithdrawBridge impl = new ForceWithdrawBridge();
+    ForceWithdrawBridge impl = new ForceWithdrawBridge{
+      salt: bytes32(uint256(9999))
+    }();
     deployedImpl = address(impl);
 
     console.log('[SUCCESS] Implementation deployed at:', deployedImpl);
@@ -161,13 +163,14 @@ contract PrepareL1Withdrawal is Script {
         .proofMaturityDelaySeconds();
       uint256 gameDelay = IOptimismPortal2(optimismPortal)
         .disputeGameFinalityDelaySeconds();
-      ShutdownOptimismPortal2 impl = new ShutdownOptimismPortal2(
-        proofDelay,
-        gameDelay
-      );
+      ShutdownOptimismPortal2 impl = new ShutdownOptimismPortal2{
+        salt: bytes32(uint256(9999))
+      }(proofDelay, gameDelay);
       deployedPortalImpl = address(impl);
     } else {
-      ShutdownOptimismPortal impl = new ShutdownOptimismPortal();
+      ShutdownOptimismPortal impl = new ShutdownOptimismPortal{
+        salt: bytes32(uint256(9999))
+      }();
       deployedPortalImpl = address(impl);
     }
 
@@ -204,17 +207,13 @@ contract PrepareL1Withdrawal is Script {
     );
 
     address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
-    address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
+    address l1UsdcBridgeAdmin = _getEip1967Admin(l1UsdcBridge);
     if (l1UsdcBridge == address(0)) {
       console.log('[WARN] L1_USDC_BRIDGE_PROXY not set, skipping');
       console.log('------------------------------------------\n');
       return;
     }
 
-    // Resolve admin from env or EIP-1967 slot
-    if (l1UsdcBridgeAdmin == address(0)) {
-      l1UsdcBridgeAdmin = _getEip1967Admin(l1UsdcBridge);
-    }
     require(l1UsdcBridgeAdmin != address(0), 'L1 USDC bridge admin not found');
 
     bool isDryRun = vm.envOr('DRY_RUN', false);
@@ -222,7 +221,9 @@ contract PrepareL1Withdrawal is Script {
       revert('L1 USDC bridge admin must be deployer (EOA)');
     }
 
-    ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge();
+    ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge{
+      salt: bytes32(uint256(9999))
+    }();
     deployedUsdcBridgeImpl = address(impl);
 
     console.log('[INFO] L1 USDC Bridge Proxy:', l1UsdcBridge);
@@ -297,7 +298,7 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 6] Deploying GenFWStorage Contract');
     console.log('------------------------------------------');
 
-    GenFWStorage storage1 = new GenFWStorage();
+    GenFWStorage storage1 = new GenFWStorage{salt: bytes32(uint256(9999))}();
     deployedStorage = address(storage1);
 
     console.log('[INFO] Deployed GenFWStorage at:', deployedStorage);
@@ -406,7 +407,12 @@ contract PrepareL1Withdrawal is Script {
 
       SafeUtils.logSafeTx(safe, _proxyAdmin, upgradeData, _label);
 
-      bool success = SafeUtils.execViaSafeFromEnv(safe, _proxyAdmin, upgradeData, _label);
+      bool success = SafeUtils.execViaSafeFromEnv(
+        safe,
+        _proxyAdmin,
+        upgradeData,
+        _label
+      );
       if (success) {
         console.log('[SUCCESS] Proxy upgraded via Safe');
       } else {
