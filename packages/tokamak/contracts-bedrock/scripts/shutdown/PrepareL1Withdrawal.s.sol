@@ -205,70 +205,31 @@ contract PrepareL1Withdrawal is Script {
 
     address l1UsdcBridge = vm.envOr('L1_USDC_BRIDGE_PROXY', address(0));
     address l1UsdcBridgeAdmin = vm.envOr('L1_USDC_BRIDGE_ADMIN', address(0));
-    address l1UsdcBridgeProxyAdmin = vm.envOr(
-      'L1_USDC_BRIDGE_PROXY_ADMIN',
-      address(0)
-    );
     if (l1UsdcBridge == address(0)) {
       console.log('[WARN] L1_USDC_BRIDGE_PROXY not set, skipping');
       console.log('------------------------------------------\n');
       return;
     }
 
+    // Resolve admin from env or EIP-1967 slot
+    if (l1UsdcBridgeAdmin == address(0)) {
+      l1UsdcBridgeAdmin = _getEip1967Admin(l1UsdcBridge);
+    }
+    require(l1UsdcBridgeAdmin != address(0), 'L1 USDC bridge admin not found');
+
+    bool isDryRun = vm.envOr('DRY_RUN', false);
+    if (l1UsdcBridgeAdmin != _deployerAddress && !isDryRun) {
+      revert('L1 USDC bridge admin must be deployer (EOA)');
+    }
+
     ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge();
     deployedUsdcBridgeImpl = address(impl);
 
     console.log('[INFO] L1 USDC Bridge Proxy:', l1UsdcBridge);
+    console.log('[INFO] L1 USDC Bridge Admin (EOA):', l1UsdcBridgeAdmin);
     console.log('[INFO] New Implementation:', deployedUsdcBridgeImpl);
 
-    address adminFromSlot = _getEip1967Admin(l1UsdcBridge);
-    bool useProxyAdmin = false;
-    address proxyAdminToUse = address(0);
-    if (adminFromSlot != address(0)) {
-      if (
-        l1UsdcBridgeProxyAdmin != address(0) &&
-        adminFromSlot == l1UsdcBridgeProxyAdmin
-      ) {
-        useProxyAdmin = true;
-        proxyAdminToUse = l1UsdcBridgeProxyAdmin;
-      } else if (adminFromSlot == _proxyAdmin) {
-        useProxyAdmin = true;
-        proxyAdminToUse = _proxyAdmin;
-      }
-    } else if (l1UsdcBridgeProxyAdmin != address(0)) {
-      useProxyAdmin = true;
-      proxyAdminToUse = l1UsdcBridgeProxyAdmin;
-    } else {
-      useProxyAdmin = true;
-      proxyAdminToUse = _proxyAdmin;
-    }
-
-    if (
-      l1UsdcBridgeAdmin != address(0) && l1UsdcBridgeAdmin == _deployerAddress
-    ) {
-      console.log('[INFO] L1 USDC bridge admin matches deployer');
-      console.log('[INFO] Safe upgrade enforced; EOA path disabled');
-    }
-
-    if (!useProxyAdmin) {
-      address adminToUse = l1UsdcBridgeAdmin != address(0)
-        ? l1UsdcBridgeAdmin
-        : adminFromSlot;
-      require(adminToUse != address(0), 'D1: L1 USDC bridge admin not set');
-
-      bool isDryRun = vm.envOr('DRY_RUN', false);
-      if (adminToUse != _deployerAddress && !isDryRun) {
-        revert('D1: caller is not admin');
-      }
-
-      _upgradeProxyDirectWithSafe(
-        l1UsdcBridge,
-        adminToUse,
-        deployedUsdcBridgeImpl,
-        _deployerAddress,
-        'L1 USDC Bridge Upgrade'
-      );
-    }
+    _upgradeProxyByEoa(l1UsdcBridge, deployedUsdcBridgeImpl);
 
     console.log('------------------------------------------\n');
   }
@@ -465,34 +426,11 @@ contract PrepareL1Withdrawal is Script {
     }
   }
 
-  function _upgradeProxyDirectWithSafe(
-    address _proxy,
-    address _admin,
-    address _newImpl,
-    address _deployerAddress,
-    string memory _label
-  ) internal {
-    console.log('[INFO] Proxy:', _proxy);
-    console.log('[INFO] Admin (Safe):', _admin);
-    console.log('[INFO] New Implementation:', _newImpl);
-
+  function _upgradeProxyByEoa(address _proxy, address _newImpl) internal {
     bytes memory upgradeData = abi.encodeWithSignature(
       'upgradeTo(address)',
       _newImpl
     );
-
-    if (SafeUtils.isContract(_admin)) {
-      IGnosisSafe safe = IGnosisSafe(_admin);
-      SafeUtils.logSafeTx(safe, _proxy, upgradeData, _label);
-
-      bool success = SafeUtils.execViaSafeFromEnv(safe, _proxy, upgradeData, _label);
-      require(success, 'D1: safe execTransaction failed');
-      console.log('[SUCCESS] Proxy upgraded via Safe (direct admin)');
-      return;
-    }
-
-    require(_admin == _deployerAddress, 'D1: caller is not admin');
-    console.log('[ACTION] Executing direct upgrade via EOA...');
     (bool success, ) = _proxy.call(upgradeData);
     require(success, 'D1: proxy upgradeTo failed');
     console.log('[SUCCESS] Proxy upgraded via admin EOA');
