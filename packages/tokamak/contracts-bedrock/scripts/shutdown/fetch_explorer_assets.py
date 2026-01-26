@@ -1,5 +1,6 @@
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 import os
 import time
@@ -16,8 +17,8 @@ ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
 # Configuration
-BASE_V2_URL = "https://explorer.thanos-sepolia.tokamak.network/api/v2"
-OUTPUT_DIR = "/Users/theo/workspace_tokamak/tokamak-thanos/packages/tokamak/contracts-bedrock/data"
+BASE_V2_URL = os.getenv("EXPLORER_URL", "https://explorer.thanos-sepolia.tokamak.network/api/v2")
+OUTPUT_DIR = os.getenv("DATA_DIR", "data")
 
 # L2ToL1MessagePasser MessagePassed topic (from indexer bindings)
 MESSAGE_PASSED_TOPIC = "0x02a52367d10742d8032712c1bb8e0144ff1ec5ffda1ed7d70bb05a2744955054"
@@ -38,9 +39,10 @@ DEFAULT_L2_MESSAGE_PASSER = "0x4200000000000000000000000000000000000016"
 DEFAULT_L2_ETH_TOKEN = "0x4200000000000000000000000000000000000486"
 DEFAULT_L1_NATIVE_TOKEN = "0xa30fe40285B8f5c0457DbC3B7C8A280373c40044"
 
-def fetch_v2_all_pages(description, endpoint, address_key="address"):
+def fetch_v2_all_pages(description, endpoint, address_key="address", max_retries=3, base_delay=0.5):
     """
     Collects all pages of data from the Explorer V2 API.
+    Includes retry logic with exponential backoff for transient errors.
     """
     all_addresses = set()
     next_page_params = {}
@@ -54,48 +56,70 @@ def fetch_v2_all_pages(description, endpoint, address_key="address"):
         if query_string:
             url += f"?{query_string}"
 
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, context=ctx, timeout=20) as response:
-                if response.getcode() != 200:
-                    log(f"  ⚠️ HTTP Error: {response.getcode()}")
-                    break
+        # Retry loop with exponential backoff
+        data = None
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+                    if response.getcode() != 200:
+                        log(f"  ⚠️ HTTP Error: {response.getcode()}")
+                        break
 
-                data = json.loads(response.read().decode("utf-8"))
-                items = data.get('items', [])
+                    data = json.loads(response.read().decode("utf-8"))
+                    break  # Success, exit retry loop
 
-                if not items:
-                    break
+            except (ConnectionResetError, urllib.error.URLError, TimeoutError) as e:
+                last_error = e
+                retry_delay = base_delay * (2 ** attempt)  # Exponential backoff
+                log(f"  ⚠️ Attempt {attempt + 1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    log(f"  ⏳ Retrying in {retry_delay:.1f}s...")
+                    time.sleep(retry_delay)
+                continue
 
-                for item in items:
-                    # V2 API typically uses 'address' or 'hash' for address strings
-                    # For tokens, 'address' is a string.
-                    # For contracts, 'address' is a dict containing 'hash'.
-                    # For addresses, 'hash' is a string.
-                    addr = item.get(address_key)
+            except Exception as e:
+                log(f"  ❌ Unexpected error: {e}")
+                raise RuntimeError("Explorer V2 API fetch failed") from e
 
-                    if isinstance(addr, dict) and 'hash' in addr:
-                        addr = addr['hash']
+        # Check if all retries failed
+        if data is None:
+            if last_error:
+                log(f"  ❌ All {max_retries} attempts failed")
+                raise RuntimeError("Explorer V2 API fetch failed") from last_error
+            break  # HTTP error case
 
-                    if not addr and 'hash' in item:
-                        addr = item['hash'] # Common fallback for /addresses endpoint
+        items = data.get('items', [])
 
-                    if addr and isinstance(addr, str):
-                        all_addresses.add(addr.lower())
+        if not items:
+            break
 
-                log(f"  📦 Processed {len(items)} items. (Total unique addresses: {len(all_addresses)})")
+        for item in items:
+            # V2 API typically uses 'address' or 'hash' for address strings
+            # For tokens, 'address' is a string.
+            # For contracts, 'address' is a dict containing 'hash'.
+            # For addresses, 'hash' is a string.
+            addr = item.get(address_key)
 
-                # Pagination
-                next_params = data.get('next_page_params')
-                if not next_params:
-                    break
+            if isinstance(addr, dict) and 'hash' in addr:
+                addr = addr['hash']
 
-                next_page_params = next_params
-                time.sleep(0.1)  # Rate limit
+            if not addr and 'hash' in item:
+                addr = item['hash'] # Common fallback for /addresses endpoint
 
-        except Exception as e:
-            log(f"  ❌ Error occurred: {e}")
-            raise RuntimeError("Explorer V2 API fetch failed") from e
+            if addr and isinstance(addr, str):
+                all_addresses.add(addr.lower())
+
+        log(f"  📦 Processed {len(items)} items. (Total unique addresses: {len(all_addresses)})")
+
+        # Pagination
+        next_params = data.get('next_page_params')
+        if not next_params:
+            break
+
+        next_page_params = next_params
+        time.sleep(base_delay)  # Rate limit between pages
 
     return sorted(list(all_addresses))
 
@@ -121,7 +145,7 @@ def fetch_token_holders_for_tokens(tokens):
     log(f"✅ Token holder collection complete (unique addresses: {len(all_holders)})")
     return sorted(list(all_holders))
 
-def rpc_call(url, method, params):
+def rpc_call(url, method, params, max_retries=3, base_delay=0.5):
     payload = json.dumps({
         "jsonrpc": "2.0",
         "id": 1,
@@ -133,11 +157,26 @@ def rpc_call(url, method, params):
         data=payload,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
-        data = json.loads(response.read().decode("utf-8"))
-        if "error" in data:
-            raise RuntimeError(data["error"])
-        return data.get("result")
+
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                if "error" in data:
+                    raise RuntimeError(data["error"])
+                return data.get("result")
+
+        except (ConnectionResetError, urllib.error.URLError, TimeoutError) as e:
+            last_error = e
+            retry_delay = base_delay * (2 ** attempt)
+            log(f"  ⚠️ RPC attempt {attempt + 1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                log(f"  ⏳ Retrying in {retry_delay:.1f}s...")
+                time.sleep(retry_delay)
+            continue
+
+    raise RuntimeError(f"RPC call failed after {max_retries} attempts") from last_error
 
 def to_hex_block(num):
     return hex(num)

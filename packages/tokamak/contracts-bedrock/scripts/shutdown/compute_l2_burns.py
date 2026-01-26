@@ -17,9 +17,10 @@ def pad_topic(addr):
 
 
 def load_tokens(chain_id):
-    path = f"data/l2-tokens-{chain_id}.json"
+    data_dir = os.getenv("DATA_DIR", "data")
+    path = os.path.join(data_dir, f"l2-tokens-{chain_id}.json")
     if not os.path.exists(path):
-        path = "data/l2-tokens.json"
+        path = os.path.join(data_dir, "l2-tokens.json")
     if not os.path.exists(path):
         sys.stderr.write("Token list file not found\n")
         sys.exit(1)
@@ -137,7 +138,8 @@ def main():
             }
         )
 
-    out_path = f"data/l2-burns-{chain_id}.json"
+    data_dir = os.getenv("DATA_DIR", "data")
+    out_path = os.path.join(data_dir, f"l2-burns-{chain_id}.json")
     with open(out_path, "w") as handle:
         json.dump(results, handle, indent=2)
     print(f"Wrote {out_path} ({len(results)} tokens)")

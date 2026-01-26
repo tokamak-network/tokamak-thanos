@@ -29,7 +29,7 @@ interface IOptimismPortal2 {
 
 /**
  * @title PrepareL1Withdrawal
- * @notice Phase 1 of L2 shutdown: upgrades and registration (steps 1-7).
+ * @notice Phase 1 of L2 shutdown: upgrades, registration, and activation (steps 1-8).
  */
 contract PrepareL1Withdrawal is Script {
   using stdJson for string;
@@ -39,6 +39,7 @@ contract PrepareL1Withdrawal is Script {
   address public deployedUsdcBridgeImpl;
   address public deployedStorage;
   string public assetsJsonContent;
+  uint256 public safeNonceOffset;
 
   function run() public {
     address bridgeProxy = vm.envAddress('BRIDGE_PROXY');
@@ -93,8 +94,8 @@ contract PrepareL1Withdrawal is Script {
     // Step 7: Register storage with bridge
     _step7_registerStorage(bridgeProxy);
 
-    // Step 7: Activate force withdrawal mode
-    _step7_activateForceWithdraw(bridgeProxy);
+    // Step 8: Activate force withdrawal mode
+    _step8_activate(bridgeProxy, closerAddress);
 
     vm.stopBroadcast();
   }
@@ -104,9 +105,7 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 1] Deploying ForceWithdrawBridge Implementation');
     console.log('------------------------------------------');
 
-    ForceWithdrawBridge impl = new ForceWithdrawBridge{
-      salt: bytes32(uint256(9999))
-    }();
+    ForceWithdrawBridge impl = new ForceWithdrawBridge();
     deployedImpl = address(impl);
 
     console.log('[SUCCESS] Implementation deployed at:', deployedImpl);
@@ -163,14 +162,13 @@ contract PrepareL1Withdrawal is Script {
         .proofMaturityDelaySeconds();
       uint256 gameDelay = IOptimismPortal2(optimismPortal)
         .disputeGameFinalityDelaySeconds();
-      ShutdownOptimismPortal2 impl = new ShutdownOptimismPortal2{
-        salt: bytes32(uint256(9999))
-      }(proofDelay, gameDelay);
+      ShutdownOptimismPortal2 impl = new ShutdownOptimismPortal2(
+        proofDelay,
+        gameDelay
+      );
       deployedPortalImpl = address(impl);
     } else {
-      ShutdownOptimismPortal impl = new ShutdownOptimismPortal{
-        salt: bytes32(uint256(9999))
-      }();
+      ShutdownOptimismPortal impl = new ShutdownOptimismPortal();
       deployedPortalImpl = address(impl);
     }
 
@@ -221,9 +219,7 @@ contract PrepareL1Withdrawal is Script {
       revert('L1 USDC bridge admin must be deployer (EOA)');
     }
 
-    ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge{
-      salt: bytes32(uint256(9999))
-    }();
+    ShutdownL1UsdcBridge impl = new ShutdownL1UsdcBridge();
     deployedUsdcBridgeImpl = address(impl);
 
     console.log('[INFO] L1 USDC Bridge Proxy:', l1UsdcBridge);
@@ -246,34 +242,54 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 5] Setting closer');
     console.log('------------------------------------------');
 
+    // Check if closer is already set to the same address
+    (bool success, bytes memory data) = _bridgeProxy.staticcall(
+      abi.encodeWithSignature('closer()')
+    );
+    if (success && data.length >= 32) {
+      address currentCloser = abi.decode(data, (address));
+      console.log('[INFO] Current closer:', currentCloser);
+      if (currentCloser == _closerAddress) {
+        console.log('[INFO] Closer already set to the same address, skipping');
+        console.log('------------------------------------------\n');
+        return;
+      }
+    }
+
     bytes memory setCloserData = abi.encodeWithSignature(
       'setCloser(address)',
       _closerAddress
     );
 
+    // Always use the actual ProxyAdmin owner
     address adminOwner = ProxyAdmin(_proxyAdmin).owner();
-    address ownerToUse = _systemOwnerSafe != address(0)
-      ? _systemOwnerSafe
-      : adminOwner;
 
     console.log('[INFO] Bridge Proxy:', _bridgeProxy);
     console.log('[INFO] Closer Address:', _closerAddress);
-    console.log('[INFO] Owner to Use:', ownerToUse);
+    console.log('[INFO] ProxyAdmin Owner:', adminOwner);
 
-    if (SafeUtils.isContract(ownerToUse)) {
+    if (SafeUtils.isContract(adminOwner)) {
       console.log('[INFO] Owner is a contract (Safe). Preparing Safe TX...');
-      IGnosisSafe safe = IGnosisSafe(ownerToUse);
+      IGnosisSafe safe = IGnosisSafe(adminOwner);
 
-      SafeUtils.logSafeTx(safe, _bridgeProxy, setCloserData, 'Set Closer');
-
-      bool success = SafeUtils.execViaSafeFromEnv(
+      SafeUtils.logSafeTxWithNonce(
         safe,
         _bridgeProxy,
         setCloserData,
-        'Set Closer'
+        'Set Closer',
+        safeNonceOffset
+      );
+
+      bool success = SafeUtils.execViaSafeFromEnvWithNonce(
+        safe,
+        _bridgeProxy,
+        setCloserData,
+        'Set Closer',
+        safeNonceOffset
       );
       if (success) {
         console.log('[SUCCESS] Closer set via Safe');
+        safeNonceOffset++;
       } else {
         console.log(
           '[WARN] Safe execution skipped (Threshold > 1 or simulation). Proposing TX...'
@@ -281,7 +297,7 @@ contract PrepareL1Withdrawal is Script {
       }
     } else {
       bool isDryRun = vm.envOr('DRY_RUN', false);
-      if (ownerToUse != _deployerAddress && !isDryRun) {
+      if (adminOwner != _deployerAddress && !isDryRun) {
         revert('D1: caller is not owner for setCloser');
       }
       console.log('[ACTION] Executing direct setCloser via EOA...');
@@ -298,7 +314,7 @@ contract PrepareL1Withdrawal is Script {
     console.log('[STEP 6] Deploying GenFWStorage Contract');
     console.log('------------------------------------------');
 
-    GenFWStorage storage1 = new GenFWStorage{salt: bytes32(uint256(9999))}();
+    GenFWStorage storage1 = new GenFWStorage();
     deployedStorage = address(storage1);
 
     console.log('[INFO] Deployed GenFWStorage at:', deployedStorage);
@@ -336,7 +352,7 @@ contract PrepareL1Withdrawal is Script {
 
   function _step7_registerStorage(address _bridgeProxy) internal {
     console.log('------------------------------------------');
-    console.log('[STEP 6] Registering Storage with Bridge');
+    console.log('[STEP 7] Registering Storage with Bridge');
     console.log('------------------------------------------');
 
     ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
@@ -354,13 +370,12 @@ contract PrepareL1Withdrawal is Script {
     console.log('------------------------------------------\n');
   }
 
-  function _step7_activateForceWithdraw(address _bridgeProxy) internal {
+  function _step8_activate(address _bridge, address _closer) internal {
     console.log('------------------------------------------');
-    console.log('[STEP 7] Activating Force Withdrawal Mode');
+    console.log('[STEP 8] Activating Force Withdrawal Mode');
     console.log('------------------------------------------');
 
-    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
-
+    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridge));
     bool currentState = bridge.active();
     console.log(
       '[INFO] Current active state:',
@@ -375,6 +390,7 @@ contract PrepareL1Withdrawal is Script {
       console.log('[SUCCESS] Force withdrawal mode activated');
     }
 
+    console.log('[INFO] Closer:', _closer);
     console.log('------------------------------------------\n');
   }
 
@@ -395,26 +411,32 @@ contract PrepareL1Withdrawal is Script {
       _newImpl
     );
 
+    // Always use the actual ProxyAdmin owner
     address adminOwner = ProxyAdmin(_proxyAdmin).owner();
-    address ownerToUse = _systemOwnerSafe != address(0)
-      ? _systemOwnerSafe
-      : adminOwner;
     console.log('[INFO] ProxyAdmin Owner:', adminOwner);
 
-    if (SafeUtils.isContract(ownerToUse)) {
+    if (SafeUtils.isContract(adminOwner)) {
       console.log('[INFO] Owner is a contract (Safe). Preparing Safe TX...');
-      IGnosisSafe safe = IGnosisSafe(ownerToUse);
+      IGnosisSafe safe = IGnosisSafe(adminOwner);
 
-      SafeUtils.logSafeTx(safe, _proxyAdmin, upgradeData, _label);
-
-      bool success = SafeUtils.execViaSafeFromEnv(
+      SafeUtils.logSafeTxWithNonce(
         safe,
         _proxyAdmin,
         upgradeData,
-        _label
+        _label,
+        safeNonceOffset
+      );
+
+      bool success = SafeUtils.execViaSafeFromEnvWithNonce(
+        safe,
+        _proxyAdmin,
+        upgradeData,
+        _label,
+        safeNonceOffset
       );
       if (success) {
         console.log('[SUCCESS] Proxy upgraded via Safe');
+        safeNonceOffset++;
       } else {
         console.log(
           '[WARN] Safe execution skipped (Threshold > 1 or simulation). Proposing TX...'
@@ -422,7 +444,7 @@ contract PrepareL1Withdrawal is Script {
       }
     } else {
       bool isDryRun = vm.envOr('DRY_RUN', false);
-      if (ownerToUse != vm.addr(vm.envUint('PRIVATE_KEY')) && !isDryRun) {
+      if (adminOwner != vm.addr(vm.envUint('PRIVATE_KEY')) && !isDryRun) {
         revert('D1: caller is not owner');
       }
       console.log('[ACTION] Executing direct upgrade via EOA...');
