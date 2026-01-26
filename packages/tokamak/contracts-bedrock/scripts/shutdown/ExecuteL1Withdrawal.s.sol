@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {Script} from 'forge-std/Script.sol';
 import {console} from 'forge-std/console.sol';
 import {stdJson} from 'forge-std/StdJson.sol';
-import {ForceWithdrawBridge} from '../../src/shutdown/ForceWithdrawBridge.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {ProxyAdmin} from '../../src/universal/ProxyAdmin.sol';
 import {IGnosisSafe, Enum} from '../interfaces/IGnosisSafe.sol';
@@ -17,7 +16,7 @@ import {SafeUtils} from './lib/SafeUtils.sol';
 
 /**
  * @title ExecuteL1Withdrawal
- * @notice Phase 2 of L2 shutdown: activation and execution (steps 8-9).
+ * @notice Phase 2 of L2 shutdown: liquidity sweep and claims execution (step 9).
  */
 contract ExecuteL1Withdrawal is Script {
   using stdJson for string;
@@ -37,47 +36,25 @@ contract ExecuteL1Withdrawal is Script {
     uint256 closerPrivateKey = vm.envUint('PRIVATE_KEY');
     address closerAddress = vm.addr(closerPrivateKey);
 
-    vm.startBroadcast(closerPrivateKey);
-
-    // Step 8: Activate force withdrawal mode
-    _step8_activate(bridgeProxy, closerAddress);
+    bool isDryRun = vm.envOr('DRY_RUN', false);
+    if (!isDryRun) {
+      vm.startBroadcast(closerPrivateKey);
+    }
 
     // Step 9: Sweep liquidity to bridge
     _step9_sweepLiquidity(bridgeProxy, systemOwnerSafe, closerAddress);
 
-    // Step 9: Execute claims (optional)
-    bool executeClaims = vm.envOr('EXECUTE_CLAIMS', false);
+    // Step 10: Execute claims (optional)
+    bool executeClaims = vm.envOr('EXECUTE_CLAIMS', true);
     if (executeClaims) {
-      _step9_executeClaims(bridgeProxy);
+      _step10_executeClaims(bridgeProxy);
     } else {
-      console.log('[INFO] EXECUTE_CLAIMS=false, skipping claims');
+      console.log('[INFO] EXECUTE_CLAIMS=true, skipping claims');
     }
 
-    vm.stopBroadcast();
-  }
-
-  function _step8_activate(address _bridge, address _closer) internal {
-    console.log('------------------------------------------');
-    console.log('[STEP 8] Activating Force Withdrawal Mode');
-    console.log('------------------------------------------');
-
-    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridge));
-    bool currentState = bridge.active();
-    console.log(
-      '[INFO] Current active state:',
-      currentState ? 'ACTIVE' : 'INACTIVE'
-    );
-
-    if (currentState) {
-      console.log('[INFO] Force withdrawal already active, skipping');
-    } else {
-      console.log('[ACTION] Activating force withdrawal...');
-      bridge.forceActive(true);
-      console.log('[SUCCESS] Force withdrawal mode activated');
+    if (!isDryRun) {
+      vm.stopBroadcast();
     }
-
-    console.log('[INFO] Closer:', _closer);
-    console.log('------------------------------------------\n');
   }
 
   function _step9_sweepLiquidity(
@@ -121,7 +98,7 @@ contract ExecuteL1Withdrawal is Script {
     address ownerToUse = _resolveOwner(_systemOwnerSafe);
     uint256 requiredNative = _sumClaimsForToken(l1NativeToken);
 
-    console.log('[INFO] Required native token:', requiredNative);
+    console.log('[INFO] Required native token: ', requiredNative);
 
     uint256 remaining = _remainingAmount(
       _bridgeProxy,
@@ -166,7 +143,7 @@ contract ExecuteL1Withdrawal is Script {
 
     uint256 requiredUsdc = _sumClaimsForToken(l1UsdcToken);
 
-    console.log('[INFO] Required USDC:', requiredUsdc);
+    console.log('[INFO] Required USDC: ', requiredUsdc);
 
     uint256 remaining = _remainingAmount(
       _bridgeProxy,
@@ -224,61 +201,154 @@ contract ExecuteL1Withdrawal is Script {
     return a < b ? a : b;
   }
 
-  function _step9_executeClaims(address _bridgeProxy) internal {
+  /// @notice Claim result status
+  uint8 internal constant CLAIM_SUCCESS = 0;
+  uint8 internal constant CLAIM_ALREADY = 1;
+  uint8 internal constant CLAIM_SKIPPED = 2;
+  uint8 internal constant CLAIM_FAILED = 3;
+
+  function _step10_executeClaims(address _bridgeProxy) internal {
     console.log('------------------------------------------');
-    console.log('[STEP 9] Executing Force Withdrawal Claims');
+    console.log('[STEP 10] Executing Force Withdrawal Claims');
     console.log('------------------------------------------');
 
-    ForceWithdrawBridge bridge = ForceWithdrawBridge(payable(_bridgeProxy));
     uint256 tokenCount = JsonUtils.countTokens(assetsJsonContent);
+    bool isDryRun = vm.envOr('DRY_RUN', false);
 
     console.log('[INFO] Bridge proxy:', _bridgeProxy);
     console.log('[INFO] Position contract:', deployedStorage);
-    console.log('[INFO] Token sets to process:', tokenCount);
+    console.log('[INFO] Token sets to process: ', tokenCount);
 
     uint256 totalClaims = 0;
+    uint256 skippedClaims = 0;
+    uint256 alreadyClaimed = 0;
+
     for (uint256 i = 0; i < tokenCount; i++) {
-      address l1Token = vm.parseJsonAddress(
-        assetsJsonContent,
-        string.concat('[', vm.toString(i), '].l1Token')
-      );
-      uint256 claimCount = JsonUtils.countClaimsInToken(assetsJsonContent, i);
-
-      console.log('[INFO] Processing token:', l1Token);
-      console.log('[INFO] Claim count:', claimCount);
-
-      for (uint256 j = 0; j < claimCount; j++) {
-        string memory base = string.concat(
-          '[',
-          vm.toString(i),
-          '].data[',
-          vm.toString(j),
-          ']'
-        );
-        string memory hashString = JsonUtils.strip0x(
-          vm.parseJsonString(assetsJsonContent, string.concat(base, '.hash'))
-        );
-        uint256 amount = vm.parseUint(
-          vm.parseJsonString(assetsJsonContent, string.concat(base, '.amount'))
-        );
-        address claimer = vm.parseJsonAddress(
-          assetsJsonContent,
-          string.concat(base, '.claimer')
-        );
-
-        bridge.forceWithdrawClaim(
-          deployedStorage,
-          hashString,
-          l1Token,
-          amount,
-          claimer
-        );
-        totalClaims++;
-      }
+      (
+        uint256 executed,
+        uint256 already,
+        uint256 skipped
+      ) = _processTokenClaims(_bridgeProxy, i, isDryRun);
+      totalClaims += executed;
+      alreadyClaimed += already;
+      skippedClaims += skipped;
     }
 
-    console.log('[SUCCESS] Total claims executed:', totalClaims);
+    console.log('[SUCCESS] Total claims executed: ', totalClaims);
+    if (alreadyClaimed > 0) {
+      console.log('[INFO] Already claimed (skipped): ', alreadyClaimed);
+    }
+    if (isDryRun && skippedClaims > 0) {
+      console.log(
+        '[WARN] DRY_RUN: claims skipped (bridge may not be upgraded or funded): ',
+        skippedClaims
+      );
+    }
     console.log('------------------------------------------\n');
+  }
+
+  function _processTokenClaims(
+    address _bridgeProxy,
+    uint256 _tokenIndex,
+    bool _isDryRun
+  ) internal returns (uint256 executed_, uint256 already_, uint256 skipped_) {
+    address l1Token = vm.parseJsonAddress(
+      assetsJsonContent,
+      string.concat('[', vm.toString(_tokenIndex), '].l1Token')
+    );
+    uint256 claimCount = JsonUtils.countClaimsInToken(
+      assetsJsonContent,
+      _tokenIndex
+    );
+
+    console.log('[INFO] Processing token:', l1Token);
+    console.log('[INFO] Claim count: ', claimCount);
+
+    for (uint256 j = 0; j < claimCount; j++) {
+      uint8 result = _processSingleClaim(
+        _bridgeProxy,
+        l1Token,
+        _tokenIndex,
+        j,
+        _isDryRun
+      );
+      if (result == CLAIM_SUCCESS) {
+        executed_++;
+      } else if (result == CLAIM_ALREADY) {
+        already_++;
+      } else if (result == CLAIM_SKIPPED) {
+        skipped_++;
+      }
+      // CLAIM_FAILED reverts inside _processSingleClaim
+    }
+  }
+
+  function _processSingleClaim(
+    address _bridgeProxy,
+    address _l1Token,
+    uint256 _tokenIndex,
+    uint256 _claimIndex,
+    bool _isDryRun
+  ) internal returns (uint8) {
+    string memory base = string.concat(
+      '[',
+      vm.toString(_tokenIndex),
+      '].data[',
+      vm.toString(_claimIndex),
+      ']'
+    );
+
+    string memory hashString = JsonUtils.strip0x(
+      vm.parseJsonString(assetsJsonContent, string.concat(base, '.hash'))
+    );
+    uint256 amount = vm.parseUint(
+      vm.parseJsonString(assetsJsonContent, string.concat(base, '.amount'))
+    );
+    address claimer = vm.parseJsonAddress(
+      assetsJsonContent,
+      string.concat(base, '.claimer')
+    );
+
+    // Check if already claimed
+    if (_isAlreadyClaimed(_bridgeProxy, _l1Token, claimer, amount)) {
+      console.log('[INFO] Already claimed, skipping claimer:', claimer);
+      return CLAIM_ALREADY;
+    }
+
+    // Execute claim
+    bytes memory claimData = abi.encodeWithSignature(
+      'forceWithdrawClaim(address,string,address,uint256,address)',
+      deployedStorage,
+      hashString,
+      _l1Token,
+      amount,
+      claimer
+    );
+    (bool success, ) = _bridgeProxy.call(claimData);
+
+    if (success) {
+      return CLAIM_SUCCESS;
+    } else if (_isDryRun) {
+      return CLAIM_SKIPPED;
+    } else {
+      revert('D1: claim execution failed');
+    }
+  }
+
+  function _isAlreadyClaimed(
+    address _bridgeProxy,
+    address _token,
+    address _claimer,
+    uint256 _amount
+  ) internal view returns (bool) {
+    bytes32 claimHash = keccak256(abi.encodePacked(_token, _claimer, _amount));
+    (bool success, bytes memory data) = _bridgeProxy.staticcall(
+      abi.encodeWithSignature('claimState(bytes32)', claimHash)
+    );
+    if (success && data.length >= 32) {
+      return abi.decode(data, (bool));
+    }
+    return false;
   }
 
   function _getBalance(
@@ -343,15 +413,21 @@ contract ExecuteL1Withdrawal is Script {
 
     uint256 amount = remaining < escrowBalance ? remaining : escrowBalance;
     console.log('[INFO] Sweeping native token from:', label);
-    console.log('[INFO] Sweep amount:', amount);
+    console.log('[INFO] Sweep amount: ', amount);
 
     bytes memory sweepData = abi.encodeWithSignature(
       'sweepNativeToken(address,uint256)',
       bridgeProxy,
       amount
     );
-    _execWithOwner(ownerToUse, deployerAddress, portal, sweepData, label);
-    remaining_ = remaining - amount;
+    bool success = _execWithOwner(
+      ownerToUse,
+      deployerAddress,
+      portal,
+      sweepData,
+      label
+    );
+    remaining_ = success ? remaining - amount : remaining;
   }
 
   function _execSweepUsdc(
@@ -360,19 +436,20 @@ contract ExecuteL1Withdrawal is Script {
     address l1UsdcBridge,
     address bridgeProxy,
     uint256 amount
-  ) internal {
+  ) internal returns (bool) {
     bytes memory sweepData = abi.encodeWithSignature(
       'sweepUSDC(address,uint256)',
       bridgeProxy,
       amount
     );
-    _execWithOwner(
-      ownerToUse,
-      deployerAddress,
-      l1UsdcBridge,
-      sweepData,
-      'L1 USDC Sweep'
-    );
+    return
+      _execWithOwner(
+        ownerToUse,
+        deployerAddress,
+        l1UsdcBridge,
+        sweepData,
+        'L1 USDC Sweep'
+      );
   }
 
   function _execWithOwner(
@@ -381,8 +458,22 @@ contract ExecuteL1Withdrawal is Script {
     address target,
     bytes memory data,
     string memory label
-  ) internal {
+  ) internal returns (bool) {
+    bool isDryRun = vm.envOr('DRY_RUN', false);
     if (SafeUtils.isContract(ownerToUse)) {
+      if (isDryRun) {
+        console.log('[INFO] DRY_RUN=true, simulating Safe call for:', label);
+        vm.prank(ownerToUse);
+        (bool ok, ) = target.call(data);
+        if (!ok) {
+          console.log(
+            '[WARN] DRY_RUN: call failed (contract may not be upgraded yet), skipping:',
+            label
+          );
+          return false;
+        }
+        return true;
+      }
       bool executed = SafeUtils.execViaSafeFromEnv(
         IGnosisSafe(ownerToUse),
         target,
@@ -390,12 +481,23 @@ contract ExecuteL1Withdrawal is Script {
         label
       );
       require(executed, 'D1: safe execution failed');
-      return;
+      return true;
     }
 
-    require(ownerToUse == deployerAddress, 'D1: caller is not owner');
+    require(
+      ownerToUse == deployerAddress || isDryRun,
+      'D1: caller is not owner'
+    );
     (bool success, ) = target.call(data);
+    if (isDryRun && !success) {
+      console.log(
+        '[WARN] DRY_RUN: call failed (contract may not be upgraded yet), skipping:',
+        label
+      );
+      return false;
+    }
     require(success, 'D1: sweep call failed');
+    return true;
   }
 
   function _getEip1967Admin(

@@ -166,7 +166,6 @@ contract GenerateAssetSnapshot is Script {
       console.log('[ERROR] Explorer assets fetch failed (check ffi=true)');
       revert('Explorer assets fetch failed');
     }
-
     string[] memory burnInputs = new string[](4);
     burnInputs[0] = 'python3';
     burnInputs[1] = 'scripts/shutdown/compute_l2_burns.py';
@@ -189,9 +188,7 @@ contract GenerateAssetSnapshot is Script {
       vm.toString(l2ChainId),
       '.json'
     );
-    uint256 skippedZeroCount = 0;
     uint256 skippedMappingCount = 0;
-    address firstZeroToken = address(0);
     address firstMappingToken = address(0);
 
     if (!vm.exists(path)) {
@@ -260,6 +257,7 @@ contract GenerateAssetSnapshot is Script {
         try IL2StandardToken(l2Tokens[i]).l1Token() returns (address _l1) {
           l1Token = _l1;
         } catch {
+          // L1 token lookup failed - skip
           if (skippedMappingCount == 0) {
             firstMappingToken = l2Tokens[i];
           }
@@ -268,14 +266,8 @@ contract GenerateAssetSnapshot is Script {
         }
       }
 
-      if (l1Token == address(0)) {
-        if (skippedZeroCount == 0) {
-          firstZeroToken = l2Tokens[i];
-        }
-        skippedZeroCount++;
-        continue;
-      }
-
+      // Collect cases where L1 token is address(0) (L2 native token)
+      // If lookup succeeds but returns 0x0, treat as valid
       string memory name = _getTokenName(l2Tokens[i]);
 
       tokens.push(
@@ -291,14 +283,6 @@ contract GenerateAssetSnapshot is Script {
       );
     }
 
-    if (skippedZeroCount > 0) {
-      console.log(
-        '[INFO] Skipped tokens with zero L1 mapping:',
-        vm.toString(skippedZeroCount),
-        'example:',
-        vm.toString(firstZeroToken)
-      );
-    }
     if (skippedMappingCount > 0) {
       console.log(
         '[INFO] Skipped tokens without L1 mapping:',
@@ -452,8 +436,12 @@ contract GenerateAssetSnapshot is Script {
   }
 
   function _computeFinalizedNativeWithdrawals() internal returns (uint256) {
-    string memory scriptPath = 'scripts/shutdown/compute_finalized_native_withdrawals.py';
-    require(vm.exists(scriptPath), 'compute_finalized_native_withdrawals.py not found');
+    string
+      memory scriptPath = 'scripts/shutdown/compute_finalized_native_withdrawals.py';
+    require(
+      vm.exists(scriptPath),
+      'compute_finalized_native_withdrawals.py not found'
+    );
     string[] memory inputs = new string[](4);
     inputs[0] = 'python3';
     inputs[1] = scriptPath;
@@ -666,14 +654,19 @@ contract GenerateAssetSnapshot is Script {
         }
       } else if (t.l2Token == ShutdownConfig.PREDEPLOY_ETH) {
         // ETH (predeploy) is bridged via L1StandardBridge deposits mapping.
-        try IL1StandardBridge(l1Bridge).deposits(address(0), ShutdownConfig.PREDEPLOY_ETH) returns (
-          uint256 deposit
-        ) {
+        try
+          IL1StandardBridge(l1Bridge).deposits(
+            address(0),
+            ShutdownConfig.PREDEPLOY_ETH
+          )
+        returns (uint256 deposit) {
           t.l1Deposit = deposit;
         } catch {
           console.log('  [WARN] Failed to get L1 ETH deposit from bridge');
         }
-      } else if (t.l2Token == ShutdownConfig.PREDEPLOY_USDC && l1UsdcBridge != address(0)) {
+      } else if (
+        t.l2Token == ShutdownConfig.PREDEPLOY_USDC && l1UsdcBridge != address(0)
+      ) {
         // USDC uses custom bridge
         if (t.l1Token == address(0)) {
           console.log('  [WARN] L1 USDC token is not set');
@@ -847,8 +840,9 @@ contract GenerateAssetSnapshot is Script {
           }
 
           // Execute batch
-          IMulticall3.Result[] memory results = IMulticall3(ShutdownConfig.MULTICALL3)
-            .aggregate3(calls);
+          IMulticall3.Result[] memory results = IMulticall3(
+            ShutdownConfig.MULTICALL3
+          ).aggregate3(calls);
 
           // Process results
           for (uint k = 0; k < results.length; k++) {
@@ -882,7 +876,9 @@ contract GenerateAssetSnapshot is Script {
 
       if (
         total == expected ||
-        (t.l2Token == ShutdownConfig.NATIVE_TOKEN && ShutdownConfig.abs(total, expected) <= ShutdownConfig.DEFAULT_NATIVE_BALANCE_TOLERANCE)
+        (t.l2Token == ShutdownConfig.NATIVE_TOKEN &&
+          ShutdownConfig.abs(total, expected) <=
+          ShutdownConfig.DEFAULT_NATIVE_BALANCE_TOLERANCE)
       ) {
         console.log('  Status: [OK] Match');
       } else {
