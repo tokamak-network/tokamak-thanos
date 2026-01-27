@@ -8,7 +8,7 @@ Once the administrator completes the L2 shutdown and registers the asset snapsho
 
 ## Withdrawal Permission Verification
 
-**Anyone can withdraw.** The `forceWithdrawClaim` function of the `UpgradeL1BridgeV1` contract has the following characteristics:
+**Anyone can withdraw.** The `forceWithdrawClaim` function of the `ForceWithdrawBridge` contract has the following characteristics:
 - **External**: It is a function that can be called by anyone from the outside.
 - **No Permission Constraints**: There are no administrator-only restrictions like `onlyOwner`.
 - **Hash Verification**: Security is guaranteed through cryptographic hash verification (`keccak256`) rather than permissions. In other words, the withdrawal succeeds only when your own asset information recorded in the snapshot is accurate.
