@@ -38,7 +38,7 @@ contract BlockDepositsWithdrawals is Script {
     // 1. Deploy the Closing Implementation
     console.log('Deploying OptimismPortalClosing...');
     OptimismPortalClosing closingImpl = new OptimismPortalClosing{
-      salt: bytes32(uint256(9999))
+      salt: bytes32(block.timestamp)
     }(currentImplementation);
     console.log('New Implementation deployed at:', address(closingImpl));
 
