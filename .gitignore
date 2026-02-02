@@ -22,6 +22,7 @@ packages/contracts-bedrock/deployments/anvil
 
 packages/tokamak/contracts-bedrock/deployments/devnetL1
 packages/tokamak/contracts-bedrock/deployments/anvil
+packages/tokamak/contracts-bedrock/data
 
 packages/tokamak/sdk/deployments
 

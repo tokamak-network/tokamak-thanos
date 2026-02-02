@@ -11,6 +11,7 @@ out = 'forge-artifacts'
 script = 'scripts'
 optimizer = true
 optimizer_runs = 999999
+via_ir = false
 remappings = [
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts',
   '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts',
@@ -52,7 +53,9 @@ fs_permissions = [
   { access='read', path = './forge-artifacts/' },
   { access='write', path='./semver-lock.json' },
   { access='read-write', path='./.testdata/' },
-  { access='read', path='./kout-deployment' }
+  { access='read-write', path='./data/' },
+  { access='read', path='./kout-deployment' },
+  { access='read', path='./scripts/' }
 ]
 libs = ["node_modules", "lib"]
 

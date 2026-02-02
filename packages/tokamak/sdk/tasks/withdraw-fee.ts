@@ -15,8 +15,6 @@ import {
 
 console.log('Setup task...')
 
-const privateKey = process.env.PRIVATE_KEY as BytesLike
-
 const l1Provider = new ethers.providers.StaticJsonRpcProvider(
   process.env.L1_URL
 )
@@ -63,41 +61,40 @@ let optimismPortal = process.env.OPTIMISM_PORTAL || ''
 let l2OutputOracle = process.env.L2_OUTPUT_ORACLE || ''
 
 const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
+  const deployments = (hre as any).deployments
   if (l2NativeToken === '') {
-    const Deployment__L2NativeToken = await hre.deployments.get('L2NativeToken')
+    const Deployment__L2NativeToken = await deployments.get('L2NativeToken')
     l2NativeToken = Deployment__L2NativeToken.address
   }
 
   if (addressManager === '') {
-    const Deployment__AddressManager = await hre.deployments.get(
-      'AddressManager'
-    )
+    const Deployment__AddressManager = await deployments.get('AddressManager')
     addressManager = Deployment__AddressManager.address
   }
 
   if (l1CrossDomainMessenger === '') {
-    const Deployment__L1CrossDomainMessenger = await hre.deployments.get(
+    const Deployment__L1CrossDomainMessenger = await deployments.get(
       'L1CrossDomainMessengerProxy'
     )
     l1CrossDomainMessenger = Deployment__L1CrossDomainMessenger.address
   }
 
   if (l1StandardBridge === '') {
-    const Deployment__L1StandardBridge = await hre.deployments.get(
+    const Deployment__L1StandardBridge = await deployments.get(
       'L1StandardBridgeProxy'
     )
     l1StandardBridge = Deployment__L1StandardBridge.address
   }
 
   if (optimismPortal === '') {
-    const Deployment__OptimismPortal = await hre.deployments.get(
+    const Deployment__OptimismPortal = await deployments.get(
       'OptimismPortalProxy'
     )
     optimismPortal = Deployment__OptimismPortal.address
   }
 
   if (l2OutputOracle === '') {
-    const Deployment__L2OutputOracle = await hre.deployments.get(
+    const Deployment__L2OutputOracle = await deployments.get(
       'L2OutputOracleProxy'
     )
     l2OutputOracle = Deployment__L2OutputOracle.address
@@ -106,6 +103,11 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
 
 const withdrawFee = async () => {
   console.log('Withdraw Fee:')
+
+  const privateKey = process.env.PRIVATE_KEY as BytesLike
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY env variable is required')
+  }
 
   const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
   const l2Wallet = new ethers.Wallet(privateKey, asL2Provider(l2Provider))
