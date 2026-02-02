@@ -47,7 +47,8 @@ run_forge() {
 }
 
 # --- Path Configuration ---
-REPO_ROOT="/Users/theo/workspace_tokamak/tokamak-thanos"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 CONTRACTS_DIR="$REPO_ROOT/packages/tokamak/contracts-bedrock"
 ADDRESSES_JSON="$REPO_ROOT/.devnet/addresses.json"
 DEPLOY_CONFIG="$CONTRACTS_DIR/deploy-config/devnetL1.json"
