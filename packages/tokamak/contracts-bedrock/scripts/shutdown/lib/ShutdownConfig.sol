@@ -42,6 +42,11 @@ library ShutdownConfig {
     /// @notice Native token address placeholder (address(0) represents native)
     address internal constant NATIVE_TOKEN = address(0);
 
+    /// @notice Forge default sender address (used in tests and scripts)
+    /// @dev This is the default msg.sender when running forge scripts without --sender flag
+    ///      See: https://book.getfoundry.sh/reference/config/testing#sender
+    address internal constant FORGE_DEFAULT_SENDER = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+
     // ========== Default Values ==========
 
     /// @notice Default batch size for multicall operations

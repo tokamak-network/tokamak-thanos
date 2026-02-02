@@ -926,13 +926,12 @@ contract GenerateAssetSnapshot is Script {
     console.log('  [INFO] Total holders after merge:', holders.length);
 
     // Filter out systemic addresses (Forge default sender, msg.sender, address(0))
-    address forgeDefaultSender = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
     address[] memory filtered = new address[](holders.length);
     uint256 count = 0;
 
     for (uint i = 0; i < holders.length; i++) {
       address h = holders[i];
-      if (h == address(0) || h == forgeDefaultSender || h == msg.sender)
+      if (h == address(0) || h == ShutdownConfig.FORGE_DEFAULT_SENDER || h == msg.sender)
         continue;
       filtered[count++] = h;
     }
