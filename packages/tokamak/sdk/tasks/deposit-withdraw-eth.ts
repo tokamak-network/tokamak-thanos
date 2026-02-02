@@ -15,16 +15,36 @@ import {
 
 console.log('Setup task...')
 
-const privateKey = process.env.PRIVATE_KEY as BytesLike
+// Lazy initialization to avoid module-level errors
+let _l1Provider: ethers.providers.StaticJsonRpcProvider | null = null
+let _l2Provider: ethers.providers.StaticJsonRpcProvider | null = null
+let _l1Wallet: ethers.Wallet | null = null
+let _l2Wallet: ethers.Wallet | null = null
 
-const l1Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L1_URL
-)
-const l2Provider = new ethers.providers.StaticJsonRpcProvider(
-  process.env.L2_URL
-)
-const l1Wallet = new ethers.Wallet(privateKey, l1Provider)
-const l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+const getProviders = () => {
+  if (!_l1Provider) {
+    _l1Provider = new ethers.providers.StaticJsonRpcProvider(process.env.L1_URL)
+  }
+  if (!_l2Provider) {
+    _l2Provider = new ethers.providers.StaticJsonRpcProvider(process.env.L2_URL)
+  }
+  return { l1Provider: _l1Provider, l2Provider: _l2Provider }
+}
+
+const getWallets = () => {
+  const privateKey = process.env.PRIVATE_KEY as BytesLike
+  if (!privateKey) {
+    throw new Error('PRIVATE_KEY environment variable is not set')
+  }
+  const { l1Provider, l2Provider } = getProviders()
+  if (!_l1Wallet) {
+    _l1Wallet = new ethers.Wallet(privateKey, l1Provider)
+  }
+  if (!_l2Wallet) {
+    _l2Wallet = new ethers.Wallet(privateKey, l2Provider)
+  }
+  return { l1Wallet: _l1Wallet, l2Wallet: _l2Wallet }
+}
 
 const erc20ABI = [
   {
@@ -98,6 +118,9 @@ const updateAddresses = async (hre: HardhatRuntimeEnvironment) => {
 }
 
 const depositETH = async (amount: NumberLike) => {
+  const { l1Wallet, l2Wallet } = getWallets()
+  const { l1Provider, l2Provider } = getProviders()
+
   console.log('Deposit ETH:', amount)
   console.log('l1 address:', l1Wallet.address)
   console.log('l2 address:', l2Wallet.address)
@@ -178,6 +201,9 @@ const depositETH = async (amount: NumberLike) => {
 }
 
 const withdrawETH = async (amount: NumberLike) => {
+  const { l1Wallet, l2Wallet } = getWallets()
+  const { l1Provider, l2Provider } = getProviders()
+
   console.log('Withdraw ETH:', amount)
   console.log('l1 address:', l1Wallet.address)
   console.log('l2 address:', l2Wallet.address)
