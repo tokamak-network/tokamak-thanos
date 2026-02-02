@@ -472,4 +472,175 @@ contract ForceWithdrawBridge_Unit_Test is Test {
 
         return string(hexString);
     }
+
+    /// ========================================
+    /// Fuzz Tests
+    /// ========================================
+
+    /// @notice Fuzz test for ERC20 force withdrawal with various amounts
+    /// @param amount Random amount to test (bounded to reasonable range)
+    function testFuzz_forceWithdrawClaim_ERC20_variousAmounts(uint256 amount) public {
+        // Bound amount to reasonable range (1 wei to 1000 ether)
+        amount = bound(amount, 1, 1000 ether);
+
+        console.log("=== Fuzz Test: ERC20 Withdrawal ===");
+        console.log("  Amount:", amount);
+
+        // Setup: Register and activate
+        _setupForceWithdrawal();
+
+        // Calculate hash for this amount
+        bytes32 fuzzHash = keccak256(abi.encodePacked(address(token), user1, amount));
+
+        // Setup hash in GenFWStorage
+        string memory funcName = string(abi.encodePacked("_", _bytes32ToHexString(fuzzHash), "()"));
+        bytes4 funcSig = bytes4(keccak256(bytes(funcName)));
+        genStorage1.setHash(funcSig, fuzzHash);
+
+        // Fund bridge with enough tokens
+        token.mint(address(bridgeProxy), amount);
+
+        // Record initial balance
+        uint256 initialBalance = token.balanceOf(user1);
+
+        // Execute claim
+        string memory hashStr = _bytes32ToHexString(fuzzHash);
+        vm.prank(user1);
+        bridgeProxy.forceWithdrawClaim(
+            address(genStorage1),
+            hashStr,
+            address(token),
+            amount,
+            user1
+        );
+
+        // Verify claim
+        assertEq(token.balanceOf(user1) - initialBalance, amount, "Balance mismatch");
+        assertTrue(bridgeProxy.claimState(fuzzHash), "Claim state not set");
+
+        console.log("  [OK] Fuzz test passed\n");
+    }
+
+    /// @notice Fuzz test for ETH force withdrawal with various amounts
+    /// @param amount Random amount to test (bounded to reasonable range)
+    function testFuzz_forceWithdrawClaim_ETH_variousAmounts(uint256 amount) public {
+        // Bound amount to reasonable range (1 wei to 1000 ether)
+        amount = bound(amount, 1, 1000 ether);
+
+        console.log("=== Fuzz Test: ETH Withdrawal ===");
+        console.log("  Amount:", amount);
+
+        // Setup: Register and activate
+        _setupForceWithdrawal();
+
+        // Calculate hash for this amount
+        bytes32 fuzzHash = keccak256(abi.encodePacked(address(0), user2, amount));
+
+        // Setup hash in GenFWStorage
+        string memory funcName = string(abi.encodePacked("_", _bytes32ToHexString(fuzzHash), "()"));
+        bytes4 funcSig = bytes4(keccak256(bytes(funcName)));
+        genStorage1.setHash(funcSig, fuzzHash);
+
+        // Fund bridge with enough ETH
+        vm.deal(address(bridgeProxy), amount);
+
+        // Record initial balance
+        uint256 initialBalance = user2.balance;
+
+        // Execute claim
+        string memory hashStr = _bytes32ToHexString(fuzzHash);
+        vm.prank(user2);
+        bridgeProxy.forceWithdrawClaim(
+            address(genStorage1),
+            hashStr,
+            address(0),
+            amount,
+            user2
+        );
+
+        // Verify claim
+        assertEq(user2.balance - initialBalance, amount, "Balance mismatch");
+        assertTrue(bridgeProxy.claimState(fuzzHash), "Claim state not set");
+
+        console.log("  [OK] Fuzz test passed\n");
+    }
+
+    /// @notice Fuzz test for force withdrawal with various recipient addresses
+    /// @param recipient Random recipient address
+    function testFuzz_forceWithdrawClaim_variousRecipients(address recipient) public {
+        // Skip invalid addresses
+        vm.assume(recipient != address(0));
+        vm.assume(recipient != address(bridgeProxy));
+        vm.assume(recipient.code.length == 0); // Skip contracts to avoid receive() issues
+
+        uint256 amount = 10 ether;
+
+        console.log("=== Fuzz Test: Various Recipients ===");
+        console.log("  Recipient:", recipient);
+
+        // Setup: Register and activate
+        _setupForceWithdrawal();
+
+        // Calculate hash for this recipient
+        bytes32 fuzzHash = keccak256(abi.encodePacked(address(token), recipient, amount));
+
+        // Setup hash in GenFWStorage
+        string memory funcName = string(abi.encodePacked("_", _bytes32ToHexString(fuzzHash), "()"));
+        bytes4 funcSig = bytes4(keccak256(bytes(funcName)));
+        genStorage1.setHash(funcSig, fuzzHash);
+
+        // Fund bridge with enough tokens
+        token.mint(address(bridgeProxy), amount);
+
+        // Record initial balance
+        uint256 initialBalance = token.balanceOf(recipient);
+
+        // Execute claim (anyone can call on behalf of recipient)
+        string memory hashStr = _bytes32ToHexString(fuzzHash);
+        vm.prank(user1);
+        bridgeProxy.forceWithdrawClaim(
+            address(genStorage1),
+            hashStr,
+            address(token),
+            amount,
+            recipient
+        );
+
+        // Verify claim
+        assertEq(token.balanceOf(recipient) - initialBalance, amount, "Balance mismatch");
+        assertTrue(bridgeProxy.claimState(fuzzHash), "Claim state not set");
+
+        console.log("  [OK] Fuzz test passed\n");
+    }
+
+    /// @notice Test edge case: amount = 0 should still work
+    function test_edge_zeroAmount_succeeds() public {
+        console.log("=== Edge Test: Zero Amount ===\n");
+
+        _setupForceWithdrawal();
+
+        uint256 amount = 0;
+        bytes32 zeroHash = keccak256(abi.encodePacked(address(token), user1, amount));
+
+        // Setup hash
+        string memory funcName = string(abi.encodePacked("_", _bytes32ToHexString(zeroHash), "()"));
+        bytes4 funcSig = bytes4(keccak256(bytes(funcName)));
+        genStorage1.setHash(funcSig, zeroHash);
+
+        // Execute claim
+        string memory hashStr = _bytes32ToHexString(zeroHash);
+        vm.prank(user1);
+        bridgeProxy.forceWithdrawClaim(
+            address(genStorage1),
+            hashStr,
+            address(token),
+            amount,
+            user1
+        );
+
+        // Verify claim state is set even for zero amount
+        assertTrue(bridgeProxy.claimState(zeroHash), "Claim state should be set");
+
+        console.log("  [OK] Zero amount claim succeeded\n");
+    }
 }

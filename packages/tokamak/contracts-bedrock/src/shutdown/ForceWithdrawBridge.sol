@@ -6,6 +6,9 @@ import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {
   SafeERC20
 } from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {
+  ReentrancyGuard
+} from '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 interface IProxyAdminOwner {
   function owner() external view returns (address);
@@ -22,7 +25,8 @@ interface IProxyAdminOwner {
 ///      - Compatible with L1ChugSplashProxy (setCode upgrade pattern)
 ///      - Simplified modifiers using assembly for proxy storage slots
 ///      - Added getProxyOwner() for compatibility with upgrade tasks
-contract ForceWithdrawBridge is L1StandardBridge {
+///      - Added ReentrancyGuard for protection against reentrancy attacks
+contract ForceWithdrawBridge is L1StandardBridge, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   /// @notice Error thrown when caller is not the proxy owner
@@ -254,7 +258,7 @@ contract ForceWithdrawBridge is L1StandardBridge {
   /// @notice Processes multiple force withdrawal claims in a single transaction
   /// @dev Iterates through all params and calls internal claim() function for each
   /// @param params Array of claim parameters (position, hash, token, amount, recipient)
-  function forceWithdrawClaimAll(ForceClaimParam[] calldata params) external {
+  function forceWithdrawClaimAll(ForceClaimParam[] calldata params) external nonReentrant {
     for (uint256 i = 0; i < params.length; i++) {
       claim(
         params[i].position,
@@ -279,7 +283,7 @@ contract ForceWithdrawBridge is L1StandardBridge {
     address _token,
     uint256 _amount,
     address _address
-  ) external {
+  ) external nonReentrant {
     claim(_position, _hash, _token, _amount, _address);
   }
 
