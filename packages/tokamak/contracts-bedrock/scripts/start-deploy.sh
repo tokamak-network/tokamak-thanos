@@ -324,6 +324,15 @@ deployContracts() {
   cd $projectRoot/packages/tokamak/contracts-bedrock
   unset DEPLOYMENT_OUTFILE
 
+  # Pass FPS parameters to op-challenger
+  echo "Set FPS params to op-challenger..."
+  if [ -n "$CHALLENGE_WINDOW" ]; then
+    echo "export CHALLENGE_WINDOW=$CHALLENGE_WINDOW" >> .env
+  fi
+  if [ -n "$CHALLENGER_PRIVATE_KEY" ]; then
+    echo "export CHALLENGER_PRIVATE_KEY=$CHALLENGER_PRIVATE_KEY" >> .env
+  fi
+
   echo "Deploying contracts to L1..."
   local deploy_result
   if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
