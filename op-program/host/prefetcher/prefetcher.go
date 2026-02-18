@@ -589,5 +589,12 @@ func parseHint(hint string) (string, []byte, error) {
 }
 
 func getPrecompiledContract(address common.Address) vm.PrecompiledContract {
-	return vm.PrecompiledContractsCancun[address]
+	if c, ok := vm.PrecompiledContractsCancun[address]; ok {
+		return c
+	}
+	// BLS12-381 precompiles (addresses 0x0b-0x10) are in the BLS set
+	if c, ok := vm.PrecompiledContractsBLS[address]; ok {
+		return c
+	}
+	return nil
 }

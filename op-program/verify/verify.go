@@ -51,7 +51,7 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 
 	setupLog := oplog.NewLogger(os.Stderr, logCfg)
 
-	l2RawRpc, err := dial.DialRPCClientWithTimeout(ctx, setupLog, l2RpcUrl)
+	l2RawRpc, err := dial.DialRPCClientWithTimeout(ctx, time.Minute, setupLog, l2RpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("dial L2 client: %w", err)
 	}
@@ -119,7 +119,7 @@ func (r *Runner) RunBetweenBlocks(ctx context.Context, l1Head common.Hash, start
 }
 
 func (r *Runner) createL2Client(ctx context.Context) (*sources.L2Client, error) {
-	l2RawRpc, err := dial.DialRPCClientWithTimeout(ctx, r.setupLog, r.l2RpcUrl)
+	l2RawRpc, err := dial.DialRPCClientWithTimeout(ctx, time.Minute, r.setupLog, r.l2RpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("dial L2 client: %w", err)
 	}
