@@ -146,7 +146,7 @@ func (o *ConsolidateOracle) consolidatedBlockByHash(blockHash common.Hash) *type
 		return nil
 	}
 	txs := o.loadTransactions(header.TxHash)
-	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs})
+	return types.NewBlockWithHeader(header).WithBody(txs, nil)
 }
 
 func (o *ConsolidateOracle) KeyValueStore() l2.KeyValueStore {

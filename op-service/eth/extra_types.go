@@ -36,8 +36,9 @@ func (b Bytes8) TerminalString() string {
 // ExecutionWitness represents block execution witness data.
 // In upstream op-geth this is types.ExecutionWitness; stub for tokamak-thanos-geth compat.
 type ExecutionWitness struct {
-	State   map[string]string `json:"state,omitempty"`
-	Headers []byte            `json:"headers,omitempty"`
+	State   []hexutil.Bytes `json:"state,omitempty"`
+	Codes   []hexutil.Bytes `json:"codes,omitempty"`
+	Headers []byte          `json:"headers,omitempty"`
 }
 
 // SupervisorSyncStatus represents the sync status of the supervisor.

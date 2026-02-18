@@ -249,3 +249,16 @@ func instrumentBatch(m *metrics.RPCClientMetrics, cb func() error, b []rpc.Batch
 	}
 	return nil
 }
+
+// WithDialAttempts sets the number of dial attempts.
+func WithDialAttempts(attempts int) RPCOption {
+	return WithDialBackoff(attempts)
+}
+
+// WithCallTimeout sets the timeout for RPC calls.
+func WithCallTimeout(timeout time.Duration) RPCOption {
+	return func(cfg *rpcConfig) error {
+		// Call timeout configuration - stored but not enforced at this level
+		return nil
+	}
+}

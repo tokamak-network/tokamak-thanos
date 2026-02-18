@@ -10,6 +10,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 	"github.com/tokamak-network/tokamak-thanos/op-program/chainconfig"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 const (
@@ -72,11 +73,11 @@ func (br *BootstrapClient) BootInfo() *BootInfo {
 		}
 	} else {
 		var err error
-		rollupConfig, err = chainconfig.RollupConfigByChainID(l2ChainID)
+		rollupConfig, err = chainconfig.RollupConfigByChainID(eth.ChainIDFromUInt64(l2ChainID))
 		if err != nil {
 			panic(err)
 		}
-		l2ChainConfig, err = chainconfig.ChainConfigByChainID(l2ChainID)
+		l2ChainConfig, err = chainconfig.L2ChainConfigByChainID(eth.ChainIDFromUInt64(l2ChainID))
 		if err != nil {
 			panic(err)
 		}

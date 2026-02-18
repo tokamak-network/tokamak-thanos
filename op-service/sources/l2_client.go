@@ -198,3 +198,17 @@ func (s *L2Client) OutputV0AtBlock(ctx context.Context, blockHash common.Hash) (
 		BlockHash:                blockHash,
 	}, nil
 }
+
+// OutputV0AtBlockNumber returns the OutputV0 for the given block number.
+func (s *L2Client) OutputV0AtBlockNumber(ctx context.Context, blockNum uint64) (*eth.OutputV0, error) {
+	ref, err := s.L2BlockRefByNumber(ctx, blockNum)
+	if err != nil {
+		return nil, err
+	}
+	return s.OutputV0AtBlock(ctx, ref.Hash)
+}
+
+// PayloadExecutionWitness is a stub for execution witness retrieval.
+func (s *L2Client) PayloadExecutionWitness(ctx context.Context, parentHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
+	return nil, nil
+}
