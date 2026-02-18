@@ -1,3 +1,6 @@
+//go:build isthmus_geth
+// +build isthmus_geth
+
 package engineapi
 
 import (
