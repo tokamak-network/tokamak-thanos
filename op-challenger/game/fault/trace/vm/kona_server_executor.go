@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
@@ -54,6 +55,9 @@ func (s *KonaExecutor) OracleCommand(cfg Config, dataDir string, inputs utils.Lo
 		}
 
 		chainCfg := chaincfg.ChainByName(cfg.Networks[0])
+		if chainCfg == nil {
+			return nil, fmt.Errorf("unknown network: %q", cfg.Networks[0])
+		}
 		args = append(args, "--l2-chain-id", strconv.FormatUint(chainCfg.ChainID, 10))
 	}
 

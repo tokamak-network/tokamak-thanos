@@ -53,7 +53,19 @@ func (a *AtomicWriter) Close() error {
 	return os.Rename(a.temp, a.dest)
 }
 
-// NewAtomicWriter creates an atomic writer (alias for NewAtomicWriterCompressed).
+// NewAtomicWriter creates an atomic writer that writes data as-is without compression.
 func NewAtomicWriter(path string, perm os.FileMode) (*AtomicWriter, error) {
-	return NewAtomicWriterCompressed(path, perm)
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path))
+	if err != nil {
+		return nil, err
+	}
+	if err := f.Chmod(perm); err != nil {
+		_ = f.Close()
+		return nil, err
+	}
+	return &AtomicWriter{
+		dest: path,
+		temp: f.Name(),
+		out:  f,
+	}, nil
 }
