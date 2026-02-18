@@ -158,7 +158,7 @@ func TestCheckWithdrawals(t *testing.T) {
 			requireBigInt("honest addr3", big.NewInt(2), metrics.honestWithdrawable[honestActor3])
 			require.Nil(t, metrics.honestWithdrawable[dishonestActor4], "should only report withdrawable credits for honest actors")
 
-			findUnclaimedCreditWarning := func(game common.Address, actor common.Address) *testlog.CapturedRecord {
+			findUnclaimedCreditWarning := func(game common.Address, actor common.Address) *testlog.HelperRecord {
 				return logs.FindLog(
 					testlog.NewLevelFilter(log.LevelWarn),
 					testlog.NewMessageFilter("Found unclaimed credit"),

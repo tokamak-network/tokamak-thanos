@@ -1,3 +1,6 @@
+//go:build interop_geth
+// +build interop_geth
+
 package interop
 
 import (

@@ -1,3 +1,6 @@
+//go:build agreement_enricher_refactored
+// +build agreement_enricher_refactored
+
 package extract
 
 import (
