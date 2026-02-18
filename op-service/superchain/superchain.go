@@ -12,6 +12,11 @@ import (
 
 var ErrUnknownChain = errors.New("unknown chain")
 
+func addrPtr(hex string) *common.Address {
+	a := common.HexToAddress(hex)
+	return &a
+}
+
 // Superchain describes a superchain network (e.g. mainnet, sepolia).
 type Superchain struct {
 	Name                   string         `toml:"name"`
@@ -153,17 +158,117 @@ func (c *Chain) Config() (*ChainConfig, error) {
 	return c.config, nil
 }
 
-// Chains is the global registry of known chains (empty for tokamak-thanos).
+// Chains is the global registry of known chains.
 var Chains map[uint64]*Chain
+
+// Superchains holds known superchain configs by network name.
+var Superchains map[string]Superchain
 
 func init() {
 	Chains = make(map[uint64]*Chain)
+	Superchains = make(map[string]Superchain)
+
+	// Register OP Mainnet superchain
+	Superchains["mainnet"] = Superchain{
+		Name: "mainnet",
+		L1:   L1Config{ChainID: 1},
+	}
+	// Register OP Sepolia superchain
+	Superchains["sepolia"] = Superchain{
+		Name: "sepolia",
+		L1:   L1Config{ChainID: 11155111},
+	}
+
+	zero := uint64(0)
+	denomCanyon := uint64(250)
+
+	portalMainnet := common.HexToAddress("0xbEb5Fc579115071764c7423A4f12eDde41f106Ed")
+	sysConfigMainnet := common.HexToAddress("0x229047fed2591dbec1eF1118d64F7aF3dB9EB290")
+	portalSepolia := common.HexToAddress("0x16Fc5058F25648194471939df75CF27A2fdC48BC")
+	sysConfigSepolia := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
+
+	// OP Mainnet (chain ID 10)
+	Chains[10] = &Chain{
+		Name:    "op",
+		Network: "mainnet",
+		config: &ChainConfig{
+			Name:              "OP Mainnet",
+			ChainID:           10,
+			BlockTime:         2,
+			SeqWindowSize:     3600,
+			MaxSequencerDrift: 600,
+			BatchInboxAddr:    common.HexToAddress("0xFF00000000000000000000000000000000000010"),
+			Optimism:          &OptimismConfig{EIP1559Elasticity: 6, EIP1559Denominator: 50, EIP1559DenominatorCanyon: &denomCanyon},
+			Hardforks: HardforkConfig{
+				CanyonTime:  &zero,
+				DeltaTime:   &zero,
+				EcotoneTime: &zero,
+				FjordTime:   &zero,
+				GraniteTime: &zero,
+			},
+			Addresses: AddressesConfig{
+				OptimismPortalProxy:     &portalMainnet,
+				SystemConfigProxy:       &sysConfigMainnet,
+				DisputeGameFactoryProxy: addrPtr("0xe5965Ab5962eDc7477C8520243A95517CD252fA9"),
+			},
+			Genesis: GenesisConfig{
+				L2Time: 1686068903,
+				L1:     GenesisRef{Hash: common.HexToHash("0x438335a20d98863a4c0c97999eb2481921ccd28553eac6f913af7c12aec04108"), Number: 17422590},
+				L2:     GenesisRef{Hash: common.HexToHash("0xdbf6a80fef073de06add9b0d14026d6e5a86c85f6d102c36d3d8e9cf89c2afd3"), Number: 105235063},
+				SystemConfig: SystemConfig{
+					BatcherAddr: common.HexToAddress("0x6887246668a3b87F54DeB3b94Ba47a6f63F32985"),
+					GasLimit:    30000000,
+				},
+			},
+			Network: "mainnet",
+		},
+	}
+
+	// OP Sepolia (chain ID 11155420)
+	Chains[11155420] = &Chain{
+		Name:    "op",
+		Network: "sepolia",
+		config: &ChainConfig{
+			Name:              "OP Sepolia",
+			ChainID:           11155420,
+			BlockTime:         2,
+			SeqWindowSize:     3600,
+			MaxSequencerDrift: 600,
+			BatchInboxAddr:    common.HexToAddress("0xFF00000000000000000000000000000000042069"),
+			Optimism:          &OptimismConfig{EIP1559Elasticity: 6, EIP1559Denominator: 50, EIP1559DenominatorCanyon: &denomCanyon},
+			Hardforks: HardforkConfig{
+				CanyonTime:  &zero,
+				DeltaTime:   &zero,
+				EcotoneTime: &zero,
+				FjordTime:   &zero,
+				GraniteTime: &zero,
+			},
+			Addresses: AddressesConfig{
+				OptimismPortalProxy:     &portalSepolia,
+				SystemConfigProxy:       &sysConfigSepolia,
+				DisputeGameFactoryProxy: addrPtr("0x05F9613aDB30026FFd634f38e5C4dFd30a197Fa1"),
+			},
+			Genesis: GenesisConfig{
+				L2Time: 1691802540,
+				L1:     GenesisRef{Hash: common.HexToHash("0x48f520cf4ddaf34c8336e6e490571f5e0fd16de3f16b0d18e93c7e95299675d2"), Number: 4071248},
+				L2:     GenesisRef{Hash: common.HexToHash("0x102de6ffb001480cc9b8b548fd05c34cd4f46ae4aa91759393db90ea0409887d"), Number: 0},
+				SystemConfig: SystemConfig{
+					BatcherAddr: common.HexToAddress("0x8F23BB38F531600e5d8FDDaAEC41F13FaB46E98c"),
+					GasLimit:    30000000,
+				},
+			},
+			Network: "sepolia",
+		},
+	}
 }
 
 // GetSuperchain returns the superchain config for a given network.
-// In tokamak-thanos, this returns an error as we don't embed op-geth superchain configs.
 func GetSuperchain(network string) (Superchain, error) {
-	return Superchain{}, fmt.Errorf("%w: superchain registry not available for network %q", ErrUnknownChain, network)
+	sc, ok := Superchains[network]
+	if !ok {
+		return Superchain{}, fmt.Errorf("%w: superchain registry not available for network %q", ErrUnknownChain, network)
+	}
+	return sc, nil
 }
 
 // GetChain returns chain config by chain ID.

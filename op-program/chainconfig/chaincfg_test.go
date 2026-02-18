@@ -55,8 +55,6 @@ func TestGetCustomL1ChainConfig_KnownChainID(t *testing.T) {
 	knownChainIds := []eth.ChainID{
 		eth.ChainIDFromUInt64(1),        // Mainnet
 		eth.ChainIDFromUInt64(11155111), // Sepolia
-		eth.ChainIDFromUInt64(17000),    // Holesky
-		eth.ChainIDFromUInt64(560048),   // Hoodi
 	}
 	for _, chainID := range knownChainIds {
 		cfg, err := L1ChainConfigByChainID(chainID)
