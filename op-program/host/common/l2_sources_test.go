@@ -129,3 +129,7 @@ func (c *chainIDRPC) BatchCallContext(ctx context.Context, b []rpc.BatchElem) er
 func (c *chainIDRPC) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
 	panic("implement me")
 }
+
+func (c *chainIDRPC) EthSubscribe(ctx context.Context, channel any, args ...any) (ethereum.Subscription, error) {
+	panic("implement me")
+}

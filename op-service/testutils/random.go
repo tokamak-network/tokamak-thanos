@@ -352,3 +352,16 @@ func RandomOutputV0(rng *rand.Rand) *eth.OutputV0 {
 		BlockHash:                RandomHash(rng),
 	}
 }
+
+// RandomBlob creates a random blob and computes its KZG commitment.
+func RandomBlob(rng *rand.Rand) (*eth.Blob, eth.Bytes48, error) {
+	var blob eth.Blob
+	rng.Read(blob[:])
+	// Zero out the top bits of each field element to make it valid
+	for i := 0; i < 4096; i++ {
+		blob[i*32] = 0
+	}
+	var commitment eth.Bytes48
+	rng.Read(commitment[:])
+	return &blob, commitment, nil
+}
