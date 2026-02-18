@@ -8,18 +8,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/dial"
+	openum "github.com/ethereum-optimism/optimism/op-service/enum"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
-	openum "github.com/tokamak-network/tokamak-thanos/op-service/enum"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/urfave/cli/v2"
 )
 
@@ -71,7 +71,10 @@ func ListGames(ctx *cli.Context) error {
 	defer l1Client.Close()
 
 	caller := batching.NewMultiCaller(l1Client.Client(), batching.DefaultBatchSize)
-	contract := contracts.NewDisputeGameFactoryContract(metrics.NoopContractMetrics, factoryAddr, caller)
+	contract, err := contracts.NewDisputeGameFactoryContract(ctx.Context, metrics.NoopContractMetrics, factoryAddr, caller)
+	if err != nil {
+		return fmt.Errorf("failed to create dispute game factory contract: %w", err)
+	}
 	head, err := l1Client.HeaderByNumber(ctx.Context, nil)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve current head block: %w", err)
@@ -99,31 +102,32 @@ func listGames(ctx context.Context, caller *batching.MultiCaller, factory *contr
 	infos := make([]gameInfo, len(games))
 	var wg sync.WaitGroup
 	for idx, game := range games {
-		gameContract, err := contracts.NewFaultDisputeGameContract(ctx, metrics.NoopContractMetrics, game.Proxy, caller)
+		idx := idx
+		gameContract, err := contracts.NewDisputeGameContractForGame(ctx, metrics.NoopContractMetrics, caller, game)
 		if err != nil {
 			return fmt.Errorf("failed to create dispute game contract: %w", err)
 		}
-		info := gameInfo{GameMetadata: game}
-		infos[idx] = info
+		infos[idx] = gameInfo{GameMetadata: game}
 		gameProxy := game.Proxy
-		currIndex := idx
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			metadata, err := gameContract.GetGameMetadata(ctx, rpcblock.ByHash(block))
+			metadata, err := gameContract.GetMetadata(ctx, rpcblock.ByHash(block))
 			if err != nil {
-				info.err = fmt.Errorf("failed to retrieve metadata for game %v: %w", gameProxy, err)
+				infos[idx].err = fmt.Errorf("failed to retrieve metadata for game %v: %w", gameProxy, err)
 				return
 			}
-			infos[currIndex].status = metadata.Status
-			infos[currIndex].l2BlockNum = metadata.L2BlockNum
-			infos[currIndex].rootClaim = metadata.RootClaim
-			claimCount, err := gameContract.GetClaimCount(ctx)
-			if err != nil {
-				info.err = fmt.Errorf("failed to retrieve claim count for game %v: %w", gameProxy, err)
-				return
+			infos[idx].status = metadata.Status
+			infos[idx].l2BlockNum = metadata.L2SequenceNum
+			infos[idx].rootClaim = metadata.ProposedRoot
+			if fdg, ok := gameContract.(contracts.FaultDisputeGameContract); ok {
+				claimCount, err := fdg.GetClaimCount(ctx)
+				if err != nil {
+					infos[idx].err = fmt.Errorf("failed to retrieve claim count for game %v: %w", gameProxy, err)
+					return
+				}
+				infos[idx].claimCount = claimCount
 			}
-			infos[currIndex].claimCount = claimCount
 		}()
 	}
 	wg.Wait()
@@ -183,6 +187,6 @@ var ListGamesCommand = &cli.Command{
 	Name:        "list-games",
 	Usage:       "List the games created by a dispute game factory",
 	Description: "Lists the games created by a dispute game factory",
-	Action:      ListGames,
+	Action:      Interruptible(ListGames),
 	Flags:       listGamesFlags(),
 }

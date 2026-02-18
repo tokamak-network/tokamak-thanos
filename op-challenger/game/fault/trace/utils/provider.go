@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
-	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 )
 
 const (
@@ -92,5 +92,22 @@ func FirstPrecompilePreimageLoad() PreimageOpt {
 func PreimageLargerThan(size int) PreimageOpt {
 	return func() preimageOpts {
 		return []string{"--stop-at-preimage-larger-than", strconv.Itoa(size)}
+	}
+}
+
+type PreimageOptConfig struct {
+	KeyPrefix byte
+	Offset    uint32
+	AfterStep uint64
+}
+
+func PreimageOptConfigForType(keyType preimage.KeyType) PreimageOptConfig {
+	return PreimageOptConfig{KeyPrefix: byte(keyType)}
+}
+
+func (conf PreimageOptConfig) PreimageLoad() PreimageOpt {
+	keyPrefix := fmt.Sprintf("%x", conf.KeyPrefix)
+	return func() preimageOpts {
+		return []string{"--stop-at-preimage", fmt.Sprintf("%s@%v@%v", keyPrefix, conf.Offset, conf.AfterStep)}
 	}
 }

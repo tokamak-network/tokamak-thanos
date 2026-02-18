@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 var DefaultClaimant = common.Address{0xba, 0xdb, 0xad, 0xba, 0xdb, 0xad}

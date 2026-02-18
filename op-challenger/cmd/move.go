@@ -1,15 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 	"github.com/urfave/cli/v2"
 )
 
@@ -70,7 +69,7 @@ func Move(ctx *cli.Context) error {
 		return fmt.Errorf("either attack or defense flag must be set")
 	}
 
-	rct, err := txMgr.Send(context.Background(), tx)
+	rct, err := txMgr.Send(ctx.Context, tx)
 	if err != nil {
 		return fmt.Errorf("failed to send tx: %w", err)
 	}
@@ -97,6 +96,6 @@ var MoveCommand = &cli.Command{
 	Name:        "move",
 	Usage:       "Creates and sends a move transaction to the dispute game",
 	Description: "Creates and sends a move transaction to the dispute game",
-	Action:      Move,
+	Action:      Interruptible(Move),
 	Flags:       moveFlags(),
 }

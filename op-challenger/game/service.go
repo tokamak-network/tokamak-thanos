@@ -7,30 +7,31 @@ import (
 	"io"
 	"sync/atomic"
 
+	challengerClient "github.com/ethereum-optimism/optimism/op-challenger/game/client"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/fetcher"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/zk"
+	"github.com/ethereum-optimism/optimism/op-challenger/sender"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/fetcher"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/sender"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/claims"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/registry"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/version"
-	"github.com/tokamak-network/tokamak-thanos/op-service/client"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
-	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
-	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
+	"github.com/ethereum-optimism/optimism/op-challenger/config"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/claims"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/registry"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
+	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
+	"github.com/ethereum-optimism/optimism/op-challenger/version"
+	"github.com/ethereum-optimism/optimism/op-service/client"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/dial"
+	"github.com/ethereum-optimism/optimism/op-service/httputil"
+	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/oppprof"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 )
 
 type Service struct {
@@ -39,7 +40,7 @@ type Service struct {
 	monitor *gameMonitor
 	sched   *scheduler.Scheduler
 
-	faultGamesCloser fault.CloseFunc
+	clientProvider *challengerClient.Provider
 
 	preimages *keccak.LargePreimageScheduler
 
@@ -55,7 +56,6 @@ type Service struct {
 	factoryContract *contracts.DisputeGameFactoryContract
 	registry        *registry.GameTypeRegistry
 	oracles         *registry.OracleRegistry
-	rollupClient    *sources.RollupClient
 
 	l1Client   *ethclient.Client
 	pollClient client.RPC
@@ -93,9 +93,6 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	if err := s.initL1Client(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init l1 client: %w", err)
 	}
-	if err := s.initRollupClient(ctx, cfg); err != nil {
-		return fmt.Errorf("failed to init rollup client: %w", err)
-	}
 	if err := s.initPollClient(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to init poll client: %w", err)
 	}
@@ -105,7 +102,7 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	if err := s.initMetricsServer(&cfg.MetricsConfig); err != nil {
 		return fmt.Errorf("failed to init metrics server: %w", err)
 	}
-	if err := s.initFactoryContract(cfg); err != nil {
+	if err := s.initFactoryContract(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to create factory contract bindings: %w", err)
 	}
 	if err := s.registerGameTypes(ctx, cfg); err != nil {
@@ -197,9 +194,12 @@ func (s *Service) initMetricsServer(cfg *opmetrics.CLIConfig) error {
 	return nil
 }
 
-func (s *Service) initFactoryContract(cfg *config.Config) error {
-	factoryContract := contracts.NewDisputeGameFactoryContract(s.metrics, cfg.GameFactoryAddress,
+func (s *Service) initFactoryContract(ctx context.Context, cfg *config.Config) error {
+	factoryContract, err := contracts.NewDisputeGameFactoryContract(ctx, s.metrics, cfg.GameFactoryAddress,
 		batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize))
+	if err != nil {
+		return fmt.Errorf("failed to create factory contract: %w", err)
+	}
 	s.factoryContract = factoryContract
 	return nil
 }
@@ -210,27 +210,18 @@ func (s *Service) initBondClaims() error {
 	return nil
 }
 
-func (s *Service) initRollupClient(ctx context.Context, cfg *config.Config) error {
-	if cfg.RollupRpc == "" {
-		return nil
-	}
-	rollupClient, err := dial.DialRollupClientWithTimeout(ctx, dial.DefaultDialTimeout, s.logger, cfg.RollupRpc)
-	if err != nil {
-		return err
-	}
-	s.rollupClient = rollupClient
-	return nil
-}
-
 func (s *Service) registerGameTypes(ctx context.Context, cfg *config.Config) error {
 	gameTypeRegistry := registry.NewGameTypeRegistry()
 	oracles := registry.NewOracleRegistry()
-	caller := batching.NewMultiCaller(s.l1Client.Client(), batching.DefaultBatchSize)
-	closer, err := fault.RegisterGameTypes(ctx, s.systemClock, s.l1Clock, s.logger, s.metrics, cfg, gameTypeRegistry, oracles, s.rollupClient, s.txSender, s.factoryContract, caller, s.l1Client, cfg.SelectiveClaimResolution, s.claimants)
+	s.clientProvider = challengerClient.NewProvider(ctx, s.logger, cfg, s.l1Client)
+	err := fault.RegisterGameTypes(ctx, s.systemClock, s.l1Clock, s.logger, s.metrics, cfg, gameTypeRegistry, oracles, s.txSender, s.factoryContract, s.clientProvider, cfg.SelectiveClaimResolution, s.claimants)
 	if err != nil {
 		return err
 	}
-	s.faultGamesCloser = closer
+	err = zk.RegisterGameTypes(ctx, s.l1Clock, s.logger, s.metrics, cfg, gameTypeRegistry, s.txSender, s.clientProvider, s.factoryContract)
+	if err != nil {
+		return err
+	}
 	s.registry = gameTypeRegistry
 	s.oracles = oracles
 	return nil
@@ -246,12 +237,12 @@ func (s *Service) initLargePreimages() error {
 	fetcher := fetcher.NewPreimageFetcher(s.logger, s.l1Client)
 	verifier := keccak.NewPreimageVerifier(s.logger, fetcher)
 	challenger := keccak.NewPreimageChallenger(s.logger, s.metrics, verifier, s.txSender)
-	s.preimages = keccak.NewLargePreimageScheduler(s.logger, s.l1Clock, s.oracles, challenger)
+	s.preimages = keccak.NewLargePreimageScheduler(s.logger, s.metrics, s.l1Clock, s.oracles, challenger)
 	return nil
 }
 
 func (s *Service) initMonitor(cfg *config.Config) {
-	s.monitor = newGameMonitor(s.logger, s.l1Clock, s.factoryContract, s.sched, s.preimages, cfg.GameWindow, s.claimer, s.l1Client.BlockNumber, cfg.GameAllowlist, s.pollClient)
+	s.monitor = newGameMonitor(s.logger, s.l1Clock, s.factoryContract, s.sched, s.preimages, cfg.GameWindow, s.claimer, cfg.GameAllowlist, s.pollClient, cfg.MinUpdateInterval)
 }
 
 func (s *Service) Start(ctx context.Context) error {
@@ -281,8 +272,13 @@ func (s *Service) Stop(ctx context.Context) error {
 	if s.monitor != nil {
 		s.monitor.StopMonitoring()
 	}
-	if s.faultGamesCloser != nil {
-		s.faultGamesCloser()
+	if s.claimer != nil {
+		if err := s.claimer.Close(); err != nil {
+			result = errors.Join(result, fmt.Errorf("failed to close claimer: %w", err))
+		}
+	}
+	if s.clientProvider != nil {
+		s.clientProvider.Close()
 	}
 	if s.pprofService != nil {
 		if err := s.pprofService.Stop(ctx); err != nil {
@@ -299,9 +295,6 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.txMgr.Close()
 	}
 
-	if s.rollupClient != nil {
-		s.rollupClient.Close()
-	}
 	if s.pollClient != nil {
 		s.pollClient.Close()
 	}

@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
+	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
+	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 var stubChallengePeriod = uint64(3600)
@@ -50,7 +51,7 @@ func TestScheduleNextCheck(t *testing.T) {
 	}
 	cl := clock.NewDeterministicClock(time.Unix(int64(currentTimestamp), 0))
 	challenger := &stubChallenger{}
-	scheduler := NewLargePreimageScheduler(logger, cl, OracleSourceArray{oracle}, challenger)
+	scheduler := NewLargePreimageScheduler(logger, metrics.NoopMetrics, cl, OracleSourceArray{oracle}, challenger)
 	scheduler.Start(ctx)
 	defer scheduler.Close()
 	err := scheduler.Schedule(common.Hash{0xaa}, 3)

@@ -9,15 +9,15 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 const (
@@ -437,7 +437,7 @@ func (s *stubL1Source) BlockByNumber(_ context.Context, number *big.Int) (*types
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	return (&types.Block{}).WithBody(txs, nil), nil
+	return (&types.Block{}).WithBody(types.Body{Transactions: txs}), nil
 }
 
 func (s *stubL1Source) TransactionReceipt(_ context.Context, txHash common.Hash) (*types.Receipt, error) {

@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,8 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
-
-type blockNumberFetcher func(ctx context.Context) (uint64, error)
 
 // gameSource loads information about the games available to play
 type gameSource interface {
@@ -44,22 +42,23 @@ type claimer interface {
 }
 
 type gameMonitor struct {
-	logger           log.Logger
-	clock            RWClock
-	source           gameSource
-	scheduler        gameScheduler
-	preimages        preimageScheduler
-	gameWindow       time.Duration
-	claimer          claimer
-	fetchBlockNumber blockNumberFetcher
-	allowedGames     []common.Address
-	l1HeadsSub       ethereum.Subscription
-	l1Source         *headSource
-	runState         sync.Mutex
+	logger              log.Logger
+	clock               RWClock
+	source              gameSource
+	scheduler           gameScheduler
+	preimages           preimageScheduler
+	gameWindow          time.Duration
+	claimer             claimer
+	allowedGames        []common.Address
+	l1HeadsSub          ethereum.Subscription
+	l1Source            *headSource
+	runState            sync.Mutex
+	minUpdatePeriod     time.Duration
+	lastUpdateBlockTime time.Time
 }
 
 type MinimalSubscriber interface {
-	EthSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (ethereum.Subscription, error)
+	Subscribe(ctx context.Context, namespace string, channel interface{}, args ...interface{}) (ethereum.Subscription, error)
 }
 
 type headSource struct {
@@ -67,7 +66,7 @@ type headSource struct {
 }
 
 func (s *headSource) SubscribeNewHead(ctx context.Context, ch chan<- *ethTypes.Header) (ethereum.Subscription, error) {
-	return s.inner.EthSubscribe(ctx, ch, "newHeads")
+	return s.inner.Subscribe(ctx, "eth", ch, "newHeads")
 }
 
 func newGameMonitor(
@@ -78,21 +77,21 @@ func newGameMonitor(
 	preimages preimageScheduler,
 	gameWindow time.Duration,
 	claimer claimer,
-	fetchBlockNumber blockNumberFetcher,
 	allowedGames []common.Address,
 	l1Source MinimalSubscriber,
+	minUpdatePeriodSeconds time.Duration,
 ) *gameMonitor {
 	return &gameMonitor{
-		logger:           logger,
-		clock:            cl,
-		scheduler:        scheduler,
-		preimages:        preimages,
-		source:           source,
-		gameWindow:       gameWindow,
-		claimer:          claimer,
-		fetchBlockNumber: fetchBlockNumber,
-		allowedGames:     allowedGames,
-		l1Source:         &headSource{inner: l1Source},
+		logger:          logger,
+		clock:           cl,
+		scheduler:       scheduler,
+		preimages:       preimages,
+		source:          source,
+		gameWindow:      gameWindow,
+		claimer:         claimer,
+		allowedGames:    allowedGames,
+		l1Source:        &headSource{inner: l1Source},
+		minUpdatePeriod: minUpdatePeriodSeconds,
 	}
 }
 
@@ -133,12 +132,17 @@ func (m *gameMonitor) progressGames(ctx context.Context, blockHash common.Hash, 
 	return nil
 }
 
-func (m *gameMonitor) onNewL1Head(ctx context.Context, sig eth.L1BlockRef) {
-	m.clock.SetTime(sig.Time)
-	if err := m.progressGames(ctx, sig.Hash, sig.Number); err != nil {
+func (m *gameMonitor) onNewL1Head(ctx context.Context, block eth.L1BlockRef) {
+	m.clock.SetTime(block.Time)
+	blockTime := time.Unix(int64(block.Time), 0)
+	if m.lastUpdateBlockTime.Add(m.minUpdatePeriod).After(blockTime) {
+		return
+	}
+	m.lastUpdateBlockTime = blockTime
+	if err := m.progressGames(ctx, block.Hash, block.Number); err != nil {
 		m.logger.Error("Failed to progress games", "err", err)
 	}
-	if err := m.preimages.Schedule(sig.Hash, sig.Number); err != nil {
+	if err := m.preimages.Schedule(block.Hash, block.Number); err != nil {
 		m.logger.Error("Failed to validate large preimages", "err", err)
 	}
 }

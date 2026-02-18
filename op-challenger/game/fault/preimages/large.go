@@ -9,15 +9,15 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/keccak/matrix"
+	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/matrix"
-	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 var _ PreimageUploader = (*LargePreimageUploader)(nil)
@@ -164,11 +164,6 @@ func (p *LargePreimageUploader) initLargePreimage(uuid *big.Int, partOffset uint
 	if err != nil {
 		return fmt.Errorf("failed to create pre-image oracle tx: %w", err)
 	}
-	bond, err := p.contract.GetMinBondLPP(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to get min bond for large preimage proposal: %w", err)
-	}
-	candidate.Value = bond
 	if err := p.txSender.SendAndWaitSimple("init large preimage", candidate); err != nil {
 		return fmt.Errorf("failed to populate pre-image oracle: %w", err)
 	}

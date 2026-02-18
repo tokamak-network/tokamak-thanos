@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
+	"github.com/ethereum-optimism/optimism/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/urfave/cli/v2"
 )
 
@@ -46,6 +46,6 @@ var ResolveCommand = &cli.Command{
 	Name:        "resolve",
 	Usage:       "Resolves the specified dispute game if possible",
 	Description: "Resolves the specified dispute game if possible",
-	Action:      Resolve,
+	Action:      Interruptible(Resolve),
 	Flags:       resolveFlags(),
 }

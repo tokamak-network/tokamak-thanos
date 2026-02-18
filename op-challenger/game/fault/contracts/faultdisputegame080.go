@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
+	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 )
 
 //go:embed abis/FaultDisputeGame-0.8.0.json
@@ -29,8 +29,8 @@ type FaultDisputeGameContract080 struct {
 }
 
 // GetGameMetadata returns the game's L1 head, L2 block number, root claim, status, and max clock duration.
-func (f *FaultDisputeGameContract080) GetGameMetadata(ctx context.Context, block rpcblock.Block) (GameMetadata, error) {
-	defer f.metrics.StartContractRequest("GetGameMetadata")()
+func (f *FaultDisputeGameContract080) GetExtendedMetadata(ctx context.Context, block rpcblock.Block) (GameMetadata, error) {
+	defer f.metrics.StartContractRequest("GetExtendedMetadata")()
 	results, err := f.multiCaller.Call(ctx, block,
 		f.contract.Call(methodL1Head),
 		f.contract.Call(methodL2BlockNumber),
@@ -53,7 +53,7 @@ func (f *FaultDisputeGameContract080) GetGameMetadata(ctx context.Context, block
 	duration := results[4].GetUint64(0)
 	return GameMetadata{
 		L1Head:                  l1Head,
-		L2BlockNum:              l2BlockNumber,
+		L2SequenceNum:           l2BlockNumber,
 		RootClaim:               rootClaim,
 		Status:                  status,
 		MaxClockDuration:        duration / 2,
@@ -156,4 +156,8 @@ func (f *FaultDisputeGameContract080) AttackTx(ctx context.Context, parent types
 func (f *FaultDisputeGameContract080) DefendTx(ctx context.Context, parent types.Claim, pivot common.Hash) (txmgr.TxCandidate, error) {
 	call := f.contract.Call(methodDefend, big.NewInt(int64(parent.ContractIndex)), pivot)
 	return f.txWithBond(ctx, parent.Position.Defend(), call)
+}
+
+func (f *FaultDisputeGameContract080) GetBondDistributionMode(ctx context.Context, block rpcblock.Block) (types.BondDistributionMode, error) {
+	return types.LegacyDistributionMode, nil
 }

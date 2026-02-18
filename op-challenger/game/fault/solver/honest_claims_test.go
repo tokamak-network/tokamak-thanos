@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/test"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/test"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
 )
 
 func TestHonestClaimTracker_RootClaim(t *testing.T) {

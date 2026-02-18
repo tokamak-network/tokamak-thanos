@@ -4,19 +4,19 @@ import (
 	"context"
 	"os"
 
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/metrics"
+	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum/go-ethereum/log"
 
-	challenger "github.com/tokamak-network/tokamak-thanos/op-challenger"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/version"
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
-	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
+	challenger "github.com/ethereum-optimism/optimism/op-challenger"
+	"github.com/ethereum-optimism/optimism/op-challenger/config"
+	"github.com/ethereum-optimism/optimism/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/op-challenger/version"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	"github.com/ethereum-optimism/optimism/op-service/cliapp"
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 )
 
 var (
@@ -29,7 +29,7 @@ var VersionWithMeta = opservice.FormatVersion(version.Version, GitCommit, GitDat
 
 func main() {
 	args := os.Args
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	if err := run(ctx, args, func(ctx context.Context, l log.Logger, config *config.Config) (cliapp.Lifecycle, error) {
 		return challenger.Main(ctx, l, config, metrics.NewMetrics())
 	}); err != nil {
@@ -51,10 +51,12 @@ func run(ctx context.Context, args []string, action ConfiguredLifecycle) error {
 	app.Commands = []*cli.Command{
 		ListGamesCommand,
 		ListClaimsCommand,
+		ListCreditsCommand,
 		CreateGameCommand,
 		MoveCommand,
 		ResolveCommand,
 		ResolveClaimCommand,
+		RunTraceCommand,
 	}
 	app.Action = cliapp.LifecycleCmd(func(ctx *cli.Context, close context.CancelCauseFunc) (cliapp.Lifecycle, error) {
 		logger, err := setupLogging(ctx)

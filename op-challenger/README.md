@@ -1,7 +1,7 @@
 # op-challenger
 
 The `op-challenger` is a modular **op-stack** challenge agent written in
-golang for dispute games including, but not limited to,attestation games,
+golang for dispute games including, but not limited to, attestation games,
 fault games, and validity games. To learn more about dispute games, visit
 the [fault proof specs][proof-specs].
 
@@ -22,19 +22,20 @@ accessed by running `./op-challenger --help`.
 ### Running with Cannon on Local Devnet
 
 To run `op-challenger` against the local devnet, first clean and run
-the devnet from the root of the repository.
+the devnet. From the root of the repository run:
+
 ```shell
-make devnet-clean
-make devnet-up
+cd kurtosis-devnet && just simple-devnet
 ```
 
 Then build the `op-challenger` with `make op-challenger`.
 
 Run the `op-challenger` with:
+
 ```shell
 DISPUTE_GAME_FACTORY=$(jq -r .DisputeGameFactoryProxy .devnet/addresses.json)
 ./op-challenger/bin/op-challenger \
-  --trace-type cannon \
+  --game-types cannon \
   --l1-eth-rpc http://localhost:8545 \
   --rollup-rpc http://localhost:9546 \
   --game-factory-address $DISPUTE_GAME_FACTORY \
@@ -43,7 +44,7 @@ DISPUTE_GAME_FACTORY=$(jq -r .DisputeGameFactoryProxy .devnet/addresses.json)
   --cannon-l2-genesis .devnet/genesis-l2.json \
   --cannon-bin ./cannon/bin/cannon \
   --cannon-server ./op-program/bin/op-program \
-  --cannon-prestate ./op-program/bin/prestate.json \
+  --cannon-prestate ./op-program/bin/prestate.bin.gz \
   --l2-eth-rpc http://localhost:9545 \
   --mnemonic "test test test test test test test test test test test junk" \
   --hd-path "m/44'/60'/0'/0/8" \
@@ -54,6 +55,22 @@ The mnemonic and hd-path above is a prefunded address on the devnet.
 The challenger will monitor dispute games and respond to any invalid
 claims by posting the correct trace as the counter-claim. The commands
 below can then be used to create and interact with games.
+
+#### Devnet Management Commands
+
+```shell
+# Check status
+kurtosis enclave ls
+kurtosis enclave inspect simple-devnet
+
+# View logs from specific services
+kurtosis service logs simple-devnet op-challenger-challenger-2151908 # Adjust names as needed
+kurtosis service logs simple-devnet op-node-2151908-node0 # Adjust names as needed
+
+# Stop and clean up when done
+kurtosis enclave stop simple-devnet
+kurtosis enclave rm simple-devnet
+```
 
 ## Subcommands
 
@@ -67,7 +84,7 @@ used in production and are intended to provide convenient manual testing.
 ```shell
 ./bin/op-challenger create-game \
   --l1-eth-rpc <L1_ETH_RPC> \
-  --game-address <GAME_FACTORY_ADDRESS> \
+  --game-factory-address <GAME_FACTORY_ADDRESS> \
   --output-root <OUTPUT_ROOT> \
   --l2-block-num <L2_BLOCK_NUM> \
   <SIGNER_ARGS>
@@ -82,8 +99,10 @@ in the L2 output oracle.
 * `L2_BLOCK_NUM` the L2 block number the proposed output root is from.
 * `SIGNER_ARGS` arguments to specify the key to sign transactions with (e.g `--private-key`)
 
-Optionally, you may specify the game type (aka "trace type") using the `--trace-type`
-flag, which is set to the cannon trace type by default.
+Optionally, you may override the game types to support using the `--game-types` flag.
+
+For known networks, the `--game-factory-address` option can be replaced by `--network`. See the `--help` output for a
+list of predefined networks.
 
 ### move
 
@@ -162,10 +181,13 @@ Prints the games created by the game factory along with their current status.
 * `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
 * `GAME_FACTORY_ADDRESS` - the address of the dispute game factory contract on L1.
 
+For known networks, the `--game-factory-address` option can be replaced by `--network`. See the `--help` output for a
+list of predefined networks.
+
 ### list-claims
 
 ```shell
-./bin/op-challenger list-games \
+./bin/op-challenger list-claims \
   --l1-eth-rpc <L1_ETH_RPC> \
   --game-address <GAME_ADDRESS>
 ```
@@ -174,3 +196,39 @@ Prints the list of current claims in a dispute game.
 
 * `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
 * `GAME_ADDRESS` - the address of the dispute game to list the move in.
+
+### run-trace
+
+```shell
+./bin/op-challenger run-trace \
+  --network=<NETWORK_NAME> \
+  --l1-eth-rpc=<L1_ETH_RPC> \
+  --l1-beacon=<L1_BEACON> \
+  --l2-eth-rpc=<L2_ETH_RPC> \
+  --rollup-rpc=<ROLLUP_RPC> \
+  --datadir=<DATA_DIR> \
+  --prestates-url=<PRESTATES_URL> \
+  --run=<RUN_CONFIG>
+```
+
+* `NETWORK_NAME` - the name of a predefined L2 network.
+* `L1_ETH_RPC` - the RPC endpoint of the L1 endpoint to use (e.g. `http://localhost:8545`).
+* `L1_BEACON` - the REST endpoint of the L1 beacon node to use (e.g. `http://localhost:5100`).
+* `L2_ETH_RPC` - the RPC endpoint of the L2 execution client to use
+* `ROLLUP_RPC` - the RPC endpoint of the L2 consensus client to use
+* `DATA_DIR` - the directory to use to store data
+* `PRESTATES_URL` - the base URL to download required prestates from
+* `RUN_CONFIG` - the trace providers and prestates to run. e.g. `cannon,asterisc-kona/kona-0.1.0-alpha.5/0x03c50fbef46a05f93ea7665fa89015c2108e10c1b4501799c0663774bd35a9c5`
+
+Testing utility that continuously runs the specified trace providers against real chain data. The trace providers can be
+configured with multiple different prestates. This allows testing both the current and potential future prestates with
+the fault proofs virtual machine used by the trace provider.
+
+The same CLI options as `op-challenger` itself are supported to configure the trace providers. The additional `--run`
+option allows specifying which prestates to use. The format is `gameType/name/prestateHash` where gameType is the
+game type to use with the prestate (e.g cannon or asterisc-kona), name is an arbitrary name for the prestate to use
+when reporting metrics and prestateHash is the hex encoded absolute prestate commitment to use. If name is omitted the
+game type name is used. If the prestateHash is omitted, the absolute prestate hash used for new games on-chain is used.
+
+For example to run both the production cannon prestate and a custom
+prestate, use `--run cannon,cannon/next-prestate/0x03c1f0d45248190f80430a4c31e24f8108f05f80ff8b16ecb82d20df6b1b43f3`.
