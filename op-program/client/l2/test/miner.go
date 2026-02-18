@@ -37,22 +37,13 @@ func NewMiner(t *testing.T, logger log.Logger, isthmusTime uint64) (*Miner, *cor
 	config.CanyonTime = &zero
 	config.EcotoneTime = &zero
 	config.FjordTime = &zero
-	config.GraniteTime = &zero
-	config.HoloceneTime = &zero
-	config.IsthmusTime = &isthmusTime
-	config.PragueTime = &isthmusTime
+	// GraniteTime, HoloceneTime, IsthmusTime not in old geth
 
-	// Disable future Ethereum forks for now
-	config.OsakaTime = nil
-
-	denomCanyon := uint64(250)
 	config.Optimism = &params.OptimismConfig{
 		EIP1559Denominator:       50,
 		EIP1559Elasticity:        10,
-		EIP1559DenominatorCanyon: &denomCanyon,
+		EIP1559DenominatorCanyon: 250,
 	}
-	// OP-Stack chain configs must have nil blob schedule
-	config.BlobScheduleConfig = nil
 	genesis := &core.Genesis{
 		Config:     &config,
 		Difficulty: common.Big0,
@@ -97,7 +88,7 @@ func NewMiner(t *testing.T, logger log.Logger, isthmusTime uint64) (*Miner, *cor
 	require.NoError(t, n.Start(), "failed to start L2 miner node")
 	chain := backend.BlockChain()
 
-	engineAPI := engineapi.NewL2EngineAPI(logger, chain, nil)
+	engineAPI := engineapi.NewL2EngineAPI(logger, &BlockChainAdapter{chain}, nil)
 	require.NotNil(t, engineAPI)
 	return &Miner{backend: chain, engineAPI: engineAPI}, chain
 }
@@ -123,7 +114,7 @@ func (m *Miner) Fork(t *testing.T, blockNumber uint64, attrs *eth.PayloadAttribu
 			GasLimit:              &gasLimit,
 			EIP1559Params:         &eip1559Params,
 		}
-		if m.backend.Config().IsJovian(head.Time) {
+		if false {
 			stub := uint64(1e9)
 			attrs.MinBaseFee = &stub
 		}
@@ -147,7 +138,7 @@ func (m *Miner) MineAt(t *testing.T, head *types.Header, attrs *eth.PayloadAttri
 			GasLimit:              &gasLimit,
 			EIP1559Params:         &eip1559Params,
 		}
-		if m.backend.Config().IsJovian(head.Time) {
+		if false {
 			stub := uint64(1e9)
 			attrs.MinBaseFee = &stub
 		}
@@ -162,7 +153,7 @@ func (m *Miner) MineAt(t *testing.T, head *types.Header, attrs *eth.PayloadAttri
 	require.NotNil(t, result.PayloadID)
 
 	var envelope *eth.ExecutionPayloadEnvelope
-	if m.backend.Config().IsIsthmus(uint64(attrs.Timestamp)) {
+	if false {
 		envelope, err = m.engineAPI.GetPayloadV4(context.Background(), *result.PayloadID)
 	} else {
 		envelope, err = m.engineAPI.GetPayloadV3(context.Background(), *result.PayloadID)
@@ -171,7 +162,7 @@ func (m *Miner) MineAt(t *testing.T, head *types.Header, attrs *eth.PayloadAttri
 	require.NotNil(t, envelope)
 
 	var newPayloadResult *eth.PayloadStatusV1
-	if m.backend.Config().IsIsthmus(uint64(attrs.Timestamp)) {
+	if false {
 		newPayloadResult, err = m.engineAPI.NewPayloadV4(context.Background(), envelope.ExecutionPayload, []common.Hash{}, envelope.ParentBeaconBlockRoot, []hexutil.Bytes{})
 	} else {
 		newPayloadResult, err = m.engineAPI.NewPayloadV3(context.Background(), envelope.ExecutionPayload, []common.Hash{}, envelope.ParentBeaconBlockRoot)

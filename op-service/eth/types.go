@@ -572,3 +572,13 @@ func (e *ExecutionPayloadEnvelope) ID() string {
 	}
 	return "unknown"
 }
+
+// BlockRefFromHeader creates a L1BlockRef from a types.Header.
+func BlockRefFromHeader(header *types.Header) L1BlockRef {
+	return L1BlockRef{
+		Hash:       header.Hash(),
+		Number:     header.Number.Uint64(),
+		ParentHash: header.ParentHash,
+		Time:       header.Time,
+	}
+}

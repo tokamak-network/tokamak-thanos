@@ -36,7 +36,7 @@ func TestPayloadByHash(t *testing.T) {
 		block := stub.head
 		payload, err := engine.PayloadByHash(ctx, block.Hash())
 		require.NoError(t, err)
-		expected, err := eth.BlockAsPayload(block, engine.backend.Config())
+		expected, err := eth.BlockAsPayload(block, engine.backend.Config().CanyonTime)
 		require.NoError(t, err)
 		require.Equal(t, &eth.ExecutionPayloadEnvelope{ExecutionPayload: expected}, payload)
 	})
@@ -58,7 +58,7 @@ func TestPayloadByNumber(t *testing.T) {
 		block := stub.head
 		payload, err := engine.PayloadByNumber(ctx, block.NumberU64())
 		require.NoError(t, err)
-		expected, err := eth.BlockAsPayload(block, engine.backend.Config())
+		expected, err := eth.BlockAsPayload(block, engine.backend.Config().CanyonTime)
 		require.NoError(t, err)
 		require.Equal(t, &eth.ExecutionPayloadEnvelope{ExecutionPayload: expected}, payload)
 	})

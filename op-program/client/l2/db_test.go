@@ -130,9 +130,8 @@ func TestUpdateState(t *testing.T) {
 	genesisBlock := l2Genesis.MustCommit(db, trieDB)
 	assertStateDataAvailable(t, db, l2Genesis, genesisBlock)
 
-	statedb, err := state.New(genesisBlock.Root(), state.NewDatabase(triedb.NewDatabase(rawdb.NewDatabase(db), nil), nil))
+		statedb, err := state.New(genesisBlock.Root(), state.NewDatabase(rawdb.NewDatabase(db)), nil)
 	require.NoError(t, err)
-	statedb.MakeSinglethreaded()
 	statedb.SetBalance(userAccount, uint256.NewInt(50))
 	require.Equal(t, uint256.NewInt(50), statedb.GetBalance(userAccount))
 	statedb.SetNonce(userAccount, uint64(5))
@@ -144,15 +143,14 @@ func TestUpdateState(t *testing.T) {
 	require.Equal(t, []byte{1}, statedb.GetCode(codeAccount))
 
 	// Changes should be available under the new state root after committing
-	isCancun := l2Genesis.Config.IsCancun(genesisBlock.Number(), genesisBlock.Time())
-	newRoot, err := statedb.Commit(genesisBlock.NumberU64()+1, false, isCancun)
+	
+	newRoot, err := statedb.Commit(genesisBlock.NumberU64()+1, false)
 	require.NoError(t, err)
 	err = statedb.Database().TrieDB().Commit(newRoot, true)
 	require.NoError(t, err)
 
-	statedb, err = state.New(newRoot, state.NewDatabase(triedb.NewDatabase(rawdb.NewDatabase(db), nil), nil))
+	statedb, err = state.New(newRoot, state.NewDatabase(rawdb.NewDatabase(db)), nil)
 	require.NoError(t, err)
-	statedb.MakeSinglethreaded()
 	require.Equal(t, uint256.NewInt(50), statedb.GetBalance(userAccount))
 	require.Equal(t, uint64(5), statedb.GetNonce(userAccount))
 	require.Equal(t, uint256.NewInt(60), statedb.GetBalance(unknownAccount))
@@ -185,7 +183,7 @@ func createGenesis() *core.Genesis {
 }
 
 func assertStateDataAvailable(t *testing.T, db ethdb.KeyValueStore, l2Genesis *core.Genesis, genesisBlock *types.Block) {
-	statedb, err := state.New(genesisBlock.Root(), state.NewDatabase(triedb.NewDatabase(rawdb.NewDatabase(db), nil), nil))
+	statedb, err := state.New(genesisBlock.Root(), state.NewDatabase(rawdb.NewDatabase(db)), nil)
 	require.NoError(t, err)
 
 	for address, account := range l2Genesis.Alloc {
