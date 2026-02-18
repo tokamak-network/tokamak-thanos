@@ -115,3 +115,19 @@ func (s *L1Client) L1BlockRefByHash(ctx context.Context, hash common.Hash) (eth.
 	s.l1BlockRefsCache.Add(ref.Hash, ref)
 	return ref, nil
 }
+
+// L1ClientSimpleConfig creates a simple L1 client config without a rollup config.
+func L1ClientSimpleConfig(trustRPC bool, kind RPCProviderKind, cacheSize int) *L1ClientConfig {
+	return &L1ClientConfig{
+		EthClientConfig: EthClientConfig{
+			TrustRPC:          trustRPC,
+			RPCProviderKind:   kind,
+			ReceiptsCacheSize: cacheSize,
+			TransactionsCacheSize: cacheSize,
+			HeadersCacheSize:  cacheSize,
+			PayloadsCacheSize: cacheSize,
+			MaxRequestsPerBatch: 20,
+			MaxConcurrentRequests: 10,
+		},
+	}
+}

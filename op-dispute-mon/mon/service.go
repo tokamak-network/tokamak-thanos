@@ -123,7 +123,7 @@ func (s *Service) initOutputRollupClient(ctx context.Context, cfg *config.Config
 		return nil
 	}
 	for _, rpc := range cfg.RollupRpcs {
-		client, err := dial.DialRollupClientWithTimeout(ctx, s.logger, rpc, rpcclient.WithLazyDial())
+		client, err := dial.DialRollupClientWithTimeout(ctx, 1*time.Minute, s.logger, rpc)
 		if err != nil {
 			return fmt.Errorf("failed to dial rollup client %s: %w", rpc, err)
 		}
@@ -137,7 +137,7 @@ func (s *Service) initSupervisorClients(ctx context.Context, cfg *config.Config)
 		return nil
 	}
 	for _, rpc := range cfg.SupervisorRpcs {
-		client, err := dial.DialSupervisorClientWithTimeout(ctx, s.logger, rpc, rpcclient.WithLazyDial())
+		client, err := dial.DialSupervisorClientWithTimeout(ctx, s.logger, rpc)
 		if err != nil {
 			return fmt.Errorf("failed to dial supervisor client %s: %w", rpc, err)
 		}
@@ -147,11 +147,11 @@ func (s *Service) initSupervisorClients(ctx context.Context, cfg *config.Config)
 }
 
 func (s *Service) initL1Client(ctx context.Context, cfg *config.Config) error {
-	l1RPC, err := dial.DialRPCClientWithTimeout(ctx, s.logger, cfg.L1EthRpc)
+	l1RPC, err := dial.DialRPCClientWithTimeout(ctx, 1*time.Minute, s.logger, cfg.L1EthRpc)
 	if err != nil {
 		return fmt.Errorf("failed to dial L1: %w", err)
 	}
-	s.l1RPC = rpcclient.NewBaseRPCClient(l1RPC, rpcclient.WithCallTimeout(30*time.Second))
+	s.l1RPC = rpcclient.NewBaseRPCClient(l1RPC)
 	s.l1Caller = batching.NewMultiCaller(s.l1RPC, batching.DefaultBatchSize)
 	// The RPC is trusted because the majority of data comes from contract calls which are not verified even when the
 	// RPC is untrusted and also avoids needing to update op-dispute-mon for L1 hard forks that change the header.
