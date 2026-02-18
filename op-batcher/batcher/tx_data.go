@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	deriveparams "github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive/params"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
@@ -34,7 +35,7 @@ func (td *txData) ID() txID {
 // It's a version byte (0) followed by the concatenated frames for this transaction.
 func (td *txData) CallData() []byte {
 	data := make([]byte, 1, 1+td.Len())
-	data[0] = derive.DerivationVersion0
+	data[0] = deriveparams.DerivationVersion0
 	for _, f := range td.frames {
 		data = append(data, f.data...)
 	}
@@ -45,7 +46,7 @@ func (td *txData) Blobs() ([]*eth.Blob, error) {
 	blobs := make([]*eth.Blob, 0, len(td.frames))
 	for _, f := range td.frames {
 		var blob eth.Blob
-		if err := blob.FromData(append([]byte{derive.DerivationVersion0}, f.data...)); err != nil {
+		if err := blob.FromData(append([]byte{deriveparams.DerivationVersion0}, f.data...)); err != nil {
 			return nil, err
 		}
 		blobs = append(blobs, &blob)

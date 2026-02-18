@@ -193,7 +193,7 @@ func (bs *BatcherService) initRollupConfig(ctx context.Context) error {
 func (bs *BatcherService) initChannelConfig(cfg *CLIConfig) error {
 	cc := ChannelConfig{
 		SeqWindowSize:      bs.RollupConfig.SeqWindowSize,
-		ChannelTimeout:     bs.RollupConfig.ChannelTimeout,
+		ChannelTimeout:     bs.RollupConfig.ChannelTimeoutBedrock,
 		MaxChannelDuration: cfg.MaxChannelDuration,
 		MaxFrameSize:       cfg.MaxL1TxSize - 1, // account for version byte prefix; reset for blobs
 		TargetNumFrames:    cfg.TargetNumFrames,

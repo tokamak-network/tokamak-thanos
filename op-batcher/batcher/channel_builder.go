@@ -86,9 +86,11 @@ func NewChannelBuilder(cfg ChannelConfig, rollupCfg rollup.Config, latestL1Origi
 	}
 	var co derive.ChannelOut
 	if cfg.BatchType == derive.SpanBatchType {
-		co, err = derive.NewSpanChannelOut(rollupCfg.Genesis.L2Time, rollupCfg.L2ChainID, cfg.CompressorConfig.TargetOutputSize, cfg.CompressorConfig.CompressionAlgo)
+		chainSpec := rollup.NewChainSpec(&rollupCfg)
+		co, err = derive.NewSpanChannelOut(cfg.CompressorConfig.TargetOutputSize, cfg.CompressorConfig.CompressionAlgo, chainSpec)
 	} else {
-		co, err = derive.NewSingularChannelOut(c)
+		chainSpec := rollup.NewChainSpec(&rollupCfg)
+		co, err = derive.NewSingularChannelOut(c, chainSpec)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("creating channel out: %w", err)
@@ -151,12 +153,8 @@ func (c *ChannelBuilder) AddBlock(block *types.Block) (*derive.L1BlockInfo, erro
 		return nil, c.FullErr()
 	}
 
-	batch, l1info, err := derive.BlockToSingularBatch(&c.rollupCfg, block)
-	if err != nil {
-		return l1info, fmt.Errorf("converting block to batch: %w", err)
-	}
-
-	if err = c.co.AddSingularBatch(batch, l1info.SequenceNumber); errors.Is(err, derive.ErrTooManyRLPBytes) || errors.Is(err, derive.ErrCompressorFull) {
+	l1info, err := c.co.AddBlock(&c.rollupCfg, block)
+	if errors.Is(err, derive.ErrTooManyRLPBytes) || errors.Is(err, derive.ErrCompressorFull) {
 		c.setFullErr(err)
 		return l1info, c.FullErr()
 	} else if err != nil {
@@ -164,7 +162,11 @@ func (c *ChannelBuilder) AddBlock(block *types.Block) (*derive.L1BlockInfo, erro
 	}
 
 	c.blocks = append(c.blocks, block)
-	c.updateSwTimeout(batch)
+	// Update SW timeout from L1 origin info
+	if l1info != nil {
+		timeout := l1info.Number + c.cfg.SeqWindowSize - c.cfg.SubSafetyMargin
+		c.updateTimeout(timeout, ErrSeqWindowClose)
+	}
 
 	if l1info.Number > c.latestL1Origin.Number {
 		c.latestL1Origin = eth.BlockID{
