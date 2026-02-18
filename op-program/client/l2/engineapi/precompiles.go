@@ -37,6 +37,18 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
+// Precompile size limits for forks not present in tokamak-thanos-geth
+const (
+	bn256PairingMaxInputSizeGranite       uint64 = 112687
+	bn256PairingMaxInputSizeJovian        uint64 = 112687
+	bls12381G1MulMaxInputSizeIsthmus      uint64 = 163840
+	bls12381G1MulMaxInputSizeJovian       uint64 = 163840
+	bls12381G2MulMaxInputSizeIsthmus      uint64 = 163840
+	bls12381G2MulMaxInputSizeJovian       uint64 = 163840
+	bls12381PairingMaxInputSizeIsthmus    uint64 = 163840
+	bls12381PairingMaxInputSizeJovian     uint64 = 163840
+)
+
 var (
 	ecrecoverPrecompileAddress          = common.BytesToAddress([]byte{0x1})
 	bn256PairingPrecompileAddress       = common.BytesToAddress([]byte{0x8})
@@ -57,25 +69,25 @@ type PrecompileOracle interface {
 }
 
 func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileOverrides {
-	return func(rules params.Rules, orig vm.PrecompiledContract, address common.Address) vm.PrecompiledContract {
-		if orig == nil { // Only override existing contracts. Never introduce a precompile that is not there.
-			return nil
+	return func(rules params.Rules, orig vm.PrecompiledContract, address common.Address) (vm.PrecompiledContract, bool) {
+		if orig == nil {
+			return nil, false
 		}
 		// NOTE: Ignoring chain rules for now. We assume that precompile behavior won't change for the foreseeable future
 		switch address {
 		case ecrecoverPrecompileAddress:
-			return &ecrecoverOracle{Orig: orig, Oracle: precompileOracle}
+			return &ecrecoverOracle{Orig: orig, Oracle: precompileOracle}, true
 		case bn256PairingPrecompileAddress:
 			precompile := bn256PairingOracle{Orig: orig, Oracle: precompileOracle}
-			if rules.IsOptimismJovian {
-				return &bn256PairingOracleJovian{precompile}
+			if false {
+				return &bn256PairingOracleJovian{precompile}, true
 			}
-			if rules.IsOptimismGranite {
-				return &bn256PairingOracleGranite{precompile}
+			if false {
+				return &bn256PairingOracleGranite{precompile}, true
 			}
-			return &precompile
+			return &precompile, true
 		case kzgPointEvaluationPrecompileAddress:
-			return &kzgPointEvaluationOracle{Orig: orig, Oracle: precompileOracle}
+			return &kzgPointEvaluationOracle{Orig: orig, Oracle: precompileOracle}, true
 		case blsG1AddPrecompileAddress:
 			// no size limit - fixed input
 			return &blsOperationOracle{
@@ -84,11 +96,11 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 				checkInputSize:    checkInputExactSize(256),
 				checkOutput:       checkOutputExactSize(128),
 				precompileAddress: blsG1AddPrecompileAddress,
-			}
+			}, true
 		case blsG1MSMPrecompileAddress:
-			sizeLimit := params.Bls12381G1MulMaxInputSizeIsthmus
-			if rules.IsOptimismJovian {
-				sizeLimit = params.Bls12381G1MulMaxInputSizeJovian
+			sizeLimit := bls12381G1MulMaxInputSizeIsthmus
+			if false {
+				sizeLimit = bls12381G1MulMaxInputSizeJovian
 			}
 			return &blsOperationOracleWithSizeLimit{
 				sizeLimit: sizeLimit,
@@ -99,7 +111,7 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 					checkOutput:       checkOutputExactSize(128),
 					precompileAddress: blsG1MSMPrecompileAddress,
 				},
-			}
+			}, true
 		case blsG2AddPrecompileAddress:
 			// no size limit - fixed input
 			return &blsOperationOracle{
@@ -108,11 +120,11 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 				checkInputSize:    checkInputExactSize(512),
 				checkOutput:       checkOutputExactSize(256),
 				precompileAddress: blsG2AddPrecompileAddress,
-			}
+			}, true
 		case blsG2MSMPrecompileAddress:
-			sizeLimit := params.Bls12381G2MulMaxInputSizeIsthmus
-			if rules.IsOptimismJovian {
-				sizeLimit = params.Bls12381G2MulMaxInputSizeJovian
+			sizeLimit := bls12381G2MulMaxInputSizeIsthmus
+			if false {
+				sizeLimit = bls12381G2MulMaxInputSizeJovian
 			}
 			return &blsOperationOracleWithSizeLimit{
 				sizeLimit: sizeLimit,
@@ -123,11 +135,11 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 					checkOutput:       checkOutputExactSize(256),
 					precompileAddress: blsG2MSMPrecompileAddress,
 				},
-			}
+			}, true
 		case blsPairingPrecompileAddress:
-			sizeLimit := params.Bls12381PairingMaxInputSizeIsthmus
-			if rules.IsOptimismJovian {
-				sizeLimit = params.Bls12381PairingMaxInputSizeJovian
+			sizeLimit := bls12381PairingMaxInputSizeIsthmus
+			if false {
+				sizeLimit = bls12381PairingMaxInputSizeJovian
 			}
 			return &blsOperationOracleWithSizeLimit{
 				sizeLimit: sizeLimit,
@@ -138,7 +150,7 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 					checkOutput:       checkOutputTrueOrFalse(),
 					precompileAddress: blsPairingPrecompileAddress,
 				},
-			}
+			}, true
 		case blsMapToG1PrecompileAddress:
 			// no size limit - fixed input
 			return &blsOperationOracle{
@@ -147,7 +159,7 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 				checkInputSize:    checkInputExactSize(64),
 				checkOutput:       checkOutputExactSize(128),
 				precompileAddress: blsMapToG1PrecompileAddress,
-			}
+			}, true
 		case blsMapToG2PrecompileAddress:
 			// no size limit - fixed input
 			return &blsOperationOracle{
@@ -156,9 +168,9 @@ func CreatePrecompileOverrides(precompileOracle PrecompileOracle) vm.PrecompileO
 				checkInputSize:    checkInputExactSize(128),
 				checkOutput:       checkOutputExactSize(256),
 				precompileAddress: blsMapToG2PrecompileAddress,
-			}
+			}, true
 		default:
-			return orig
+			return orig, true
 		}
 	}
 }
@@ -229,7 +241,7 @@ func (b *bn256PairingOracle) RequiredGas(input []byte) uint64 {
 }
 
 func (b *bn256PairingOracle) Name() string {
-	return b.Orig.Name()
+	return "precompile-oracle"
 }
 
 var (
@@ -270,14 +282,14 @@ type bn256PairingOracleGranite struct {
 }
 
 func (b *bn256PairingOracleGranite) Run(input []byte) ([]byte, error) {
-	if len(input) > int(params.Bn256PairingMaxInputSizeGranite) {
+	if len(input) > int(bn256PairingMaxInputSizeGranite) {
 		return nil, errBadPairingInputSize
 	}
 	return b.bn256PairingOracle.Run(input)
 }
 
 func (b *bn256PairingOracleGranite) Name() string {
-	return b.Orig.Name()
+	return "precompile-oracle"
 }
 
 type bn256PairingOracleJovian struct {
@@ -285,14 +297,14 @@ type bn256PairingOracleJovian struct {
 }
 
 func (b *bn256PairingOracleJovian) Run(input []byte) ([]byte, error) {
-	if len(input) > int(params.Bn256PairingMaxInputSizeJovian) {
+	if len(input) > int(bn256PairingMaxInputSizeJovian) {
 		return nil, errBadPairingInputSize
 	}
 	return b.bn256PairingOracle.Run(input)
 }
 
 func (b *bn256PairingOracleJovian) Name() string {
-	return b.Orig.Name()
+	return "precompile-oracle"
 }
 
 // kzgPointEvaluationOracle implements the EIP-4844 point evaluation precompile,
@@ -308,7 +320,7 @@ func (b *kzgPointEvaluationOracle) RequiredGas(input []byte) uint64 {
 }
 
 func (b *kzgPointEvaluationOracle) Name() string {
-	return b.Orig.Name()
+	return "precompile-oracle"
 }
 
 const (
@@ -415,7 +427,7 @@ func (b *blsOperationOracle) Run(input []byte) ([]byte, error) {
 }
 
 func (b *blsOperationOracle) Name() string {
-	return b.Orig.Name()
+	return "precompile-oracle"
 }
 
 type blsOperationOracleWithSizeLimit struct {

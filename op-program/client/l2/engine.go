@@ -157,7 +157,7 @@ func (o *OracleEngine) PayloadByHash(ctx context.Context, hash common.Hash) (*et
 	if block == nil {
 		return nil, ethereum.NotFound
 	}
-	return eth.BlockAsPayloadEnv(block, o.backend.Config())
+	return eth.BlockAsPayloadEnv(block, o.backend.Config().CanyonTime)
 }
 
 func (o *OracleEngine) PayloadByNumber(ctx context.Context, n uint64) (*eth.ExecutionPayloadEnvelope, error) {

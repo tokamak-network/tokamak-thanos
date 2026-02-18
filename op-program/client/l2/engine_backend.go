@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/triedb"
 )
 
 var (
@@ -92,7 +91,7 @@ func NewOracleBackedL2ChainFromHead(
 		receiptsByBlockHash: make(map[common.Hash]types.Receipts),
 		db:                  NewOracleBackedDB(db, oracle, chainID),
 		vmCfg: vm.Config{
-			PrecompileOverrides: engineapi.CreatePrecompileOverrides(precompileOracle),
+			OptimismPrecompileOverrides: engineapi.CreatePrecompileOverrides(precompileOracle),
 		},
 	}
 	// Use the chain's GetBlockByHash to ensure newly built blocks are visible to the canonical chain
@@ -201,11 +200,10 @@ func (o *OracleBackedL2Chain) Engine() consensus.Engine {
 }
 
 func (o *OracleBackedL2Chain) StateAt(root common.Hash) (*state.StateDB, error) {
-	stateDB, err := state.New(root, state.NewDatabase(triedb.NewDatabase(rawdb.NewDatabase(o.db), nil), nil))
+	stateDB, err := state.New(root, state.NewDatabase(rawdb.NewDatabase(o.db)), nil)
 	if err != nil {
 		return nil, err
 	}
-	stateDB.MakeSinglethreaded()
 	return stateDB, nil
 }
 

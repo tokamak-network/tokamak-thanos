@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/tokamak-network/tokamak-thanos/op-service/compat/forkcheck"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
@@ -290,7 +290,7 @@ func (ea *L2EngineAPI) verifyPayloadAttributes(attr *eth.PayloadAttributes) erro
 		return fmt.Errorf("invalid parent beacon block root: %w", err)
 	}
 	// Verify EIP-1559 params for Holocene.
-	if c.IsHolocene(t) {
+	if forkcheck.IsHolocene(c, t) {
 		if attr.EIP1559Params == nil {
 			//nolint:err113 // Do not use non-dynamic errors here to keep this function very similar to op-geth
 			return errors.New("got nil eip-1559 params while Holocene is active")
@@ -364,13 +364,13 @@ func (ea *L2EngineAPI) NewPayloadV3(ctx context.Context, params *eth.ExecutionPa
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.UnsupportedFork.With(errors.New("newPayloadV3 called pre-cancun"))
 	}
 
-	if err := eip1559.ValidateOptimismExtraData(cfg, uint64(params.Timestamp), params.ExtraData); err != nil {
+	if err := eip1559.ValidateOptimismExtraData(forkcheck.Wrap(cfg), uint64(params.Timestamp), params.ExtraData); err != nil {
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.UnsupportedFork.With(err)
 	}
 
 	// Payload must have WithdrawalsRoot after Isthmus
-	if cfg.IsIsthmus(uint64(params.Timestamp)) {
-		if params.WithdrawalsRoot == nil {
+	if forkcheck.IsIsthmus(cfg, uint64(params.Timestamp)) {
+		if params.WithdrawalsRoot() == nil {
 			return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.UnsupportedFork.With(errors.New("nil withdrawalsRoot post-isthmus"))
 		}
 	}
@@ -402,11 +402,11 @@ func (ea *L2EngineAPI) NewPayloadV4(ctx context.Context, params *eth.ExecutionPa
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil executionRequests post-prague"))
 	}
 
-	if !ea.config().IsIsthmus(uint64(params.Timestamp)) {
+	if !forkcheck.IsIsthmus(ea.config(), uint64(params.Timestamp)) {
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.UnsupportedFork.With(errors.New("newPayloadV4 called pre-isthmus"))
 	}
 
-	if params.WithdrawalsRoot == nil {
+	if params.WithdrawalsRoot() == nil {
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalid}, engine.InvalidParams.With(errors.New("nil withdrawalsRoot post-isthmus"))
 	}
 
@@ -426,7 +426,7 @@ func (ea *L2EngineAPI) getPayload(_ context.Context, payloadId eth.PayloadID) (*
 		return nil, engine.UnknownPayload
 	}
 
-	return eth.BlockAsPayloadEnv(bl, ea.config())
+	return eth.BlockAsPayloadEnv(bl, ea.config().CanyonTime)
 }
 
 //nolint:err113 // Do not use non-dynamic errors here to keep this function very similar to op-geth
@@ -456,7 +456,7 @@ func (ea *L2EngineAPI) forkchoiceUpdated(_ context.Context, state *eth.Forkchoic
 		}
 
 		ea.log.Info("Forkchoice requested sync to new head", "number", header.Number(), "hash", header.Hash())
-		if err := ea.downloader.BeaconSync(ethconfig.SnapSync, header.Header(), nil); err != nil {
+		if err := ea.downloader.BeaconSync(downloader.SnapSync, header.Header(), nil); err != nil {
 			return STATUS_SYNCING, err
 		}
 		return STATUS_SYNCING, nil
@@ -571,10 +571,9 @@ func (ea *L2EngineAPI) newPayload(_ context.Context, payload *eth.ExecutionPaylo
 		BlockHash:       payload.BlockHash,
 		Transactions:    txs,
 		Withdrawals:     toGethWithdrawals(payload),
-		ExcessBlobGas:   (*uint64)(payload.ExcessBlobGas),
-		WithdrawalsRoot: payload.WithdrawalsRoot,
-		BlobGasUsed:     (*uint64)(payload.BlobGasUsed),
-	}, hashes, root, requests, ea.backend.Config())
+		ExcessBlobGas: (*uint64)(payload.ExcessBlobGas),
+		BlobGasUsed:   (*uint64)(payload.BlobGasUsed),
+	}, hashes, root)
 	if err != nil {
 		log.Debug("Invalid NewPayload params", "params", payload, "error", err)
 		return &eth.PayloadStatusV1{Status: eth.ExecutionInvalidBlockHash}, nil

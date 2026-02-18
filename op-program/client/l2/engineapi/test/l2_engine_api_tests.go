@@ -17,6 +17,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
 	"github.com/tokamak-network/tokamak-thanos/op-program/client/l2/engineapi"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/compat/forkcheck"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
@@ -443,7 +444,7 @@ func (h *testHelper) getPayload(id *eth.PayloadID) *eth.ExecutionPayloadEnvelope
 
 func (h *testHelper) callNewPayload(envelope *eth.ExecutionPayloadEnvelope) (*eth.PayloadStatusV1, error) {
 	n := new(big.Int).SetUint64(uint64(envelope.ExecutionPayload.BlockNumber))
-	if h.backend.Config().IsIsthmus(uint64(envelope.ExecutionPayload.Timestamp)) {
+	if forkcheck.IsIsthmus(h.backend.Config(), uint64(envelope.ExecutionPayload.Timestamp)) {
 		return h.engine.NewPayloadV4(h.ctx, envelope.ExecutionPayload, []common.Hash{}, envelope.ParentBeaconBlockRoot, []hexutil.Bytes{})
 	} else if h.backend.Config().IsCancun(n, uint64(envelope.ExecutionPayload.Timestamp)) {
 		return h.engine.NewPayloadV3(h.ctx, envelope.ExecutionPayload, []common.Hash{}, envelope.ParentBeaconBlockRoot)

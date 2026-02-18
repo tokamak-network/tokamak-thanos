@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/tokamak-network/tokamak-thanos/op-core/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-service/compat/forkcheck"
 	l2Types "github.com/tokamak-network/tokamak-thanos/op-program/client/l2/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,14 +19,17 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/hashicorp/golang-lru/v2/simplelru"
 )
 
 // historicalCacheSize is the number of cached eip-2935 historical block lookups
 // This covers 8 weeks worth of blocks on a 2 second block time.
 // We keep a small cache size to ensure cache scans are fast.
-const historicalCacheSize = 320
+const (
+	historicalCacheSize = 320
+	// historyServeWindow is not in tokamak-thanos-geth params; use Isthmus default
+	historyServeWindow uint64 = 8191
+)
 
 type FastCanonicalBlockHeaderOracle struct {
 	head          *types.Header
@@ -85,15 +89,15 @@ func (o *FastCanonicalBlockHeaderOracle) GetHeaderByNumber(n uint64) *types.Head
 	if cover != math.MaxUint64 {
 		h, _ = o.cache.Get(cover)
 	}
-	if !o.config.IsIsthmus(h.Time) {
+	if !forkcheck.IsIsthmus(o.config, h.Time) {
 		return o.fallback.GetHeaderByNumber(n)
 	}
 
 	for h.Number.Uint64() > n {
 		headNumber := h.Number.Uint64()
 		var currEarliestHistory uint64
-		if params.HistoryServeWindow < headNumber {
-			currEarliestHistory = headNumber - params.HistoryServeWindow
+		if historyServeWindow < headNumber {
+			currEarliestHistory = headNumber - historyServeWindow
 		}
 		if currEarliestHistory <= n {
 			block := o.getHistoricalBlockHash(h, n)
@@ -116,20 +120,20 @@ func (o *FastCanonicalBlockHeaderOracle) getHistoricalBlockHash(head *types.Head
 	if o.hinter != nil {
 		o.hinter.HintBlockHashLookup(n, head.Hash(), eth.ChainIDFromBig(o.config.ChainID))
 	}
-	statedb, err := state.New(head.Root, state.NewDatabase(triedb.NewDatabase(rawdb.NewDatabase(o.db), nil), nil))
+	statedb, err := state.New(head.Root, state.NewDatabase(rawdb.NewDatabase(o.db)), nil)
 	if err != nil {
 		panic(fmt.Errorf("failed to get state at %v: %w", head.Hash(), err))
 	}
 	// for safety. But it shouldn't be required since we only read from state
-	statedb.MakeSinglethreaded()
+	// statedb.MakeSinglethreaded() -- not available in old geth
 
 	context := core.NewEVMBlockContext(head, o.ctx, nil, o.config, statedb)
-	vmenv := vm.NewEVM(context, statedb, o.config, vm.Config{})
+	vmenv := vm.NewEVM(context, vm.TxContext{}, statedb, o.config, vm.Config{})
 	var caller common.Address // can be anything as long as it's not the system contract
 	gas := uint64(1000000)
 	var input [32]byte
 	binary.BigEndian.PutUint64(input[24:], n)
-	ret, _, err := vmenv.StaticCall(caller, predeploys.EIP2935ContractAddr, input[:], gas)
+	ret, _, err := vmenv.StaticCall(vm.AccountRef(caller), predeploys.EIP2935ContractAddr, input[:], gas)
 	if err != nil {
 		panic(fmt.Errorf("failed to get history block hash: %w", err))
 	}

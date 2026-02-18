@@ -119,7 +119,7 @@ func (p *PreimageOracle) BlockByHash(blockHash common.Hash, chainID eth.ChainID)
 	header := p.headerByBlockHash(blockHash, chainID)
 	txs := p.LoadTransactions(blockHash, header.TxHash, chainID)
 
-	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs})
+	return types.NewBlockWithHeader(header).WithBody(txs, nil)
 }
 
 func (p *PreimageOracle) LoadTransactions(blockHash common.Hash, txHash common.Hash, chainID eth.ChainID) []*types.Transaction {
@@ -181,7 +181,7 @@ func (p *PreimageOracle) BlockDataByHash(agreedBlockHash, blockHash common.Hash,
 	p.hint.Hint(hint)
 	header := p.headerByBlockHash(blockHash, chainID)
 	txs := p.LoadTransactions(blockHash, header.TxHash, chainID)
-	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs})
+	return types.NewBlockWithHeader(header).WithBody(txs, nil)
 }
 
 func (p *PreimageOracle) TransitionStateByRoot(root common.Hash) *interopTypes.TransitionState {
@@ -200,6 +200,7 @@ func (p *PreimageOracle) ReceiptsByBlockHash(blockHash common.Hash, chainID eth.
 	opaqueReceipts := mpt.ReadTrie(block.ReceiptHash(), func(key common.Hash) []byte {
 		return p.oracle.Get(preimage.Keccak256Key(key))
 	})
+
 	txHashes := make([]common.Hash, len(block.Transactions()))
 	for i, tx := range block.Transactions() {
 		txHashes[i] = tx.Hash()
