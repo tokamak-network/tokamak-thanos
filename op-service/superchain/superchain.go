@@ -217,6 +217,8 @@ func init() {
 				L2:     GenesisRef{Hash: common.HexToHash("0xdbf6a80fef073de06add9b0d14026d6e5a86c85f6d102c36d3d8e9cf89c2afd3"), Number: 105235063},
 				SystemConfig: SystemConfig{
 					BatcherAddr: common.HexToAddress("0x6887246668a3b87F54DeB3b94Ba47a6f63F32985"),
+					Overhead:    common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000000bc"),
+					Scalar:      common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000a6fe0"),
 					GasLimit:    30000000,
 				},
 			},
@@ -254,6 +256,8 @@ func init() {
 				L2:     GenesisRef{Hash: common.HexToHash("0x102de6ffb001480cc9b8b548fd05c34cd4f46ae4aa91759393db90ea0409887d"), Number: 0},
 				SystemConfig: SystemConfig{
 					BatcherAddr: common.HexToAddress("0x8F23BB38F531600e5d8FDDaAEC41F13FaB46E98c"),
+					Overhead:    common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000000bc"),
+					Scalar:      common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000a6fe0"),
 					GasLimit:    30000000,
 				},
 			},

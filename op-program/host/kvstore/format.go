@@ -19,6 +19,9 @@ var (
 )
 
 func recordKVFormat(dir string, format types.DataFormat) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("failed to create kv store directory: %w", err)
+	}
 	return os.WriteFile(filepath.Join(dir, formatFilename), []byte(format), 0o644)
 }
 

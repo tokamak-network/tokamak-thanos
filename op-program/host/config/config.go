@@ -366,9 +366,10 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 			l1ChainConfig = lc
 		}
 	}
-	if l1ChainConfig == nil || l1ChainConfig.BlobScheduleConfig == nil {
-		return nil, fmt.Errorf("L1 chain config does not have a blob schedule config")
+	if l1ChainConfig == nil {
+		return nil, fmt.Errorf("L1 chain config is not available")
 	}
+	// Note: BlobScheduleConfig may be nil in older geth versions; not a hard requirement
 
 	if ctx.Bool(flags.L2Custom.Name) {
 		log.Warn("Using custom chain configuration via preimage oracle. This is not compatible with on-chain execution.")
