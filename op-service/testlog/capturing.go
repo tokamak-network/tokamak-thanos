@@ -153,3 +153,12 @@ func (h HelperRecord) AttrValue(name string) (v any) {
 }
 
 var _ slog.Handler = (*CapturingHandler)(nil)
+
+// RequireMessageContainedOnce asserts that exactly one log message contains the given substring.
+func (c *CapturingHandler) RequireMessageContainedOnce(t interface{ Helper(); Errorf(string, ...any) }, msg string) {
+	t.Helper()
+	logs := c.FindLogs(NewMessageContainsFilter(msg))
+	if len(logs) != 1 {
+		t.Errorf("expected exactly 1 log containing %q, got %d", msg, len(logs))
+	}
+}

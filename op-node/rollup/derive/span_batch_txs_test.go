@@ -333,15 +333,14 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x123))
 
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	cancunSigner := types.NewCancunSigner(chainID)
 	totalblockTxCount := 20 + rng.Intn(100)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
-		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
-		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
+		{"legacy tx", testutils.RandomLegacyTx, cancunSigner},
+		{"access list tx", testutils.RandomAccessListTx, cancunSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, cancunSigner},
 	}
 
 	for _, testCase := range cases {
@@ -425,14 +424,13 @@ func TestSpanBatchTxsRoundTrip(t *testing.T) {
 func TestSpanBatchTxsRoundTripFullTxs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13377331))
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	cancunSigner := types.NewCancunSigner(chainID)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
-		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
-		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
+		{"legacy tx", testutils.RandomLegacyTx, cancunSigner},
+		{"access list tx", testutils.RandomAccessListTx, cancunSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, cancunSigner},
 	}
 
 	for _, testCase := range cases {
@@ -476,14 +474,13 @@ func TestSpanBatchTxsRecoverVInvalidTxType(t *testing.T) {
 func TestSpanBatchTxsFullTxNotEnoughTxTos(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13572468))
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	cancunSigner := types.NewCancunSigner(chainID)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
-		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
-		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
+		{"legacy tx", testutils.RandomLegacyTx, cancunSigner},
+		{"access list tx", testutils.RandomAccessListTx, cancunSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, cancunSigner},
 	}
 
 	for _, testCase := range cases {

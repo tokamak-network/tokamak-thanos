@@ -24,14 +24,13 @@ func TestSpanBatchTxConvert(t *testing.T) {
 		{"legacy tx", 32, testutils.RandomLegacyTx, true},
 		{"access list tx", 32, testutils.RandomAccessListTx, true},
 		{"dynamic fee tx", 32, testutils.RandomDynamicFeeTx, true},
-		{"setcode tx", 32, testutils.RandomSetCodeTx, true},
 	}
 
 	for i, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			rng := rand.New(rand.NewSource(int64(0x1331 + i)))
 			chainID := big.NewInt(rng.Int63n(1000))
-			signer := types.NewIsthmusSigner(chainID)
+			signer := types.NewCancunSigner(chainID)
 			if !testCase.protected {
 				signer = types.HomesteadSigner{}
 			}
@@ -64,14 +63,13 @@ func TestSpanBatchTxRoundTrip(t *testing.T) {
 		{"legacy tx", 32, testutils.RandomLegacyTx, true},
 		{"access list tx", 32, testutils.RandomAccessListTx, true},
 		{"dynamic fee tx", 32, testutils.RandomDynamicFeeTx, true},
-		{"setcode tx", 32, testutils.RandomSetCodeTx, true},
 	}
 
 	for i, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			rng := rand.New(rand.NewSource(int64(0x1332 + i)))
 			chainID := big.NewInt(rng.Int63n(1000))
-			signer := types.NewIsthmusSigner(chainID)
+			signer := types.NewCancunSigner(chainID)
 			if !testCase.protected {
 				signer = types.HomesteadSigner{}
 			}

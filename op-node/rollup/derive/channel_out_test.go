@@ -79,11 +79,8 @@ func TestChannelOutAddBlock(t *testing.T) {
 			cout := tcase.ChannelOut(t, &rollupCfg)
 			header := &types.Header{Number: big.NewInt(1), Difficulty: big.NewInt(100)}
 			block := types.NewBlockWithHeader(header).WithBody(
-				types.Body{
-					Transactions: []*types.Transaction{
-						types.NewTx(&types.DynamicFeeTx{}),
-					},
-				},
+				[]*types.Transaction{types.NewTx(&types.DynamicFeeTx{})},
+				nil,
 			)
 			_, err := cout.AddBlock(&rollupCfg, block)
 			require.Error(t, err)

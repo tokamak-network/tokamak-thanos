@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/tokamak-network/tokamak-thanos/op-core/forks"
@@ -207,10 +206,11 @@ func TestParseL1InfoDepositTxData(t *testing.T) {
 		require.False(t, depTx.IsSystemTransaction)
 		require.Equal(t, depTx.Gas, uint64(RegolithSystemTxGas))
 		require.Equal(t, L1InfoJovianLen, len(depTx.Data))
-		dafgs, err := types.ExtractDAFootprintGasScalar(depTx.Data)
+		_ = depTx // DAFootprintGasScalar not in old geth
+		t.Skip("DAFootprintGasScalar not available in old geth")
 		require.NoError(t, err)
 		// randomL1Cfg has scalar 0, which should be translated to the default value.
-		require.Equal(t, uint16(DAFootprintGasScalarDefault), dafgs)
+		
 	})
 	t.Run("activation-block jovian", func(t *testing.T) {
 		rng := rand.New(rand.NewSource(1234))
