@@ -564,3 +564,11 @@ const (
 	GetPayloadV3 EngineAPIMethod = "engine_getPayloadV3"
 	GetPayloadV4 EngineAPIMethod = "engine_getPayloadV4"
 )
+
+// ID returns a string identifier for the envelope.
+func (e *ExecutionPayloadEnvelope) ID() string {
+	if e.ExecutionPayload != nil {
+		return fmt.Sprintf("%s:%d", e.ExecutionPayload.BlockHash.String(), e.ExecutionPayload.BlockNumber)
+	}
+	return "unknown"
+}

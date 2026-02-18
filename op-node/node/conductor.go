@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rpc"
 
 	conductorRpc "github.com/tokamak-network/tokamak-thanos/op-conductor/rpc"
 	"github.com/tokamak-network/tokamak-thanos/op-node/config"
@@ -57,8 +56,7 @@ func (c *ConductorClient) initialize(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("no conductor RPC endpoint available: %w", err)
 	}
-	metricsOpt := rpc.WithRecorder(c.metrics.NewRecorder("conductor"))
-	conductorRpcClient, err := dial.DialRPCClientWithTimeout(context.Background(), c.log, endpoint, metricsOpt)
+	conductorRpcClient, err := dial.DialRPCClientWithTimeout(context.Background(), time.Minute, c.log, endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to dial conductor RPC: %w", err)
 	}

@@ -15,7 +15,6 @@ func newRPCServer(rpcCfg *oprpc.CLIConfig, rollupCfg *rollup.Config, depSet deps
 	server := oprpc.NewServer(rpcCfg.ListenAddr, rpcCfg.ListenPort, appVersion,
 		oprpc.WithLogger(log),
 		oprpc.WithCORSHosts([]string{"*"}), // CORS is not important on op-node, but we used to do this on the old op-node RPC server, so kept for compatibility.
-		oprpc.WithRPCRecorder(metrics.NewRecorder("main")),
 	)
 	api := NewNodeAPI(rollupCfg, depSet, l2Client, dr, safeDB, log)
 	server.AddAPI(rpc.API{

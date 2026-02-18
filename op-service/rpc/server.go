@@ -37,6 +37,7 @@ type Server struct {
 	log            log.Logger
 	tls            *ServerTLSConfig
 	middlewares    []Middleware
+	Handler       *Handler
 }
 
 type ServerTLSConfig struct {
@@ -159,6 +160,7 @@ func (b *Server) AddAPI(api rpc.API) {
 
 func (b *Server) Start() error {
 	srv := rpc.NewServer()
+	b.Handler = NewHandler(srv)
 	if err := node.RegisterApis(b.apis, nil, srv); err != nil {
 		return fmt.Errorf("error registering APIs: %w", err)
 	}

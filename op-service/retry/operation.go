@@ -63,3 +63,11 @@ func Do[T any](ctx context.Context, maxAttempts int, strategy Strategy, op func(
 		LastErr:  err,
 	}
 }
+
+// Do0 is like Do but for operations that return no value.
+func Do0(ctx context.Context, maxAttempts int, strategy Strategy, op func() error) error {
+	_, err := Do(ctx, maxAttempts, strategy, func() (struct{}, error) {
+		return struct{}{}, op()
+	})
+	return err
+}

@@ -100,3 +100,33 @@ func ObtainJWTSecret(log interface{}, path string, generate bool) ([32]byte, err
 	copy(secret[:], b)
 	return secret, nil
 }
+
+// Handler wraps an rpc.Server for the op-node.
+type Handler struct {
+	Server *gethrpc.Server
+}
+
+// NewHandler creates a new Handler.
+func NewHandler(server *gethrpc.Server) *Handler {
+	return &Handler{Server: server}
+}
+
+// EnableRPC registers APIs on the handler.
+func (h *Handler) EnableRPC(apis []gethrpc.API, methodFilter []string) error {
+	for _, api := range apis {
+		if err := h.Server.RegisterName(api.Namespace, api.Service); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AddAPI registers a single API on the handler.
+func (h *Handler) AddAPI(api gethrpc.API) error {
+	return h.Server.RegisterName(api.Namespace, api.Service)
+}
+
+// WithRecorder is a no-op RPC option for compatibility.
+func WithRecorder(recorder interface{}) ServerOption {
+	return func(b *Server) {}
+}

@@ -506,7 +506,12 @@ func initL1BeaconAPI(ctx context.Context, cfg *config.Config, node *OpNode) (*so
 	beaconCfg := sources.L1BeaconClientConfig{
 		FetchAllSidecars: cfg.Beacon.ShouldFetchAllSidecars(),
 	}
-	beacon := sources.NewL1BeaconClient(beaconClient, beaconCfg, fallbacks...)
+	// Convert []apis.BlobSideCarsClient to []sources.BlobSideCarsFetcher
+	var fetchers []sources.BlobSideCarsFetcher
+	for _, fb := range fallbacks {
+		fetchers = append(fetchers, fb)
+	}
+	beacon := sources.NewL1BeaconClient(beaconClient, beaconCfg, fetchers...)
 
 	// Retry retrieval of the Beacon API version, to be more robust on startup against Beacon API connection issues.
 	beaconVersion, missingEndpoint, err := retry.Do2[string, bool](ctx, 5, retry.Exponential(), func() (string, bool, error) {
@@ -555,7 +560,6 @@ func initL2(ctx context.Context, cfg *config.Config, node *OpNode) (*sources.Eng
 		return nil, nil, nil, nil, fmt.Errorf("failed to setup L2 execution-engine RPC client: %w", err)
 	}
 
-	rpcCfg.FetchWithdrawalRootFromState = cfg.FetchWithdrawalRootFromState
 
 	l2Source, err := sources.NewEngineClient(rpcClient, node.log, node.metrics.L2SourceCache, rpcCfg)
 	if err != nil {
@@ -624,10 +628,7 @@ func initFollowSource(ctx context.Context, cfg *config.Config, node *OpNode) (*s
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup L2 follow source RPC client: %w", err)
 	}
-	l2FollowSource, err := sources.NewFollowClient(rpcClient)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create follow client: %w", err)
-	}
+	l2FollowSource := sources.NewFollowClient(rpcClient, node.log)
 	return l2FollowSource, nil
 }
 
@@ -680,7 +681,7 @@ func registerAPIs(cfg *config.Config, node *OpNode, handler *oprpc.Handler) erro
 	if cfg.RPC.EnableAdmin {
 		if err := handler.AddAPI(rpc.API{
 			Namespace: "admin",
-			Service:   NewAdminAPI(node.l2Driver, node.log),
+			Service:   NewAdminAPI(node.l2Driver, node.metrics, node.log),
 		}); err != nil {
 			return fmt.Errorf("failed to add Admin API: %w", err)
 		}
@@ -885,9 +886,9 @@ func (n *OpNode) Stop(ctx context.Context) error {
 	n.p2pMu.Unlock()
 
 	if n.p2pSigner != nil {
-		if err := n.p2pSigner.Close(); err != nil {
-			result = multierror.Append(result, fmt.Errorf("failed to close p2p signer: %w", err))
-		}
+
+
+
 	}
 
 	if n.resourcesClose != nil {

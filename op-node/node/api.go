@@ -17,6 +17,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-node/version"
 	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 	"github.com/tokamak-network/tokamak-thanos/op-service/rpc"
 	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 )
@@ -53,9 +54,9 @@ type adminAPI struct {
 
 var _ apis.OpnodeAdminServer = (*adminAPI)(nil)
 
-func NewAdminAPI(dr driverClient, log log.Logger) *adminAPI {
+func NewAdminAPI(dr driverClient, m opmetrics.RPCMetricer, log log.Logger) *adminAPI {
 	return &adminAPI{
-		CommonAdminAPI: rpc.NewCommonAdminAPI(log),
+		CommonAdminAPI: rpc.NewCommonAdminAPI(m, log),
 		dr:             dr,
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	cli "github.com/urfave/cli/v2"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -107,9 +109,9 @@ func NewConfig(ctx cliiface.Context, log log.Logger) (*config.Config, error) {
 		Driver:                      *driverConfig,
 		Beacon:                      NewBeaconEndpointConfig(ctx),
 		InteropConfig:               NewSupervisorEndpointConfig(ctx),
-		RPC:                         rpc.ReadCLIConfig(ctx),
-		Metrics:                     opmetrics.ReadCLIConfig(ctx),
-		Pprof:                       oppprof.ReadCLIConfig(ctx),
+		RPC:                         rpc.ReadCLIConfig(ctx.(*cli.Context)),
+		Metrics:                     opmetrics.ReadCLIConfig(ctx.(*cli.Context)),
+		Pprof:                       oppprof.ReadCLIConfig(ctx.(*cli.Context)),
 		P2P:                         p2pConfig,
 		P2PSigner:                   p2pSignerSetup,
 		L1EpochPollInterval:         ctx.Duration(flags.L1EpochPollIntervalFlag.Name),
@@ -282,13 +284,7 @@ Conflicting configuration is deprecated, and will stop the op-node from starting
 }
 
 func applyOverrides(ctx cliiface.Context, rollupConfig *rollup.Config) {
-	for _, fork := range opflags.OverridableForks {
-		flagName := opflags.OverrideName(fork)
-		if ctx.IsSet(flagName) {
-			timestamp := ctx.Uint64(flagName)
-			rollupConfig.SetActivationTime(fork, &timestamp)
-		}
-	}
+	// No overridable forks in tokamak-thanos (only up to Fjord)
 }
 
 func NewL1ChainConfig(chainId *big.Int, ctx cliiface.Context, log log.Logger) (*params.ChainConfig, error) {
@@ -296,7 +292,7 @@ func NewL1ChainConfig(chainId *big.Int, ctx cliiface.Context, log log.Logger) (*
 		panic("l1 chain id is nil")
 	}
 
-	if cfg := eth.L1ChainConfigByChainID(eth.ChainIDFromBig(chainId)); cfg != nil {
+	if cfg := eth.L1ChainConfigByChainID(chainId); cfg != nil {
 		return cfg, nil
 	}
 

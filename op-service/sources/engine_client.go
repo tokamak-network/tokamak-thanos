@@ -180,3 +180,41 @@ func (s *EngineAPIClient) SignalSuperchainV1(ctx context.Context, recommended, r
 	})
 	return result, err
 }
+
+// BlockRefByHash returns a block ref by hash (stub for interop compatibility).
+func (s *EngineClient) BlockRefByHash(ctx context.Context, hash common.Hash) (eth.BlockRef, error) {
+	info, err := s.InfoByHash(ctx, hash)
+	if err != nil {
+		return eth.BlockRef{}, err
+	}
+	return eth.BlockRef{
+		Hash:       info.Hash(),
+		Number:     info.NumberU64(),
+		ParentHash: info.ParentHash(),
+		Time:       info.Time(),
+	}, nil
+}
+
+// BlockRefByNumber returns a block ref by number (stub for interop compatibility).
+func (s *EngineClient) BlockRefByNumber(ctx context.Context, num uint64) (eth.BlockRef, error) {
+	info, err := s.InfoByNumber(ctx, num)
+	if err != nil {
+		return eth.BlockRef{}, err
+	}
+	return eth.BlockRef{
+		Hash:       info.Hash(),
+		Number:     info.NumberU64(),
+		ParentHash: info.ParentHash(),
+		Time:       info.Time(),
+	}, nil
+}
+
+// PayloadByHash returns the execution payload for a block (stub for interop compatibility).
+func (s *EngineClient) PayloadByHash(ctx context.Context, hash common.Hash) (*eth.ExecutionPayloadEnvelope, error) {
+	return nil, fmt.Errorf("PayloadByHash not implemented")
+}
+
+// OutputV0AtBlock returns the output at the given block hash (stub for interop compatibility).
+func (s *EngineClient) OutputV0AtBlock(ctx context.Context, blockHash common.Hash) (*eth.OutputV0, error) {
+	return nil, fmt.Errorf("OutputV0AtBlock not available on EngineClient")
+}

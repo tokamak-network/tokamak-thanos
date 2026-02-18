@@ -12,7 +12,6 @@ import (
 	opnode "github.com/tokamak-network/tokamak-thanos/op-node"
 	"github.com/tokamak-network/tokamak-thanos/op-node/chaincfg"
 	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/genesis"
-	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/interop"
 	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/networks"
 	"github.com/tokamak-network/tokamak-thanos/op-node/cmd/p2p"
 	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
@@ -63,7 +62,6 @@ func main() {
 			Name:        "networks",
 			Subcommands: networks.Subcommands,
 		},
-		interop.InteropCmd,
 	}
 
 	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
