@@ -1,6 +1,7 @@
 package enum
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -15,4 +16,13 @@ func EnumString[T ~string](values []T) string {
 		}
 	}
 	return out.String()
+}
+
+// EnumStringer is an alias for EnumString for fmt.Stringer types.
+func EnumStringer[T fmt.Stringer](values []T) string {
+	strs := make([]string, len(values))
+	for i, v := range values {
+		strs[i] = v.String()
+	}
+	return strings.Join(strs, ", ")
 }

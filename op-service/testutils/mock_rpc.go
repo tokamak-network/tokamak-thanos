@@ -67,3 +67,7 @@ func (m *MockRPC) EthSubscribe(ctx context.Context, channel any, args ...any) (e
 func (m *MockRPC) ExpectEthSubscribe(channel any, args []any, sub ethereum.Subscription, err error) {
 	m.Mock.On("EthSubscribe", mock.Anything, channel, args).Once().Return(sub, err)
 }
+
+func (m *MockRPC) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	return nil, nil
+}

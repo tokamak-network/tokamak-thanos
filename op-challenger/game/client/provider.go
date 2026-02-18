@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/tokamak-network/tokamak-thanos/op-challenger/config"
 	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
@@ -86,7 +87,7 @@ func (c *Provider) RollupClients() (*sources.RollupClient, *RollupSyncStatusVali
 	if c.rollupClient != nil {
 		return c.rollupClient, c.syncValidator, nil
 	}
-	rollupClient, err := dial.DialRollupClientWithTimeout(c.ctx, c.logger, c.cfg.RollupRpc)
+	rollupClient, err := dial.DialRollupClientWithTimeout(c.ctx, 1*time.Minute, c.logger, c.cfg.RollupRpc)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dial rollup client %v: %w", c.cfg.RollupRpc, err)
 	}

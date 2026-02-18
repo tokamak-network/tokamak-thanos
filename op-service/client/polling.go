@@ -193,3 +193,7 @@ func (w *PollingClient) getLatestHeader() (*types.Header, error) {
 func (w *PollingClient) reqPoll() {
 	w.pollReqCh <- struct{}{}
 }
+
+func (w *PollingClient) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	return w.c.Subscribe(ctx, namespace, channel, args...)
+}

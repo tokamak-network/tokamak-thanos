@@ -1,6 +1,7 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,4 +66,32 @@ func WriteJSON[X any](outputPath string, value X, perm os.FileMode) error {
 		return fmt.Errorf("failed to finish write: %w", err)
 	}
 	return nil
+}
+
+// LoadJSONFieldStrict loads a JSON file and extracts a specific field, returning an error if
+// any unknown fields are present.
+func LoadJSONFieldStrict[X any](inputPath string, field string) (*X, error) {
+	file, err := os.Open(inputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %w", inputPath, err)
+	}
+	defer file.Close()
+
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(file).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON: %w", err)
+	}
+
+	fieldData, ok := raw[field]
+	if !ok {
+		return nil, fmt.Errorf("field %q not found in %q", field, inputPath)
+	}
+
+	var x X
+	dec := json.NewDecoder(bytes.NewReader(fieldData))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&x); err != nil {
+		return nil, fmt.Errorf("failed to decode field %q: %w", field, err)
+	}
+	return &x, nil
 }

@@ -81,3 +81,11 @@ func (lc *limitClient) Close() {
 	lc.wg.Wait() // All waitgroup members exited, means no more dereferences of the client
 	lc.c.Close()
 }
+
+func (lc *limitClient) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	if err := lc.sema.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer lc.sema.Release(1)
+	return lc.c.Subscribe(ctx, namespace, channel, args...)
+}

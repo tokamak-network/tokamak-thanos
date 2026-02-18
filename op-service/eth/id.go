@@ -12,6 +12,11 @@ type BlockID struct {
 	Number uint64      `json:"number"`
 }
 
+// ID returns self (convenience for generic APIs that expect an ID() method).
+func (id BlockID) ID() BlockID {
+	return id
+}
+
 func (id BlockID) String() string {
 	return fmt.Sprintf("%s:%d", id.Hash.String(), id.Number)
 }

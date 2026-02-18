@@ -50,3 +50,12 @@ func (r RPCErrFaker) EthSubscribe(ctx context.Context, channel any, args ...any)
 }
 
 var _ client.RPC = (*RPCErrFaker)(nil)
+
+func (r RPCErrFaker) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	if r.ErrFn != nil {
+		if err := r.ErrFn(); err != nil {
+			return nil, err
+		}
+	}
+	return r.RPC.Subscribe(ctx, namespace, channel, args...)
+}

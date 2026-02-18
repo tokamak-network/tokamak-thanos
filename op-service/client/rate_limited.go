@@ -50,3 +50,10 @@ func (b *RateLimitingClient) EthSubscribe(ctx context.Context, channel any, args
 	}
 	return b.c.EthSubscribe(ctx, channel, args...)
 }
+
+func (b *RateLimitingClient) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	if err := b.rl.Wait(ctx); err != nil {
+		return nil, err
+	}
+	return b.c.Subscribe(ctx, namespace, channel, args...)
+}

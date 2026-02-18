@@ -76,3 +76,8 @@ func dialRPCClient(ctx context.Context, log log.Logger, addr string) (*rpc.Clien
 	}
 	return client, nil
 }
+
+// DialSupervisorClientWithTimeout dials a supervisor client with a default timeout.
+func DialSupervisorClientWithTimeout(ctx context.Context, log log.Logger, url string) (*sources.SupervisorClient, error) {
+	return sources.DialSupervisorClient(ctx, log, url)
+}

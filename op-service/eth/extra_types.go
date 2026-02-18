@@ -36,3 +36,9 @@ type ExecutionWitness struct {
 	State   map[string]string `json:"state,omitempty"`
 	Headers []byte            `json:"headers,omitempty"`
 }
+
+// SupervisorSyncStatus represents the sync status of the supervisor.
+type SupervisorSyncStatus struct {
+	MinSyncedL1        BlockID `json:"minSyncedL1"`
+	FinalizedTimestamp uint64  `json:"finalizedTimestamp"`
+}

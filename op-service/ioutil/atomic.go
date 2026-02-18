@@ -52,3 +52,8 @@ func (a *AtomicWriter) Close() error {
 	}
 	return os.Rename(a.temp, a.dest)
 }
+
+// NewAtomicWriter creates an atomic writer (alias for NewAtomicWriterCompressed).
+func NewAtomicWriter(path string, perm os.FileMode) (*AtomicWriter, error) {
+	return NewAtomicWriterCompressed(path, perm)
+}
