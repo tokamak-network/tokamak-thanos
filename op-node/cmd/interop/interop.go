@@ -1,3 +1,6 @@
+//go:build interop_deployer
+// +build interop_deployer
+
 package interop
 
 import (
