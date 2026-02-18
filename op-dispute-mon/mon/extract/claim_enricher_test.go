@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/stretchr/testify/require"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
 func TestClaimEnricher(t *testing.T) {

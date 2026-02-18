@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var frozen = time.Unix(int64(time.Hour.Seconds()), 0)
@@ -194,10 +194,10 @@ func newTestClaimMonitor(t *testing.T) (*ClaimMonitor, *clock.DeterministicClock
 	logger, handler := testlog.CaptureLogger(t, log.LvlInfo)
 	cl := clock.NewDeterministicClock(frozen)
 	metrics := &stubClaimMetrics{}
-	honestActors := []common.Address{
+	honestActors := types.NewHonestActors([]common.Address{
 		{0x01},
 		{0x02},
-	}
+	})
 	monitor := NewClaimMonitor(logger, cl, honestActors, metrics)
 	return monitor, cl, metrics, handler
 }

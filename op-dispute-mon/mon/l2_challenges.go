@@ -1,8 +1,8 @@
 package mon
 
 import (
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 type L2ChallengesMetrics interface {
@@ -28,11 +28,11 @@ func (m *L2ChallengesMonitor) CheckL2Challenges(games []*types.EnrichedGameData)
 		if game.BlockNumberChallenged {
 			if game.AgreeWithClaim {
 				m.logger.Warn("Found game with valid block number challenged",
-					"game", game.Proxy, "blockNum", game.L2BlockNumber, "agreement", game.AgreeWithClaim, "challenger", game.BlockNumberChallenger)
+					"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber, "agreement", game.AgreeWithClaim, "challenger", game.BlockNumberChallenger)
 				agreeChallengeCount++
 			} else {
 				m.logger.Debug("Found game with invalid block number challenged",
-					"game", game.Proxy, "blockNum", game.L2BlockNumber, "agreement", game.AgreeWithClaim, "challenger", game.BlockNumberChallenger)
+					"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber, "agreement", game.AgreeWithClaim, "challenger", game.BlockNumberChallenger)
 				disagreeChallengeCount++
 			}
 		}

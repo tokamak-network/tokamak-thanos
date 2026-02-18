@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
 func TestWithdrawalsEnricher(t *testing.T) {

@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
+	contractMetrics "github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/sources/caching"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/prometheus/client_golang/prometheus"
-	contractMetrics "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-service/httputil"
-	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/caching"
+
+	"github.com/ethereum-optimism/optimism/op-service/httputil"
+	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 )
 
 const Namespace = "op_dispute_mon"
@@ -162,6 +163,8 @@ type Metricer interface {
 
 	RecordCredit(expectation CreditExpectation, count int)
 
+	RecordHonestWithdrawableAmounts(map[common.Address]*big.Int)
+
 	RecordClaims(statuses *ClaimStatuses)
 
 	RecordWithdrawalRequests(delayedWeth common.Address, matches bool, count int)
@@ -170,16 +173,33 @@ type Metricer interface {
 
 	RecordGameAgreement(status GameAgreementStatus, count int)
 
+	RecordLatestValidProposalL2Block(latestValid uint64)
+
 	RecordLatestProposals(latestValid, latestInvalid uint64)
 
 	RecordIgnoredGames(count int)
+
+	RecordNodeEndpointErrors(count int)
+
+	RecordNodeEndpointErrorCount(count int)
+
+	RecordNodeEndpointOutOfSyncCount(count int)
+
+	RecordMixedAvailabilityGames(count int)
+
+	RecordMixedSafetyGames(count int)
+
+	RecordDifferentOutputRootGames(count int)
 
 	RecordBondCollateral(addr common.Address, required, available *big.Int)
 
 	RecordL2Challenges(agreement bool, count int)
 
+	RecordOldestGameUpdateTime(t time.Time)
+
 	caching.Metrics
 	contractMetrics.ContractMetricer
+	opmetrics.RPCMetricer
 }
 
 // Metrics implementation must implement RegistryMetricer to allow the metrics server to work.
@@ -192,6 +212,7 @@ type Metrics struct {
 
 	*opmetrics.CacheMetrics
 	*contractMetrics.ContractMetrics
+	opmetrics.RPCMetrics
 
 	monitorDuration prometheus.Histogram
 
@@ -207,18 +228,27 @@ type Metrics struct {
 	info prometheus.GaugeVec
 	up   prometheus.Gauge
 
-	credits prometheus.GaugeVec
+	credits                   prometheus.GaugeVec
+	honestWithdrawableAmounts prometheus.GaugeVec
 
-	lastOutputFetch prometheus.Gauge
+	lastOutputFetch      prometheus.Gauge
+	oldestGameUpdateTime prometheus.Gauge
 
-	gamesAgreement  prometheus.GaugeVec
-	latestProposals prometheus.GaugeVec
-	ignoredGames    prometheus.Gauge
-	failedGames     prometheus.Gauge
-	l2Challenges    prometheus.GaugeVec
+	gamesAgreement             prometheus.GaugeVec
+	latestValidProposalL2Block prometheus.Gauge
+	latestProposals            prometheus.GaugeVec
+	ignoredGames               prometheus.Gauge
+	failedGames                prometheus.Gauge
+	l2Challenges               prometheus.GaugeVec
 
-	requiredCollateral  prometheus.GaugeVec
-	availableCollateral prometheus.GaugeVec
+	requiredCollateral         prometheus.GaugeVec
+	availableCollateral        prometheus.GaugeVec
+	nodeEndpointErrors         prometheus.Gauge
+	nodeEndpointErrorCount     prometheus.Gauge
+	nodeEndpointOutOfSyncCount prometheus.Gauge
+	mixedAvailabilityGames     prometheus.Gauge
+	mixedSafetyGames           prometheus.Gauge
+	differentOutputRootGames   prometheus.Gauge
 }
 
 func (m *Metrics) Registry() *prometheus.Registry {
@@ -238,6 +268,7 @@ func NewMetrics() *Metrics {
 
 		CacheMetrics:    opmetrics.NewCacheMetrics(factory, Namespace, "provider_cache", "Provider cache"),
 		ContractMetrics: contractMetrics.MakeContractMetrics(Namespace, factory),
+		RPCMetrics:      opmetrics.MakeRPCMetrics(Namespace, factory),
 
 		info: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -261,6 +292,12 @@ func NewMetrics() *Metrics {
 			Namespace: Namespace,
 			Name:      "last_output_fetch",
 			Help:      "Timestamp of the last output fetch",
+		}),
+		oldestGameUpdateTime: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "oldest_game_update_time",
+			Help: "Timestamp the least recently updated game " +
+				"or the time of the last update cycle if there were no games in the monitoring window",
 		}),
 		honestActorClaims: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -294,6 +331,13 @@ func NewMetrics() *Metrics {
 			"credit",
 			"withdrawable",
 		}),
+		honestWithdrawableAmounts: *factory.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "honest_actor_pending_withdrawals",
+			Help:      "Current amount of withdrawable ETH for an honest actor",
+		}, []string{
+			"actor",
+		}),
 		claims: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "claims",
@@ -321,6 +365,11 @@ func NewMetrics() *Metrics {
 			"completion",
 			"result_correctness",
 			"root_agreement",
+		}),
+		latestValidProposalL2Block: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "latest_valid_proposal_l2_block",
+			Help:      "L2 block number proposed by the latest game with a valid root claim",
 		}),
 		latestProposals: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -367,6 +416,36 @@ func NewMetrics() *Metrics {
 			// An l2 block number challenge with an agreement means the challenge was invalid.
 			"root_agreement",
 		}),
+		nodeEndpointErrors: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "node_endpoint_errors",
+			Help:      "Number of rollup node RPC endpoints that returned at least one error other than \"not found\" in the last update cycle",
+		}),
+		nodeEndpointErrorCount: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "node_endpoint_error_count",
+			Help:      "Total number of individual endpoint error occurrences (other than \"not found\") across all rollup node endpoints in the last update cycle",
+		}),
+		nodeEndpointOutOfSyncCount: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "node_endpoint_out_of_sync_count",
+			Help:      "Total number of out-of-sync responses (where node's CurrentL1 <= game's L1HeadNum) across all rollup node endpoints in the last update cycle",
+		}),
+		mixedAvailabilityGames: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "mixed_availability_games",
+			Help:      "Number of games where some rollup nodes reported \"not found\" while others successfully retrieved the block in the last update cycle",
+		}),
+		mixedSafetyGames: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "mixed_safety_games",
+			Help:      "Number of games where some rollup nodes reported the root as safe while others reported it as unsafe in the last update cycle",
+		}),
+		differentOutputRootGames: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "different_output_root_games",
+			Help:      "Number of games where rollup nodes returned different output roots for the same L2 block in the last update cycle",
+		}),
 	}
 }
 
@@ -390,7 +469,6 @@ func (m *Metrics) RecordInfo(version string) {
 
 // RecordUp sets the up metric to 1.
 func (m *Metrics) RecordUp() {
-	prometheus.MustRegister()
 	m.up.Set(1)
 }
 
@@ -452,6 +530,12 @@ func (m *Metrics) RecordCredit(expectation CreditExpectation, count int) {
 	m.credits.WithLabelValues(asLabels(expectation)...).Set(float64(count))
 }
 
+func (m *Metrics) RecordHonestWithdrawableAmounts(amounts map[common.Address]*big.Int) {
+	for addr, amount := range amounts {
+		m.honestWithdrawableAmounts.WithLabelValues(addr.Hex()).Set(weiToEther(amount))
+	}
+}
+
 func (m *Metrics) RecordClaims(statuses *ClaimStatuses) {
 	statuses.ForEachStatus(func(status ClaimStatus, count int) {
 		m.claims.WithLabelValues(status.AsLabels()...).Set(float64(count))
@@ -474,8 +558,16 @@ func (m *Metrics) RecordOutputFetchTime(timestamp float64) {
 	m.lastOutputFetch.Set(timestamp)
 }
 
+func (m *Metrics) RecordOldestGameUpdateTime(t time.Time) {
+	m.oldestGameUpdateTime.Set(float64(t.Unix()))
+}
+
 func (m *Metrics) RecordGameAgreement(status GameAgreementStatus, count int) {
 	m.gamesAgreement.WithLabelValues(labelValuesFor(status)...).Set(float64(count))
+}
+
+func (m *Metrics) RecordLatestValidProposalL2Block(latestValid uint64) {
+	m.latestValidProposalL2Block.Set(float64(latestValid))
 }
 
 func (m *Metrics) RecordLatestProposals(latestValid, latestInvalid uint64) {
@@ -489,6 +581,30 @@ func (m *Metrics) RecordIgnoredGames(count int) {
 
 func (m *Metrics) RecordFailedGames(count int) {
 	m.failedGames.Set(float64(count))
+}
+
+func (m *Metrics) RecordNodeEndpointErrors(count int) {
+	m.nodeEndpointErrors.Set(float64(count))
+}
+
+func (m *Metrics) RecordNodeEndpointErrorCount(count int) {
+	m.nodeEndpointErrorCount.Set(float64(count))
+}
+
+func (m *Metrics) RecordNodeEndpointOutOfSyncCount(count int) {
+	m.nodeEndpointOutOfSyncCount.Set(float64(count))
+}
+
+func (m *Metrics) RecordMixedAvailabilityGames(count int) {
+	m.mixedAvailabilityGames.Set(float64(count))
+}
+
+func (m *Metrics) RecordMixedSafetyGames(count int) {
+	m.mixedSafetyGames.Set(float64(count))
+}
+
+func (m *Metrics) RecordDifferentOutputRootGames(count int) {
+	m.differentOutputRootGames.Set(float64(count))
 }
 
 func (m *Metrics) RecordBondCollateral(addr common.Address, required, available *big.Int) {

@@ -7,11 +7,13 @@ import (
 	"sync"
 	"sync/atomic"
 
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -29,20 +31,23 @@ type Enricher interface {
 
 type Extractor struct {
 	logger         log.Logger
+	clock          clock.Clock
 	createContract CreateGameCaller
 	fetchGames     FactoryGameFetcher
 	maxConcurrency int
 	enrichers      []Enricher
 	ignoredGames   map[common.Address]bool
+	latestGameData map[common.Address]*monTypes.EnrichedGameData
 }
 
-func NewExtractor(logger log.Logger, creator CreateGameCaller, fetchGames FactoryGameFetcher, ignoredGames []common.Address, maxConcurrency uint, enrichers ...Enricher) *Extractor {
+func NewExtractor(logger log.Logger, cl clock.Clock, creator CreateGameCaller, fetchGames FactoryGameFetcher, ignoredGames []common.Address, maxConcurrency uint, enrichers ...Enricher) *Extractor {
 	ignored := make(map[common.Address]bool)
 	for _, game := range ignoredGames {
 		ignored[game] = true
 	}
 	return &Extractor{
 		logger:         logger,
+		clock:          cl,
 		createContract: creator,
 		fetchGames:     fetchGames,
 		maxConcurrency: int(maxConcurrency),
@@ -61,7 +66,6 @@ func (e *Extractor) Extract(ctx context.Context, blockHash common.Hash, minTimes
 }
 
 func (e *Extractor) enrichGames(ctx context.Context, blockHash common.Hash, games []gameTypes.GameMetadata) ([]*monTypes.EnrichedGameData, int, int) {
-	var enrichedGames []*monTypes.EnrichedGameData
 	var ignored atomic.Int32
 	var failed atomic.Int32
 
@@ -101,8 +105,14 @@ func (e *Extractor) enrichGames(ctx context.Context, blockHash common.Hash, game
 		}()
 	}
 
-	// Push each game into the channel
+	// Create a new store for game data. This ensures any games no longer in the monitoring set are dropped.
+	updatedGameData := make(map[common.Address]*monTypes.EnrichedGameData)
+	// Push each game into the channel and store the latest cached game data as a default if fetching fails
 	for _, game := range games {
+		previousData := e.latestGameData[game.Proxy]
+		if previousData != nil {
+			updatedGameData[game.Proxy] = previousData
+		}
 		gameCh <- game
 	}
 	close(gameCh)
@@ -112,9 +122,10 @@ func (e *Extractor) enrichGames(ctx context.Context, blockHash common.Hash, game
 
 	// Read the results
 	for enrichedGame := range enrichedCh {
-		enrichedGames = append(enrichedGames, enrichedGame)
+		updatedGameData[enrichedGame.Proxy] = enrichedGame
 	}
-	return enrichedGames, int(ignored.Load()), int(failed.Load())
+	e.latestGameData = updatedGameData
+	return maps.Values(updatedGameData), int(ignored.Load()), int(failed.Load())
 }
 
 func (e *Extractor) enrichGame(ctx context.Context, blockHash common.Hash, game gameTypes.GameMetadata) (*monTypes.EnrichedGameData, error) {
@@ -125,7 +136,7 @@ func (e *Extractor) enrichGame(ctx context.Context, blockHash common.Hash, game 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create contracts: %w", err)
 	}
-	meta, err := caller.GetGameMetadata(ctx, rpcblock.ByHash(blockHash))
+	meta, err := caller.GetExtendedMetadata(ctx, rpcblock.ByHash(blockHash))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch game metadata: %w", err)
 	}
@@ -138,15 +149,21 @@ func (e *Extractor) enrichGame(ctx context.Context, blockHash common.Hash, game 
 		enrichedClaims[i] = monTypes.EnrichedClaim{Claim: claim}
 	}
 	enrichedGame := &monTypes.EnrichedGameData{
-		GameMetadata:          game,
-		L1Head:                meta.L1Head,
-		L2BlockNumber:         meta.L2BlockNum,
-		RootClaim:             meta.RootClaim,
-		Status:                meta.Status,
-		MaxClockDuration:      meta.MaxClockDuration,
-		BlockNumberChallenged: meta.L2BlockNumberChallenged,
-		BlockNumberChallenger: meta.L2BlockNumberChallenger,
-		Claims:                enrichedClaims,
+		LastUpdateTime:               e.clock.Now(),
+		GameMetadata:                 game,
+		L1Head:                       meta.L1Head,
+		L2SequenceNumber:             meta.L2SequenceNum,
+		RootClaim:                    meta.RootClaim,
+		Status:                       meta.Status,
+		MaxClockDuration:             meta.MaxClockDuration,
+		BlockNumberChallenged:        meta.L2BlockNumberChallenged,
+		BlockNumberChallenger:        meta.L2BlockNumberChallenger,
+		Claims:                       enrichedClaims,
+		RollupEndpointErrors:         make(map[string]bool),
+		RollupEndpointErrorCount:     0,
+		RollupEndpointNotFoundCount:  0,
+		RollupEndpointOutOfSyncCount: 0,
+		RollupEndpointTotalCount:     0,
 	}
 	if err := e.applyEnrichers(ctx, blockHash, caller, enrichedGame); err != nil {
 		return nil, fmt.Errorf("failed to enrich game: %w", err)

@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"time"
 
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 const MaximumResolutionResponseBuffer = time.Minute
@@ -25,16 +25,12 @@ type ClaimMetrics interface {
 type ClaimMonitor struct {
 	logger       log.Logger
 	clock        RClock
-	honestActors map[common.Address]bool // Map for efficient lookup
+	honestActors types.HonestActors
 	metrics      ClaimMetrics
 }
 
-func NewClaimMonitor(logger log.Logger, clock RClock, honestActors []common.Address, metrics ClaimMetrics) *ClaimMonitor {
-	actors := make(map[common.Address]bool)
-	for _, actor := range honestActors {
-		actors[actor] = true
-	}
-	return &ClaimMonitor{logger, clock, actors, metrics}
+func NewClaimMonitor(logger log.Logger, clock RClock, honestActors types.HonestActors, metrics ClaimMetrics) *ClaimMonitor {
+	return &ClaimMonitor{logger, clock, honestActors, metrics}
 }
 
 func (c *ClaimMonitor) CheckClaims(games []*types.EnrichedGameData) {

@@ -3,11 +3,11 @@ package mon
 import (
 	"errors"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/transform"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/transform"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 var (
@@ -16,6 +16,7 @@ var (
 
 type ForecastMetrics interface {
 	RecordGameAgreement(status metrics.GameAgreementStatus, count int)
+	RecordLatestValidProposalL2Block(validL2Block uint64)
 	RecordLatestProposals(validTimestamp, invalidTimestamp uint64)
 	RecordIgnoredGames(count int)
 	RecordFailedGames(count int)
@@ -32,8 +33,9 @@ type forecastBatch struct {
 	AgreeChallengerWins    int
 	DisagreeChallengerWins int
 
-	LatestInvalidProposal uint64
-	LatestValidProposal   uint64
+	LatestValidProposalL2Block uint64
+	LatestInvalidProposal      uint64
+	LatestValidProposal        uint64
 }
 
 type Forecast struct {
@@ -69,6 +71,7 @@ func (f *Forecast) recordBatch(batch forecastBatch, ignoredCount, failedCount in
 	f.metrics.RecordGameAgreement(metrics.AgreeDefenderAhead, batch.AgreeDefenderAhead)
 	f.metrics.RecordGameAgreement(metrics.DisagreeDefenderAhead, batch.DisagreeDefenderAhead)
 
+	f.metrics.RecordLatestValidProposalL2Block(batch.LatestValidProposalL2Block)
 	f.metrics.RecordLatestProposals(batch.LatestValidProposal, batch.LatestInvalidProposal)
 
 	f.metrics.RecordIgnoredGames(ignoredCount)
@@ -90,12 +93,15 @@ func (f *Forecast) forecastGame(game *monTypes.EnrichedGameData, metrics *foreca
 		if metrics.LatestValidProposal < game.Timestamp {
 			metrics.LatestValidProposal = game.Timestamp
 		}
+		if metrics.LatestValidProposalL2Block < game.L2SequenceNumber {
+			metrics.LatestValidProposalL2Block = game.L2SequenceNumber
+		}
 	}
 
 	if game.Status != types.GameStatusInProgress {
 		if game.Status != expectedResult {
 			f.logger.Error("Unexpected game result",
-				"game", game.Proxy, "blockNum", game.L2BlockNumber,
+				"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber,
 				"expectedResult", expectedResult, "actualResult", game.Status,
 				"rootClaim", game.RootClaim, "correctClaim", expected)
 		}
@@ -121,7 +127,7 @@ func (f *Forecast) forecastGame(game *monTypes.EnrichedGameData, metrics *foreca
 	// by the challenger since the counter is proven on-chain.
 	if game.BlockNumberChallenged {
 		f.logger.Debug("Found game with challenged block number",
-			"game", game.Proxy, "blockNum", game.L2BlockNumber, "agreement", agreement)
+			"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber, "agreement", agreement)
 		// If the block number is challenged the challenger will always win
 		forecastStatus = types.GameStatusChallengerWon
 	} else {
@@ -135,12 +141,12 @@ func (f *Forecast) forecastGame(game *monTypes.EnrichedGameData, metrics *foreca
 		if forecastStatus == types.GameStatusChallengerWon {
 			metrics.AgreeChallengerAhead++
 			f.logger.Warn("Forecasting unexpected game result", "status", forecastStatus,
-				"game", game.Proxy, "blockNum", game.L2BlockNumber,
+				"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber,
 				"rootClaim", game.RootClaim, "expected", expected)
 		} else {
 			metrics.AgreeDefenderAhead++
 			f.logger.Debug("Forecasting expected game result", "status", forecastStatus,
-				"game", game.Proxy, "blockNum", game.L2BlockNumber,
+				"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber,
 				"rootClaim", game.RootClaim, "expected", expected)
 		}
 	} else {
@@ -148,12 +154,12 @@ func (f *Forecast) forecastGame(game *monTypes.EnrichedGameData, metrics *foreca
 		if forecastStatus == types.GameStatusDefenderWon {
 			metrics.DisagreeDefenderAhead++
 			f.logger.Warn("Forecasting unexpected game result", "status", forecastStatus,
-				"game", game.Proxy, "blockNum", game.L2BlockNumber,
+				"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber,
 				"rootClaim", game.RootClaim, "expected", expected)
 		} else {
 			metrics.DisagreeChallengerAhead++
 			f.logger.Debug("Forecasting expected game result", "status", forecastStatus,
-				"game", game.Proxy, "blockNum", game.L2BlockNumber,
+				"game", game.Proxy, "l2SequenceNumber", game.L2SequenceNumber,
 				"rootClaim", game.RootClaim, "expected", expected)
 		}
 	}

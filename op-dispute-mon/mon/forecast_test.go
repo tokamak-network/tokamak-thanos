@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"testing"
 
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	"github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var (
@@ -109,14 +109,14 @@ func TestForecast_Forecast_EndLogs(t *testing.T) {
 		expectedGame := monTypes.EnrichedGameData{
 			Status:                types.GameStatusInProgress,
 			BlockNumberChallenged: true,
-			L2BlockNumber:         6,
+			L2SequenceNumber:      6,
 			AgreeWithClaim:        false,
 		}
 		forecast.Forecast([]*monTypes.EnrichedGameData{&expectedGame}, 0, 0)
 		l := logs.FindLog(testlog.NewLevelFilter(log.LevelDebug), testlog.NewMessageFilter("Found game with challenged block number"))
 		require.NotNil(t, l)
 		require.Equal(t, expectedGame.Proxy, l.AttrValue("game"))
-		require.Equal(t, expectedGame.L2BlockNumber, l.AttrValue("blockNum"))
+		require.Equal(t, expectedGame.L2SequenceNumber, l.AttrValue("l2SequenceNumber"))
 		require.Equal(t, false, l.AttrValue("agreement"))
 
 		expectedMetrics := zeroGameAgreement()
@@ -130,14 +130,14 @@ func TestForecast_Forecast_EndLogs(t *testing.T) {
 		expectedGame := monTypes.EnrichedGameData{
 			Status:                types.GameStatusInProgress,
 			BlockNumberChallenged: true,
-			L2BlockNumber:         6,
+			L2SequenceNumber:      6,
 			AgreeWithClaim:        true,
 		}
 		forecast.Forecast([]*monTypes.EnrichedGameData{&expectedGame}, 0, 0)
 		l := logs.FindLog(testlog.NewLevelFilter(log.LevelDebug), testlog.NewMessageFilter("Found game with challenged block number"))
 		require.NotNil(t, l)
 		require.Equal(t, expectedGame.Proxy, l.AttrValue("game"))
-		require.Equal(t, expectedGame.L2BlockNumber, l.AttrValue("blockNum"))
+		require.Equal(t, expectedGame.L2SequenceNumber, l.AttrValue("l2SequenceNumber"))
 		require.Equal(t, true, l.AttrValue("agreement"))
 
 		expectedMetrics := zeroGameAgreement()
@@ -269,9 +269,10 @@ func TestForecast_Forecast_MultipleGames(t *testing.T) {
 	games := make([]*monTypes.EnrichedGameData, 9)
 	for i := range games {
 		games[i] = &monTypes.EnrichedGameData{
-			Status:    gameStatus[i],
-			Claims:    claims[i],
-			RootClaim: rootClaims[i],
+			Status:           gameStatus[i],
+			Claims:           claims[i],
+			RootClaim:        rootClaims[i],
+			L2SequenceNumber: uint64(i),
 			GameMetadata: types.GameMetadata{
 				Timestamp: uint64(i),
 			},
@@ -292,6 +293,7 @@ func TestForecast_Forecast_MultipleGames(t *testing.T) {
 	require.Equal(t, expectedMetrics, m.gameAgreement)
 	require.Equal(t, 3, m.ignoredGames)
 	require.Equal(t, 4, m.contractCreationFails)
+	require.EqualValues(t, 8, m.latestValidProposalL2Block)
 	require.EqualValues(t, 7, m.latestInvalidProposal)
 	require.EqualValues(t, 8, m.latestValidProposal)
 }
@@ -318,11 +320,12 @@ func zeroGameAgreement() map[metrics.GameAgreementStatus]int {
 }
 
 type mockForecastMetrics struct {
-	gameAgreement         map[metrics.GameAgreementStatus]int
-	ignoredGames          int
-	latestInvalidProposal uint64
-	latestValidProposal   uint64
-	contractCreationFails int
+	gameAgreement              map[metrics.GameAgreementStatus]int
+	ignoredGames               int
+	latestValidProposalL2Block uint64
+	latestInvalidProposal      uint64
+	latestValidProposal        uint64
+	contractCreationFails      int
 }
 
 func (m *mockForecastMetrics) RecordFailedGames(count int) {
@@ -331,6 +334,10 @@ func (m *mockForecastMetrics) RecordFailedGames(count int) {
 
 func (m *mockForecastMetrics) RecordGameAgreement(status metrics.GameAgreementStatus, count int) {
 	m.gameAgreement[status] = count
+}
+
+func (m *mockForecastMetrics) RecordLatestValidProposalL2Block(valid uint64) {
+	m.latestValidProposalL2Block = valid
 }
 
 func (m *mockForecastMetrics) RecordLatestProposals(valid, invalid uint64) {

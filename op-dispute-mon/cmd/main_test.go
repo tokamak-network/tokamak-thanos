@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
+	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/superchain"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
-	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
 )
 
 var (
 	l1EthRpc                = "http://example.com:8545"
-	rollupRpc               = "http://example.com:8555"
+	rollupRpcs              = []string{"http://example.com:8555"}
 	gameFactoryAddressValue = "0xbb00000000000000000000000000000000000000"
 )
 
@@ -38,12 +39,12 @@ func TestLogLevel(t *testing.T) {
 
 func TestDefaultCLIOptionsMatchDefaultConfig(t *testing.T) {
 	cfg := configForArgs(t, addRequiredArgs())
-	defaultCfg := config.NewConfig(common.HexToAddress(gameFactoryAddressValue), l1EthRpc, rollupRpc)
+	defaultCfg := config.NewConfig(common.HexToAddress(gameFactoryAddressValue), l1EthRpc, rollupRpcs)
 	require.Equal(t, defaultCfg, cfg)
 }
 
 func TestDefaultConfigIsValid(t *testing.T) {
-	cfg := config.NewConfig(common.HexToAddress(gameFactoryAddressValue), l1EthRpc, rollupRpc)
+	cfg := config.NewConfig(common.HexToAddress(gameFactoryAddressValue), l1EthRpc, rollupRpcs)
 	require.NoError(t, cfg.Check())
 }
 
@@ -59,15 +60,46 @@ func TestL1EthRpc(t *testing.T) {
 	})
 }
 
+func TestMustSpecifyEitherRollupRpcOrSupervisorRpc(t *testing.T) {
+	verifyArgsInvalid(t, "flag rollup-rpc or supervisor-rpc is required", addRequiredArgsExcept("--rollup-rpc"))
+}
+
 func TestRollupRpc(t *testing.T) {
-	t.Run("Required", func(t *testing.T) {
-		verifyArgsInvalid(t, "flag rollup-rpc is required", addRequiredArgsExcept("--rollup-rpc"))
+	t.Run("NotRequiredIfSupervisorRpcSupplied", func(t *testing.T) {
+		configForArgs(t, addRequiredArgsExcept("--rollup-rpc", "--supervisor-rpc", "http://localhost/supervisor"))
 	})
 
 	t.Run("Valid", func(t *testing.T) {
 		url := "http://example.com:9999"
 		cfg := configForArgs(t, addRequiredArgsExcept("--rollup-rpc", "--rollup-rpc", url))
-		require.Equal(t, url, cfg.RollupRpc)
+		require.Equal(t, []string{url}, cfg.RollupRpcs)
+	})
+
+	t.Run("MultipleValues", func(t *testing.T) {
+		url1 := "http://example1.com:9999"
+		url2 := "http://example2.com:8888"
+		cfg := configForArgs(t, addRequiredArgsExcept("--rollup-rpc", "--rollup-rpc", url1, "--rollup-rpc", url2))
+		require.Equal(t, []string{url1, url2}, cfg.RollupRpcs)
+	})
+}
+
+func TestSupervisorRpc(t *testing.T) {
+	t.Run("NotRequiredIfRollupRpcSupplied", func(t *testing.T) {
+		// rollup-rpc is in the default args.
+		configForArgs(t, addRequiredArgsExcept("--supervisor-rpc"))
+	})
+
+	t.Run("Valid", func(t *testing.T) {
+		url := "http://example.com:9999"
+		cfg := configForArgs(t, addRequiredArgsExcept("--rollup-rpc", "--supervisor-rpc", url))
+		require.Equal(t, []string{url}, cfg.SupervisorRpcs)
+	})
+
+	t.Run("MultipleValues", func(t *testing.T) {
+		url1 := "http://example1.com:9999"
+		url2 := "http://example2.com:8888"
+		cfg := configForArgs(t, addRequiredArgsExcept("--rollup-rpc", "--supervisor-rpc", url1, "--supervisor-rpc", url2))
+		require.Equal(t, []string{url1, url2}, cfg.SupervisorRpcs)
 	})
 }
 
@@ -85,13 +117,23 @@ func TestGameFactoryAddress(t *testing.T) {
 	t.Run("Invalid", func(t *testing.T) {
 		verifyArgsInvalid(t, "invalid address: foo", addRequiredArgsExcept("--game-factory-address", "--game-factory-address", "foo"))
 	})
+
+	t.Run("OverridesNetwork", func(t *testing.T) {
+		addr := common.Address{0xbb, 0xcc, 0xdd}
+		cfg := configForArgs(t, addRequiredArgsExcept("--game-factory-address", "--game-factory-address", addr.Hex(), "--network", "op-sepolia"))
+		require.Equal(t, addr, cfg.GameFactoryAddress)
+	})
 }
 
 func TestNetwork(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		opSepoliaChainId := uint64(11155420)
+		opSepolia, err := superchain.GetChain(opSepoliaChainId)
+		require.NoError(t, err)
+		opSepoliaCfg, err := opSepolia.Config()
+		require.NoError(t, err)
 		cfg := configForArgs(t, addRequiredArgsExcept("--game-factory-address", "--network=op-sepolia"))
-		require.EqualValues(t, superchain.Addresses[opSepoliaChainId].DisputeGameFactoryProxy, cfg.GameFactoryAddress)
+		require.EqualValues(t, *opSepoliaCfg.Addresses.DisputeGameFactoryProxy, cfg.GameFactoryAddress)
 	})
 
 	t.Run("UnknownNetwork", func(t *testing.T) {
@@ -270,7 +312,7 @@ func addRequiredArgsExcept(name string, optionalArgs ...string) []string {
 func requiredArgs() map[string]string {
 	args := map[string]string{
 		"--l1-eth-rpc":           l1EthRpc,
-		"--rollup-rpc":           rollupRpc,
+		"--rollup-rpc":           strings.Join(rollupRpcs, ","),
 		"--game-factory-address": gameFactoryAddressValue,
 	}
 	return args

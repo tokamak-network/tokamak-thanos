@@ -6,11 +6,11 @@ import (
 	"math/big"
 	"testing"
 
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 )
 
 // makeTestGame returns an enriched game with 3 claims and a list of expected recipients.
@@ -87,7 +87,7 @@ func TestBondEnricher(t *testing.T) {
 			recipients[1]: big.NewInt(30),
 			recipients[2]: big.NewInt(40),
 		}
-		caller := &mockGameCaller{credits: expectedCredits}
+		caller := &mockGameCaller{credits: expectedCredits, bondDistributionMode: faultTypes.RefundDistributionMode}
 		err := enricher.Enrich(context.Background(), rpcblock.Latest, caller, game)
 		require.NoError(t, err)
 
@@ -96,5 +96,6 @@ func TestBondEnricher(t *testing.T) {
 			require.Contains(t, caller.requestedCredits, recipient)
 		}
 		require.Equal(t, expectedCredits, game.Credits)
+		require.Equal(t, faultTypes.RefundDistributionMode, game.BondDistributionMode)
 	})
 }

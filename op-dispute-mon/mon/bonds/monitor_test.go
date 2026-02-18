@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
+	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
-	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 var (
@@ -61,8 +61,8 @@ func TestCheckBonds(t *testing.T) {
 }
 
 func TestCheckRecipientCredit(t *testing.T) {
-	addr1 := common.Address{0x1a}
-	addr2 := common.Address{0x2b}
+	addr1 := common.Address{0x11, 0xaa}
+	addr2 := common.Address{0x22, 0xbb}
 	addr3 := common.Address{0x3c}
 	addr4 := common.Address{0x4d}
 	notRootPosition := types.NewPositionFromGIndex(big.NewInt(2))
@@ -273,7 +273,7 @@ func TestCheckRecipientCredit(t *testing.T) {
 		MaxClockDuration: 10,
 		WETHDelay:        10 * time.Second,
 		GameMetadata: gameTypes.GameMetadata{
-			Proxy:     common.Address{44},
+			Proxy:     common.Address{0x44},
 			Timestamp: uint64(frozen.Unix()) - 22,
 		},
 		BlockNumberChallenged: true,
@@ -401,8 +401,8 @@ func TestCheckRecipientCredit(t *testing.T) {
 		testlog.NewAttributesFilter("withdrawable", "non_withdrawable")))
 
 	// Logs from game 4
-	// addr1 is correct so has no logs
-	// addr2 is below expected before max duration, no long because withdrawals may be possible
+	// addr1 is correct
+	// addr2 is below expected before max duration, no log because withdrawals may be possible
 	// addr3 is not involved so no logs
 	// addr4 is above expected before max duration, so warn
 	require.NotNil(t, logs.FindLog(

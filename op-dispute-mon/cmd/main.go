@@ -8,14 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	monitor "github.com/tokamak-network/tokamak-thanos/op-dispute-mon"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/version"
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
-	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/opio"
+	monitor "github.com/ethereum-optimism/optimism/op-dispute-mon"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/flags"
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/version"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	"github.com/ethereum-optimism/optimism/op-service/cliapp"
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 )
 
 var (
@@ -28,7 +28,7 @@ var VersionWithMeta = opservice.FormatVersion(version.Version, GitCommit, GitDat
 
 func main() {
 	args := os.Args
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	if err := run(ctx, args, monitor.Main); err != nil {
 		log.Crit("Application failed", "err", err)
 	}
@@ -56,6 +56,11 @@ func run(ctx context.Context, args []string, action ConfiguredLifecycle) error {
 		if err != nil {
 			return nil, err
 		}
+		logger.Info("RPC endpoints",
+			"l1", cfg.L1EthRpc,
+			"rollup", cfg.RollupRpcs,
+			"supervisor", cfg.SupervisorRpcs,
+		)
 		return action(ctx.Context, logger, cfg)
 	})
 	return app.RunContext(ctx, args)

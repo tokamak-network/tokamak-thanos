@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	contractMetrics "github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching/rpcblock"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts"
-	contractMetrics "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/contracts/metrics"
-	faultTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
-	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/caching"
+
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/contracts"
+	"github.com/ethereum-optimism/optimism/op-service/sources/batching"
+	"github.com/ethereum-optimism/optimism/op-service/sources/caching"
+
+	faultTypes "github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
+	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
 )
 
 const metricsLabel = "game_caller_creator"
@@ -22,8 +24,8 @@ type GameCallerMetrics interface {
 }
 
 type GameCaller interface {
-	GetWithdrawals(context.Context, rpcblock.Block, common.Address, ...common.Address) ([]*contracts.WithdrawalRequest, error)
-	GetGameMetadata(context.Context, rpcblock.Block) (contracts.GameMetadata, error)
+	GetWithdrawals(context.Context, rpcblock.Block, ...common.Address) ([]*contracts.WithdrawalRequest, error)
+	GetExtendedMetadata(context.Context, rpcblock.Block) (contracts.GameMetadata, error)
 	GetAllClaims(context.Context, rpcblock.Block) ([]faultTypes.Claim, error)
 	BondCaller
 	BalanceCaller
@@ -48,8 +50,18 @@ func (g *GameCallerCreator) CreateContract(ctx context.Context, game gameTypes.G
 	if fdg, ok := g.cache.Get(game.Proxy); ok {
 		return fdg, nil
 	}
-	switch game.GameType {
-	case faultTypes.CannonGameType, faultTypes.PermissionedGameType, faultTypes.AsteriscGameType, faultTypes.AlphabetGameType:
+	switch gameTypes.GameType(game.GameType) {
+	case gameTypes.CannonGameType,
+		gameTypes.PermissionedGameType,
+		gameTypes.CannonKonaGameType,
+		gameTypes.AsteriscGameType,
+		gameTypes.AlphabetGameType,
+		gameTypes.FastGameType,
+		gameTypes.AsteriscKonaGameType,
+		gameTypes.SuperCannonGameType,
+		gameTypes.SuperPermissionedGameType,
+		gameTypes.SuperCannonKonaGameType,
+		gameTypes.SuperAsteriscKonaGameType:
 		fdg, err := contracts.NewFaultDisputeGameContract(ctx, g.m, game.Proxy, g.caller)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create fault dispute game contract: %w", err)

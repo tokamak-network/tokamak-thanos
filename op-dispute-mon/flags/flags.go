@@ -2,17 +2,19 @@ package flags
 
 import (
 	"fmt"
+	"strings"
 
-	challengerFlags "github.com/tokamak-network/tokamak-thanos/op-challenger/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-service/flags"
+	challengerFlags "github.com/ethereum-optimism/optimism/op-challenger/flags"
+	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
+	"github.com/ethereum-optimism/optimism/op-service/flags"
 	"github.com/urfave/cli/v2"
 
+	"github.com/ethereum-optimism/optimism/op-dispute-mon/config"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/config"
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
-	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
-	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-service/oppprof"
 )
 
 const (
@@ -30,18 +32,27 @@ var (
 		Usage:   "HTTP provider URL for L1.",
 		EnvVars: prefixEnvVars("L1_ETH_RPC"),
 	}
-	RollupRpcFlag = &cli.StringFlag{
+	// Optional Flags
+	RollupRpcFlag = &cli.StringSliceFlag{
 		Name:    "rollup-rpc",
-		Usage:   "HTTP provider URL for the rollup node",
+		Usage:   "HTTP provider URL for the rollup node. Multiple URLs can be specified for redundancy.",
 		EnvVars: prefixEnvVars("ROLLUP_RPC"),
 	}
-	// Optional Flags
+	SupervisorRpcFlag = &cli.StringSliceFlag{
+		Name:    "supervisor-rpc",
+		Usage:   "HTTP provider URL for supervisor nodes. Multiple URLs can be specified for redundancy.",
+		EnvVars: prefixEnvVars("SUPERVISOR_RPC"),
+	}
 	GameFactoryAddressFlag = &cli.StringFlag{
 		Name:    "game-factory-address",
 		Usage:   "Address of the fault game factory contract.",
 		EnvVars: prefixEnvVars("GAME_FACTORY_ADDRESS"),
 	}
-	NetworkFlag      = flags.CLINetworkFlag(envVarPrefix, "")
+	NetworkFlag = &cli.StringSliceFlag{
+		Name:    flags.NetworkFlagName,
+		Usage:   fmt.Sprintf("Predefined network selection. Available networks: %s", strings.Join(chaincfg.AvailableNetworks(), ", ")),
+		EnvVars: prefixEnvVars("NETWORK"),
+	}
 	HonestActorsFlag = &cli.StringSliceFlag{
 		Name:    "honest-actors",
 		Usage:   "List of honest actors that are monitored for any claims that are resolved against them.",
@@ -76,11 +87,12 @@ var (
 // requiredFlags are checked by [CheckRequired]
 var requiredFlags = []cli.Flag{
 	L1EthRpcFlag,
-	RollupRpcFlag,
 }
 
 // optionalFlags is a list of unchecked cli flags
 var optionalFlags = []cli.Flag{
+	RollupRpcFlag,
+	SupervisorRpcFlag,
 	GameFactoryAddressFlag,
 	NetworkFlag,
 	HonestActorsFlag,
@@ -106,6 +118,9 @@ func CheckRequired(ctx *cli.Context) error {
 		if !ctx.IsSet(f.Names()[0]) {
 			return fmt.Errorf("flag %s is required", f.Names()[0])
 		}
+	}
+	if len(ctx.StringSlice(RollupRpcFlag.Name)) == 0 && len(ctx.StringSlice(SupervisorRpcFlag.Name)) == 0 {
+		return fmt.Errorf("flag %s or %s is required", RollupRpcFlag.Name, SupervisorRpcFlag.Name)
 	}
 	return nil
 }
@@ -153,7 +168,8 @@ func NewConfigFromCLI(ctx *cli.Context) (*config.Config, error) {
 	return &config.Config{
 		L1EthRpc:           ctx.String(L1EthRpcFlag.Name),
 		GameFactoryAddress: gameFactoryAddress,
-		RollupRpc:          ctx.String(RollupRpcFlag.Name),
+		RollupRpcs:         ctx.StringSlice(RollupRpcFlag.Name),
+		SupervisorRpcs:     ctx.StringSlice(SupervisorRpcFlag.Name),
 
 		HonestActors:    actors,
 		MonitorInterval: ctx.Duration(MonitorIntervalFlag.Name),
