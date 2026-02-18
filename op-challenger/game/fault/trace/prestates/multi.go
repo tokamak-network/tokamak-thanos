@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/vm"
-	"github.com/ethereum-optimism/optimism/op-service/ioutil"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/vm"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/ethereum/go-ethereum/common"
 )
 

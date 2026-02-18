@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
-	"github.com/ethereum-optimism/optimism/op-service/testutils/fuzzerutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils/fuzzerutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	fuzz "github.com/google/gofuzz"

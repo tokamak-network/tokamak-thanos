@@ -8,11 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/exec"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/multithreaded"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/testutil"
 )
 
 func AddHintLengthPrefix(data []byte) []byte {

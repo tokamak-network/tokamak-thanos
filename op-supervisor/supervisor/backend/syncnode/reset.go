@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/superevents"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/backend/superevents"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/types"
 )
 
 // managedNodeResetBackend is a shim to pass to the resetTracker to let it

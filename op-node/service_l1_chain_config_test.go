@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
-	nodeflags "github.com/ethereum-optimism/optimism/op-node/flags"
+	nodeflags "github.com/tokamak-network/tokamak-thanos/op-node/flags"
 )
 
 func TestNewL1ChainConfig_KnownChains(t *testing.T) {

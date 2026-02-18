@@ -3,8 +3,8 @@ package status
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // L1Tracker implements the L1Fetcher interface while proactively maintaining a reorg-aware cache

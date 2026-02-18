@@ -3,7 +3,7 @@ package opnode
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"

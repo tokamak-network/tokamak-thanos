@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	mtutil "github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded/testutil"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/multithreaded"
+	mtutil "github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/multithreaded/testutil"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/testutil"
 )
 
 func TestDiffTester_Run_SimpleTest(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-service/cliiface"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliiface"
 	"github.com/urfave/cli/v2"
 )
 

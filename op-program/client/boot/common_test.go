@@ -3,7 +3,7 @@ package boot
 import (
 	"encoding/binary"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 	"github.com/ethereum/go-ethereum/common"
 )
 

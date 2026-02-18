@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive/params"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive/params"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
 )
 

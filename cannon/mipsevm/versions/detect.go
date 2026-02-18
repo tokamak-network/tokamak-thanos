@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethereum-optimism/optimism/op-service/ioutil"
-	"github.com/ethereum-optimism/optimism/op-service/serialize"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/serialize"
 )
 
 func DetectVersion(path string) (StateVersion, error) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
 )
 
 const (

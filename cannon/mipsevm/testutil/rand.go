@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )

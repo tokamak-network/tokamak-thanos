@@ -1,12 +1,12 @@
 package client
 
 import (
-	"github.com/ethereum-optimism/optimism/op-program/client/boot"
-	"github.com/ethereum-optimism/optimism/op-program/client/claim"
-	"github.com/ethereum-optimism/optimism/op-program/client/l1"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2"
-	"github.com/ethereum-optimism/optimism/op-program/client/tasks"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/boot"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/claim"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l1"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l2"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/tasks"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
 )
 

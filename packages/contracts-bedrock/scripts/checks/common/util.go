@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/solc"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/versions"
 )
 
 func Witness(ctx *cli.Context) error {

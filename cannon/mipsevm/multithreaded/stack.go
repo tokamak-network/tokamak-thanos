@@ -3,8 +3,8 @@ package multithreaded
 import (
 	"errors"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/exec"
 )
 
 type ThreadedStackTracker interface {

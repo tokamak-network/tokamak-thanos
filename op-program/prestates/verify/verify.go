@@ -7,7 +7,7 @@ import (
 	"os"
 	"slices"
 
-	"github.com/ethereum-optimism/optimism/op-program/prestates"
+	"github.com/tokamak-network/tokamak-thanos/op-program/prestates"
 )
 
 func main() {

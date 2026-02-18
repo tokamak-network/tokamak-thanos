@@ -8,15 +8,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/memory"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	mtutil "github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded/testutil"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/exec"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/memory"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/multithreaded"
+	mtutil "github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/multithreaded/testutil"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/program"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/testutil"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 const syscallInsn = uint32(0x00_00_00_0c)

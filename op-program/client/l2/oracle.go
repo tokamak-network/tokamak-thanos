@@ -3,16 +3,16 @@ package l2
 import (
 	"fmt"
 
-	interopTypes "github.com/ethereum-optimism/optimism/op-program/client/interop/types"
+	interopTypes "github.com/tokamak-network/tokamak-thanos/op-program/client/interop/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/ethereum-optimism/optimism/op-core/predeploys"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	l2Types "github.com/ethereum-optimism/optimism/op-program/client/l2/types"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-core/predeploys"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	l2Types "github.com/tokamak-network/tokamak-thanos/op-program/client/l2/types"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/mpt"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // StateOracle defines the high-level API used to retrieve L2 state data pre-images

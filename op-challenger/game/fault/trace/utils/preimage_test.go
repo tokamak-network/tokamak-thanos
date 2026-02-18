@@ -14,11 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-program/client/l1"
-	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l1"
+	"github.com/tokamak-network/tokamak-thanos/op-program/host/kvstore"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func TestPreimageLoader_NoPreimage(t *testing.T) {

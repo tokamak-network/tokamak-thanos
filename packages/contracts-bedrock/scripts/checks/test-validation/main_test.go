@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/solc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 

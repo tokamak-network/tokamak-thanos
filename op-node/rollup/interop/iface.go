@@ -5,10 +5,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/interop/indexing"
-	"github.com/ethereum-optimism/optimism/op-service/event"
-	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/interop/indexing"
+	"github.com/tokamak-network/tokamak-thanos/op-service/event"
+	opmetrics "github.com/tokamak-network/tokamak-thanos/op-service/metrics"
 )
 
 type SubSystem interface {

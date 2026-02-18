@@ -1,8 +1,8 @@
 package superevents
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/types"
 )
 
 type UpdateCrossUnsafeRequestEvent struct {

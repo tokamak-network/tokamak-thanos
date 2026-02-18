@@ -7,13 +7,13 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ethereum-optimism/optimism/op-service/binary"
+	"github.com/tokamak-network/tokamak-thanos/op-service/binary"
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/db/entrydb"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/backend/db/entrydb"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/types"
 )
 
 type EntryStore interface {

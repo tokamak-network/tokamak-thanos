@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ethereum-optimism/optimism/op-service/event"
+	"github.com/tokamak-network/tokamak-thanos/op-service/event"
 )
 
 type SequencerIface interface {

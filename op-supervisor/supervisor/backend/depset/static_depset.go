@@ -8,8 +8,8 @@ import (
 	"sort"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ethereum-optimism/optimism/op-node/params"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-node/params"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 type StaticConfigDependency struct {

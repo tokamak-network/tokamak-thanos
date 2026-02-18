@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/versions"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/devkeys"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 )
 
 type InteropDevRecipe struct {

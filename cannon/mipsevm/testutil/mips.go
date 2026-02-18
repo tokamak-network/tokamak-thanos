@@ -17,10 +17,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
 )
 
 // maxStepGas should be less than the L1 gas limit

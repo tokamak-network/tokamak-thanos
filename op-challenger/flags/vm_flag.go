@@ -3,8 +3,8 @@ package flags
 import (
 	"fmt"
 
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
-	opservice "github.com/ethereum-optimism/optimism/op-service"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
+	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/urfave/cli/v2"
 )
 

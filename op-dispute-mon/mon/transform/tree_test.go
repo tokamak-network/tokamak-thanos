@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/types"
-	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/types"
+	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 )
 
 func TestResolver_CreateBidirectionalTree(t *testing.T) {

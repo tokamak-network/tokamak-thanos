@@ -3,7 +3,7 @@ package bonds
 import (
 	"math/big"
 
-	monTypes "github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	monTypes "github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 

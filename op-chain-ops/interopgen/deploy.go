@@ -14,15 +14,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis/beacondeposit"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/script"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/manage"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis/beacondeposit"
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/script"
+	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer"
+	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/manage"
+	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/opcm"
+	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/standard"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 var (

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	factory "github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
-	"github.com/ethereum-optimism/optimism/op-service/ioutil"
-	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
+	factory "github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/versions"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/urfave/cli/v2"

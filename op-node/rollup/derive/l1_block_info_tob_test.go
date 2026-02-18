@@ -3,10 +3,10 @@ package derive
 import (
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/testutils"
-	"github.com/ethereum-optimism/optimism/op-service/testutils/fuzzerutils"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testutils/fuzzerutils"
 	"github.com/ethereum/go-ethereum/params"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"

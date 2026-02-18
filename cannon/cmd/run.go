@@ -18,15 +18,15 @@ import (
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
-	mipsexec "github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	"github.com/ethereum-optimism/optimism/op-service/ioutil"
-	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
-	"github.com/ethereum-optimism/optimism/op-service/serialize"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
+	mipsexec "github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/exec"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/program"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/versions"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
+	"github.com/tokamak-network/tokamak-thanos/op-service/serialize"
 )
 
 var (

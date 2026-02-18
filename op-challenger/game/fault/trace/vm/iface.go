@@ -3,7 +3,7 @@ package vm
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/trace/utils"
 )
 
 type StateConverter interface {

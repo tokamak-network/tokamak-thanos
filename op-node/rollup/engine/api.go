@@ -7,10 +7,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/apis"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 )
 
 // RollupAPI is the API we serve as rollup-node to interact with the execution engine and forkchoice state.

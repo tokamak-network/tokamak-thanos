@@ -10,7 +10,7 @@ import (
 
 	net "net"
 
-	p2p "github.com/ethereum-optimism/optimism/op-service/apis"
+	p2p "github.com/tokamak-network/tokamak-thanos/op-service/apis"
 
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )

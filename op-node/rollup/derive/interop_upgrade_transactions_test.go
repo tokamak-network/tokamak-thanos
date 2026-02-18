@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-core/predeploys"
+	"github.com/tokamak-network/tokamak-thanos/op-core/predeploys"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )

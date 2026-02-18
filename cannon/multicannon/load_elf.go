@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
+	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/versions"
 	"github.com/urfave/cli/v2"
 )
 

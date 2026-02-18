@@ -3,9 +3,9 @@ package cross
 import (
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/backend/depset"
+	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 

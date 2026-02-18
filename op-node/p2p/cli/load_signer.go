@@ -7,10 +7,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-node/flags"
-	"github.com/ethereum-optimism/optimism/op-node/p2p"
-	"github.com/ethereum-optimism/optimism/op-service/cliiface"
-	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
+	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
+	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-service/cliiface"
+	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 )
 
 // LoadSignerSetup loads a configuration for a Signer to be set up later

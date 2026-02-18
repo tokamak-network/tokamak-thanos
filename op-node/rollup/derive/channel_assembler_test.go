@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-node/metrics"
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	rolluptest "github.com/ethereum-optimism/optimism/op-node/rollup/test"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	rolluptest "github.com/tokamak-network/tokamak-thanos/op-node/rollup/test"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestChannelStage_NextData(t *testing.T) {

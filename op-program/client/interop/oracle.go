@@ -3,12 +3,12 @@ package interop
 import (
 	"fmt"
 
-	preimage "github.com/ethereum-optimism/optimism/op-preimage"
-	interopTypes "github.com/ethereum-optimism/optimism/op-program/client/interop/types"
-	"github.com/ethereum-optimism/optimism/op-program/client/l2"
-	l2Types "github.com/ethereum-optimism/optimism/op-program/client/l2/types"
-	"github.com/ethereum-optimism/optimism/op-program/client/mpt"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
+	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
+	interopTypes "github.com/tokamak-network/tokamak-thanos/op-program/client/interop/types"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/l2"
+	l2Types "github.com/tokamak-network/tokamak-thanos/op-program/client/l2/types"
+	"github.com/tokamak-network/tokamak-thanos/op-program/client/mpt"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"

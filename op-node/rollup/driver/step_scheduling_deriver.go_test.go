@@ -8,8 +8,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ethereum-optimism/optimism/op-service/event"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/tokamak-network/tokamak-thanos/op-service/event"
+	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestStepSchedulingDeriver(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da"
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
 )
 
 type FileStore struct {

@@ -3,14 +3,14 @@ package driver
 import (
 	"context"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da"
-	opnodemetrics "github.com/ethereum-optimism/optimism/op-node/metrics"
-	"github.com/ethereum-optimism/optimism/op-node/metrics/metered"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/sequencing"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/event"
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
+	opnodemetrics "github.com/tokamak-network/tokamak-thanos/op-node/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-node/metrics/metered"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/engine"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sequencing"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/tokamak-network/tokamak-thanos/op-service/event"
 	"github.com/ethereum/go-ethereum/common"
 )
 

@@ -5,9 +5,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da"
-	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
+	"github.com/tokamak-network/tokamak-thanos/op-service/ctxinterrupt"
+	oplog "github.com/tokamak-network/tokamak-thanos/op-service/log"
 )
 
 func StartDAServer(cliCtx *cli.Context) error {

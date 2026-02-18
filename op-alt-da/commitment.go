@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive/params"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive/params"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 

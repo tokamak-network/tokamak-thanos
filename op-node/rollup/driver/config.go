@@ -1,6 +1,6 @@
 package driver
 
-import "github.com/ethereum-optimism/optimism/op-node/rollup/finality"
+import "github.com/tokamak-network/tokamak-thanos/op-node/rollup/finality"
 
 type Config struct {
 	// VerifierConfDepth is the distance to keep from the L1 head when reading L1 data for L2 derivation.

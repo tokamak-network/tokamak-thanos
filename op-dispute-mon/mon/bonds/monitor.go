@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/metrics"
-	"github.com/ethereum-optimism/optimism/op-dispute-mon/mon/types"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/metrics"
+	"github.com/tokamak-network/tokamak-thanos/op-dispute-mon/mon/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )

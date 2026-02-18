@@ -1,8 +1,8 @@
 package p2p
 
 import (
-	"github.com/ethereum-optimism/optimism/op-service/client"
-	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/tokamak-network/tokamak-thanos/op-service/client"
+	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 

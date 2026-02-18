@@ -1,7 +1,7 @@
 package interopgen
 
 import (
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
+	"github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum/go-ethereum/common"
 )
 

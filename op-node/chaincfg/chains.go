@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/superchain"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 )
 
 // OPSepolia loads the op-sepolia rollup config. This is intended for tests that need an arbitrary, valid rollup config.

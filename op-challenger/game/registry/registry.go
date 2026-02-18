@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/claims"
-	"github.com/ethereum-optimism/optimism/op-challenger/game/scheduler"
-	gameTypes "github.com/ethereum-optimism/optimism/op-challenger/game/types"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/fault/claims"
+	"github.com/tokamak-network/tokamak-thanos/op-challenger/game/scheduler"
+	gameTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/types"
 )
 
 var ErrUnsupportedGameType = errors.New("unsupported game type")

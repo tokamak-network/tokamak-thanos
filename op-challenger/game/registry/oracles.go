@@ -3,7 +3,7 @@ package registry
 import (
 	"sync"
 
-	keccakTypes "github.com/ethereum-optimism/optimism/op-challenger/game/keccak/types"
+	keccakTypes "github.com/tokamak-network/tokamak-thanos/op-challenger/game/keccak/types"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/exp/maps"
 )
