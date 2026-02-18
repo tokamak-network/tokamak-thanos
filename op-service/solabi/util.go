@@ -132,3 +132,17 @@ func WriteUint64(w io.Writer, n uint64) error {
 	}
 	return nil
 }
+
+// ReadUint16 reads a big endian uint16 from a 32 byte word
+func ReadUint16(r io.Reader) (uint16, error) {
+	var b [32]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	for _, byt := range b[:30] {
+		if byt != 0 {
+			return 0, errors.New("uint16 value has non-zero padding")
+		}
+	}
+	return binary.BigEndian.Uint16(b[30:32]), nil
+}

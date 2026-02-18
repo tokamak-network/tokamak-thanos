@@ -12,7 +12,7 @@ func Write[X Serializable](outputPath string, x X, perm os.FileMode) error {
 	if IsBinaryFile(outputPath) {
 		return WriteSerializedBinary(x, ioutil.ToStdOutOrFileOrNoop(outputPath, perm))
 	}
-	return jsonutil.WriteJSON[X](x, ioutil.ToStdOutOrFileOrNoop(outputPath, perm))
+	return jsonutil.WriteJSON[X](outputPath, x, perm)
 }
 
 func IsBinaryFile(path string) bool {

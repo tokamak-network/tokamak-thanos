@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eip1559"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"

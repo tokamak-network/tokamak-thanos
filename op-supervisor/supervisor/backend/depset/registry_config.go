@@ -7,7 +7,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 )
 
 type RegistryFullConfigSetSource struct {

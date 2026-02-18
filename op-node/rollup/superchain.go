@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 )
 
 var OPStackSupport = params.ProtocolVersionV0{Build: [8]byte{}, Major: 9, Minor: 0, Patch: 0, PreRelease: 0}.Encode()
@@ -27,7 +27,7 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 	chOpConfig := &params.OptimismConfig{
 		EIP1559Elasticity:        chConfig.Optimism.EIP1559Elasticity,
 		EIP1559Denominator:       chConfig.Optimism.EIP1559Denominator,
-		EIP1559DenominatorCanyon: chConfig.Optimism.EIP1559DenominatorCanyon,
+		EIP1559DenominatorCanyon: func() uint64 { if chConfig.Optimism.EIP1559DenominatorCanyon != nil { return *chConfig.Optimism.EIP1559DenominatorCanyon }; return 0 }(),
 	}
 
 	superConfig, err := superchain.GetSuperchain(chain.Network)

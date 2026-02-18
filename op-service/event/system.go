@@ -3,7 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"path/filepath"
 	"runtime"
 	"slices"

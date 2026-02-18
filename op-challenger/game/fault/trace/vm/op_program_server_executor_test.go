@@ -2,7 +2,7 @@ package vm
 
 import (
 	"fmt"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"math/big"
 	"strings"
 	"testing"

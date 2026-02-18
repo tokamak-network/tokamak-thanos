@@ -3,7 +3,7 @@ package derive
 import (
 	"context"
 	"io"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"testing"
 
 	"github.com/stretchr/testify/require"

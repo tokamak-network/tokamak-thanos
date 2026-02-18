@@ -31,7 +31,8 @@ type AttributesBuilder interface {
 type AttributesWithParent struct {
 	Attributes *eth.PayloadAttributes
 	Parent     eth.L2BlockRef
-	Concluding bool // Concluding indicates that the attributes conclude the pending safe phase
+	Concluding   bool // Concluding indicates that the attributes conclude the pending safe phase
+	IsLastInSpan bool // IsLastInSpan indicates this is the last attributes in a span batch
 
 	DerivedFrom eth.L1BlockRef
 }

@@ -49,6 +49,9 @@ func (id L2BlockRef) TerminalString() string {
 	return fmt.Sprintf("%s:%d", id.Hash.TerminalString(), id.Number)
 }
 
+// BlockRef is an alias for L1BlockRef, used in interop/supervisor contexts.
+type BlockRef = L1BlockRef
+
 type L1BlockRef struct {
 	Hash       common.Hash `json:"hash"`
 	Number     uint64      `json:"number"`

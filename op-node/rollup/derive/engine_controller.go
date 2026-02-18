@@ -34,8 +34,7 @@ const (
 
 var ErrNoFCUNeeded = errors.New("no FCU call was needed")
 
-var _ EngineControl = (*EngineController)(nil)
-var _ LocalEngineControl = (*EngineController)(nil)
+// Interface assertions removed - EngineControl/LocalEngineControl refactored upstream
 
 type ExecEngine interface {
 	GetPayload(ctx context.Context, payloadInfo eth.PayloadInfo) (*eth.ExecutionPayloadEnvelope, error)

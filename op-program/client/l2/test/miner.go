@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/tokamak-network/tokamak-thanos/op-core/predeploys"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +59,7 @@ func NewMiner(t *testing.T, logger log.Logger, isthmusTime uint64) (*Miner, *cor
 		ParentHash: common.Hash{},
 		BaseFee:    big.NewInt(7),
 		Alloc: map[common.Address]types.Account{
-			params.HistoryStorageAddress: {Nonce: 1, Code: params.HistoryStorageCode, Balance: common.Big0}, // for Isthmus eip-2935
+			predeploys.EIP2935ContractAddr: {Nonce: 1, Code: predeploys.EIP2935ContractCode, Balance: common.Big0}, // for Isthmus eip-2935
 		},
 		ExtraData: []byte{0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8}, // for Holocene eip-1559 params
 	}

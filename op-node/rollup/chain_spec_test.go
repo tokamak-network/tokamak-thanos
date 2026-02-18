@@ -1,7 +1,7 @@
 package rollup
 
 import (
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"math/big"
 	"testing"
 

@@ -4,7 +4,7 @@ import (
 	"math/rand" // nosemgrep
 	"testing"
 
-	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
+	"github.com/tokamak-network/tokamak-thanos/op-service/eip1559"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"

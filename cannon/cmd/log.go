@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"io"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"os"
 
 	"golang.org/x/term"

@@ -12,7 +12,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 	"github.com/stretchr/testify/require"
 )
 

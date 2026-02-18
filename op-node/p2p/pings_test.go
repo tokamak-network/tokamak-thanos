@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"errors"
-	"log/slog"
+	"golang.org/x/exp/slog"
 	"sync/atomic"
 	"testing"
 	"time"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/tokamak-network/tokamak-thanos/op-core/predeploys"
 	l2Types "github.com/tokamak-network/tokamak-thanos/op-program/client/l2/types"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
@@ -128,7 +129,7 @@ func (o *FastCanonicalBlockHeaderOracle) getHistoricalBlockHash(head *types.Head
 	gas := uint64(1000000)
 	var input [32]byte
 	binary.BigEndian.PutUint64(input[24:], n)
-	ret, _, err := vmenv.StaticCall(caller, params.HistoryStorageAddress, input[:], gas)
+	ret, _, err := vmenv.StaticCall(caller, predeploys.EIP2935ContractAddr, input[:], gas)
 	if err != nil {
 		panic(fmt.Errorf("failed to get history block hash: %w", err))
 	}

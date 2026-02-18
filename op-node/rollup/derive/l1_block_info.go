@@ -497,7 +497,9 @@ func L1InfoDeposit(rollupCfg *rollup.Config, l1ChainConfig *params.ChainConfig, 
 
 	// 1. Set all fields according to active forks
 	if isEcotoneActivated {
-		l1BlockInfo.BlobBaseFee = block.BlobBaseFee(l1ChainConfig)
+		if ebg := block.ExcessBlobGas(); ebg != nil {
+			l1BlockInfo.BlobBaseFee = eth.CalcBlobFeeCancun(*ebg)
+		}
 
 		// Apply Cancun blob base fee calculation if this chain needs the L1 Pectra
 		// blob schedule fix (mostly Holesky and Sepolia OP-Stack chains).

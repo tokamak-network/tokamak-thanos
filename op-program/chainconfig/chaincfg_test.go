@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/op-program/chainconfig/test"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 	"github.com/stretchr/testify/require"
 )
 

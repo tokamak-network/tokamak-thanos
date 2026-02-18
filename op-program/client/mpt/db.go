@@ -35,7 +35,7 @@ func (p *DB) DeleteRange(start, end []byte) error {
 	panic("not supported")
 }
 
-func (p DB) Stat() (string, error) {
+func (p DB) Stat(property string) (string, error) {
 	panic("not supported")
 }
 
@@ -119,6 +119,10 @@ func (p *DB) SyncAncient() error {
 }
 
 func (p *DB) SyncKeyValue() error {
+	panic("not supported")
+}
+
+func (p *DB) NewSnapshot() (ethdb.Snapshot, error) {
 	panic("not supported")
 }
 

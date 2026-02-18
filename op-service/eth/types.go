@@ -320,6 +320,24 @@ type PayloadAttributes struct {
 	NoTxPool bool `json:"noTxPool,omitempty"`
 	// GasLimit override
 	GasLimit *Uint64Quantity `json:"gasLimit,omitempty"`
+	// EIP1559Params overrides EIP-1559 parameters (Holocene)
+	EIP1559Params *Bytes8 `json:"eip1559Params,omitempty"`
+	// MinBaseFee overrides minimum base fee (Holocene/Jovian)
+	MinBaseFee *uint64 `json:"minBaseFee,omitempty"`
+}
+
+// WithDepositsOnly returns a copy with non-deposit transactions removed.
+func (attrs *PayloadAttributes) WithDepositsOnly() *PayloadAttributes {
+	clone := *attrs
+	var deposits []Data
+	for _, tx := range attrs.Transactions {
+		if len(tx) > 0 && tx[0] == 0x7E { // deposit tx type
+			deposits = append(deposits, tx)
+		}
+	}
+	clone.Transactions = deposits
+	clone.NoTxPool = true
+	return &clone
 }
 
 type ExecutePayloadStatus string
@@ -381,7 +399,40 @@ type SystemConfig struct {
 	Scalar Bytes32 `json:"scalar"`
 	// GasLimit identifies the L2 block gas limit
 	GasLimit uint64 `json:"gasLimit"`
-	// More fields can be added for future SystemConfig versions.
+	// EIP1559Params stores EIP-1559 parameters (Holocene)
+	EIP1559Params Bytes8 `json:"eip1559Params,omitempty"`
+	// MinBaseFee stores the minimum base fee (Holocene/Jovian)
+	MinBaseFee uint64 `json:"minBaseFee,omitempty"`
+	// OperatorFeeParams identifies the operator fee parameters (Isthmus).
+	OperatorFeeParams Bytes32 `json:"operatorFeeParams"`
+	// DAFootprintGasScalar for Jovian
+	DAFootprintGasScalar uint16 `json:"daFootprintGasScalar,omitempty"`
+}
+
+// OperatorFeeParams holds decoded operator fee parameters.
+type OperatorFeeParams struct {
+	Scalar   uint32
+	Constant uint64
+}
+
+// OperatorFee returns the decoded operator fee configuration.
+func (sc *SystemConfig) OperatorFee() OperatorFeeParams {
+	return DecodeOperatorFeeParams(sc.OperatorFeeParams)
+}
+
+// DecodeOperatorFeeParams decodes operator fee params from a Bytes32.
+func DecodeOperatorFeeParams(scalar [32]byte) OperatorFeeParams {
+	return OperatorFeeParams{
+		Scalar:   binary.BigEndian.Uint32(scalar[24:28]),
+		Constant: binary.BigEndian.Uint64(scalar[16:24]),
+	}
+}
+
+// EncodeOperatorFeeParams encodes the operator fee params into a Bytes32.
+func EncodeOperatorFeeParams(params OperatorFeeParams) (scalar [32]byte) {
+	binary.BigEndian.PutUint32(scalar[24:28], params.Scalar)
+	binary.BigEndian.PutUint64(scalar[16:24], params.Constant)
+	return
 }
 
 // The Ecotone upgrade introduces a versioned L1 scalar format
@@ -507,7 +558,9 @@ const (
 
 	NewPayloadV2 EngineAPIMethod = "engine_newPayloadV2"
 	NewPayloadV3 EngineAPIMethod = "engine_newPayloadV3"
+	NewPayloadV4 EngineAPIMethod = "engine_newPayloadV4"
 
 	GetPayloadV2 EngineAPIMethod = "engine_getPayloadV2"
 	GetPayloadV3 EngineAPIMethod = "engine_getPayloadV3"
+	GetPayloadV4 EngineAPIMethod = "engine_getPayloadV4"
 )

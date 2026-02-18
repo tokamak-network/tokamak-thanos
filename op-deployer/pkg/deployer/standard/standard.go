@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum-optimism/superchain-registry/validation"
 
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"

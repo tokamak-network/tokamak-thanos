@@ -11,7 +11,7 @@ import (
 	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/tokamak-network/tokamak-thanos/op-service/superchain"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
