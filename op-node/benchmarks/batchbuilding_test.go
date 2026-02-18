@@ -134,9 +134,7 @@ func singularBatchToBlock(rollupCfg *rollup.Config, batch *derive.SingularBatch)
 	return types.NewBlockWithHeader(&types.Header{
 		ParentHash: batch.ParentHash,
 		Time:       batch.Timestamp,
-	}).WithBody(types.Body{
-		Transactions: txs,
-	}), nil
+	}).WithBody(txs, nil), nil
 }
 
 // a test case for the benchmark controls the number of batches and transactions per batch,

@@ -24,7 +24,7 @@ import (
 var defaultOpConfig = &params.OptimismConfig{
 	EIP1559Elasticity:        6,
 	EIP1559Denominator:       50,
-	EIP1559DenominatorCanyon: ptr(uint64(250)),
+	EIP1559DenominatorCanyon: 250,
 }
 
 func ptr[T any](t T) *T {
@@ -50,12 +50,12 @@ func jovianArgs() matchArgs {
 		minBaseFee            = uint64(1e9)
 
 		validJovianExtraData = eth.BytesMax32(eip1559.EncodeJovianExtraData(
-			*defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity, minBaseFee))
+			defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity, minBaseFee))
 		validJovianEIP1559Params = new(eth.Bytes8)
 	)
 	// Populate the EIP1559 params with the encoded values
 	copy((*validJovianEIP1559Params)[:], eip1559.EncodeHolocene1559Params(
-		*defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
+		defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
 
 	return matchArgs{
 		envelope: &eth.ExecutionPayloadEnvelope{
@@ -69,7 +69,6 @@ func jovianArgs() matchArgs {
 				Withdrawals:     &types.Withdrawals{},
 				FeeRecipient:    validFeeRecipient,
 				ExtraData:       validJovianExtraData,
-				WithdrawalsRoot: &types.EmptyWithdrawalsHash,
 			},
 		},
 		attrs: &eth.PayloadAttributes{
@@ -96,7 +95,7 @@ func jovianArgsMinBaseFeeMissingFromAttributes() matchArgs {
 func jovianArgsMinBaseFeeMissingFromBlock() matchArgs {
 	args := jovianArgs()
 	args.envelope.ExecutionPayload.ExtraData = eth.BytesMax32(eip1559.EncodeHoloceneExtraData(
-		*defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity)) // Note use of HoloceneExtraData instead of JovianExtraData
+		defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity)) // Note use of HoloceneExtraData instead of JovianExtraData
 	return args
 }
 
@@ -109,7 +108,7 @@ func jovianArgsInconsistentMinBaseFee() matchArgs {
 func holoceneArgs() matchArgs {
 	args := jovianArgs()
 	args.envelope.ExecutionPayload.ExtraData = eth.BytesMax32(eip1559.EncodeHoloceneExtraData(
-		*defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
+		defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
 	args.attrs.EIP1559Params = new(eth.Bytes8)
 	args.attrs.MinBaseFee = nil
 	return args
@@ -439,7 +438,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			},
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
-				WithdrawalsRoot: nil,
 				Withdrawals:     &emptyWithdrawals,
 			},
 			err:  ErrIsthmusMustHaveWithdrawalsRoot,
@@ -456,7 +454,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			},
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
-				WithdrawalsRoot: &common.Hash{},
 				Withdrawals:     &emptyWithdrawals,
 			},
 			err:  ErrCanyonMustHaveWithdrawals,
@@ -469,7 +466,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			},
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
-				WithdrawalsRoot: &common.Hash{},
 				Withdrawals:     &emptyWithdrawals,
 			},
 			desc: "post-isthmus: non-empty block withdrawalsRoot and empty block/attr withdrawals list",
@@ -496,7 +492,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
 				Withdrawals:     &types.Withdrawals{},
-				WithdrawalsRoot: &common.Hash{},
 			},
 			err:  ErrCanyonWithdrawalsRoot,
 			desc: "pre-isthmus: non-empty block withdrawalsRoot",
@@ -513,7 +508,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
 				Withdrawals:     &types.Withdrawals{},
-				WithdrawalsRoot: nil,
 			},
 			err:  ErrCanyonMustHaveWithdrawals,
 			desc: "pre-isthmus: non-empty attr withdrawals list",
@@ -525,7 +519,6 @@ func TestWithdrawalsMatch(t *testing.T) {
 			},
 			block: &eth.ExecutionPayload{
 				Timestamp:       200,
-				WithdrawalsRoot: nil,
 				Withdrawals:     &emptyWithdrawals,
 			},
 			desc: "pre-isthmus: nil block withdrawalsRoot and empty block/attr withdrawals list",
@@ -550,7 +543,7 @@ func TestCheckEIP1559ParamsMatch(t *testing.T) {
 	paramsAlt := eth.Bytes8{1, 2, 3, 4, 5, 6, 7, 9}
 	paramsInvalid := eth.Bytes8{0, 0, 0, 0, 5, 6, 7, 8}
 	defaultExtraData := eth.BytesMax32(eip1559.EncodeHoloceneExtraData(
-		*defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
+		defaultOpConfig.EIP1559DenominatorCanyon, defaultOpConfig.EIP1559Elasticity))
 
 	for _, test := range []struct {
 		desc           string

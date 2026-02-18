@@ -1,6 +1,7 @@
 package clsync
 
 import (
+	"github.com/ethereum/go-ethereum/params"
 	"context"
 	"errors"
 	"io"
@@ -113,7 +114,7 @@ func TestCLSync(t *testing.T) {
 		SequenceNumber: 2,
 	}
 
-	a1L1Info, err := derive.L1InfoDepositBytes(cfg, cfg.Genesis.SystemConfig, refA1.SequenceNumber, aL1Info, refA1.Time)
+	a1L1Info, err := derive.L1InfoDepositBytes(cfg, params.MergedTestChainConfig, cfg.Genesis.SystemConfig, refA1.SequenceNumber, aL1Info, refA1.Time)
 	require.NoError(t, err)
 	payloadA1 := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
 		ParentHash:    refA1.ParentHash,
@@ -131,7 +132,7 @@ func TestCLSync(t *testing.T) {
 		BlockHash:     refA1.Hash,
 		Transactions:  []eth.Data{a1L1Info},
 	}}
-	a2L1Info, err := derive.L1InfoDepositBytes(cfg, cfg.Genesis.SystemConfig, refA2.SequenceNumber, aL1Info, refA2.Time)
+	a2L1Info, err := derive.L1InfoDepositBytes(cfg, params.MergedTestChainConfig, cfg.Genesis.SystemConfig, refA2.SequenceNumber, aL1Info, refA2.Time)
 	require.NoError(t, err)
 	payloadA2 := &eth.ExecutionPayloadEnvelope{ExecutionPayload: &eth.ExecutionPayload{
 		ParentHash:    refA2.ParentHash,

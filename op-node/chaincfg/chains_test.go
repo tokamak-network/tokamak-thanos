@@ -39,7 +39,7 @@ func TestGetRollupConfig(t *testing.T) {
 var defaultOpConfig = &params.OptimismConfig{
 	EIP1559Elasticity:        6,
 	EIP1559Denominator:       50,
-	EIP1559DenominatorCanyon: u64Ptr(250),
+	EIP1559DenominatorCanyon: 250,
 }
 
 var mainnetCfg = rollup.Config{

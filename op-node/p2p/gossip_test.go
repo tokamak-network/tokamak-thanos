@@ -129,7 +129,6 @@ func createExecutionPayload(w types.Withdrawals, withdrawalsRoot *common.Hash, e
 	return &eth.ExecutionPayload{
 		Timestamp:       hexutil.Uint64(time.Now().Unix()),
 		Withdrawals:     &w,
-		WithdrawalsRoot: withdrawalsRoot,
 		ExcessBlobGas:   (*eth.Uint64Quantity)(excessBlobGas),
 		BlobGasUsed:     (*eth.Uint64Quantity)(blobGasUsed),
 	}

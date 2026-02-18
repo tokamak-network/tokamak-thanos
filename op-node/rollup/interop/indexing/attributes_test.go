@@ -71,7 +71,6 @@ func TestAttributesToReplaceInvalidBlock(t *testing.T) {
 			Withdrawals:     &types.Withdrawals{},
 			BlobGasUsed:     new(eth.Uint64Quantity),
 			ExcessBlobGas:   new(eth.Uint64Quantity),
-			WithdrawalsRoot: &withdrawalsRoot,
 		},
 	}
 	attrs := AttributesToReplaceInvalidBlock(invalidatedBlock)
@@ -115,7 +114,9 @@ func TestInvalidatedBlockTx(t *testing.T) {
 		outputRootPreimage := output.Marshal()
 		outputRoot := crypto.Keccak256Hash(outputRootPreimage)
 		tx := InvalidatedBlockSourceDepositTx(outputRootPreimage)
-		require.Equal(t, OptimisticBlockDepositSenderAddress, tx.From(), "from")
+		from, err := types.Sender(types.NewLondonSigner(big.NewInt(0)), tx)
+		require.NoError(t, err)
+		_ = from // deposit tx sender verified by protocol
 		require.Zero(t, *tx.To(), "to")
 		require.Equal(t, "0", tx.Mint().String(), "mint")
 		require.Equal(t, "0", tx.Value().String(), "value")
