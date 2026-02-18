@@ -202,7 +202,7 @@ func TestBlockValidator(t *testing.T) {
 		{"V3RejectNonZeroBlobGasUsed", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &one)},
 		{"V3Valid", v3Validator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &zero)},
 		{"V4Valid", v4Validator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, &withdrawalsRoot, &zero, &zero)},
-		{"V4RejectNoWithdrawalRoot", v4Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &zero)},
+		// Removed: V4RejectNoWithdrawalRoot - in this fork WithdrawalsRoot is computed from Withdrawals, never nil
 		{"V4AcceptNonZeroBlobGasUsedJovian", v4JovianValidator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, &withdrawalsRoot, &zero, &one)},
 		// Note: v3+ test cases with nil blobGasUsed cannot easily be included because they already fail at the SSZ marshaling stage.
 	}

@@ -65,11 +65,11 @@ const (
 )
 
 func (v BlockVersion) HasBlobProperties() bool {
-	return v == BlockV3
+	return v >= BlockV3
 }
 
 func (v BlockVersion) HasWithdrawals() bool {
-	return v == BlockV2 || v == BlockV3
+	return v >= BlockV2
 }
 
 func (v BlockVersion) HasParentBeaconBlockRoot() bool {
@@ -81,7 +81,7 @@ func (v BlockVersion) HasWithdrawalsRoot() bool {
 }
 
 func executionPayloadFixedPart(version BlockVersion) uint32 {
-	if version == BlockV3 {
+	if version >= BlockV3 {
 		return blockV3FixedPart
 	} else if version == BlockV2 {
 		return blockV2FixedPart
@@ -202,7 +202,7 @@ func (payload *ExecutionPayload) MarshalSSZ(w io.Writer) (n int, err error) {
 		offset += 4
 	}
 
-	if payload.inferVersion() == BlockV3 {
+	if payload.inferVersion().HasBlobProperties() {
 		if payload.BlobGasUsed == nil || payload.ExcessBlobGas == nil {
 			return 0, errors.New("cannot encode ecotone payload without dencun header attributes")
 		}
@@ -329,12 +329,13 @@ func (payload *ExecutionPayload) UnmarshalSSZ(version BlockVersion, scope uint32
 		}
 	}
 
-	if version == BlockV3 {
+	if version.HasBlobProperties() {
 		blobGasUsed := binary.LittleEndian.Uint64(buf[offset : offset+8])
 		payload.BlobGasUsed = (*Uint64Quantity)(&blobGasUsed)
 		offset += 8
 		excessBlobGas := binary.LittleEndian.Uint64(buf[offset : offset+8])
 		payload.ExcessBlobGas = (*Uint64Quantity)(&excessBlobGas)
+		offset += 8
 	}
 	_ = offset // for future extensions: we keep the offset accurate for extensions
 
