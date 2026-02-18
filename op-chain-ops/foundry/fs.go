@@ -14,9 +14,9 @@ type StatDirFs interface {
 	fs.ReadDirFS
 }
 
-// OpenArtifactsDir opens a directory as a StatDirFs for reading foundry artifacts.
-func OpenArtifactsDir(dir string) StatDirFs {
-	return os.DirFS(dir).(StatDirFs)
+// OpenArtifactsDir opens a directory as an ArtifactsFS for reading foundry artifacts.
+func OpenArtifactsDir(dir string) *ArtifactsFS {
+	return &ArtifactsFS{FS: os.DirFS(dir).(StatDirFs)}
 }
 
 // NewSourceMapFS returns an FS for reading source maps from foundry output.

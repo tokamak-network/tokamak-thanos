@@ -12,7 +12,6 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/srcmap"
 	
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
-	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
@@ -97,15 +96,15 @@ func NewEVMEnv(t testing.TB, contracts *ContractMetadata) (*vm.EVM, *state.State
 	}
 	header := bc.GetHeader(common.Hash{}, 17034870+offsetBlocks)
 	db := rawdb.NewMemoryDatabase()
-	statedb := state.NewDatabase(triedb.NewDatabase(db, nil), nil)
-	state, err := state.New(types.EmptyRootHash, statedb)
+	statedb := state.NewDatabase(db)
+	state, err := state.New(types.EmptyRootHash, statedb, nil)
 	if err != nil {
 		t.Fatalf("failed to create memory state db: %v", err)
 	}
 	blockContext := core.NewEVMBlockContext(header, bc, nil, chainCfg, state)
 	vmCfg := vm.Config{}
 
-	env := vm.NewEVM(blockContext, state, chainCfg, vmCfg)
+	env := vm.NewEVM(blockContext, vm.TxContext{}, state, chainCfg, vmCfg)
 	// pre-deploy the contracts
 	env.StateDB.SetCode(contracts.Addresses.Oracle, contracts.Artifacts.Oracle.DeployedBytecode.Object)
 
@@ -123,7 +122,7 @@ func NewEVMEnv(t testing.TB, contracts *ContractMetadata) (*vm.EVM, *state.State
 	}
 	mipsDeploy := append(bytes.Clone(contracts.Artifacts.MIPS.Bytecode.Object), ctorArgs...)
 	startingGas := uint64(30_000_000)
-	retVal, deployedMipsAddr, leftOverGas, err := env.Create(contracts.Addresses.Sender, mipsDeploy, startingGas, common.U2560)
+	retVal, deployedMipsAddr, leftOverGas, err := env.Create(vm.AccountRef(contracts.Addresses.Sender), mipsDeploy, startingGas, common.U2560)
 	if err != nil {
 		t.Fatalf("failed to deploy MIPS contract. error: '%v'. return value: 0x%x. took %d gas.", err, retVal, startingGas-leftOverGas)
 	}

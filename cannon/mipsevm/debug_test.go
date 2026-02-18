@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
 )
 
