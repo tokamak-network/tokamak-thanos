@@ -12,7 +12,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -171,7 +170,7 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 		}
 	}
 
-	if err := cfg.Check(log.New(log.DiscardHandler())); err != nil {
+	if err := cfg.Check(); err != nil {
 		return cfg, fmt.Errorf("combined deploy config failed validation: %w", err)
 	}
 

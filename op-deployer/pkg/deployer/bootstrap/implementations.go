@@ -149,7 +149,7 @@ func ImplementationsCLI(cliCtx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to deploy implementations: %w", err)
 	}
-	if err := jsonutil.WriteJSON(dio, ioutil.ToStdOutOrFileOrNoop(outfile, 0o755)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(dio, ioutil.ToStdOutOrFileOrNoop(outfile, 0o755)); err != nil {
 		return fmt.Errorf("failed to write output: %w", err)
 	}
 
@@ -167,7 +167,7 @@ func ImplementationsCLI(cliCtx *cli.Context) error {
 		tmpFile.Close()
 		defer os.Remove(tmpPath)
 		verifyFile = tmpPath
-		if err := jsonutil.WriteJSON(dio, ioutil.ToBasicFile(tmpPath, 0o644)); err != nil {
+		if err := jsonutil.WriteJSONToTarget(dio, ioutil.ToBasicFile(tmpPath, 0o644)); err != nil {
 			return fmt.Errorf("failed to write temp file for verification: %w", err)
 		}
 	}

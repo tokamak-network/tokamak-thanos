@@ -30,7 +30,7 @@ func RollupCLI(cliCtx *cli.Context) error {
 		rollupConfig.Genesis.SystemConfig.MarshalPreHolocene = true
 	}
 
-	if err := jsonutil.WriteJSON(rollupConfig, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(rollupConfig, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
 		return fmt.Errorf("failed to write rollup config: %w", err)
 	}
 

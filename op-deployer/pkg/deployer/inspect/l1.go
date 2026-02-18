@@ -30,7 +30,7 @@ func L1CLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to generate l1Contracts: %w", err)
 	}
 
-	if err := jsonutil.WriteJSON(l1Contracts, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(l1Contracts, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
 		return fmt.Errorf("failed to write L1 contract addresses: %w", err)
 	}
 

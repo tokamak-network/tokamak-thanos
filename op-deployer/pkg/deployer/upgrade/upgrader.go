@@ -93,7 +93,7 @@ func UpgradeCLI(upgrader Upgrader) func(*cli.Context) error {
 		}
 
 		outfile := cliCtx.String(OutfileFlag.Name)
-		if err := jsonutil.WriteJSON(dump, ioutil.ToStdOutOrFileOrNoop(outfile, 0o666)); err != nil {
+		if err := jsonutil.WriteJSONToTarget(dump, ioutil.ToStdOutOrFileOrNoop(outfile, 0o666)); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
 

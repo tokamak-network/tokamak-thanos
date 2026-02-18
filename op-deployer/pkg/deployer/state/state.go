@@ -73,7 +73,7 @@ type State struct {
 }
 
 func (s *State) WriteToFile(path string) error {
-	return jsonutil.WriteJSON(s, ioutil.ToAtomicFile(path, 0o755))
+	return jsonutil.WriteJSONToTarget(s, ioutil.ToAtomicFile(path, 0o755))
 }
 
 func (s *State) Chain(id common.Hash) (*ChainState, error) {
@@ -131,5 +131,6 @@ func BlockRefJsonFromBlockRef(br *eth.BlockRef) *L1BlockRefJSON {
 }
 
 func BlockRefJsonFromHeader(h *types.Header) *L1BlockRefJSON {
-	return BlockRefJsonFromBlockRef(eth.BlockRefFromHeader(h))
+	br := eth.BlockRefFromHeader(h)
+	return BlockRefJsonFromBlockRef(&br)
 }

@@ -73,7 +73,7 @@ func L2SemversCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to get L2 semvers: %w", err)
 	}
 
-	if err := jsonutil.WriteJSON(ps, ioutil.ToStdOutOrFileOrNoop(cliCfg.Outfile, 0o666)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(ps, ioutil.ToStdOutOrFileOrNoop(cliCfg.Outfile, 0o666)); err != nil {
 		return fmt.Errorf("failed to write rollup config: %w", err)
 	}
 

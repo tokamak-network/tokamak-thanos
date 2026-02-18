@@ -28,7 +28,7 @@ func DeployConfigCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to generate deploy config: %w", err)
 	}
 
-	if err := jsonutil.WriteJSON(config, ioutil.ToStdOutOrFileOrNoop(cliCfg.Outfile, 0o666)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(config, ioutil.ToStdOutOrFileOrNoop(cliCfg.Outfile, 0o666)); err != nil {
 		return fmt.Errorf("failed to write deploy config: %w", err)
 	}
 

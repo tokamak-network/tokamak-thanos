@@ -138,7 +138,7 @@ func SuperchainCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to deploy superchain: %w", err)
 	}
 
-	if err := jsonutil.WriteJSON(dso, ioutil.ToStdOutOrFileOrNoop(outfile, 0o755)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(dso, ioutil.ToStdOutOrFileOrNoop(outfile, 0o755)); err != nil {
 		return fmt.Errorf("failed to write output: %w", err)
 	}
 
@@ -156,7 +156,7 @@ func SuperchainCLI(cliCtx *cli.Context) error {
 		tmpFile.Close()
 		defer os.Remove(tmpPath)
 		verifyFile = tmpPath
-		if err := jsonutil.WriteJSON(dso, ioutil.ToBasicFile(tmpPath, 0o644)); err != nil {
+		if err := jsonutil.WriteJSONToTarget(dso, ioutil.ToBasicFile(tmpPath, 0o644)); err != nil {
 			return fmt.Errorf("failed to write temp file for verification: %w", err)
 		}
 	}

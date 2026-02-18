@@ -31,7 +31,7 @@ func GenesisCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to generate genesis block: %w", err)
 	}
 
-	if err := jsonutil.WriteJSON(l2Genesis, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
+	if err := jsonutil.WriteJSONToTarget(l2Genesis, ioutil.ToStdOutOrFileOrNoop(cfg.Outfile, 0o666)); err != nil {
 		return fmt.Errorf("failed to write genesis: %w", err)
 	}
 
