@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	gethrpc rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
-	"github.com/ethereum/go-ethereum/rpc"
+	rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
+	gethrpc "github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
