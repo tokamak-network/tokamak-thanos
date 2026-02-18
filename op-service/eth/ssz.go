@@ -18,6 +18,7 @@ const ( // iota is reset to 0
 	BlockV1 BlockVersion = iota
 	BlockV2
 	BlockV3
+	BlockV4
 )
 
 // ExecutionPayload and ExecutionPayloadEnvelope are the only SSZ types we have to marshal/unmarshal,
@@ -72,7 +73,11 @@ func (v BlockVersion) HasWithdrawals() bool {
 }
 
 func (v BlockVersion) HasParentBeaconBlockRoot() bool {
-	return v == BlockV3
+	return v >= BlockV3
+}
+
+func (v BlockVersion) HasWithdrawalsRoot() bool {
+	return v >= BlockV4
 }
 
 func executionPayloadFixedPart(version BlockVersion) uint32 {
@@ -435,7 +440,7 @@ func unmarshalTransactions(in []byte) (txs []Data, err error) {
 }
 
 // UnmarshalSSZ decodes the ExecutionPayloadEnvelope as SSZ type
-func (envelope *ExecutionPayloadEnvelope) UnmarshalSSZ(scope uint32, r io.Reader) error {
+func (envelope *ExecutionPayloadEnvelope) UnmarshalSSZ(version BlockVersion, scope uint32, r io.Reader) error {
 	if scope < common.HashLength {
 		return fmt.Errorf("scope too small to decode execution payload envelope: %d", scope)
 	}
@@ -450,7 +455,7 @@ func (envelope *ExecutionPayloadEnvelope) UnmarshalSSZ(scope uint32, r io.Reader
 	copy(envelope.ParentBeaconBlockRoot[:], data)
 
 	var payload ExecutionPayload
-	err = payload.UnmarshalSSZ(BlockV3, scope-32, r)
+	err = payload.UnmarshalSSZ(version, scope-32, r)
 	if err != nil {
 		return err
 	}

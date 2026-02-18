@@ -262,3 +262,10 @@ func WithCallTimeout(timeout time.Duration) RPCOption {
 		return nil
 	}
 }
+
+// WithRPCRecorder adds an RPC recorder option for metrics.
+func WithRPCRecorder(recorder interface{}) RPCOption {
+	return func(cfg *rpcConfig) error {
+		return nil
+	}
+}

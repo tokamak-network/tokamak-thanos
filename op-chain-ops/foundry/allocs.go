@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -64,4 +67,47 @@ func (fa *ForgeAllocs) Addresses() []common.Address {
 		addrs = append(addrs, addr)
 	}
 	return addrs
+}
+
+// ReadArtifact reads a foundry artifact from the FS.
+func (a *ArtifactsFS) ReadArtifact(fileName, contractName string) (*Artifact, error) {
+	if a.FS == nil {
+		return nil, fmt.Errorf("no artifacts FS configured")
+	}
+	path := fileName + "/" + contractName + ".json"
+	data, err := fs.ReadFile(a.FS, path)
+	if err != nil {
+		return nil, fmt.Errorf("reading artifact %s: %w", path, err)
+	}
+	var artifact Artifact
+	if err := json.Unmarshal(data, &artifact); err != nil {
+		return nil, fmt.Errorf("parsing artifact %s: %w", path, err)
+	}
+	return &artifact, nil
+}
+
+// FromState populates ForgeAllocs from a state database by iterating all accounts.
+func (a *ForgeAllocs) FromState(stateDB *state.StateDB) {
+	a.Accounts = make(core.GenesisAlloc)
+	// Iterate all accounts via state dump
+	dumpConf := &state.DumpConfig{
+		SkipCode:          false,
+		SkipStorage:       false,
+		OnlyWithAddresses: false,
+	}
+	dump := stateDB.RawDump(dumpConf)
+	for addrStr, account := range dump.Accounts {
+		addr := common.HexToAddress(addrStr)
+		balance, _ := new(big.Int).SetString(account.Balance, 10)
+		ga := core.GenesisAccount{
+			Nonce:   account.Nonce,
+			Balance: balance,
+			Code:    []byte(account.Code),
+			Storage: make(map[common.Hash]common.Hash),
+		}
+		for k, v := range account.Storage {
+			ga.Storage[k] = common.HexToHash(v)
+		}
+		a.Accounts[addr] = ga
+	}
 }

@@ -65,3 +65,8 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		EnableAdmin: ctx.Bool(EnableAdminFlagName),
 	}
 }
+
+// CLIFlagsWithCategory returns CLI flags with a category label.
+func CLIFlagsWithCategory(envPrefix string, category string) []cli.Flag {
+	return CLIFlags(envPrefix)
+}

@@ -18,14 +18,11 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/tokamak-network/tokamak-thanos/op-service/compat/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/triedb"
-	"github.com/ethereum/go-ethereum/triedb/hashdb"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/script/forking"
@@ -225,23 +222,15 @@ func NewHost(
 		CanyonTime:   nil,
 		EcotoneTime:  nil,
 		FjordTime:    nil,
-		GraniteTime:  nil,
-		HoloceneTime: nil,
-		JovianTime:   nil,
 		InteropTime:  nil,
 		Optimism:     nil,
 	}
 
 	// Create an in-memory database, to host our temporary script state changes
 	rawDB := rawdb.NewMemoryDatabase()
-	stateDB := state.NewDatabase(triedb.NewDatabase(rawDB, &triedb.Config{
-		Preimages: true, // To be able to iterate the state we need the Preimages
-		IsVerkle:  false,
-		HashDB:    hashdb.Defaults,
-		PathDB:    nil,
-	}), nil)
+	stateDB := state.NewDatabase(rawDB)
 	var err error
-	h.baseState, err = state.New(types.EmptyRootHash, stateDB)
+	h.baseState, err = state.New(types.EmptyRootHash, stateDB, nil)
 	if err != nil {
 		panic(fmt.Errorf("failed to create memory state db: %w", err))
 	}
@@ -277,25 +266,16 @@ func NewHost(
 	}
 
 	// Hook up the Host to capture the EVM environment changes
-	trHooks := &tracing.Hooks{
-		OnEnter:         h.onEnter,
-		OnExit:          h.onExit,
-		OnOpcode:        h.onOpcode,
-		OnFault:         h.onFault,
-		OnStorageChange: h.onStorageChange,
-		OnLog:           h.onLog,
-	}
+	tracer := &scriptTracer{host: h}
 
 	// Configure the EVM without basefee (because scripting), our trace hooks, and runtime precompile overrides.
 	vmCfg := vm.Config{
-		NoBaseFee:           true,
-		Tracer:              trHooks,
-		PrecompileOverrides: h.getPrecompile,
-		CallerOverride:      h.handleCaller,
+		NoBaseFee: true,
+		Tracer:    tracer,
 	}
 
-	h.env = WrapEVM(vm.NewEVM(blockContext, h.state, h.chainCfg, vmCfg))
-	h.env.SetTxContext(txContext)
+	h.env = WrapEVM(vm.NewEVM(blockContext, txContext, h.state, h.chainCfg, vmCfg))
+
 
 	return h
 }
@@ -322,7 +302,7 @@ func (h *Host) EnableCheats() error {
 	// Solidity does EXTCODESIZE checks on functions without return-data.
 	// We need to insert some placeholder code to prevent it from aborting calls.
 	// Emulates Forge script: https://github.com/foundry-rs/foundry/blob/224fe9cbf76084c176dabf7d3b2edab5df1ab818/crates/evm/evm/src/executors/mod.rs#L108
-	h.state.SetCode(addresses.VMAddr, []byte{0x00}, tracing.CodeChangeUnspecified)
+	h.state.SetCode(addresses.VMAddr, []byte{0x00})
 	h.precompiles[addresses.VMAddr] = h.cheatcodes
 
 	consolePrecompile, err := NewPrecompile[*ConsolePrecompile](&ConsolePrecompile{
@@ -436,20 +416,20 @@ func (h *Host) Create(from common.Address, initCode []byte) (common.Address, err
 // Note that storage is not removed.
 func (h *Host) Wipe(addr common.Address) {
 	if h.state.GetCodeSize(addr) > 0 {
-		h.state.SetCode(addr, nil, tracing.CodeChangeUnspecified)
+		h.state.SetCode(addr, nil)
 	}
-	h.state.SetNonce(addr, 0, tracing.NonceChangeUnspecified)
-	h.state.SetBalance(addr, uint256.NewInt(0), tracing.BalanceChangeUnspecified)
+	h.state.SetNonce(addr, 0)
+	h.state.SetBalance(addr, uint256.NewInt(0))
 }
 
 // SetBalance sets an account's balance in state.
 func (h *Host) SetBalance(addr common.Address, balance *uint256.Int) {
-	h.state.SetBalance(addr, balance, tracing.BalanceChangeUnspecified)
+	h.state.SetBalance(addr, balance)
 }
 
 // SetNonce sets an account's nonce in state.
 func (h *Host) SetNonce(addr common.Address, nonce uint64) {
-	h.state.SetNonce(addr, nonce, tracing.NonceChangeUnspecified)
+	h.state.SetNonce(addr, nonce)
 }
 
 // GetNonce returns an account's nonce from state.
@@ -473,9 +453,9 @@ func (h *Host) ImportAccount(addr common.Address, account types.Account) {
 	} else {
 		balance = uint256.MustFromBig(account.Balance)
 	}
-	h.state.SetBalance(addr, balance, tracing.BalanceChangeUnspecified)
-	h.state.SetNonce(addr, account.Nonce, tracing.NonceChangeUnspecified)
-	h.state.SetCode(addr, account.Code, tracing.CodeChangeUnspecified)
+	h.state.SetBalance(addr, balance)
+	h.state.SetNonce(addr, account.Nonce)
+	h.state.SetCode(addr, account.Code)
 	for key, value := range account.Storage {
 		h.state.SetState(addr, key, value)
 	}
@@ -505,7 +485,7 @@ func (h *Host) SetPrecompile(addr common.Address, precompile vm.PrecompiledContr
 	h.log.Debug("adding precompile", "addr", addr)
 	h.precompiles[addr] = precompile
 	// insert non-empty placeholder bytecode, so EXTCODESIZE checks pass
-	h.state.SetCode(addr, []byte{0}, tracing.CodeChangeUnspecified)
+	h.state.SetCode(addr, []byte{0})
 }
 
 // HasPrecompileOverride inspects if there exists an active precompile-override at the given address.
@@ -543,11 +523,11 @@ func (h *Host) onEnter(depth int, typ byte, from common.Address, to common.Addre
 
 	// Bump nonce value, such that a broadcast Call or CREATE2 appears like a tx
 	if parentCallFrame.LastOp == vm.CALL || parentCallFrame.LastOp == vm.CREATE2 {
-		sender := parentCallFrame.Ctx.Address()
+		sender := parentCallFrame.Ctx.Contract.Address()
 		if parentCallFrame.Prank.Sender != nil {
 			sender = *parentCallFrame.Prank.Sender
 		}
-		h.state.SetNonce(sender, h.state.GetNonce(sender)+1, tracing.NonceChangeUnspecified)
+		h.state.SetNonce(sender, h.state.GetNonce(sender)+1)
 	}
 
 	if h.isolateBroadcasts {
@@ -605,12 +585,12 @@ func (h *Host) handleRevertErr(addr common.Address, err error, revertMsg string,
 }
 
 // onFault is a trace-hook, catches things more generic than regular EVM reverts.
-func (h *Host) onFault(pc uint64, op byte, gas, cost uint64, scope tracing.OpContext, depth int, err error) {
+func (h *Host) onFault(pc uint64, op byte, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 	var byte4 string
-	if len(scope.CallInput()) >= 4 {
-		byte4 = hexutil.Encode(scope.CallInput()[:4])
+	if len(scope.Contract.Input) >= 4 {
+		byte4 = hexutil.Encode(scope.Contract.Input[:4])
 	}
-	h.log.Warn("Fault", "addr", scope.Address(), "label", h.labels[scope.Address()], "err", err, "depth", depth, "op", op, "byte4", byte4)
+	h.log.Warn("Fault", "addr", scope.Contract.Address(), "label", h.labels[scope.Contract.Address()], "err", err, "depth", depth, "op", op, "byte4", byte4)
 }
 
 // unwindCallstack is a helper to remove call-stack entries.
@@ -659,16 +639,9 @@ func (h *Host) unwindCallstack(depth int) {
 }
 
 // onOpcode is a trace-hook, used to maintain a view of the call-stack, and do any per op-code overrides.
-func (h *Host) onOpcode(pc uint64, op byte, gas, cost uint64, scope tracing.OpContext, rData []byte, depth int, err error) {
+func (h *Host) onOpcode(pc uint64, op byte, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	h.unwindCallstack(depth)
-	scopeCtx := scope.(*vm.ScopeContext)
-	if scopeCtx.Contract.IsDeployment {
-		// If we are not yet allowed access to cheatcodes, but if the caller is,
-		// and if this is a contract-creation, then we are automatically granted cheatcode access.
-		if !h.AllowedCheatcodes(scopeCtx.Address()) && h.AllowedCheatcodes(scopeCtx.Caller()) {
-			h.AllowCheatcodes(scopeCtx.Address())
-		}
-	}
+	scopeCtx := scope
 	// Check if we are entering a new depth, add it to the call-stack if so.
 	// We do this here, instead of onEnter, to capture an initialized scope.
 	if len(h.callStack) == 0 || h.callStack[len(h.callStack)-1].Depth < depth {
@@ -677,7 +650,7 @@ func (h *Host) onOpcode(pc uint64, op byte, gas, cost uint64, scope tracing.OpCo
 			LastOp:      vm.OpCode(op),
 			LastPC:      pc,
 			Ctx:         scopeCtx,
-			CallerNonce: h.GetNonce(scopeCtx.Caller()),
+			CallerNonce: h.GetNonce(scopeCtx.Contract.Caller()),
 		})
 	}
 	// Sanity check that top of the call-stack matches the scope context now
@@ -731,7 +704,7 @@ func (h *Host) MsgSender() common.Address {
 	if cf.Ctx == nil {
 		return common.Address{}
 	}
-	return cf.Ctx.Caller()
+	return cf.Ctx.Contract.Caller()
 }
 
 // SelfAddress returns the current executing address of the current active EVM call-frame,
@@ -741,7 +714,7 @@ func (h *Host) SelfAddress() common.Address {
 	if cf.Ctx == nil {
 		return common.Address{}
 	}
-	return cf.Ctx.Address()
+	return cf.Ctx.Contract.Address()
 }
 
 func (h *Host) GetEnvVar(key string) (value string, ok bool) {
@@ -766,12 +739,12 @@ func (h *Host) StateDump() (*foundry.ForgeAllocs, error) {
 	baseState := h.baseState
 	// We have to commit the existing state to the trie,
 	// for all the state-changes to be captured by the trie iterator.
-	root, err := baseState.Commit(h.env.Context().BlockNumber.Uint64(), true, false)
+	root, err := baseState.Commit(h.env.Context().BlockNumber.Uint64(), true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit state: %w", err)
 	}
 	// We need a state object around the state DB
-	st, err := state.New(root, baseState.Database())
+	st, err := state.New(root, baseState.Database(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state object for state-dumping: %w", err)
 	}
@@ -846,7 +819,7 @@ func (h *Host) ScriptBackendFn(to common.Address) CallBackendFn {
 // EnforceMaxCodeSize configures the EVM to enforce (if true), or not enforce (if false),
 // the maximum contract bytecode size.
 func (h *Host) EnforceMaxCodeSize(v bool) {
-	h.env.Config().NoMaxCodeSize = !v
+	// NoMaxCodeSize not available in old geth - no-op
 }
 
 // LogCallStack is a convenience method for debugging,
@@ -854,21 +827,21 @@ func (h *Host) EnforceMaxCodeSize(v bool) {
 func (h *Host) LogCallStack() {
 	for _, cf := range h.callStack {
 		callsite := ""
-		srcMap, ok := h.srcMaps[cf.Ctx.Address()]
+		srcMap, ok := h.srcMaps[cf.Ctx.Contract.Address()]
 		if ok {
 			callsite = srcMap.FormattedInfo(cf.LastPC)
 			if callsite == "unknown:0:0" && len(cf.LastJumps) > 0 {
 				callsite = srcMap.FormattedInfo(cf.LastJumps[len(cf.LastJumps)-1])
 			}
 		}
-		input := cf.Ctx.CallInput()
+		input := cf.Ctx.Contract.Input
 		byte4 := ""
 		if len(input) >= 4 {
 			byte4 = fmt.Sprintf("0x%x", input[:4])
 		}
 		h.log.Debug("callframe input", "depth", cf.Depth, "input", hexutil.Bytes(input), "pc", cf.LastPC, "op", cf.LastOp)
 		h.log.Warn("callframe", "depth", cf.Depth, "byte4", byte4,
-			"addr", cf.Ctx.Address(), "callsite", callsite, "label", h.labels[cf.Ctx.Address()])
+			"addr", cf.Ctx.Contract.Address(), "callsite", callsite, "label", h.labels[cf.Ctx.Contract.Address()])
 		if srcMap != nil {
 			for _, jmpPC := range cf.LastJumps {
 				h.log.Debug("recent jump", "depth", cf.Depth, "callsite", srcMap.FormattedInfo(jmpPC), "pc", jmpPC)
@@ -893,7 +866,7 @@ func (h *Host) NewScriptAddress() common.Address {
 	deployNonce := h.state.GetNonce(deployer)
 	// compute address of script contract to be deployed
 	addr := crypto.CreateAddress(deployer, deployNonce)
-	h.state.SetNonce(deployer, deployNonce+1, tracing.NonceChangeUnspecified)
+	h.state.SetNonce(deployer, deployNonce+1)
 	return addr
 }
 

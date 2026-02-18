@@ -411,7 +411,7 @@ func BuildBlocksValidator(log log.Logger, cfg *rollup.Config, runCfg GossipRunti
 			return pubsub.ValidationReject
 		}
 
-		if blockVersion.HasWithdrawalsRoot() && payload.WithdrawalsRoot == nil {
+		if blockVersion.HasWithdrawalsRoot() && payload.WithdrawalsRoot() == nil {
 			log.Warn("payload is on v4 topic, but has nil withdrawals root", "bad_hash", payload.BlockHash.String())
 			return pubsub.ValidationReject
 		}

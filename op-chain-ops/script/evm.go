@@ -39,11 +39,13 @@ func (w *wrappedEVM) TxContext() *vm.TxContext {
 }
 
 func (w *wrappedEVM) Call(from common.Address, to common.Address, input []byte, gas uint64, value *uint256.Int) ([]byte, uint64, error) {
-	return w.evm.Call(from, to, input, gas, value)
+	ret, leftGas, err := w.evm.Call(vm.AccountRef(from), to, input, gas, value)
+	return ret, leftGas, err
 }
 
 func (w *wrappedEVM) Create(from common.Address, code []byte, gas uint64, value *uint256.Int) ([]byte, common.Address, uint64, error) {
-	return w.evm.Create(from, code, gas, value)
+	ret, addr, leftGas, err := w.evm.Create(vm.AccountRef(from), code, gas, value)
+	return ret, addr, leftGas, err
 }
 
 func (w *wrappedEVM) Config() *vm.Config {
@@ -51,7 +53,7 @@ func (w *wrappedEVM) Config() *vm.Config {
 }
 
 func (w *wrappedEVM) SetTxContext(txContext vm.TxContext) {
-	w.evm.SetTxContext(txContext)
+	w.evm.TxContext = txContext
 }
 
 func (w *wrappedEVM) StateDB() vm.StateDB {

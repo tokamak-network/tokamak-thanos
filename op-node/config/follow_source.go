@@ -39,7 +39,6 @@ func (cfg *L2FollowSourceConfig) Setup(ctx context.Context, log log.Logger, roll
 	opts := []client.RPCOption{
 		client.WithDialAttempts(10),
 		client.WithCallTimeout(cfg.L2RPCCallTimeout),
-		client.WithRPCRecorder(metrics.NewRecorder("follow-source-api")),
 	}
 	l2Node, err := client.NewRPC(ctx, log, cfg.L2RPCAddr, opts...)
 	if err != nil {

@@ -419,5 +419,5 @@ func P2PFlags(envPrefix string) []cli.Flag {
 			Required: false,
 			EnvVars:  p2pEnv(envPrefix, "PING"),
 		},
-	}, opsigner.CLIFlags(envPrefix, P2PCategory)...)
+	}, opsigner.CLIFlags(envPrefix)...)
 }

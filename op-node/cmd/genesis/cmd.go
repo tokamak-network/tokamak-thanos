@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
@@ -99,8 +98,8 @@ var Subcommands = cli.Commands{
 			}
 
 			cfg := oplog.DefaultCLIConfig()
-			logger := oplog.NewLogger(ctx.App.Writer, cfg)
-			if err := config.Check(logger); err != nil {
+			_ = oplog.NewLogger(ctx.App.Writer, cfg)
+			if err := config.Check(); err != nil {
 				return fmt.Errorf("deploy config at %s invalid: %w", deployConfig, err)
 			}
 
@@ -117,12 +116,16 @@ var Subcommands = cli.Commands{
 				}
 			}
 
-			l1Genesis, err := genesis.BuildL1DeveloperGenesis(config, dump, deployments)
+			var genDump *genesis.ForgeAllocs
+			if dump != nil {
+				genDump = &genesis.ForgeAllocs{Accounts: dump.Accounts}
+			}
+			l1Genesis, err := genesis.BuildL1DeveloperGenesis(config, genDump, deployments)
 			if err != nil {
 				return err
 			}
 
-			return jsonutil.WriteJSON(l1Genesis, ioutil.ToStdOutOrFileOrNoop(ctx.String(outfileL1Flag.Name), 0o666))
+			return jsonutil.WriteJSONToTarget(l1Genesis, ioutil.ToStdOutOrFileOrNoop(ctx.String(outfileL1Flag.Name), 0o666))
 		},
 	},
 	{
@@ -163,6 +166,7 @@ var Subcommands = cli.Commands{
 			} else {
 				return errors.New("missing l2-allocs")
 			}
+			_ = l2Allocs
 
 			// Retrieve SystemConfig.startBlock()
 			client, err := ethclient.Dial(l1RPC)
@@ -187,18 +191,18 @@ var Subcommands = cli.Commands{
 
 			// Sanity check the config. Do this after filling in the L1StartingBlockTag
 			// if it is not defined.
-			if err := config.Check(logger); err != nil {
+			if err := config.Check(); err != nil {
 				return err
 			}
 
 			// Build the L2 genesis block
-			l2Genesis, err := genesis.BuildL2Genesis(config, l2Allocs, eth.BlockRefFromHeader(l1StartBlock.Header()))
+			l2Genesis, err := genesis.BuildL2Genesis(config, l1StartBlock)
 			if err != nil {
 				return fmt.Errorf("error creating l2 genesis: %w", err)
 			}
 
 			l2GenesisBlock := l2Genesis.ToBlock()
-			rollupConfig, err := config.RollupConfig(eth.BlockRefFromHeader(l1StartBlock.Header()), l2GenesisBlock.Hash(), l2GenesisBlock.Number().Uint64())
+			rollupConfig, err := config.RollupConfig(l1StartBlock, l2GenesisBlock.Hash(), l2GenesisBlock.Number().Uint64())
 			if err != nil {
 				return err
 			}
@@ -206,10 +210,10 @@ var Subcommands = cli.Commands{
 				return fmt.Errorf("generated rollup config does not pass validation: %w", err)
 			}
 
-			if err := jsonutil.WriteJSON(l2Genesis, ioutil.ToAtomicFile(ctx.String(outfileL2Flag.Name), 0o666)); err != nil {
+			if err := jsonutil.WriteJSONToTarget(l2Genesis, ioutil.ToAtomicFile(ctx.String(outfileL2Flag.Name), 0o666)); err != nil {
 				return err
 			}
-			return jsonutil.WriteJSON(rollupConfig, ioutil.ToAtomicFile(ctx.String(outfileRollupFlag.Name), 0o666))
+			return jsonutil.WriteJSONToTarget(rollupConfig, ioutil.ToAtomicFile(ctx.String(outfileRollupFlag.Name), 0o666))
 		},
 	},
 }

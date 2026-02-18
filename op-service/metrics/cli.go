@@ -72,3 +72,18 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		ListenPort: ctx.Int(PortFlagName),
 	}
 }
+
+// CLIFlagsWithCategory returns CLI flags with a category label.
+func CLIFlagsWithCategory(envPrefix string, category string) []cli.Flag {
+	flags := CLIFlags(envPrefix)
+	for _, f := range flags {
+		if sf, ok := f.(*cli.StringFlag); ok {
+			sf.Category = category
+		} else if bf, ok := f.(*cli.BoolFlag); ok {
+			bf.Category = category
+		} else if intf, ok := f.(*cli.IntFlag); ok {
+			intf.Category = category
+		}
+	}
+	return flags
+}

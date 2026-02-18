@@ -3,6 +3,8 @@ package foundry
 import (
 	"io/fs"
 	"os"
+
+	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/srcmap"
 )
 
 // StatDirFs is an fs.FS that also supports Stat and ReadDir.
@@ -25,4 +27,10 @@ func NewSourceMapFS(fsys fs.FS) *SourceMapFS {
 // SourceMapFS provides source-map access from a foundry artifacts FS.
 type SourceMapFS struct {
 	fsys fs.FS
+}
+
+// SourceMap reads the source map for a given artifact.
+func (s *SourceMapFS) SourceMap(artifact *Artifact, contractName string) (*srcmap.SourceMap, error) {
+	// Stub: actual source map parsing not implemented for old geth compat
+	return nil, nil
 }

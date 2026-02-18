@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
 	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
@@ -16,7 +17,8 @@ import (
 // LoadSignerSetup loads a configuration for a Signer to be set up later
 func LoadSignerSetup(ctx cliiface.Context, logger log.Logger) (p2p.SignerSetup, error) {
 	key := ctx.String(flags.SequencerP2PKeyName)
-	signerCfg := opsigner.ReadCLIConfig(ctx)
+	cliCtx, _ := ctx.(*cli.Context)
+	signerCfg := opsigner.ReadCLIConfig(cliCtx)
 	if key != "" && signerCfg.Enabled() {
 		return nil, fmt.Errorf("cannot specify both a private key and a remote signer for sequencer p2p")
 	}

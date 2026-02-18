@@ -55,7 +55,6 @@ func (cfg *L2EndpointConfig) Setup(ctx context.Context, log log.Logger,
 		client.WithGethRPCOptions(auth),
 		client.WithDialAttempts(10),
 		client.WithCallTimeout(cfg.L2EngineCallTimeout),
-		client.WithRPCRecorder(metrics.NewRecorder("engine-api")),
 	}
 	l2Node, err := client.NewRPC(ctx, log, cfg.L2EngineAddr, opts...)
 	if err != nil {

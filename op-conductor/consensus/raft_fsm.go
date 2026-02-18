@@ -34,7 +34,7 @@ func (t *unsafeHeadTracker) Apply(l *raft.Log) interface{} {
 	}
 
 	data := &eth.ExecutionPayloadEnvelope{}
-	if err := data.UnmarshalSSZ(uint32(len(l.Data)), bytes.NewReader(l.Data)); err != nil {
+	if err := data.UnmarshalSSZ(eth.BlockV3, uint32(len(l.Data)), bytes.NewReader(l.Data)); err != nil {
 		return err
 	}
 
@@ -58,7 +58,7 @@ func (t *unsafeHeadTracker) Restore(snapshot io.ReadCloser) error {
 	}
 
 	data := &eth.ExecutionPayloadEnvelope{}
-	if err := data.UnmarshalSSZ(uint32(n), bytes.NewReader(buf.Bytes())); err != nil {
+	if err := data.UnmarshalSSZ(eth.BlockV3, uint32(n), bytes.NewReader(buf.Bytes())); err != nil {
 		return fmt.Errorf("error unmarshalling snapshot: %w", err)
 	}
 

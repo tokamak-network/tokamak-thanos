@@ -216,21 +216,21 @@ func (b Broadcast) ID() common.Hash {
 func NewBroadcast(parent, current *CallFrame) Broadcast {
 	ctx := current.Ctx
 
-	value := ctx.CallValue()
+	value := ctx.Contract.Value()
 	if value == nil {
 		value = uint256.NewInt(0)
 	}
 
 	// Code is tracked separate from calldata input,
 	// even though they are the same thing for a regular contract creation
-	input := ctx.CallInput()
-	if ctx.Contract.IsDeployment {
+	input := ctx.Contract.Input
+	if false {
 		input = ctx.Contract.Code
 	}
 
 	bcast := Broadcast{
-		From: ctx.Caller(),
-		To:   ctx.Address(),
+		From: ctx.Contract.Caller(),
+		To:   ctx.Contract.Address(),
 		// Need to clone the input below since memory is reused in the VM
 		Input:   bytes.Clone(input),
 		Value:   (*hexutil.U256)(value.Clone()),

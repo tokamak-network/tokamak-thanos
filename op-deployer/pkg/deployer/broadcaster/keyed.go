@@ -54,30 +54,19 @@ func NewKeyedBroadcaster(cfg KeyedBroadcasterOpts) (*KeyedBroadcaster, error) {
 		SafeAbortNonceTooLowCount: 3,
 		Signer:                    cfg.Signer,
 		From:                      cfg.From,
-		GasPriceEstimatorFn:       DeployerGasPriceEstimator,
 	}
 
-	minTipCap, err := eth.GweiToWei(1.0)
-	if err != nil {
-		panic(err)
-	}
-	minBaseFee, err := eth.GweiToWei(1.0)
-	if err != nil {
-		panic(err)
-	}
-
-	mgrCfg.RebroadcastInterval.Store(int64(12 * time.Second))
-	mgrCfg.ResubmissionTimeout.Store(int64(48 * time.Second))
-	mgrCfg.FeeLimitMultiplier.Store(5)
-	mgrCfg.FeeLimitThreshold.Store(big.NewInt(100))
-	mgrCfg.MinTipCap.Store(minTipCap)
-	mgrCfg.MinBaseFee.Store(minBaseFee)
+	mgrCfg.ResubmissionTimeout = 48 * time.Second
+	mgrCfg.FeeLimitMultiplier = 5
+	mgrCfg.FeeLimitThreshold = big.NewInt(100)
+	mgrCfg.MinTipCap, _ = eth.GweiToWei(1.0)
+	mgrCfg.MinBaseFee, _ = eth.GweiToWei(1.0)
 
 	mgr, err := txmgr.NewSimpleTxManagerFromConfig(
 		"transactor",
 		cfg.Logger,
 		&metrics.NoopTxMetrics{},
-		mgrCfg,
+		*mgrCfg,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tx manager: %w", err)
@@ -186,7 +175,10 @@ func (t *KeyedBroadcaster) broadcast(ctx context.Context, bcast script.Broadcast
 
 	id := bcast.ID()
 	candidate := asTxCandidate(bcast, blockGasLimit)
-	t.mgr.SendAsync(ctx, candidate, ch)
+	go func() {
+		receipt, err := t.mgr.Send(ctx, candidate)
+		ch <- txmgr.SendResponse{Receipt: receipt, Err: err}
+	}()
 	return ch, id
 }
 
@@ -230,17 +222,14 @@ func asTxCandidate(bcast script.Broadcast, blockGasLimit uint64) txmgr.TxCandida
 // is clamped to the block gas limit since Geth will reject transactions that exceed it before letting them
 // into the mempool.
 func padGasLimit(data []byte, gasUsed uint64, creation bool, blockGasLimit uint64) uint64 {
-	intrinsicGas, err := core.IntrinsicGas(data, nil, nil, creation, true, true, false)
+	intrinsicGas, err := core.IntrinsicGas(data, nil, creation, true, true, true)
 	// This method never errors - we should look into it if it does.
 	if err != nil {
 		panic(err)
 	}
 
-	floorDataGas, err := core.FloorDataGas(data)
-	// We should never cause an overflow here.
-	if err != nil {
-		panic(err)
-	}
+	// FloorDataGas (EIP-7623) not available in old geth, default to 0
+	floorDataGas := uint64(0)
 
 	gas := intrinsicGas + gasUsed
 	if floorDataGas > gas {

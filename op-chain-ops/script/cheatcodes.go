@@ -45,5 +45,5 @@ func (c *AccessControlledPrecompile) Run(input []byte) ([]byte, error) {
 }
 
 func (c *AccessControlledPrecompile) Name() string {
-	return c.inner.Name()
+	return "cheatcode"
 }
