@@ -1313,12 +1313,12 @@ func TestAdditionalBondClaimants(t *testing.T) {
 func TestSignerTLS(t *testing.T) {
 	t.Run("EnabledByDefault", func(t *testing.T) {
 		cfg := configForArgs(t, addRequiredArgs(gameTypes.AlphabetGameType))
-		require.True(t, cfg.TxMgrConfig.SignerCLIConfig.TLSConfig.Enabled)
+		require.True(t, cfg.TxMgrConfig.SignerCLIConfig.TLSConfig.TLSEnabled())
 	})
 
 	t.Run("Disabled", func(t *testing.T) {
 		cfg := configForArgs(t, addRequiredArgs(gameTypes.AlphabetGameType, "--signer.tls.enabled=false"))
-		require.False(t, cfg.TxMgrConfig.SignerCLIConfig.TLSConfig.Enabled)
+		require.False(t, cfg.TxMgrConfig.SignerCLIConfig.TLSConfig.TLSEnabled())
 	})
 }
 

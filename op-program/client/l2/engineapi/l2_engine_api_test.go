@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/genesis"
-	"github.com/tokamak-network/tokamak-thanos/op-core/forks"
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/tokamak-network/tokamak-thanos/op-service/compat/stateless"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	geth "github.com/ethereum/go-ethereum/eth"
@@ -70,7 +70,7 @@ func TestNewPayloadV4(t *testing.T) {
 		require.NotNil(t, envelope)
 
 		if c.nilWithdrawalRoot {
-			envelope.ExecutionPayload.WithdrawalsRoot = nil
+			envelope.ExecutionPayload.Withdrawals = nil
 		}
 
 		newPayloadResult, err := engineAPI.NewPayloadV4(context.Background(), envelope.ExecutionPayload, []common.Hash{}, envelope.ParentBeaconBlockRoot, []hexutil.Bytes{})
@@ -140,7 +140,18 @@ func newStubBackendWithConfig(t *testing.T, ethCfg *ethconfig.Config) *stubCachi
 	require.NoError(t, err)
 
 	chain := backend.BlockChain()
-	return &stubCachingBackend{EngineBackend: chain}
+	return &stubCachingBackend{EngineBackend: &blockChainAdapter{chain}}
+}
+
+// blockChainAdapter wraps *core.BlockChain to satisfy the EngineBackend interface,
+// adapting InsertBlockWithoutSetHead signature difference.
+type blockChainAdapter struct {
+	*core.BlockChain
+}
+
+func (a *blockChainAdapter) InsertBlockWithoutSetHead(block *types.Block, makeWitness bool) (*stateless.Witness, error) {
+	err := a.BlockChain.InsertBlockWithoutSetHead(block)
+	return nil, err
 }
 
 func newStubBackend(t *testing.T) *stubCachingBackend {
@@ -160,32 +171,27 @@ func createIsthmusGenesis() *core.Genesis {
 
 func createGenesisWithIsthmusTimeOffset(forkTimeOffset uint64) *core.Genesis {
 	deployConfig := &genesis.DeployConfig{
-		L2InitializationConfig: genesis.L2InitializationConfig{
-			DevDeployConfig: genesis.DevDeployConfig{
-				FundDevAccounts: true,
-			},
-			L2GenesisBlockDeployConfig: genesis.L2GenesisBlockDeployConfig{
-				L2GenesisBlockGasLimit:   30_000_000,
-				L2GenesisBlockDifficulty: (*hexutil.Big)(big.NewInt(100)),
-			},
-			L2CoreDeployConfig: genesis.L2CoreDeployConfig{
-				L1ChainID:   900,
-				L2ChainID:   901,
-				L2BlockTime: 2,
-			},
-			UpgradeScheduleDeployConfig: genesis.UpgradeScheduleDeployConfig{
-				L1CancunTimeOffset: new(hexutil.Uint64),
-			},
-		},
+		FundDevAccounts:          true,
+		L2GenesisBlockGasLimit:   30_000_000,
+		L2GenesisBlockDifficulty: (*hexutil.Big)(big.NewInt(100)),
+		L1ChainID:                900,
+		L2ChainID:                901,
+		L2BlockTime:              2,
+		L1CancunTimeOffset:       new(hexutil.Uint64),
 	}
 
-	deployConfig.ActivateForkAtOffset(forks.Isthmus, forkTimeOffset)
+	// Activate all forks up to Ecotone
+	ts := hexutil.Uint64(forkTimeOffset)
+	deployConfig.L2GenesisRegolithTimeOffset = &ts
+	deployConfig.L2GenesisCanyonTimeOffset = &ts
+	deployConfig.L2GenesisDeltaTimeOffset = &ts
+	deployConfig.L2GenesisEcotoneTimeOffset = &ts
 
 	l1Genesis, err := genesis.NewL1Genesis(deployConfig)
 	if err != nil {
 		panic(err)
 	}
-	l2Genesis, err := genesis.NewL2Genesis(deployConfig, eth.BlockRefFromHeader(l1Genesis.ToBlock().Header()))
+	l2Genesis, err := genesis.NewL2Genesis(deployConfig, l1Genesis.ToBlock())
 	if err != nil {
 		panic(err)
 	}

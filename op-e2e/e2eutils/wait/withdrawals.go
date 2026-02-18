@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindings"
-	"github.com/tokamak-network/tokamak-thanos/op-bindings/bindingspreview"
+	"github.com/tokamak-network/tokamak-thanos/op-node/bindings"
+	bindingspreview "github.com/tokamak-network/tokamak-thanos/op-node/bindings/preview"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/crossdomain"
 	"github.com/tokamak-network/tokamak-thanos/op-node/withdrawals"
 )

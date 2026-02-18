@@ -1,3 +1,6 @@
+//go:build fault_player_refactored
+// +build fault_player_refactored
+
 package fault
 
 import (

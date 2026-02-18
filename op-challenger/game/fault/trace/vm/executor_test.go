@@ -129,7 +129,7 @@ func captureExec(t *testing.T, dir string, cfg Config, inputs utils.LocalGameInp
 
 		// Write debuginfo file
 		debugPath := args["--debug-info"]
-		err := jsonutil.WriteJSON(info, ioutil.ToStdOutOrFileOrNoop(debugPath, 0o755))
+		err := jsonutil.WriteJSONToTarget(info, ioutil.ToStdOutOrFileOrNoop(debugPath, 0o755))
 		require.NoError(t, err)
 		return nil
 	}
@@ -168,7 +168,7 @@ func customExec(t *testing.T, cmd *exec.Cmd, dir string, cfg Config, inputs util
 
 		// Write debuginfo file
 		debugPath := args["--debug-info"]
-		err := jsonutil.WriteJSON(info, ioutil.ToStdOutOrFileOrNoop(debugPath, 0o755))
+		err := jsonutil.WriteJSONToTarget(info, ioutil.ToStdOutOrFileOrNoop(debugPath, 0o755))
 		require.NoError(t, err)
 
 		cmdError := cmd.Run()

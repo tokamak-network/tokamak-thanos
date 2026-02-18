@@ -1,3 +1,6 @@
+//go:build granite_geth
+// +build granite_geth
+
 package engineapi
 
 import (

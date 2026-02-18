@@ -82,7 +82,7 @@ func TestPreimageLoader_BlobPreimage(t *testing.T) {
 	for _, fieldIndex := range indices {
 		elementData := blob[fieldIndex<<5 : (fieldIndex+1)<<5]
 		zPoint := l1.RootsOfUnity[fieldIndex].Bytes()
-		kzgProof, claim, err := kzg4844.ComputeProof(&blob, zPoint)
+		kzgProof, claim, err := kzg4844.ComputeProof((*kzg4844.Blob)(blob), zPoint)
 		require.NoError(t, err)
 		elementDataWithLengthPrefix := make([]byte, len(elementData)+lengthPrefixSize)
 		binary.BigEndian.PutUint64(elementDataWithLengthPrefix[:lengthPrefixSize], uint64(len(elementData)))
@@ -152,7 +152,7 @@ func TestPreimageLoader_BlobPreimage(t *testing.T) {
 			loader := NewPreimageLoader(func() (PreimageSource, error) {
 				return kv, nil
 			})
-			storeBlob(t, kv, gokzg4844.KZGCommitment(commitment), gokzg4844.Blob(blob))
+			storeBlob(t, kv, gokzg4844.KZGCommitment(commitment), gokzg4844.Blob(*blob))
 			actual, err := loader.LoadPreimage(proof)
 			require.NoError(t, err)
 

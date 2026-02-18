@@ -28,7 +28,7 @@ func TestSupervisorSyncStatusProvider(t *testing.T) {
 			name:       "MinSyncedL1BehindGameHead",
 			gameL1Head: 100,
 			syncStatus: eth.SupervisorSyncStatus{
-				MinSyncedL1: eth.L1BlockRef{Number: 99},
+				MinSyncedL1: eth.BlockID{Number: 99},
 			},
 			expectedError: ErrNotInSync,
 		},
@@ -36,7 +36,7 @@ func TestSupervisorSyncStatusProvider(t *testing.T) {
 			name:       "MinSyncedL1EqualToGameHead",
 			gameL1Head: 100,
 			syncStatus: eth.SupervisorSyncStatus{
-				MinSyncedL1: eth.L1BlockRef{Number: 100},
+				MinSyncedL1: eth.BlockID{Number: 100},
 			},
 			expectedError: ErrNotInSync,
 		},
@@ -44,7 +44,7 @@ func TestSupervisorSyncStatusProvider(t *testing.T) {
 			name:       "InSync",
 			gameL1Head: 100,
 			syncStatus: eth.SupervisorSyncStatus{
-				MinSyncedL1: eth.L1BlockRef{Number: 101},
+				MinSyncedL1: eth.BlockID{Number: 101},
 			},
 			expectedError: nil,
 		},
