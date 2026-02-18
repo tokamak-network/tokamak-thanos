@@ -20,3 +20,8 @@ func (c *SimpleClock) SetTime(u uint64) {
 func (c *SimpleClock) Now() time.Time {
 	return time.Unix(int64(c.unix.Load()), 0)
 }
+
+// Set sets the clock to the given time.
+func (c *SimpleClock) Set(t time.Time) {
+	c.unix.Store(uint64(t.Unix()))
+}
