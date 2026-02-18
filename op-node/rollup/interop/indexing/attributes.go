@@ -32,12 +32,12 @@ func AttributesToReplaceInvalidBlock(invalidatedBlock *eth.ExecutionPayloadEnvel
 		}
 	}
 	// Add the system-tx that declares the replacement.
-	if invalidatedBlock.ExecutionPayload.WithdrawalsRoot == nil {
+	if invalidatedBlock.ExecutionPayload.WithdrawalsRoot() == nil {
 		panic("withdrawals-root is nil")
 	}
 	l2Output := eth.OutputV0{
 		StateRoot:                invalidatedBlock.ExecutionPayload.StateRoot,
-		MessagePasserStorageRoot: eth.Bytes32(*invalidatedBlock.ExecutionPayload.WithdrawalsRoot),
+		MessagePasserStorageRoot: eth.Bytes32(*invalidatedBlock.ExecutionPayload.WithdrawalsRoot()),
 		BlockHash:                invalidatedBlock.ExecutionPayload.BlockHash,
 	}
 	outputRootPreimage := l2Output.Marshal()
@@ -102,7 +102,13 @@ func DecodeInvalidatedBlockTx(tx *types.Transaction) (*eth.OutputV0, error) {
 	if tx.Type() != types.DepositTxType {
 		return nil, fmt.Errorf("%w: expected deposit tx type, but got %d", ErrNotReplacementBlock, tx.Type())
 	}
-	if from := tx.From(); from != OptimisticBlockDepositSenderAddress {
+	// For deposit txs, recover sender via the deposit signer
+	signer := types.NewCancunSigner(tx.ChainId())
+	from, err2 := types.Sender(signer, tx)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to recover deposit tx sender: %w", err2)
+	}
+	if from != OptimisticBlockDepositSenderAddress {
 		return nil, fmt.Errorf("%w: expected system tx sender, but got %s", ErrNotReplacementBlock, from)
 	}
 	out, err := eth.UnmarshalOutput(tx.Data())

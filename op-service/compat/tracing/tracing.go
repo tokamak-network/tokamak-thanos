@@ -26,3 +26,10 @@ const (
 // Hooks is a stub tracing hooks struct for EVM execution tracing.
 // In the real geth 1.14+ this is a rich struct; here it's a placeholder.
 type Hooks struct{}
+
+// OpContext provides context about the current EVM operation.
+// Stub for geth 1.14+ core/tracing.OpContext.
+type OpContext interface {
+	MemoryData() []byte
+	StackData() []uint64
+}

@@ -87,3 +87,13 @@ func (payload *ExecutionPayload) WithdrawalsRoot() *common.Hash {
 	h := types.DeriveSha(*payload.Withdrawals, trie.NewStackTrie(nil))
 	return &h
 }
+
+// BlockRef returns a BlockRef from the ExecutionPayload.
+func (p *ExecutionPayload) BlockRef() L1BlockRef {
+	return L1BlockRef{
+		Hash:       p.BlockHash,
+		Number:     uint64(p.BlockNumber),
+		ParentHash: p.ParentHash,
+		Time:       uint64(p.Timestamp),
+	}
+}

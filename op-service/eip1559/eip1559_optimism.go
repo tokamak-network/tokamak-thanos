@@ -7,7 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
 	gomath "math"
+
+	gethEip1559 "github.com/ethereum/go-ethereum/consensus/misc/eip1559"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
@@ -154,4 +159,9 @@ func ValidateJovianExtraData(extra []byte) error {
 		return errors.New("holocene extraData must encode a non-zero elasticity")
 	}
 	return nil
+}
+
+// CalcBaseFee delegates to the real geth consensus/misc/eip1559.CalcBaseFee.
+func CalcBaseFee(config *params.ChainConfig, parent *types.Header, time uint64) *big.Int {
+	return gethEip1559.CalcBaseFee(config, parent, time)
 }

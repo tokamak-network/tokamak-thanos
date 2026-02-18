@@ -3,16 +3,20 @@ package processors
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/tokamak-network/tokamak-thanos/op-supervisor/supervisor/types"
 )
 
+// InteropCrossL2InboxAddress is the address of the cross-L2 inbox precompile.
+// In geth 1.14+ this lives in params package; we define it locally for old geth compat.
+var InteropCrossL2InboxAddress = common.HexToAddress("0x4200000000000000000000000000000000000022")
+
 type EventDecoderFn func(*ethTypes.Log) (*types.ExecutingMessage, error)
 
 func MessageFromLog(l *ethTypes.Log) (*types.Message, error) {
-	if l.Address != params.InteropCrossL2InboxAddress {
+	if l.Address != InteropCrossL2InboxAddress {
 		return nil, nil
 	}
 	if len(l.Topics) != 2 { // topics: event-id and payload-hash
