@@ -6,11 +6,11 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestStoreSafeHeads(t *testing.T) {

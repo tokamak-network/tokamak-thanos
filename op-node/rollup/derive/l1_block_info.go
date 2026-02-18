@@ -5,35 +5,48 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
-	"github.com/tokamak-network/tokamak-thanos/op-service/solabi"
+	"github.com/ethereum-optimism/optimism/op-core/predeploys"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/solabi"
 )
 
 const (
 	L1InfoFuncBedrockSignature = "setL1BlockValues(uint64,uint64,uint256,bytes32,uint64,bytes32,uint256,uint256)"
 	L1InfoFuncEcotoneSignature = "setL1BlockValuesEcotone()"
-	L1InfoArguments            = 8
-	L1InfoBedrockLen           = 4 + 32*L1InfoArguments
-	L1InfoEcotoneLen           = 4 + 32*5 // after Ecotone upgrade, args are packed into 5 32-byte slots
+	L1InfoFuncIsthmusSignature = "setL1BlockValuesIsthmus()"
+	L1InfoFuncJovianSignature  = "setL1BlockValuesJovian()"
+
+	L1InfoArguments  = 8
+	L1InfoBedrockLen = 4 + 32*L1InfoArguments
+	L1InfoEcotoneLen = 4 + 32*5             // after Ecotone upgrade, args are packed into 5 32-byte slots
+	L1InfoIsthmusLen = 4 + 32*5 + 4 + 8     // after Isthmus upgrade, additionally pack in operator fee scalar and constant
+	L1InfoJovianLen  = L1InfoIsthmusLen + 2 // after Jovian upgrade, additionally pack in DA footprint gas scalar
 )
 
 var (
 	L1InfoFuncBedrockBytes4 = crypto.Keccak256([]byte(L1InfoFuncBedrockSignature))[:4]
 	L1InfoFuncEcotoneBytes4 = crypto.Keccak256([]byte(L1InfoFuncEcotoneSignature))[:4]
+	L1InfoFuncIsthmusBytes4 = crypto.Keccak256([]byte(L1InfoFuncIsthmusSignature))[:4]
+	L1InfoFuncJovianBytes4  = crypto.Keccak256([]byte(L1InfoFuncJovianSignature))[:4]
 	L1InfoDepositerAddress  = common.HexToAddress("0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001")
 	L1BlockAddress          = predeploys.L1BlockAddr
+	ErrInvalidEcotoneFormat = errors.New("invalid ecotone l1 block info format")
+	ErrInvalidIsthmusFormat = errors.New("invalid isthmus l1 block info format")
+	ErrInvalidJovianFormat  = errors.New("invalid jovian l1 block info format")
 )
 
 const (
-	RegolithSystemTxGas = 1_000_000
+	RegolithSystemTxGas         = 1_000_000
+	DAFootprintGasScalarDefault = 400
 )
 
 // L1BlockInfo presents the information stored in a L1Block.setL1BlockValues call
@@ -45,7 +58,7 @@ type L1BlockInfo struct {
 	// Not strictly a piece of L1 information. Represents the number of L2 blocks since the start of the epoch,
 	// i.e. when the actual L1 info was first introduced.
 	SequenceNumber uint64
-	// BatcherHash version 0 is just the address with 0 padding to the left.
+	// BatcherAddr version 0 is just the address with 0 padding to the left.
 	BatcherAddr common.Address
 
 	L1FeeOverhead eth.Bytes32 // ignored after Ecotone upgrade
@@ -54,6 +67,22 @@ type L1BlockInfo struct {
 	BlobBaseFee       *big.Int // added by Ecotone upgrade
 	BaseFeeScalar     uint32   // added by Ecotone upgrade
 	BlobBaseFeeScalar uint32   // added by Ecotone upgrade
+
+	OperatorFeeScalar   uint32 // added by Isthmus upgrade
+	OperatorFeeConstant uint64 // added by Isthmus upgrade
+
+	DAFootprintGasScalar uint16 // added by Jovian upgrade
+}
+
+// SetDAFootprintGasScalarOrDefault sets the DAFootprintGasScalar field, defaulting to
+// DAFootprintGasScalarDefault if 0 is provided. This helps in translating the gas scalar value from
+// the L1 SystemConfig representation to the L1BlockInfo representation.
+func (info *L1BlockInfo) SetDAFootprintGasScalarOrDefault(daFootprintGasScalar uint16) {
+	if daFootprintGasScalar == 0 {
+		info.DAFootprintGasScalar = DAFootprintGasScalarDefault
+	} else {
+		info.DAFootprintGasScalar = daFootprintGasScalar
+	}
 }
 
 // Bedrock Binary Format
@@ -164,39 +193,49 @@ func (info *L1BlockInfo) marshalBinaryEcotone() ([]byte, error) {
 	if err := solabi.WriteSignature(w, L1InfoFuncEcotoneBytes4); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(w, binary.BigEndian, info.BaseFeeScalar); err != nil {
+	if err := info.writeBinaryEcotone(w); err != nil {
 		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+// writeBinaryEcotone writes all fields up to the Ecotone fork into the [L1BlockInfo] struct. It does not write the
+// first 4 function signature bytes. This is expected to be done by [L1BlockInfo.marshalBinaryEcotone]. Furthermore,
+// writeBinaryEcotone can be called by future fork binary writer implementations that share the same initial fields.
+func (info *L1BlockInfo) writeBinaryEcotone(w io.Writer) error {
+	if err := binary.Write(w, binary.BigEndian, info.BaseFeeScalar); err != nil {
+		return err
 	}
 	if err := binary.Write(w, binary.BigEndian, info.BlobBaseFeeScalar); err != nil {
-		return nil, err
+		return err
 	}
 	if err := binary.Write(w, binary.BigEndian, info.SequenceNumber); err != nil {
-		return nil, err
+		return err
 	}
 	if err := binary.Write(w, binary.BigEndian, info.Time); err != nil {
-		return nil, err
+		return err
 	}
 	if err := binary.Write(w, binary.BigEndian, info.Number); err != nil {
-		return nil, err
+		return err
 	}
 	if err := solabi.WriteUint256(w, info.BaseFee); err != nil {
-		return nil, err
+		return err
 	}
 	blobBasefee := info.BlobBaseFee
 	if blobBasefee == nil {
 		blobBasefee = big.NewInt(1) // set to 1, to match the min blob basefee as defined in EIP-4844
 	}
 	if err := solabi.WriteUint256(w, blobBasefee); err != nil {
-		return nil, err
+		return err
 	}
 	if err := solabi.WriteHash(w, info.BlockHash); err != nil {
-		return nil, err
+		return err
 	}
 	// ABI encoding will perform the left-padding with zeroes to 32 bytes, matching the "batcherHash" SystemConfig format and version 0 byte.
 	if err := solabi.WriteAddress(w, info.BatcherAddr); err != nil {
-		return nil, err
+		return err
 	}
-	return w.Bytes(), nil
+	return nil
 }
 
 func (info *L1BlockInfo) unmarshalBinaryEcotone(data []byte) error {
@@ -204,25 +243,38 @@ func (info *L1BlockInfo) unmarshalBinaryEcotone(data []byte) error {
 		return fmt.Errorf("data is unexpected length: %d", len(data))
 	}
 	r := bytes.NewReader(data)
-
-	var err error
 	if _, err := solabi.ReadAndValidateSignature(r, L1InfoFuncEcotoneBytes4); err != nil {
 		return err
 	}
+	if err := info.readBinaryEcotone(r); err != nil {
+		return err
+	}
+	if !solabi.EmptyReader(r) {
+		return errors.New("too many bytes")
+	}
+	return nil
+}
+
+// readBinaryEcotone reads all fields up to the Ecotone fork into the [L1BlockInfo] struct. It does not read or verify the
+// first 4 function signature bytes, nor does it expect the reader to be empty at the end. This is expected to be done
+// by [L1BlockInfo.unmarshalBinaryEcotone]. Furthermore, readBinaryEcotone can be called by future fork binary reader
+// implementations that share the same initial fields.
+func (info *L1BlockInfo) readBinaryEcotone(r io.Reader) error {
+	var err error
 	if err := binary.Read(r, binary.BigEndian, &info.BaseFeeScalar); err != nil {
-		return fmt.Errorf("invalid ecotone l1 block info format")
+		return ErrInvalidEcotoneFormat
 	}
 	if err := binary.Read(r, binary.BigEndian, &info.BlobBaseFeeScalar); err != nil {
-		return fmt.Errorf("invalid ecotone l1 block info format")
+		return ErrInvalidEcotoneFormat
 	}
 	if err := binary.Read(r, binary.BigEndian, &info.SequenceNumber); err != nil {
-		return fmt.Errorf("invalid ecotone l1 block info format")
+		return ErrInvalidEcotoneFormat
 	}
 	if err := binary.Read(r, binary.BigEndian, &info.Time); err != nil {
-		return fmt.Errorf("invalid ecotone l1 block info format")
+		return ErrInvalidEcotoneFormat
 	}
 	if err := binary.Read(r, binary.BigEndian, &info.Number); err != nil {
-		return fmt.Errorf("invalid ecotone l1 block info format")
+		return ErrInvalidEcotoneFormat
 	}
 	if info.BaseFee, err = solabi.ReadUint256(r); err != nil {
 		return err
@@ -237,21 +289,190 @@ func (info *L1BlockInfo) unmarshalBinaryEcotone(data []byte) error {
 	if info.BatcherAddr, err = solabi.ReadAddress(r); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Isthmus Binary Format
+// +---------+--------------------------+
+// | Bytes   | Field                    |
+// +---------+--------------------------+
+// | 4       | Function signature       |
+// | 4       | BaseFeeScalar            |
+// | 4       | BlobBaseFeeScalar        |
+// | 8       | SequenceNumber           |
+// | 8       | Timestamp                |
+// | 8       | L1BlockNumber            |
+// | 32      | BaseFee                  |
+// | 32      | BlobBaseFee              |
+// | 32      | BlockHash                |
+// | 32      | BatcherHash              |
+// | 4       | OperatorFeeScalar        |
+// | 8       | OperatorFeeConstant      |
+// +---------+--------------------------+
+
+func (info *L1BlockInfo) marshalBinaryIsthmus() ([]byte, error) {
+	w := bytes.NewBuffer(make([]byte, 0, L1InfoIsthmusLen))
+	if err := solabi.WriteSignature(w, L1InfoFuncIsthmusBytes4); err != nil {
+		return nil, err
+	}
+	if err := info.writeBinaryIsthmus(w); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+// writeBinaryIsthmus writes all fields up to the Isthmus fork into the [L1BlockInfo] struct. It does not write the
+// first 4 function signature bytes. This is expected to be done by [L1BlockInfo.marshalBinaryIsthmus]. Furthermore,
+// writeBinaryIsthmus can be called by future fork binary writer implementations that share the same initial fields.
+func (info *L1BlockInfo) writeBinaryIsthmus(w io.Writer) error {
+	if err := info.writeBinaryEcotone(w); err != nil {
+		return err
+	}
+	if err := binary.Write(w, binary.BigEndian, info.OperatorFeeScalar); err != nil {
+		return err
+	}
+	if err := binary.Write(w, binary.BigEndian, info.OperatorFeeConstant); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (info *L1BlockInfo) unmarshalBinaryIsthmus(data []byte) error {
+	if len(data) != L1InfoIsthmusLen {
+		return fmt.Errorf("data is unexpected length: %d", len(data))
+	}
+	r := bytes.NewReader(data)
+	if _, err := solabi.ReadAndValidateSignature(r, []byte(L1InfoFuncIsthmusBytes4)); err != nil {
+		return err
+	}
+	if err := info.readBinaryIsthmus(r); err != nil {
+		return err
+	}
 	if !solabi.EmptyReader(r) {
 		return errors.New("too many bytes")
 	}
 	return nil
 }
 
+// readBinaryIsthmus reads all fields up to the Isthmus fork into the [L1BlockInfo] struct. It does not read or verify the
+// first 4 function signature bytes, nor does it expect the reader to be empty at the end. This is expected to be done
+// by [L1BlockInfo.unmarshalBinaryIsthmus]. Furthermore, readBinaryIsthmus can be called by future fork binary reader
+// implementations that share the same initial fields.
+func (info *L1BlockInfo) readBinaryIsthmus(r io.Reader) error {
+	if err := info.readBinaryEcotone(r); err != nil {
+		return err
+	}
+	if err := binary.Read(r, binary.BigEndian, &info.OperatorFeeScalar); err != nil {
+		return ErrInvalidIsthmusFormat
+	}
+	if err := binary.Read(r, binary.BigEndian, &info.OperatorFeeConstant); err != nil {
+		return ErrInvalidIsthmusFormat
+	}
+	return nil
+}
+
+// Interop & Jovian Binary Format
+// +---------+--------------------------+
+// | Bytes   | Field                    |
+// +---------+--------------------------+
+// | 4       | Function signature       |
+// | 4       | BaseFeeScalar            |
+// | 4       | BlobBaseFeeScalar        |
+// | 8       | SequenceNumber           |
+// | 8       | Timestamp                |
+// | 8       | L1BlockNumber            |
+// | 32      | BaseFee                  |
+// | 32      | BlobBaseFee              |
+// | 32      | BlockHash                |
+// | 32      | BatcherHash              |
+// | 4       | OperatorFeeScalar        |
+// | 8       | OperatorFeeConstant      |
+// | 2       | DAFootprintGasScalar     |
+// +---------+--------------------------+
+
+func (info *L1BlockInfo) marshalBinaryJovian() ([]byte, error) {
+	w := bytes.NewBuffer(make([]byte, 0, L1InfoJovianLen))
+	if err := solabi.WriteSignature(w, L1InfoFuncJovianBytes4); err != nil {
+		return nil, err
+	}
+	if err := info.writeBinaryJovian(w); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+// writeBinaryJovian writes all fields up to the Jovian fork into the [L1BlockInfo] struct. It does not write the
+// first 4 function signature bytes. This is expected to be done by [L1BlockInfo.marshalBinaryJovian]. Furthermore,
+// writeBinaryJovian can be called by future fork binary writer implementations that share the same initial fields.
+func (info *L1BlockInfo) writeBinaryJovian(w io.Writer) error {
+	if err := info.writeBinaryIsthmus(w); err != nil {
+		return err
+	}
+	if err := binary.Write(w, binary.BigEndian, info.DAFootprintGasScalar); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (info *L1BlockInfo) unmarshalBinaryJovian(data []byte) error {
+	if len(data) != L1InfoJovianLen {
+		return fmt.Errorf("data is unexpected length: %d", len(data))
+	}
+	r := bytes.NewReader(data)
+	if _, err := solabi.ReadAndValidateSignature(r, []byte(L1InfoFuncJovianBytes4)); err != nil {
+		return err
+	}
+	if err := info.readBinaryJovian(r); err != nil {
+		return err
+	}
+	if !solabi.EmptyReader(r) {
+		return errors.New("too many bytes")
+	}
+	return nil
+}
+
+// readBinaryJovian reads all fields up to the Jovian fork into the [L1BlockInfo] struct. It does not read or verify the
+// first 4 function signature bytes, nor does it expect the reader to be empty at the end. This is expected to be done
+// by [L1BlockInfo.unmarshalBinaryJovian]. Furthermore, readBinaryJovian can be called by future fork binary reader
+// implementations that share the same initial fields.
+func (info *L1BlockInfo) readBinaryJovian(r io.Reader) error {
+	if err := info.readBinaryIsthmus(r); err != nil {
+		return err
+	}
+	if err := binary.Read(r, binary.BigEndian, &info.DAFootprintGasScalar); err != nil {
+		return ErrInvalidJovianFormat
+	}
+	return nil
+}
+
 // isEcotoneButNotFirstBlock returns whether the specified block is subject to the Ecotone upgrade,
-// but is not the actiation block itself.
-func isEcotoneButNotFirstBlock(rollupCfg *rollup.Config, l2BlockTime uint64) bool {
-	return rollupCfg.IsEcotone(l2BlockTime) && !rollupCfg.IsEcotoneActivationBlock(l2BlockTime)
+// but is not the activation block itself.
+func isEcotoneButNotFirstBlock(rollupCfg *rollup.Config, l2Timestamp uint64) bool {
+	return rollupCfg.IsEcotone(l2Timestamp) && !rollupCfg.IsEcotoneActivationBlock(l2Timestamp)
+}
+
+// isIsthmusButNotFirstBlock returns whether the specified block is subject to the Isthmus upgrade,
+// but is not the activation block itself.
+func isIsthmusButNotFirstBlock(rollupCfg *rollup.Config, l2Timestamp uint64) bool {
+	return rollupCfg.IsIsthmus(l2Timestamp) && !rollupCfg.IsIsthmusActivationBlock(l2Timestamp)
+}
+
+// isJovianButNotFirstBlock returns whether the specified block is subject to the Jovian upgrade,
+// but is not the activation block itself.
+func isJovianButNotFirstBlock(rollupCfg *rollup.Config, l2Timestamp uint64) bool {
+	return rollupCfg.IsJovian(l2Timestamp) && !rollupCfg.IsJovianActivationBlock(l2Timestamp)
 }
 
 // L1BlockInfoFromBytes is the inverse of L1InfoDeposit, to see where the L2 chain is derived from
 func L1BlockInfoFromBytes(rollupCfg *rollup.Config, l2BlockTime uint64, data []byte) (*L1BlockInfo, error) {
 	var info L1BlockInfo
+	// Important, this must be ordered from most recent to oldest
+	if isJovianButNotFirstBlock(rollupCfg, l2BlockTime) {
+		return &info, info.unmarshalBinaryJovian(data)
+	}
+	if isIsthmusButNotFirstBlock(rollupCfg, l2BlockTime) {
+		return &info, info.unmarshalBinaryIsthmus(data)
+	}
 	if isEcotoneButNotFirstBlock(rollupCfg, l2BlockTime) {
 		return &info, info.unmarshalBinaryEcotone(data)
 	}
@@ -260,7 +481,7 @@ func L1BlockInfoFromBytes(rollupCfg *rollup.Config, l2BlockTime uint64, data []b
 
 // L1InfoDeposit creates a L1 Info deposit transaction based on the L1 block,
 // and the L2 block-height difference with the start of the epoch.
-func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber uint64, block eth.BlockInfo, l2BlockTime uint64) (*types.DepositTx, error) {
+func L1InfoDeposit(rollupCfg *rollup.Config, l1ChainConfig *params.ChainConfig, sysCfg eth.SystemConfig, seqNumber uint64, block eth.BlockInfo, l2Timestamp uint64) (*types.DepositTx, error) {
 	l1BlockInfo := L1BlockInfo{
 		Number:         block.NumberU64(),
 		Time:           block.Time(),
@@ -269,9 +490,27 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 		SequenceNumber: seqNumber,
 		BatcherAddr:    sysCfg.BatcherAddr,
 	}
-	var data []byte
-	if isEcotoneButNotFirstBlock(rollupCfg, l2BlockTime) {
-		l1BlockInfo.BlobBaseFee = block.BlobBaseFee()
+
+	isEcotoneActivated := isEcotoneButNotFirstBlock(rollupCfg, l2Timestamp)
+	isIsthmusActivated := isIsthmusButNotFirstBlock(rollupCfg, l2Timestamp)
+	isJovianActivated := isJovianButNotFirstBlock(rollupCfg, l2Timestamp)
+
+	// 1. Set all fields according to active forks
+	if isEcotoneActivated {
+		l1BlockInfo.BlobBaseFee = block.BlobBaseFee(l1ChainConfig)
+
+		// Apply Cancun blob base fee calculation if this chain needs the L1 Pectra
+		// blob schedule fix (mostly Holesky and Sepolia OP-Stack chains).
+		if t := rollupCfg.PectraBlobScheduleTime; t != nil && block.Time() < *t {
+			if ebg := block.ExcessBlobGas(); ebg != nil {
+				l1BlockInfo.BlobBaseFee = eth.CalcBlobFeeCancun(*ebg)
+			} else {
+				// If L1 isn't on Cancun yet. It should already have been set
+				// to nil above in this case anyways.
+				l1BlockInfo.BlobBaseFee = nil
+			}
+		}
+
 		if l1BlockInfo.BlobBaseFee == nil {
 			// The L2 spec states to use the MIN_BLOB_GASPRICE from EIP-4844 if not yet active on L1.
 			l1BlockInfo.BlobBaseFee = big.NewInt(1)
@@ -282,19 +521,44 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 		}
 		l1BlockInfo.BlobBaseFeeScalar = scalars.BlobBaseFeeScalar
 		l1BlockInfo.BaseFeeScalar = scalars.BaseFeeScalar
-		out, err := l1BlockInfo.marshalBinaryEcotone()
+	} else { // Bedrock, pre-Ecotone
+		l1BlockInfo.L1FeeOverhead = sysCfg.Overhead
+		l1BlockInfo.L1FeeScalar = sysCfg.Scalar
+	}
+	if isIsthmusActivated {
+		operatorFee := sysCfg.OperatorFee()
+		l1BlockInfo.OperatorFeeScalar = operatorFee.Scalar
+		l1BlockInfo.OperatorFeeConstant = operatorFee.Constant
+	}
+	if isJovianActivated {
+		// Use setter to make sure 0 is translated to default value.
+		l1BlockInfo.SetDAFootprintGasScalarOrDefault(sysCfg.DAFootprintGasScalar)
+	}
+
+	// 2. Now marshal actual data
+	var data []byte
+	var err error
+	switch {
+	case isJovianActivated:
+		data, err = l1BlockInfo.marshalBinaryJovian()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal Jovian l1 block info: %w", err)
+		}
+	case isIsthmusActivated:
+		data, err = l1BlockInfo.marshalBinaryIsthmus()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal Isthmus l1 block info: %w", err)
+		}
+	case isEcotoneActivated:
+		data, err = l1BlockInfo.marshalBinaryEcotone()
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal Ecotone l1 block info: %w", err)
 		}
-		data = out
-	} else {
-		l1BlockInfo.L1FeeOverhead = sysCfg.Overhead
-		l1BlockInfo.L1FeeScalar = sysCfg.Scalar
-		out, err := l1BlockInfo.marshalBinaryBedrock()
+	default:
+		data, err = l1BlockInfo.marshalBinaryBedrock()
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal Bedrock l1 block info: %w", err)
 		}
-		data = out
 	}
 
 	source := L1InfoDepositSource{
@@ -314,7 +578,7 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 		Data:                data,
 	}
 	// With the regolith fork we disable the IsSystemTx functionality, and allocate real gas
-	if rollupCfg.IsRegolith(l2BlockTime) {
+	if rollupCfg.IsRegolith(l2Timestamp) {
 		out.IsSystemTransaction = false
 		out.Gas = RegolithSystemTxGas
 	}
@@ -322,8 +586,8 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 }
 
 // L1InfoDepositBytes returns a serialized L1-info attributes transaction.
-func L1InfoDepositBytes(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber uint64, l1Info eth.BlockInfo, l2BlockTime uint64) ([]byte, error) {
-	dep, err := L1InfoDeposit(rollupCfg, sysCfg, seqNumber, l1Info, l2BlockTime)
+func L1InfoDepositBytes(rollupCfg *rollup.Config, l1ChainConfig *params.ChainConfig, sysCfg eth.SystemConfig, seqNumber uint64, l1Info eth.BlockInfo, l2Timestamp uint64) ([]byte, error) {
+	dep, err := L1InfoDeposit(rollupCfg, l1ChainConfig, sysCfg, seqNumber, l1Info, l2Timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L1 info tx: %w", err)
 	}

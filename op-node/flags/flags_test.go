@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	opservice "github.com/tokamak-network/tokamak-thanos/op-service"
+	opservice "github.com/ethereum-optimism/optimism/op-service"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -105,6 +105,7 @@ func TestEnvVarFormat(t *testing.T) {
 		L2EngineJWTSecret.Name,
 		L1TrustRPC.Name,
 		L1RPCProviderKind.Name,
+		L2EngineKind.Name,
 		SnapshotLog.Name,
 		BackupL2UnsafeSyncRPC.Name,
 		BackupL2UnsafeSyncRPCTrustRPC.Name,

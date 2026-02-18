@@ -271,6 +271,8 @@ func (btx *spanBatchTxs) recoverV(chainID *big.Int) error {
 			v = bit
 		case types.DynamicFeeTxType:
 			v = bit
+		case types.SetCodeTxType:
+			v = bit
 		default:
 			return fmt.Errorf("invalid tx type: %d", txType)
 		}
@@ -386,6 +388,8 @@ func convertVToYParity(v uint64, txType int) (uint, error) {
 		yParityBit = uint(v)
 	case types.DynamicFeeTxType:
 		yParityBit = uint(v)
+	case types.SetCodeTxType:
+		yParityBit = uint(v)
 	default:
 		return 0, fmt.Errorf("invalid tx type: %d", txType)
 	}
@@ -424,7 +428,7 @@ func (sbtx *spanBatchTxs) AddTxs(txs [][]byte, chainID *big.Int) error {
 	totalBlockTxCount := uint64(len(txs))
 	offset := sbtx.totalBlockTxCount
 	for idx := 0; idx < int(totalBlockTxCount); idx++ {
-		var tx types.Transaction
+		tx := &types.Transaction{}
 		if err := tx.UnmarshalBinary(txs[idx]); err != nil {
 			return errors.New("failed to decode tx")
 		}

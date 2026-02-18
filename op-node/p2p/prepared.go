@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
 )
 
 // Prepared provides a p2p host and discv5 service that is already set up.
@@ -91,4 +91,8 @@ func (p *Prepared) Disabled() bool {
 
 func (p *Prepared) ReqRespSyncEnabled() bool {
 	return p.EnableReqRespSync
+}
+
+func (p *Prepared) GetGossipTimestampThreshold() time.Duration {
+	return 60 * time.Second
 }

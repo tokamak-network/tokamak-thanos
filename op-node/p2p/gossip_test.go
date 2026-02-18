@@ -9,21 +9,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/snappy"
+
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/ptr"
+	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/optimism/op-service/testutils"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/golang/snappy"
+
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-e2e/e2eutils"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func TestGuardGossipValidator(t *testing.T) {
@@ -58,41 +63,41 @@ func TestVerifyBlockSignature(t *testing.T) {
 		L2ChainID: big.NewInt(100),
 	}
 	peerId := peer.ID("foo")
-	secrets, err := e2eutils.DefaultMnemonicConfig.Secrets()
+	secrets, err := crypto.GenerateKey()
 	require.NoError(t, err)
 	msg := []byte("any msg")
 
 	t.Run("Valid", func(t *testing.T) {
-		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.SequencerP2P.PublicKey)}
-		signer := &PreparedSigner{Signer: NewLocalSigner(secrets.SequencerP2P)}
-		sig, err := signer.Sign(context.Background(), SigningDomainBlocksV1, cfg.L2ChainID, msg)
+		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.PublicKey)}
+		signer := &PreparedSigner{Signer: opsigner.NewLocalSigner(secrets)}
+		sig, err := signer.SignBlockV1(context.Background(), eth.ChainIDFromBig(cfg.L2ChainID), opsigner.PayloadHash(msg))
 		require.NoError(t, err)
-		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig[:65], msg)
+		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig, msg)
 		require.Equal(t, pubsub.ValidationAccept, result)
 	})
 
 	t.Run("WrongSigner", func(t *testing.T) {
 		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: common.HexToAddress("0x1234")}
-		signer := &PreparedSigner{Signer: NewLocalSigner(secrets.SequencerP2P)}
-		sig, err := signer.Sign(context.Background(), SigningDomainBlocksV1, cfg.L2ChainID, msg)
+		signer := &PreparedSigner{Signer: opsigner.NewLocalSigner(secrets)}
+		sig, err := signer.SignBlockV1(context.Background(), eth.ChainIDFromBig(cfg.L2ChainID), opsigner.PayloadHash(msg))
 		require.NoError(t, err)
-		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig[:65], msg)
+		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig, msg)
 		require.Equal(t, pubsub.ValidationReject, result)
 	})
 
 	t.Run("InvalidSignature", func(t *testing.T) {
-		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.SequencerP2P.PublicKey)}
-		sig := make([]byte, 65)
+		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.PublicKey)}
+		sig := eth.Bytes65{}
 		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig, msg)
 		require.Equal(t, pubsub.ValidationReject, result)
 	})
 
 	t.Run("NoSequencer", func(t *testing.T) {
 		runCfg := &testutils.MockRuntimeConfig{}
-		signer := &PreparedSigner{Signer: NewLocalSigner(secrets.SequencerP2P)}
-		sig, err := signer.Sign(context.Background(), SigningDomainBlocksV1, cfg.L2ChainID, msg)
+		signer := &PreparedSigner{Signer: opsigner.NewLocalSigner(secrets)}
+		sig, err := signer.SignBlockV1(context.Background(), eth.ChainIDFromBig(cfg.L2ChainID), opsigner.PayloadHash(msg))
 		require.NoError(t, err)
-		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig[:65], msg)
+		result := verifyBlockSignature(logger, cfg, runCfg, peerId, sig, msg)
 		require.Equal(t, pubsub.ValidationIgnore, result)
 	})
 }
@@ -109,7 +114,7 @@ func createSignedP2Payload(payload MarshalSSZ, signer Signer, l2ChainID *big.Int
 	}
 	data := buf.Bytes()
 	payloadData := data[65:]
-	sig, err := signer.Sign(context.TODO(), SigningDomainBlocksV1, l2ChainID, payloadData)
+	sig, err := signer.SignBlockV1(context.TODO(), eth.ChainIDFromBig(l2ChainID), opsigner.PayloadHash(payloadData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign execution payload with signer: %w", err)
 	}
@@ -120,18 +125,19 @@ func createSignedP2Payload(payload MarshalSSZ, signer Signer, l2ChainID *big.Int
 	return snappy.Encode(nil, data), nil
 }
 
-func createExecutionPayload(w types.Withdrawals, excessGas, gasUsed *uint64) *eth.ExecutionPayload {
+func createExecutionPayload(w types.Withdrawals, withdrawalsRoot *common.Hash, excessBlobGas, blobGasUsed *uint64) *eth.ExecutionPayload {
 	return &eth.ExecutionPayload{
-		Timestamp:     hexutil.Uint64(time.Now().Unix()),
-		Withdrawals:   &w,
-		ExcessBlobGas: (*eth.Uint64Quantity)(excessGas),
-		BlobGasUsed:   (*eth.Uint64Quantity)(gasUsed),
+		Timestamp:       hexutil.Uint64(time.Now().Unix()),
+		Withdrawals:     &w,
+		WithdrawalsRoot: withdrawalsRoot,
+		ExcessBlobGas:   (*eth.Uint64Quantity)(excessBlobGas),
+		BlobGasUsed:     (*eth.Uint64Quantity)(blobGasUsed),
 	}
 }
 
-func createEnvelope(h *common.Hash, w types.Withdrawals, excessGas, gasUsed *uint64) *eth.ExecutionPayloadEnvelope {
+func createEnvelope(h *common.Hash, w types.Withdrawals, withdrawalsRoot *common.Hash, excessBlobGas, blobGasUsed *uint64) *eth.ExecutionPayloadEnvelope {
 	return &eth.ExecutionPayloadEnvelope{
-		ExecutionPayload:      createExecutionPayload(w, excessGas, gasUsed),
+		ExecutionPayload:      createExecutionPayload(w, withdrawalsRoot, excessBlobGas, blobGasUsed),
 		ParentBeaconBlockRoot: h,
 	}
 }
@@ -142,18 +148,26 @@ func TestBlockValidator(t *testing.T) {
 	cfg := &rollup.Config{
 		L2ChainID: big.NewInt(100),
 	}
-	secrets, err := e2eutils.DefaultMnemonicConfig.Secrets()
+	secrets, err := crypto.GenerateKey()
 	require.NoError(t, err)
-	runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.SequencerP2P.PublicKey)}
-	signer := &PreparedSigner{Signer: NewLocalSigner(secrets.SequencerP2P)}
+	runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.PublicKey)}
+	signer := &PreparedSigner{Signer: opsigner.NewLocalSigner(secrets)}
 	// Params Set 2: Call the validation function
 	peerID := peer.ID("foo")
 
-	v2Validator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), cfg, runCfg, eth.BlockV2)
-	v3Validator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), cfg, runCfg, eth.BlockV3)
+	// Create a mock gossip configuration for testing
+	mockGossipConf := &mockGossipSetupConfigurablesWithThreshold{threshold: 60 * time.Second}
+	v2Validator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), cfg, runCfg, eth.BlockV2, mockGossipConf, clock.SystemClock)
+	v3Validator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), cfg, runCfg, eth.BlockV3, mockGossipConf, clock.SystemClock)
+	v4Validator := BuildBlocksValidator(testlog.Logger(t, log.LevelDebug), cfg, runCfg, eth.BlockV4, mockGossipConf, clock.SystemClock)
+	jovianCfg := &rollup.Config{
+		L2ChainID:  big.NewInt(100),
+		JovianTime: ptr.New(uint64(0)),
+	}
+	v4JovianValidator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), jovianCfg, runCfg, eth.BlockV4, mockGossipConf, clock.SystemClock)
 
 	zero, one := uint64(0), uint64(1)
-	beaconHash := common.HexToHash("0x1234")
+	beaconHash, withdrawalsRoot := common.HexToHash("0x1234"), common.HexToHash("0x9876")
 
 	payloadTests := []struct {
 		name      string
@@ -161,14 +175,13 @@ func TestBlockValidator(t *testing.T) {
 		result    pubsub.ValidationResult
 		payload   *eth.ExecutionPayload
 	}{
-		{"V2Valid", v2Validator, pubsub.ValidationAccept, createExecutionPayload(types.Withdrawals{}, nil, nil)},
-		{"V2NonZeroWithdrawals", v2Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{&types.Withdrawal{Index: 1, Validator: 1}}, nil, nil)},
-		{"V2NonZeroBlobProperties", v2Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{}, &zero, &zero)},
-		{"V3RejectExecutionPayload", v3Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{}, &zero, &zero)},
+		{"V2Valid", v2Validator, pubsub.ValidationAccept, createExecutionPayload(types.Withdrawals{}, nil, nil, nil)},
+		{"V2NonZeroWithdrawals", v2Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{&types.Withdrawal{Index: 1, Validator: 1}}, nil, nil, nil)},
+		{"V2NonZeroBlobProperties", v2Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{}, nil, &zero, &zero)},
+		{"V3RejectExecutionPayload", v3Validator, pubsub.ValidationReject, createExecutionPayload(types.Withdrawals{}, nil, &zero, &zero)},
 	}
 
-	for _, tt := range payloadTests {
-		test := tt
+	for _, test := range payloadTests {
 		t.Run(fmt.Sprintf("ExecutionPayload_%s", test.name), func(t *testing.T) {
 			e := &eth.ExecutionPayloadEnvelope{ExecutionPayload: test.payload}
 			test.payload.BlockHash, _ = e.CheckBlockHash() // hack to generate the block hash easily.
@@ -186,14 +199,16 @@ func TestBlockValidator(t *testing.T) {
 		result    pubsub.ValidationResult
 		payload   *eth.ExecutionPayloadEnvelope
 	}{
-		{"V3RejectNonZeroExcessGas", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, &one, &zero)},
-		{"V3RejectNonZeroBlobGasUsed", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, &zero, &one)},
-		{"V3RejectNonZeroBlobGasUsed", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, &zero, &one)},
-		{"V3Valid", v3Validator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, &zero, &zero)},
+		{"V3RejectNonZeroExcessGas", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &one, &zero)},
+		{"V3RejectNonZeroBlobGasUsed", v3Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &one)},
+		{"V3Valid", v3Validator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &zero)},
+		{"V4Valid", v4Validator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, &withdrawalsRoot, &zero, &zero)},
+		{"V4RejectNoWithdrawalRoot", v4Validator, pubsub.ValidationReject, createEnvelope(&beaconHash, types.Withdrawals{}, nil, &zero, &zero)},
+		{"V4AcceptNonZeroBlobGasUsedJovian", v4JovianValidator, pubsub.ValidationAccept, createEnvelope(&beaconHash, types.Withdrawals{}, &withdrawalsRoot, &zero, &one)},
+		// Note: v3+ test cases with nil blobGasUsed cannot easily be included because they already fail at the SSZ marshaling stage.
 	}
 
-	for _, tt := range envelopeTests {
-		test := tt
+	for _, test := range envelopeTests {
 		t.Run(fmt.Sprintf("ExecutionPayloadEnvelope_%s", test.name), func(t *testing.T) {
 			test.payload.ExecutionPayload.BlockHash, _ = test.payload.CheckBlockHash() // hack to generate the block hash easily.
 			data, err := createSignedP2Payload(test.payload, signer, cfg.L2ChainID)
@@ -203,4 +218,87 @@ func TestBlockValidator(t *testing.T) {
 			require.Equal(t, res, test.result)
 		})
 	}
+}
+
+// TestGossipTimestampThreshold tests that the configurable timestamp threshold works correctly
+func TestGossipTimestampThreshold(t *testing.T) {
+	cfg := &rollup.Config{
+		L2ChainID: big.NewInt(100),
+	}
+	secrets, err := crypto.GenerateKey()
+	require.NoError(t, err)
+	runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.PublicKey)}
+	signer := &PreparedSigner{Signer: opsigner.NewLocalSigner(secrets)}
+	peerID := peer.ID("foo")
+
+	// Test with different threshold values
+	testCases := []struct {
+		name           string
+		threshold      time.Duration
+		payloadTime    time.Time
+		expectedResult pubsub.ValidationResult
+	}{
+		{
+			name:           "AcceptWithinThreshold",
+			threshold:      30 * time.Second,
+			payloadTime:    time.Now().Add(-15 * time.Second), // 15 seconds ago
+			expectedResult: pubsub.ValidationAccept,
+		},
+		{
+			name:           "RejectOutsideThreshold",
+			threshold:      30 * time.Second,
+			payloadTime:    time.Now().Add(-45 * time.Second), // 45 seconds ago
+			expectedResult: pubsub.ValidationReject,
+		},
+		{
+			name:           "AcceptWithLongerThreshold",
+			threshold:      120 * time.Second,
+			payloadTime:    time.Now().Add(-90 * time.Second), // 90 seconds ago
+			expectedResult: pubsub.ValidationAccept,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a mock config with the specific threshold
+			mockConfig := &mockGossipSetupConfigurablesWithThreshold{threshold: tc.threshold}
+
+			// Create validator with the mock config
+			validator := BuildBlocksValidator(testlog.Logger(t, log.LevelCrit), cfg, runCfg, eth.BlockV2, mockConfig, clock.SystemClock)
+
+			// Create payload with the specific timestamp
+			payload := createExecutionPayload(types.Withdrawals{}, nil, nil, nil)
+			payload.Timestamp = hexutil.Uint64(tc.payloadTime.Unix())
+			// Set block number to avoid duplicate block validation issues
+			payload.BlockNumber = hexutil.Uint64(time.Now().Unix())
+			// Set a valid block hash for the payload
+			payload.BlockHash, _ = (&eth.ExecutionPayloadEnvelope{ExecutionPayload: payload}).CheckBlockHash()
+
+			// Create signed message
+			data, err := createSignedP2Payload(payload, signer, cfg.L2ChainID)
+			require.NoError(t, err)
+			message := &pubsub.Message{Message: &pubsub_pb.Message{Data: data}}
+
+			// Test validation
+			result := validator(context.Background(), peerID, message)
+			require.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+// mockGossipSetupConfigurablesWithThreshold implements GossipSetupConfigurables with configurable threshold
+type mockGossipSetupConfigurablesWithThreshold struct {
+	threshold time.Duration
+}
+
+func (m *mockGossipSetupConfigurablesWithThreshold) PeerScoringParams() *ScoringParams {
+	return nil
+}
+
+func (m *mockGossipSetupConfigurablesWithThreshold) ConfigureGossip(rollupCfg *rollup.Config) []pubsub.Option {
+	return nil
+}
+
+func (m *mockGossipSetupConfigurablesWithThreshold) GetGossipTimestampThreshold() time.Duration {
+	return m.threshold
 }

@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/event"
 )
 
 // defaultFinalityLookback defines the amount of L1<>L2 relations to track for finalization purposes, one per L1 block.
@@ -31,19 +34,45 @@ const defaultFinalityLookback = 4*32 + 1
 // We do not want to do this too often, since it requires fetching a L1 block by number, so no cache data.
 const finalityDelay = 64
 
-// calcFinalityLookback calculates the default finality lookback based on DA challenge window if plasma
+// Config contains runtime configuration for the finalizer.
+type Config struct {
+	// FinalityLookback specifies the number of L1 blocks to look back for finality verification.
+	// When nil, uses the default finality lookback calculation (which considers both
+	// the default lookback and alt-DA challenge/resolve windows if applicable).
+	FinalityLookback *uint64
+
+	// FinalityDelay specifies the number of L1 blocks to traverse before trying to finalize L2 blocks again.
+	// When nil, defaults to 64 blocks.
+	FinalityDelay *uint64
+}
+
+// calcFinalityLookback calculates the default finality lookback based on DA challenge window if altDA
 // mode is activated or L1 finality lookback.
-func calcFinalityLookback(cfg *rollup.Config) uint64 {
-	// in plasma mode the longest finality lookback is a commitment is challenged on the last block of
+func calcFinalityLookback(cfg *rollup.Config, finalizerCfg *Config) uint64 {
+	// If a custom finality lookback is configured, use it as an override
+	if finalizerCfg != nil && finalizerCfg.FinalityLookback != nil {
+		return *finalizerCfg.FinalityLookback
+	}
+
+	// in alt-da mode the longest finality lookback is a commitment is challenged on the last block of
 	// the challenge window in which case it will be both challenge + resolve window.
-	if cfg.PlasmaEnabled() {
-		lkb := cfg.PlasmaConfig.DAChallengeWindow + cfg.PlasmaConfig.DAResolveWindow + 1
-		// in the case only if the plasma windows are longer than the default finality lookback
+	if cfg.AltDAEnabled() {
+		lkb := cfg.AltDAConfig.DAChallengeWindow + cfg.AltDAConfig.DAResolveWindow + 1
+		// in the case only if the altDA windows are longer than the default finality lookback
 		if lkb > defaultFinalityLookback {
 			return lkb
 		}
 	}
 	return defaultFinalityLookback
+}
+
+// calcFinalityDelay calculates the finality delay based on the runtime config or returns the default.
+func calcFinalityDelay(finalizerCfg *Config) uint64 {
+	// If a custom finality delay is configured, use it as an override
+	if finalizerCfg != nil && finalizerCfg.FinalityDelay != nil {
+		return *finalizerCfg.FinalityDelay
+	}
+	return finalityDelay
 }
 
 type FinalityData struct {
@@ -63,14 +92,29 @@ type FinalizerL1Interface interface {
 	L1BlockRefByNumber(context.Context, uint64) (eth.L1BlockRef, error)
 }
 
+type EngineController interface {
+	PromoteFinalized(context.Context, eth.L2BlockRef)
+}
+
 type Finalizer struct {
 	mu sync.Mutex
 
 	log log.Logger
 
+	ctx context.Context
+
+	cfg *rollup.Config
+
+	emitter event.Emitter
+
+	engineController EngineController
+
 	// finalizedL1 is the currently perceived finalized L1 block.
 	// This may be ahead of the current traversed origin when syncing.
 	finalizedL1 eth.L1BlockRef
+
+	// lastFinalizedL2 maintains how far we finalized, so we don't have to emit re-attempts.
+	lastFinalizedL2 eth.L2BlockRef
 
 	// triedFinalizeAt tracks at which L1 block number we last tried to finalize during sync.
 	triedFinalizeAt uint64
@@ -81,22 +125,34 @@ type Finalizer struct {
 	// Maximum amount of L2 blocks to store in finalityData.
 	finalityLookback uint64
 
-	l1Fetcher FinalizerL1Interface
+	// Number of L1 blocks to traverse before trying to finalize L2 blocks again.
+	finalityDelay uint64
 
-	ec FinalizerEngine
+	l1Fetcher FinalizerL1Interface
 }
 
-func NewFinalizer(log log.Logger, cfg *rollup.Config, l1Fetcher FinalizerL1Interface, ec FinalizerEngine) *Finalizer {
-	lookback := calcFinalityLookback(cfg)
+// NewFinalizer creates a new Finalizer instance.
+// The finalizerCfg parameter is optional and may be nil to use default finality behavior.
+// When non-nil, any non-nil fields in finalizerCfg will override the defaults.
+func NewFinalizer(ctx context.Context, log log.Logger, cfg *rollup.Config, finalizerCfg *Config, l1Fetcher FinalizerL1Interface, ec EngineController) *Finalizer {
+	lookback := calcFinalityLookback(cfg, finalizerCfg)
+	delay := calcFinalityDelay(finalizerCfg)
 	return &Finalizer{
+		ctx:              ctx,
+		cfg:              cfg,
 		log:              log,
 		finalizedL1:      eth.L1BlockRef{},
+		engineController: ec,
 		triedFinalizeAt:  0,
 		finalityData:     make([]FinalityData, 0, lookback),
 		finalityLookback: lookback,
+		finalityDelay:    delay,
 		l1Fetcher:        l1Fetcher,
-		ec:               ec,
 	}
+}
+
+func (fi *Finalizer) AttachEmitter(em event.Emitter) {
+	fi.emitter = em
 }
 
 // FinalizedL1 identifies the L1 chain (incl.) that included and/or produced all the finalized L2 blocks.
@@ -108,8 +164,35 @@ func (fi *Finalizer) FinalizedL1() (out eth.L1BlockRef) {
 	return
 }
 
-// Finalize applies a L1 finality signal, without any fork-choice or L2 state changes.
-func (fi *Finalizer) Finalize(ctx context.Context, l1Origin eth.L1BlockRef) {
+type TryFinalizeEvent struct {
+}
+
+func (ev TryFinalizeEvent) String() string {
+	return "try-finalize"
+}
+
+func (fi *Finalizer) OnEvent(ctx context.Context, ev event.Event) bool {
+	// TODO(#16917) Remove Event System Refactor Comments
+	//  FinalizeL1Event is removed and OnL1Finalized is synchronously called at L1Handler
+	switch x := ev.(type) {
+	case engine.SafeDerivedEvent:
+		fi.onDerivedSafeBlock(x.Safe, x.Source)
+	case derive.DeriverIdleEvent:
+		fi.onDerivationIdle(x.Origin)
+	case rollup.ResetEvent:
+		fi.onReset()
+	case TryFinalizeEvent:
+		fi.tryFinalize()
+	case engine.ForkchoiceUpdateEvent:
+		fi.lastFinalizedL2 = x.FinalizedL2Head
+	default:
+		return false
+	}
+	return true
+}
+
+// onL1Finalized applies a L1 finality signal
+func (fi *Finalizer) OnL1Finalized(l1Origin eth.L1BlockRef) {
 	fi.mu.Lock()
 	defer fi.mu.Unlock()
 	prevFinalizedL1 := fi.finalizedL1
@@ -127,13 +210,11 @@ func (fi *Finalizer) Finalize(ctx context.Context, l1Origin eth.L1BlockRef) {
 		fi.finalizedL1 = l1Origin
 	}
 
-	// remnant of finality in EngineQueue: the finalization work does not inherit a context from the caller.
-	if err := fi.tryFinalize(ctx); err != nil {
-		fi.log.Warn("received L1 finalization signal, but was unable to determine and apply L2 finality", "err", err)
-	}
+	// when the L1 change we can suggest to try to finalize, as the pre-condition for L2 finality has now changed
+	fi.emitter.Emit(fi.ctx, TryFinalizeEvent{})
 }
 
-// OnDerivationL1End is called when a L1 block has been fully exhausted (i.e. no more L2 blocks to derive from).
+// onDerivationIdle is called when the pipeline is exhausted of new data (i.e. no more L2 blocks to derive from).
 //
 // Since finality applies to all L2 blocks fully derived from the same block,
 // it optimal to only check after the derivation from the L1 block has been exhausted.
@@ -141,24 +222,27 @@ func (fi *Finalizer) Finalize(ctx context.Context, l1Origin eth.L1BlockRef) {
 // This will look at what has been buffered so far,
 // sanity-check we are on the finalizing L1 chain,
 // and finalize any L2 blocks that were fully derived from known finalized L1 blocks.
-func (fi *Finalizer) OnDerivationL1End(ctx context.Context, derivedFrom eth.L1BlockRef) error {
+func (fi *Finalizer) onDerivationIdle(derivedFrom eth.L1BlockRef) {
 	fi.mu.Lock()
 	defer fi.mu.Unlock()
 	if fi.finalizedL1 == (eth.L1BlockRef{}) {
-		return nil // if no L1 information is finalized yet, then skip this
+		return // if no L1 information is finalized yet, then skip this
 	}
 	// If we recently tried finalizing, then don't try again just yet, but traverse more of L1 first.
-	if fi.triedFinalizeAt != 0 && derivedFrom.Number <= fi.triedFinalizeAt+finalityDelay {
-		return nil
+	if fi.triedFinalizeAt != 0 && derivedFrom.Number <= fi.triedFinalizeAt+fi.finalityDelay {
+		return
 	}
-	fi.log.Info("processing L1 finality information", "l1_finalized", fi.finalizedL1, "derived_from", derivedFrom, "previous", fi.triedFinalizeAt)
+	fi.log.Debug("processing L1 finality information", "l1_finalized", fi.finalizedL1, "derived_from", derivedFrom, "previous", fi.triedFinalizeAt)
 	fi.triedFinalizeAt = derivedFrom.Number
-	return fi.tryFinalize(ctx)
+	fi.emitter.Emit(fi.ctx, TryFinalizeEvent{})
 }
 
-func (fi *Finalizer) tryFinalize(ctx context.Context) error {
-	// default to keep the same finalized block
-	finalizedL2 := fi.ec.Finalized()
+func (fi *Finalizer) tryFinalize() {
+	fi.mu.Lock()
+	defer fi.mu.Unlock()
+
+	// overwritten if we finalize
+	finalizedL2 := fi.lastFinalizedL2 // may be zeroed if nothing was finalized since startup.
 	var finalizedDerivedFrom eth.BlockID
 	// go through the latest inclusion data, and find the last L2 block that was derived from a finalized L1 block
 	for _, fd := range fi.finalityData {
@@ -169,39 +253,58 @@ func (fi *Finalizer) tryFinalize(ctx context.Context) error {
 		}
 	}
 	if finalizedDerivedFrom != (eth.BlockID{}) {
+		ctx, cancel := context.WithTimeout(fi.ctx, time.Second*10)
+		defer cancel()
 		// Sanity check the finality signal of L1.
 		// Even though the signal is trusted and we do the below check also,
 		// the signal itself has to be canonical to proceed.
-		// TODO(#10724): This check could be removed if the finality signal is fully trusted, and if tests were more flexible for this case.
 		signalRef, err := fi.l1Fetcher.L1BlockRefByNumber(ctx, fi.finalizedL1.Number)
 		if err != nil {
-			return derive.NewTemporaryError(fmt.Errorf("failed to check if on finalizing L1 chain, could not fetch block %d: %w", fi.finalizedL1.Number, err))
+			fi.emitter.Emit(fi.ctx, rollup.L1TemporaryErrorEvent{
+				Err: fmt.Errorf("failed to check if on finalizing L1 chain, could not fetch block %d: %w", fi.finalizedL1.Number, err),
+			})
+			return
 		}
 		if signalRef.Hash != fi.finalizedL1.Hash {
-			return derive.NewResetError(fmt.Errorf("need to reset, we assumed %s is finalized, but canonical chain is %s", fi.finalizedL1, signalRef))
+			fi.emitter.Emit(fi.ctx, rollup.ResetEvent{
+				Err: fmt.Errorf("need to reset, we assumed %s is finalized, but canonical chain is %s", fi.finalizedL1, signalRef),
+			})
+			return
 		}
 
 		// Sanity check we are indeed on the finalizing chain, and not stuck on something else.
 		// We assume that the block-by-number query is consistent with the previously received finalized chain signal
 		derivedRef, err := fi.l1Fetcher.L1BlockRefByNumber(ctx, finalizedDerivedFrom.Number)
 		if err != nil {
-			return derive.NewTemporaryError(fmt.Errorf("failed to check if on finalizing L1 chain, could not fetch block %d: %w", finalizedDerivedFrom.Number, err))
+			fi.emitter.Emit(fi.ctx, rollup.L1TemporaryErrorEvent{
+				Err: fmt.Errorf("failed to check if on finalizing L1 chain, could not fetch block %d: %w", finalizedDerivedFrom.Number, err),
+			})
+			return
 		}
 		if derivedRef.Hash != finalizedDerivedFrom.Hash {
-			return derive.NewResetError(fmt.Errorf("need to reset, we are on %s, not on the finalizing L1 chain %s (towards %s)",
-				finalizedDerivedFrom, derivedRef, fi.finalizedL1))
+			fi.emitter.Emit(fi.ctx, rollup.ResetEvent{
+				Err: fmt.Errorf("need to reset, we are on %s, not on the finalizing L1 chain %s (towards %s)",
+					finalizedDerivedFrom, derivedRef, fi.finalizedL1),
+			})
+			return
 		}
-
-		fi.ec.SetFinalizedHead(finalizedL2)
+		fi.engineController.PromoteFinalized(ctx, finalizedL2)
 	}
-	return nil
 }
 
-// PostProcessSafeL2 buffers the L1 block the safe head was fully derived from,
+// onDerivedSafeBlock buffers the L1 block the safe head was fully derived from,
 // to finalize it once the derived-from L1 block, or a later L1 block, finalizes.
-func (fi *Finalizer) PostProcessSafeL2(l2Safe eth.L2BlockRef, derivedFrom eth.L1BlockRef) {
+func (fi *Finalizer) onDerivedSafeBlock(l2Safe eth.L2BlockRef, derivedFrom eth.L1BlockRef) {
 	fi.mu.Lock()
 	defer fi.mu.Unlock()
+
+	// Stop registering blocks after interop.
+	// Finality in interop is determined by the superchain backend,
+	// i.e. the op-supervisor RPC identifies which L2 block may be finalized.
+	if fi.cfg.IsInterop(l2Safe.Time) {
+		return
+	}
+
 	// remember the last L2 block that we fully derived from the given finality data
 	if len(fi.finalityData) == 0 || fi.finalityData[len(fi.finalityData)-1].L1Block.Number < derivedFrom.Number {
 		// prune finality data if necessary, before appending any data.
@@ -225,9 +328,9 @@ func (fi *Finalizer) PostProcessSafeL2(l2Safe eth.L2BlockRef, derivedFrom eth.L1
 	}
 }
 
-// Reset clears the recent history of safe-L2 blocks used for finalization,
+// onReset clears the recent history of safe-L2 blocks used for finalization,
 // to avoid finalizing any reorged-out L2 blocks.
-func (fi *Finalizer) Reset() {
+func (fi *Finalizer) onReset() {
 	fi.mu.Lock()
 	defer fi.mu.Unlock()
 	fi.finalityData = fi.finalityData[:0]

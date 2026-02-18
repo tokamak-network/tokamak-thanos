@@ -5,12 +5,12 @@ import (
 	"errors"
 	"io"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 // Batch format
@@ -23,7 +23,7 @@ type SingularBatch struct {
 	ParentHash   common.Hash  // parent L2 block hash
 	EpochNum     rollup.Epoch // aka l1 num
 	EpochHash    common.Hash  // l1 block hash
-	Timestamp    uint64
+	Timestamp    uint64       // l2 block timestamp
 	Transactions []hexutil.Bytes
 }
 

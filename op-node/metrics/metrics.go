@@ -7,18 +7,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
+	altda "github.com/ethereum-optimism/optimism/op-alt-da"
+	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
+	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
+	"github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum/go-ethereum/params"
+
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	libp2pmetrics "github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/tokamak-network/tokamak-thanos/op-node/p2p/store"
-	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	ophttp "github.com/tokamak-network/tokamak-thanos/op-service/httputil"
-	"github.com/tokamak-network/tokamak-thanos/op-service/metrics"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/event"
 )
 
 const Namespace = "op_node"
@@ -26,21 +30,22 @@ const Namespace = "op_node"
 type Metricer interface {
 	RecordInfo(version string)
 	RecordUp()
-	RecordRPCServerRequest(method string) func()
-	RecordRPCClientRequest(method string) func(err error)
-	RecordRPCClientResponse(method string, err error)
 	SetDerivationIdle(status bool)
+	SetSequencerState(active bool)
 	RecordPipelineReset()
 	RecordSequencingError()
 	RecordPublishingError()
 	RecordDerivationError()
+	RecordEmittedEvent(eventName string, emitter string)
+	RecordProcessedEvent(eventName string, deriver string, duration time.Duration)
+	RecordEventsRateLimited()
 	RecordReceivedUnsafePayload(payload *eth.ExecutionPayloadEnvelope)
 	RecordRef(layer string, name string, num uint64, timestamp uint64, h common.Hash)
 	RecordL1Ref(name string, ref eth.L1BlockRef)
 	RecordL2Ref(name string, ref eth.L2BlockRef)
 	RecordUnsafePayloadsBuffer(length uint64, memSize uint64, next eth.BlockID)
 	RecordDerivedBatches(batchType string)
-	CountSequencedTxs(count int)
+	CountSequencedTxsInBlock(txns int, deposits int)
 	RecordL1ReorgDepth(d uint64)
 	RecordSequencerInconsistentL1Origin(from eth.BlockID, to eth.BlockID)
 	RecordSequencerReset()
@@ -79,6 +84,8 @@ type Metrics struct {
 	L1SourceCache *metrics.CacheMetrics
 	L2SourceCache *metrics.CacheMetrics
 
+	L2FollowSourceCache *metrics.CacheMetrics
+
 	DerivationIdle prometheus.Gauge
 
 	PipelineResets   *metrics.Event
@@ -86,6 +93,9 @@ type Metrics struct {
 	DerivationErrors *metrics.Event
 	SequencingErrors *metrics.Event
 	PublishingErrors *metrics.Event
+	SequencerActive  prometheus.Gauge
+
+	*event.EventMetricsTracker
 
 	DerivedBatches metrics.EventVec
 
@@ -113,9 +123,9 @@ type Metrics struct {
 
 	L1ReorgDepth prometheus.Histogram
 
-	TransactionsSequencedTotal prometheus.Counter
+	TransactionsSequencedTotal *prometheus.CounterVec
 
-	PlasmaMetrics plasma.Metricer
+	AltDAMetrics altda.Metricer
 
 	// Channel Bank Metrics
 	headChannelOpenedEvent *metrics.Event
@@ -178,6 +188,8 @@ func NewMetrics(procName string) *Metrics {
 		L1SourceCache: metrics.NewCacheMetrics(factory, ns, "l1_source_cache", "L1 Source cache"),
 		L2SourceCache: metrics.NewCacheMetrics(factory, ns, "l2_source_cache", "L2 Source cache"),
 
+		L2FollowSourceCache: metrics.NewCacheMetrics(factory, ns, "l2_follow_source_cache", "L2 Follow source cache"),
+
 		DerivationIdle: factory.NewGauge(prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "derivation_idle",
@@ -189,6 +201,12 @@ func NewMetrics(procName string) *Metrics {
 		DerivationErrors: metrics.NewEvent(factory, ns, "", "derivation_errors", "derivation errors"),
 		SequencingErrors: metrics.NewEvent(factory, ns, "", "sequencing_errors", "sequencing errors"),
 		PublishingErrors: metrics.NewEvent(factory, ns, "", "publishing_errors", "p2p publishing errors"),
+		SequencerActive: factory.NewGauge(prometheus.GaugeOpts{
+			Namespace: ns,
+			Name:      "sequencer_active",
+			Help:      "1 if sequencer active, 0 otherwise",
+		}),
+		EventMetricsTracker: event.NewMetricsTracker(ns, factory),
 
 		DerivedBatches: metrics.NewEventVec(factory, ns, "", "derived_batches", "derived batches", []string{"type"}),
 
@@ -215,12 +233,11 @@ func NewMetrics(procName string) *Metrics {
 			Help:      "Histogram of L1 Reorg Depths",
 		}),
 
-		TransactionsSequencedTotal: factory.NewGauge(prometheus.GaugeOpts{
+		TransactionsSequencedTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "transactions_sequenced_total",
 			Help:      "Count of total transactions sequenced",
-		}),
-
+		}, []string{"type"}),
 		PeerCount: factory.NewGauge(prometheus.GaugeOpts{
 			Namespace: ns,
 			Subsystem: "p2p",
@@ -379,7 +396,7 @@ func NewMetrics(procName string) *Metrics {
 			"required",
 		}),
 
-		PlasmaMetrics: plasma.MakeMetrics(ns, factory),
+		AltDAMetrics: altda.MakeMetrics(ns, factory),
 
 		registry: registry,
 		factory:  factory,
@@ -412,7 +429,6 @@ func (m *Metrics) RecordInfo(version string) {
 
 // RecordUp sets the up metric to 1.
 func (m *Metrics) RecordUp() {
-	prometheus.MustRegister()
 	m.Up.Set(1)
 }
 
@@ -422,6 +438,14 @@ func (m *Metrics) SetDerivationIdle(status bool) {
 		val = 1
 	}
 	m.DerivationIdle.Set(val)
+}
+
+func (m *Metrics) SetSequencerState(active bool) {
+	var val float64
+	if active {
+		val = 1
+	}
+	m.SequencerActive.Set(val)
 }
 
 func (m *Metrics) RecordPipelineReset() {
@@ -455,8 +479,9 @@ func (m *Metrics) RecordDerivedBatches(batchType string) {
 	m.DerivedBatches.Record(batchType)
 }
 
-func (m *Metrics) CountSequencedTxs(count int) {
-	m.TransactionsSequencedTotal.Add(float64(count))
+func (m *Metrics) CountSequencedTxsInBlock(txns int, deposits int) {
+	m.TransactionsSequencedTotal.WithLabelValues("deposits").Add(float64(deposits))
+	m.TransactionsSequencedTotal.WithLabelValues("txns").Add(float64(txns - deposits))
 }
 
 func (m *Metrics) RecordL1ReorgDepth(d uint64) {
@@ -538,6 +563,13 @@ func (m *Metrics) StartServer(hostname string, port int) (*ophttp.HTTPServer, er
 	return ophttp.StartHTTPServer(addr, h)
 }
 
+// Registry returns the underlying Prometheus registry used by this metrics instance.
+// This enables external services (e.g. a supervising process) to expose metrics
+// without starting an internal HTTP server per node.
+func (m *Metrics) Registry() *prometheus.Registry {
+	return m.registry
+}
+
 func (m *Metrics) Document() []metrics.DocumentedMetric {
 	return m.factory.Document()
 }
@@ -612,6 +644,7 @@ func (m *Metrics) ReportProtocolVersions(local, engine, recommended, required pa
 
 type noopMetricer struct {
 	metrics.NoopRPCMetrics
+	event.NoopMetrics
 }
 
 var NoopMetrics Metricer = new(noopMetricer)
@@ -623,6 +656,9 @@ func (n *noopMetricer) RecordUp() {
 }
 
 func (n *noopMetricer) SetDerivationIdle(status bool) {
+}
+
+func (m *noopMetricer) SetSequencerState(active bool) {
 }
 
 func (n *noopMetricer) RecordPipelineReset() {
@@ -655,7 +691,7 @@ func (n *noopMetricer) RecordUnsafePayloadsBuffer(length uint64, memSize uint64,
 func (n *noopMetricer) RecordDerivedBatches(batchType string) {
 }
 
-func (n *noopMetricer) CountSequencedTxs(count int) {
+func (n *noopMetricer) CountSequencedTxsInBlock(txns int, deposits int) {
 }
 
 func (n *noopMetricer) RecordL1ReorgDepth(d uint64) {

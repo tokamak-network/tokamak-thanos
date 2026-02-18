@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 
@@ -15,18 +16,17 @@ import (
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/flags"
-	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
+	"github.com/ethereum-optimism/optimism/op-node/flags"
+	"github.com/ethereum-optimism/optimism/op-node/p2p"
+	"github.com/ethereum-optimism/optimism/op-service/cliiface"
 
-	"github.com/urfave/cli/v2"
-
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/netutil"
 )
 
-func NewConfig(ctx *cli.Context, rollupCfg *rollup.Config) (*p2p.Config, error) {
+func NewConfig(ctx cliiface.Context, blockTime uint64) (*p2p.Config, error) {
 	conf := &p2p.Config{}
 
 	if ctx.Bool(flags.DisableP2PName) {
@@ -56,7 +56,7 @@ func NewConfig(ctx *cli.Context, rollupCfg *rollup.Config) (*p2p.Config, error) 
 		return nil, fmt.Errorf("failed to load p2p gossip options: %w", err)
 	}
 
-	if err := loadScoringParams(conf, ctx, rollupCfg); err != nil {
+	if err := loadScoringParams(conf, ctx, blockTime); err != nil {
 		return nil, fmt.Errorf("failed to load p2p peer scoring options: %w", err)
 	}
 
@@ -66,6 +66,7 @@ func NewConfig(ctx *cli.Context, rollupCfg *rollup.Config) (*p2p.Config, error) 
 
 	conf.EnableReqRespSync = ctx.Bool(flags.SyncReqRespName)
 	conf.EnablePingService = ctx.Bool(flags.P2PPingName)
+	conf.SyncOnlyReqToStatic = ctx.Bool(flags.SyncOnlyReqToStaticName)
 
 	return conf, nil
 }
@@ -84,7 +85,7 @@ func validatePort(p uint) (uint16, error) {
 }
 
 // loadScoringParams loads the peer scoring options from the CLI context.
-func loadScoringParams(conf *p2p.Config, ctx *cli.Context, rollupCfg *rollup.Config) error {
+func loadScoringParams(conf *p2p.Config, ctx cliiface.Context, blockTime uint64) error {
 	scoringLevel := ctx.String(flags.ScoringName)
 	// Check old names for backwards compatibility
 	if scoringLevel == "" {
@@ -94,7 +95,7 @@ func loadScoringParams(conf *p2p.Config, ctx *cli.Context, rollupCfg *rollup.Con
 		scoringLevel = ctx.String(flags.TopicScoringName)
 	}
 	if scoringLevel != "" {
-		params, err := p2p.GetScoringParams(scoringLevel, rollupCfg)
+		params, err := p2p.GetScoringParams(scoringLevel, blockTime)
 		if err != nil {
 			return err
 		}
@@ -105,14 +106,14 @@ func loadScoringParams(conf *p2p.Config, ctx *cli.Context, rollupCfg *rollup.Con
 }
 
 // loadBanningOptions loads whether or not to ban peers from the CLI context.
-func loadBanningOptions(conf *p2p.Config, ctx *cli.Context) error {
+func loadBanningOptions(conf *p2p.Config, ctx cliiface.Context) error {
 	conf.BanningEnabled = ctx.Bool(flags.BanningName)
 	conf.BanningThreshold = ctx.Float64(flags.BanningThresholdName)
 	conf.BanningDuration = ctx.Duration(flags.BanningDurationName)
 	return nil
 }
 
-func loadListenOpts(conf *p2p.Config, ctx *cli.Context) error {
+func loadListenOpts(conf *p2p.Config, ctx cliiface.Context) error {
 	listenIP := ctx.String(flags.ListenIPName)
 	if listenIP != "" { // optional
 		conf.ListenIP = net.ParseIP(listenIP)
@@ -132,7 +133,7 @@ func loadListenOpts(conf *p2p.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func loadDiscoveryOpts(conf *p2p.Config, ctx *cli.Context) error {
+func loadDiscoveryOpts(conf *p2p.Config, ctx cliiface.Context) error {
 	if ctx.Bool(flags.NoDiscoveryName) {
 		conf.NoDiscovery = true
 	}
@@ -176,23 +177,31 @@ func loadDiscoveryOpts(conf *p2p.Config, ctx *cli.Context) error {
 		return fmt.Errorf("failed to open discovery db: %w", err)
 	}
 
-	bootnodes := make([]*enode.Node, 0)
-	records := strings.Split(ctx.String(flags.BootnodesName), ",")
-	for i, recordB64 := range records {
-		recordB64 = strings.TrimSpace(recordB64)
-		if recordB64 == "" { // ignore empty records
+	records := ctx.StringSlice(flags.BootnodesName)
+	if len(records) == 0 {
+		log.Info("Using default bootnodes, none provided.")
+		records = p2p.DefaultBootnodes
+	}
+
+	for i, record := range records {
+		record = strings.TrimSpace(record)
+		if record == "" { // ignore empty records
 			continue
 		}
-		nodeRecord, err := enode.Parse(enode.ValidSchemes, recordB64)
-		if err != nil {
-			return fmt.Errorf("bootnode record %d (of %d) is invalid: %q err: %w", i, len(records), recordB64, err)
+
+		// Resolve IP addresses of old enode URLs - geth doesn't do it any more.
+		if strings.HasPrefix(record, "enode://") {
+			record, err = resolveURLIP(record, net.LookupIP)
+			if err != nil {
+				return fmt.Errorf("resolving IP of enode URL %q: %w", record, err)
+			}
 		}
-		bootnodes = append(bootnodes, nodeRecord)
-	}
-	if len(bootnodes) > 0 {
-		conf.Bootnodes = bootnodes
-	} else {
-		conf.Bootnodes = p2p.DefaultBootnodes
+
+		nodeRecord, err := enode.Parse(enode.ValidSchemes, record)
+		if err != nil {
+			return fmt.Errorf("bootnode record %d (of %d) is invalid: %q err: %w", i, len(records), record, err)
+		}
+		conf.Bootnodes = append(conf.Bootnodes, nodeRecord)
 	}
 
 	if ctx.IsSet(flags.NetRestrictName) {
@@ -206,7 +215,35 @@ func loadDiscoveryOpts(conf *p2p.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func loadLibp2pOpts(conf *p2p.Config, ctx *cli.Context) error {
+func resolveURLIP(rawurl string, lookupIP func(name string) ([]net.IP, error)) (string, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return "", fmt.Errorf("parsing URL %q: %w", rawurl, err)
+	}
+	ip := net.ParseIP(u.Hostname())
+	if ip == nil {
+		ips, err := lookupIP(u.Hostname())
+		if err != nil {
+			return "", fmt.Errorf("looking up IP for hostname %q: %w", u.Hostname(), err)
+		}
+		ip = ips[0]
+	}
+
+	// Ensure the IP is 4 bytes long for IPv4 addresses.
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+
+	// reassemble
+	port := u.Port()
+	u.Host = ip.String()
+	if port != "" {
+		u.Host += ":" + port
+	}
+	return u.String(), nil
+}
+
+func loadLibp2pOpts(conf *p2p.Config, ctx cliiface.Context) error {
 	addrs := strings.Split(ctx.String(flags.StaticPeersName), ",")
 	for i, addr := range addrs {
 		addr = strings.TrimSpace(addr)
@@ -279,7 +316,7 @@ func loadLibp2pOpts(conf *p2p.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func loadNetworkPrivKey(ctx *cli.Context) (*crypto.Secp256k1PrivateKey, error) {
+func loadNetworkPrivKey(ctx cliiface.Context) (*crypto.Secp256k1PrivateKey, error) {
 	raw := ctx.String(flags.P2PPrivRawName)
 	if raw != "" {
 		return parsePriv(raw)
@@ -288,7 +325,7 @@ func loadNetworkPrivKey(ctx *cli.Context) (*crypto.Secp256k1PrivateKey, error) {
 	if keyPath == "" {
 		return nil, errors.New("no p2p private key path specified, cannot auto-generate key without path")
 	}
-	f, err := os.OpenFile(keyPath, os.O_RDONLY, 0600)
+	f, err := os.OpenFile(keyPath, os.O_RDONLY, 0o600)
 	if os.IsNotExist(err) {
 		p, _, err := crypto.GenerateSecp256k1Key(rand.Reader)
 		if err != nil {
@@ -298,7 +335,7 @@ func loadNetworkPrivKey(ctx *cli.Context) (*crypto.Secp256k1PrivateKey, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode new p2p priv key: %w", err)
 		}
-		f, err := os.OpenFile(keyPath, os.O_CREATE|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(keyPath, os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			return nil, fmt.Errorf("failed to store new p2p priv key: %w", err)
 		}
@@ -333,11 +370,12 @@ func parsePriv(data string) (*crypto.Secp256k1PrivateKey, error) {
 	return (p).(*crypto.Secp256k1PrivateKey), nil
 }
 
-func loadGossipOptions(conf *p2p.Config, ctx *cli.Context) error {
+func loadGossipOptions(conf *p2p.Config, ctx cliiface.Context) error {
 	conf.MeshD = ctx.Int(flags.GossipMeshDName)
 	conf.MeshDLo = ctx.Int(flags.GossipMeshDloName)
 	conf.MeshDHi = ctx.Int(flags.GossipMeshDhiName)
 	conf.MeshDLazy = ctx.Int(flags.GossipMeshDlazyName)
 	conf.FloodPublish = ctx.Bool(flags.GossipFloodPublishName)
+	conf.GossipTimestampThreshold = ctx.Duration(flags.GossipTimestampThresholdName)
 	return nil
 }

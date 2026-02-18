@@ -6,12 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 var _ L1Chain = (*testutils.FakeChainSource)(nil)
@@ -26,7 +26,7 @@ func (c *syncStartTestCase) generateFakeL2(t *testing.T) (*testutils.FakeChainSo
 	log := testlog.Logger(t, log.LevelError)
 	chain := testutils.NewFakeChainSource([]string{c.L1, c.NewL1}, []string{c.L2}, int(c.GenesisL1Num), log)
 	chain.SetL2Head(len(c.L2) - 1)
-	genesis := testutils.FakeGenesis(c.GenesisL1, c.GenesisL2, int(c.GenesisL1Num))
+	genesis := testutils.FakeGenesis(c.GenesisL1, c.GenesisL2, c.GenesisL1Num)
 	chain.ReorgL1()
 	for i := 0; i < len(c.NewL1)-1; i++ {
 		chain.AdvanceL1()

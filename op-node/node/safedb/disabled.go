@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 type DisabledDB struct{}

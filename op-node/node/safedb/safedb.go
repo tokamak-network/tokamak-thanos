@@ -10,8 +10,8 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/pebble"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
 var (
@@ -115,6 +115,7 @@ func (d *SafeDB) SafeHeadUpdated(safeHead eth.L2BlockRef, l1Head eth.BlockID) er
 func (d *SafeDB) SafeHeadReset(safeHead eth.L2BlockRef) error {
 	d.m.Lock()
 	defer d.m.Unlock()
+	d.log.Info("Resetting safe head db", "l2", safeHead.ID())
 	iter, err := d.db.NewIter(safeByL1BlockNumKey.IterRange())
 	if err != nil {
 		return fmt.Errorf("reset failed to create iterator: %w", err)

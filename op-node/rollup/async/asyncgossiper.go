@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 type AsyncGossiper interface {
@@ -42,7 +42,7 @@ type SimpleAsyncGossiper struct {
 // To avoid import cycles, we define a new Network interface here
 // this interface is compatible with driver.Network
 type Network interface {
-	PublishL2Payload(ctx context.Context, payload *eth.ExecutionPayloadEnvelope) error
+	SignAndPublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope) error
 }
 
 // To avoid import cycles, we define a new Metrics interface here
@@ -132,7 +132,7 @@ func (p *SimpleAsyncGossiper) Start() {
 // it is called by the Start loop when a new payload is set
 // the payload is only stored if the publish is successful
 func (p *SimpleAsyncGossiper) gossip(ctx context.Context, payload *eth.ExecutionPayloadEnvelope) {
-	if err := p.net.PublishL2Payload(ctx, payload); err == nil {
+	if err := p.net.SignAndPublishL2Payload(ctx, payload); err == nil {
 		p.currentPayload = payload
 	} else {
 		p.log.Warn("failed to publish newly created block",

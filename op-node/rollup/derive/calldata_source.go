@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 // CalldataSource is a fault tolerant approach to fetching data.
@@ -79,7 +79,7 @@ func (ds *CalldataSource) Next(ctx context.Context) (eth.Data, error) {
 func DataFromEVMTransactions(dsCfg DataSourceConfig, batcherAddr common.Address, txs types.Transactions, log log.Logger) []eth.Data {
 	out := []eth.Data{}
 	for _, tx := range txs {
-		if isValidBatchTx(tx, dsCfg.l1Signer, dsCfg.batchInboxAddress, batcherAddr) {
+		if isValidBatchTx(tx, dsCfg.l1Signer, dsCfg.batchInboxAddress, batcherAddr, log) {
 			out = append(out, tx.Data())
 		}
 	}

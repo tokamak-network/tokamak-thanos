@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-service/clock"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
 	"github.com/stretchr/testify/require"
-	"github.com/tokamak-network/tokamak-thanos/op-service/clock"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
 )
 
 func TestGetUnknownIPBan(t *testing.T) {
 	book := createMemoryIPBanBook(t)
 	defer book.Close()
 	exp, err := book.GetIPBanExpiration(net.IPv4(1, 2, 3, 4))
-	require.Same(t, UnknownBanErr, err)
+	require.Same(t, ErrUnknownBan, err)
 	require.Equal(t, time.Time{}, exp)
 }
 

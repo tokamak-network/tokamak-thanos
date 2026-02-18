@@ -7,11 +7,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
-	"github.com/tokamak-network/tokamak-thanos/op-service/predeploys"
+	"github.com/ethereum-optimism/optimism/op-core/predeploys"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
+
+type DependencySet interface {
+	// Chains returns the number of chains in the dependency set
+	Chains() []eth.ChainID
+}
 
 // L1ReceiptsFetcher fetches L1 header info and receipts for the payload attributes derivation (the info tx and deposits)
 type L1ReceiptsFetcher interface {
@@ -25,17 +31,32 @@ type SystemConfigL2Fetcher interface {
 
 // FetchingAttributesBuilder fetches inputs for the building of L2 payload attributes on the fly.
 type FetchingAttributesBuilder struct {
-	rollupCfg *rollup.Config
-	l1        L1ReceiptsFetcher
-	l2        SystemConfigL2Fetcher
+	rollupCfg     *rollup.Config
+	l1ChainConfig *params.ChainConfig
+	depSet        DependencySet
+	l1            L1ReceiptsFetcher
+	l2            SystemConfigL2Fetcher
+	// whether to skip the L1 origin timestamp check - only for testing purposes
+	testSkipL1OriginCheck bool
 }
 
-func NewFetchingAttributesBuilder(rollupCfg *rollup.Config, l1 L1ReceiptsFetcher, l2 SystemConfigL2Fetcher) *FetchingAttributesBuilder {
-	return &FetchingAttributesBuilder{
-		rollupCfg: rollupCfg,
-		l1:        l1,
-		l2:        l2,
+func NewFetchingAttributesBuilder(rollupCfg *rollup.Config, l1ChainConfig *params.ChainConfig, depSet DependencySet, l1 L1ReceiptsFetcher, l2 SystemConfigL2Fetcher) *FetchingAttributesBuilder {
+	if rollupCfg.InteropTime != nil && depSet == nil {
+		panic("FetchingAttributesBuilder requires a dependency set when interop fork is scheduled")
 	}
+	return &FetchingAttributesBuilder{
+		rollupCfg:     rollupCfg,
+		l1ChainConfig: l1ChainConfig,
+		depSet:        depSet,
+		l1:            l1,
+		l2:            l2,
+	}
+}
+
+// TestSkipL1OriginCheck skips the L1 origin timestamp check for testing purposes.
+// Must not be used in production!
+func (ba *FetchingAttributesBuilder) TestSkipL1OriginCheck() {
+	ba.testSkipL1OriginCheck = true
 }
 
 // PreparePayloadAttributes prepares a PayloadAttributes template that is ready to build a L2 block with deposits only, on top of the given l2Parent, with the given epoch as L1 origin.
@@ -72,10 +93,10 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 			// deposits may never be ignored. Failing to process them is a critical error.
 			return nil, NewCriticalError(fmt.Errorf("failed to derive some deposits: %w", err))
 		}
-		// apply sysCfg changes
-		if err := UpdateSystemConfigWithL1Receipts(&sysConfig, receipts, ba.rollupCfg, info.Time()); err != nil {
-			return nil, NewCriticalError(fmt.Errorf("failed to apply derived L1 sysCfg updates: %w", err))
-		}
+
+		// errors from UpdateSystemConfigWithL1Receipts are ignored as they represent malformed or invalid updates
+		// and there is no recovery mechanism for malformed updates, we must process past them.
+		_ = UpdateSystemConfigWithL1Receipts(&sysConfig, receipts, ba.rollupCfg, info.Time())
 
 		l1Info = info
 		depositTxs = deposits
@@ -93,9 +114,9 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		seqNumber = l2Parent.SequenceNumber + 1
 	}
 
-	// Sanity check the L1 origin was correctly selected to maintain the time invariant between L1 and L2
 	nextL2Time := l2Parent.Time + ba.rollupCfg.BlockTime
-	if nextL2Time < l1Info.Time() {
+	// Sanity check the L1 origin was correctly selected to maintain the time invariant between L1 and L2
+	if !ba.testSkipL1OriginCheck && nextL2Time < l1Info.Time() {
 		return nil, NewResetError(fmt.Errorf("cannot build L2 block on top %s for time %d before L1 origin %s at time %d",
 			l2Parent, nextL2Time, eth.ToBlockID(l1Info), l1Info.Time()))
 	}
@@ -116,7 +137,39 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		upgradeTxs = append(upgradeTxs, fjord...)
 	}
 
-	l1InfoTx, err := L1InfoDepositBytes(ba.rollupCfg, sysConfig, seqNumber, l1Info, nextL2Time)
+	if ba.rollupCfg.IsIsthmusActivationBlock(nextL2Time) {
+		isthmus, err := IsthmusNetworkUpgradeTransactions()
+		if err != nil {
+			return nil, NewCriticalError(fmt.Errorf("failed to build isthmus network upgrade txs: %w", err))
+		}
+		upgradeTxs = append(upgradeTxs, isthmus...)
+	}
+
+	if ba.rollupCfg.IsJovianActivationBlock(nextL2Time) {
+		jovian, err := JovianNetworkUpgradeTransactions()
+		if err != nil {
+			return nil, NewCriticalError(fmt.Errorf("failed to build jovian network upgrade txs: %w", err))
+		}
+		upgradeTxs = append(upgradeTxs, jovian...)
+	}
+
+	if ba.rollupCfg.IsInteropActivationBlock(nextL2Time) {
+		interop, err := InteropNetworkUpgradeTransactions()
+		if err != nil {
+			return nil, NewCriticalError(fmt.Errorf("failed to build interop network upgrade txs: %w", err))
+		}
+		upgradeTxs = append(upgradeTxs, interop...)
+
+		if len(ba.depSet.Chains()) > 1 {
+			txs, err := InteropActivateCrossL2InboxTransactions()
+			if err != nil {
+				return nil, NewCriticalError(fmt.Errorf("failed to build interop cross l2 inbox txs: %w", err))
+			}
+			upgradeTxs = append(upgradeTxs, txs...)
+		}
+	}
+
+	l1InfoTx, err := L1InfoDepositBytes(ba.rollupCfg, ba.l1ChainConfig, sysConfig, seqNumber, l1Info, nextL2Time)
 	if err != nil {
 		return nil, NewCriticalError(fmt.Errorf("failed to create l1InfoTx: %w", err))
 	}
@@ -139,7 +192,7 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		}
 	}
 
-	return &eth.PayloadAttributes{
+	r := &eth.PayloadAttributes{
 		Timestamp:             hexutil.Uint64(nextL2Time),
 		PrevRandao:            eth.Bytes32(l1Info.MixDigest()),
 		SuggestedFeeRecipient: predeploys.SequencerFeeVaultAddr,
@@ -148,5 +201,13 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		GasLimit:              (*eth.Uint64Quantity)(&sysConfig.GasLimit),
 		Withdrawals:           withdrawals,
 		ParentBeaconBlockRoot: parentBeaconRoot,
-	}, nil
+	}
+	if ba.rollupCfg.IsHolocene(nextL2Time) {
+		r.EIP1559Params = new(eth.Bytes8)
+		*r.EIP1559Params = sysConfig.EIP1559Params
+	}
+	if ba.rollupCfg.IsJovian(nextL2Time) {
+		r.MinBaseFee = &sysConfig.MinBaseFee
+	}
+	return r, nil
 }

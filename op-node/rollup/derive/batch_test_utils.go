@@ -4,14 +4,14 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 )
 
 func RandomSingularBatch(rng *rand.Rand, txCount int, chainID *big.Int) *SingularBatch {
-	signer := types.NewLondonSigner(chainID)
+	signer := types.NewIsthmusSigner(chainID)
 	baseFee := big.NewInt(rng.Int63n(300_000_000_000))
 	txsEncoded := make([]hexutil.Bytes, 0, txCount)
 	// force each tx to have equal chainID
@@ -21,7 +21,7 @@ func RandomSingularBatch(rng *rand.Rand, txCount int, chainID *big.Int) *Singula
 		if err != nil {
 			panic("tx Marshal binary" + err.Error())
 		}
-		txsEncoded = append(txsEncoded, hexutil.Bytes(txEncoded))
+		txsEncoded = append(txsEncoded, txEncoded)
 	}
 	return &SingularBatch{
 		ParentHash:   testutils.RandomHash(rng),
