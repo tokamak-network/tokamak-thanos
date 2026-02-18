@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rpc"
+	rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
 )
 
 const maxIDLength = 100
@@ -121,22 +121,22 @@ func (id *SequencerID) UnmarshalText(data []byte) error {
 }
 
 var (
-	ErrGeneric                = &rpc.JsonError{Code: -38500, Message: "sequencer error"}
-	ErrUnknownKind            = &rpc.JsonError{Code: -38501, Message: "unknown kind"}
-	ErrUnknownBuilder         = &rpc.JsonError{Code: -38502, Message: "unknown builder"}
-	ErrNotImplemented         = &rpc.JsonError{Code: -38503, Message: "not implemented"}
-	ErrUnknownJob             = &rpc.JsonError{Code: -38510, Message: "unknown job"}
-	ErrConflictingJob         = &rpc.JsonError{Code: -38511, Message: "conflicting job"}
-	ErrNotSealed              = &rpc.JsonError{Code: -38520, Message: "block not yet sealed"}
-	ErrAlreadySealed          = &rpc.JsonError{Code: -38521, Message: "block already sealed"}
-	ErrUnsigned               = &rpc.JsonError{Code: -38530, Message: "block not yet signed"}
-	ErrAlreadySigned          = &rpc.JsonError{Code: -38531, Message: "block already signed"}
-	ErrUncommitted            = &rpc.JsonError{Code: -38540, Message: "block not yet committed"}
-	ErrAlreadyCommitted       = &rpc.JsonError{Code: -38541, Message: "block already committed"}
-	ErrSequencerInactive      = &rpc.JsonError{Code: -38550, Message: "sequencer inactive"}
-	ErrSequencerAlreadyActive = &rpc.JsonError{Code: -38551, Message: "sequencer already active"}
-	ErrBackendInactive        = &rpc.JsonError{Code: -38560, Message: "backend inactive"}
-	ErrBackendAlreadyStarted  = &rpc.JsonError{Code: -38561, Message: "backend already started"}
+	ErrGeneric                = &rpccompat.JsonError{Code: -38500, Message: "sequencer error"}
+	ErrUnknownKind            = &rpccompat.JsonError{Code: -38501, Message: "unknown kind"}
+	ErrUnknownBuilder         = &rpccompat.JsonError{Code: -38502, Message: "unknown builder"}
+	ErrNotImplemented         = &rpccompat.JsonError{Code: -38503, Message: "not implemented"}
+	ErrUnknownJob             = &rpccompat.JsonError{Code: -38510, Message: "unknown job"}
+	ErrConflictingJob         = &rpccompat.JsonError{Code: -38511, Message: "conflicting job"}
+	ErrNotSealed              = &rpccompat.JsonError{Code: -38520, Message: "block not yet sealed"}
+	ErrAlreadySealed          = &rpccompat.JsonError{Code: -38521, Message: "block already sealed"}
+	ErrUnsigned               = &rpccompat.JsonError{Code: -38530, Message: "block not yet signed"}
+	ErrAlreadySigned          = &rpccompat.JsonError{Code: -38531, Message: "block already signed"}
+	ErrUncommitted            = &rpccompat.JsonError{Code: -38540, Message: "block not yet committed"}
+	ErrAlreadyCommitted       = &rpccompat.JsonError{Code: -38541, Message: "block already committed"}
+	ErrSequencerInactive      = &rpccompat.JsonError{Code: -38550, Message: "sequencer inactive"}
+	ErrSequencerAlreadyActive = &rpccompat.JsonError{Code: -38551, Message: "sequencer already active"}
+	ErrBackendInactive        = &rpccompat.JsonError{Code: -38560, Message: "backend inactive"}
+	ErrBackendAlreadyStarted  = &rpccompat.JsonError{Code: -38561, Message: "backend already started"}
 )
 
 func RandomJobID() BuildJobID {

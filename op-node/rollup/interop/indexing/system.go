@@ -10,7 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	gethrpc "github.com/ethereum/go-ethereum/rpc"
+	gethrpc rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
@@ -347,7 +348,7 @@ func (m *IndexingMode) AnchorPoint(ctx context.Context) (supervisortypes.Derived
 	// TODO: maybe cache non-genesis anchor point when seeing safe Interop activation block?
 	//  Only needed if we don't test for activation block in the supervisor.
 	if !m.cfg.IsInterop(m.cfg.Genesis.L2Time) {
-		return supervisortypes.DerivedBlockRefPair{}, &gethrpc.JsonError{
+		return supervisortypes.DerivedBlockRefPair{}, &gethrpccompat.JsonError{
 			Code:    InteropInactiveRPCErrCode,
 			Message: "Interop inactive at genesis",
 		}
@@ -399,21 +400,21 @@ func (m *IndexingMode) Reset(ctx context.Context, lUnsafe, xUnsafe, lSafe, xSafe
 		if err != nil {
 			if errors.Is(err, ethereum.NotFound) {
 				logger.Warn("Cannot reset, target block not found", "refName", name)
-				return eth.L2BlockRef{}, &gethrpc.JsonError{
+				return eth.L2BlockRef{}, &gethrpccompat.JsonError{
 					Code:    BlockNotFoundRPCErrCode,
 					Message: name + " reset target not found",
 					Data:    nil, // TODO communicate the latest block that we do have.
 				}
 			}
 			logger.Warn("unable to find reference", "refName", name)
-			return eth.L2BlockRef{}, &gethrpc.JsonError{
+			return eth.L2BlockRef{}, &gethrpccompat.JsonError{
 				Code:    InternalErrorRPCErrcode,
 				Message: "failed to find block reference",
 				Data:    name,
 			}
 		}
 		if result.Hash != ref.Hash {
-			return eth.L2BlockRef{}, &gethrpc.JsonError{
+			return eth.L2BlockRef{}, &gethrpccompat.JsonError{
 				Code:    ConflictingBlockRPCErrCode,
 				Message: "conflicting block",
 				Data:    result,

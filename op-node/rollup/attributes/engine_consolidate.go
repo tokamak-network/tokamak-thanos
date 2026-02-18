@@ -115,7 +115,7 @@ func checkExtraDataParamsMatch(cfg *rollup.Config, blockTimestamp uint64, attrPa
 		// Translate 0,0 to the pre-Holocene protocol constants, like the EL does too.
 		if ad == 0 {
 			// If attrParams are non-nil, Holocene, and so Canyon, must be active.
-			ad = *cfg.ChainOpConfig.EIP1559DenominatorCanyon
+			ad = cfg.ChainOpConfig.EIP1559DenominatorCanyon
 			ae = cfg.ChainOpConfig.EIP1559Elasticity
 			translated = true
 		}
@@ -167,8 +167,8 @@ func checkWithdrawals(rollupCfg *rollup.Config, attrs *eth.PayloadAttributes, bl
 		}
 		if !isIsthmus {
 			// canyon: the withdrawals root should be set to the empty withdrawals hash
-			if block.WithdrawalsRoot != nil && *block.WithdrawalsRoot != types.EmptyWithdrawalsHash {
-				return fmt.Errorf("%w: got %v", ErrCanyonWithdrawalsRoot, *block.WithdrawalsRoot)
+			if block.WithdrawalsRoot() != nil && *block.WithdrawalsRoot() != types.EmptyWithdrawalsHash {
+				return fmt.Errorf("%w: got %v", ErrCanyonWithdrawalsRoot, *block.WithdrawalsRoot())
 			}
 		}
 	} else {
@@ -180,7 +180,7 @@ func checkWithdrawals(rollupCfg *rollup.Config, attrs *eth.PayloadAttributes, bl
 
 	if isIsthmus {
 		// isthmus: the withdrawals root should be non nil
-		if block.WithdrawalsRoot == nil {
+		if block.WithdrawalsRoot() == nil {
 			return ErrIsthmusMustHaveWithdrawalsRoot
 		}
 	}

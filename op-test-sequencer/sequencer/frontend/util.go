@@ -3,6 +3,7 @@ package frontend
 import (
 	"errors"
 
+	rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-test-sequencer/sequencer/seqtypes"
@@ -14,11 +15,11 @@ func toJsonError(err error) error {
 	if err == nil {
 		return nil
 	}
-	var x *rpc.JsonError
+	var x *rpccompat.JsonError
 	if errors.As(err, &x) {
 		return x
 	}
-	return &rpc.JsonError{
+	return &rpccompat.JsonError{
 		Code:    seqtypes.ErrUnknownKind.Code,
 		Message: err.Error(),
 	}

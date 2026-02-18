@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	rpccompat "github.com/tokamak-network/tokamak-thanos/op-service/compat/rpccompat"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
@@ -27,7 +28,7 @@ func (q *QueryFrontend) CheckAccessList(ctx context.Context, inboxEntries []comm
 	minSafety types.SafetyLevel, executingDescriptor types.ExecutingDescriptor) error {
 	err := q.Supervisor.CheckAccessList(ctx, inboxEntries, minSafety, executingDescriptor)
 	if err != nil {
-		return &rpc.JsonError{
+		return &rpccompat.JsonError{
 			Code:    types.GetErrorCode(err),
 			Message: err.Error(),
 		}

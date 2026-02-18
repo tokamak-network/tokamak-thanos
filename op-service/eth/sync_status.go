@@ -34,4 +34,8 @@ type SyncStatus struct {
 	FinalizedL2 L2BlockRef `json:"finalized_l2"`
 	// PendingSafeL2 points to the L2 block processed from the batch, but not consolidated to the safe block yet.
 	PendingSafeL2 L2BlockRef `json:"pending_safe_l2"`
+	// LocalSafeL2 is the local safe head, distinct from cross-safe in interop mode.
+	LocalSafeL2 L2BlockRef `json:"local_safe_l2"`
+	// CrossUnsafeL2 is the cross-chain unsafe head in interop mode.
+	CrossUnsafeL2 L2BlockRef `json:"cross_unsafe_l2"`
 }
