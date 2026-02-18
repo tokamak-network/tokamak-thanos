@@ -461,7 +461,7 @@ func TestMarshalUnmarshalExecutionPayloadEnvelopes(t *testing.T) {
 			data := buf.Bytes()
 
 			output := &ExecutionPayloadEnvelope{}
-			err = output.UnmarshalSSZ(uint32(len(data)), bytes.NewReader(data))
+			err = output.UnmarshalSSZ(BlockV3, uint32(len(data)), bytes.NewReader(data))
 
 			require.NoError(t, err)
 
@@ -478,6 +478,6 @@ func TestMarshalUnmarshalExecutionPayloadEnvelopes(t *testing.T) {
 
 func TestFailsToDeserializeTooLittleData(t *testing.T) {
 	var payload ExecutionPayloadEnvelope
-	err := payload.UnmarshalSSZ(1, bytes.NewReader([]byte{0x00}))
+	err := payload.UnmarshalSSZ(BlockV3, 1, bytes.NewReader([]byte{0x00}))
 	assert.Equal(t, err, errors.New("scope too small to decode execution payload envelope: 1"))
 }
