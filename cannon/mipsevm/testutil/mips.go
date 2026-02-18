@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/tracing"
+	
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -59,7 +59,7 @@ func WithSourceMapTracer(t require.TestingT, ver MipsVersion) evmOption {
 	}
 }
 
-func WithTracingHooks(tracer *tracing.Hooks) evmOption {
+func WithTracingHooks(tracer vm.EVMLogger) evmOption {
 	return func(evm *MIPSEVM) {
 		evm.SetTracer(tracer)
 	}
@@ -71,7 +71,7 @@ func WithLocalOracle(oracle mipsevm.PreimageOracle) evmOption {
 	}
 }
 
-func (m *MIPSEVM) SetTracer(tracer *tracing.Hooks) {
+func (m *MIPSEVM) SetTracer(tracer vm.EVMLogger) {
 	m.env.Config.Tracer = tracer
 }
 
@@ -250,7 +250,7 @@ func CustomErrorMatcher(sig string) ErrMatcher {
 }
 
 // AssertEVMReverts runs a single evm step from an FPVM prestate and asserts that the VM panics
-func AssertEVMReverts(t testing.TB, state mipsevm.FPVMState, contracts *ContractMetadata, tracer *tracing.Hooks, ProofData []byte, matcher ErrMatcher) {
+func AssertEVMReverts(t testing.TB, state mipsevm.FPVMState, contracts *ContractMetadata, tracer vm.EVMLogger, ProofData []byte, matcher ErrMatcher) {
 	encodedWitness, _ := state.EncodeWitness()
 	stepWitness := &mipsevm.StepWitness{
 		State:     encodedWitness,

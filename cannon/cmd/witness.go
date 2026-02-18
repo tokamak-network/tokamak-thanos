@@ -56,7 +56,7 @@ func Witness(ctx *cli.Context) error {
 		Exited:       state.GetExited(),
 		ExitCode:     state.GetExitCode(),
 	}
-	if err := jsonutil.WriteJSON(output, ioutil.ToStdOut()); err != nil {
+	if err := jsonutil.WriteJSONToTarget(output, ioutil.ToStdOut()); err != nil {
 		return fmt.Errorf("failed to write response: %w", err)
 	}
 	return nil

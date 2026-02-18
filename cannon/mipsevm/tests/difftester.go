@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/tracing"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
@@ -347,7 +347,7 @@ type TestConfig struct {
 	stdErr func() io.Writer
 	logger log.Logger
 	// no-tracer by default, but see test_util.MarkdownTracer
-	tracingHooks *tracing.Hooks
+	tracingHooks vm.EVMLogger
 	// Allow consumer to control automated test generation
 	skipAutomaticMemoryReservationTests bool
 	// Allow consumer to configure a random seed, if not configured (equal to 0) one will be generated
@@ -396,7 +396,7 @@ func WithRandomSeed(seed int64) TestOption {
 }
 
 // WithTracingHooks Sets tracing hooks - see: testutil.MarkdownTracer
-func WithTracingHooks(hooks *tracing.Hooks) TestOption {
+func WithTracingHooks(hooks vm.EVMLogger) TestOption {
 	return func(tc *TestConfig) {
 		tc.tracingHooks = hooks
 	}

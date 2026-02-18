@@ -7,7 +7,6 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 )
@@ -66,7 +65,7 @@ func (c *CheatCodesPrecompile) Load(account common.Address, slot [32]byte) [32]b
 
 // Etch implements https://book.getfoundry.sh/cheatcodes/etch
 func (c *CheatCodesPrecompile) Etch(who common.Address, code []byte) {
-	c.h.state.SetCode(who, bytes.Clone(code), tracing.CodeChangeUnspecified) // important to clone; geth EVM will reuse the calldata memory.
+	c.h.state.SetCode(who, bytes.Clone(code)) // important to clone; geth EVM will reuse the calldata memory.
 	if len(code) > 0 {
 		// if we're not just zeroing out the account: allow it to access cheatcodes
 		c.h.AllowCheatcodes(who)
@@ -75,7 +74,7 @@ func (c *CheatCodesPrecompile) Etch(who common.Address, code []byte) {
 
 // Deal implements https://book.getfoundry.sh/cheatcodes/deal
 func (c *CheatCodesPrecompile) Deal(who common.Address, newBalance *big.Int) {
-	c.h.state.SetBalance(who, uint256.MustFromBig(newBalance), tracing.BalanceChangeUnspecified)
+	c.h.state.SetBalance(who, uint256.MustFromBig(newBalance))
 }
 
 // Prank_ca669fa7 implements https://book.getfoundry.sh/cheatcodes/prank
@@ -136,7 +135,7 @@ type Log struct {
 
 // SetNonce implements https://book.getfoundry.sh/cheatcodes/set-nonce
 func (c *CheatCodesPrecompile) SetNonce(account common.Address, nonce uint64) {
-	c.h.state.SetNonce(account, nonce, tracing.NonceChangeUnspecified)
+	c.h.state.SetNonce(account, nonce)
 }
 
 // GetNonce implements https://book.getfoundry.sh/cheatcodes/get-nonce
@@ -149,9 +148,9 @@ func (c *CheatCodesPrecompile) ResetNonce(addr common.Address) {
 	// Resets nonce to 0 if EOA, or 1 if contract.
 	// In scripts often set code to empty first when using it, it then becomes 0.
 	if c.h.state.GetCodeHash(addr) == types.EmptyCodeHash {
-		c.h.state.SetNonce(addr, 0, tracing.NonceChangeUnspecified)
+		c.h.state.SetNonce(addr, 0)
 	} else {
-		c.h.state.SetNonce(addr, 1, tracing.NonceChangeUnspecified)
+		c.h.state.SetNonce(addr, 1)
 	}
 }
 

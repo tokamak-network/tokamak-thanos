@@ -10,7 +10,7 @@ import (
 
 	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm/arch"
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/srcmap"
-	"github.com/ethereum/go-ethereum/core/tracing"
+	
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/holiman/uint256"
@@ -107,7 +107,7 @@ func NewEVMEnv(t testing.TB, contracts *ContractMetadata) (*vm.EVM, *state.State
 
 	env := vm.NewEVM(blockContext, state, chainCfg, vmCfg)
 	// pre-deploy the contracts
-	env.StateDB.SetCode(contracts.Addresses.Oracle, contracts.Artifacts.Oracle.DeployedBytecode.Object, tracing.CodeChangeUnspecified)
+	env.StateDB.SetCode(contracts.Addresses.Oracle, contracts.Artifacts.Oracle.DeployedBytecode.Object)
 
 	var ctorArgs []byte
 	if contracts.Version == 0 { // Old MIPS.sol doesn't specify the state version in the constructor
@@ -171,11 +171,11 @@ func (d *testChain) GetHeader(h common.Hash, n uint64) *types.Header {
 	}
 }
 
-func MarkdownTracer() *tracing.Hooks {
-	return logger.NewMarkdownLogger(&logger.Config{}, os.Stdout).Hooks()
+func MarkdownTracer() vm.EVMLogger {
+	return logger.NewMarkdownLogger(&logger.Config{}, os.Stdout)
 }
 
-func SourceMapTracer(t require.TestingT, version MipsVersion, mips *foundry.Artifact, oracle *foundry.Artifact, addrs *Addresses) *tracing.Hooks {
+func SourceMapTracer(t require.TestingT, version MipsVersion, mips *foundry.Artifact, oracle *foundry.Artifact, addrs *Addresses) vm.EVMLogger {
 	srcFS := foundry.NewSourceMapFS(os.DirFS("../../../packages/contracts-bedrock"))
 	if arch.IsMips32 || version != MipsMultithreaded {
 		require.Fail(t, "invalid mips version")
@@ -188,5 +188,5 @@ func SourceMapTracer(t require.TestingT, version MipsVersion, mips *foundry.Arti
 	return srcmap.NewSourceMapTracer(map[common.Address]*srcmap.SourceMap{
 		addrs.MIPS:   mipsSrcMap,
 		addrs.Oracle: oracleSrcMap,
-	}, os.Stdout).Hooks()
+	}, os.Stdout)
 }

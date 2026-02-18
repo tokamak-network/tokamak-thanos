@@ -3,7 +3,6 @@ package forking
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/holiman/uint256"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,7 +13,7 @@ type VMStateDB interface {
 	vm.StateDB
 	Finalise(deleteEmptyObjects bool)
 	// SetBalance sets the balance of an account. Not part of the geth VM StateDB interface (add/sub balance are).
-	SetBalance(addr common.Address, amount *uint256.Int, reason tracing.BalanceChangeReason)
+	SetBalance(addr common.Address, amount *uint256.Int)
 }
 
 // ForkID is an identifier of a fork
