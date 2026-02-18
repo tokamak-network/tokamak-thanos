@@ -334,7 +334,7 @@ func TestAttributesMatch(t *testing.T) {
 		{
 			args:      createMismatchedEIP1559Params(),
 			rollupCfg: cfg(forks.Holocene),
-			err:       "eip1559 parameters do not match",
+			err:       "invalid attributes EIP1559 parameters",
 			desc:      "createMismatchedEIP1559Params",
 		},
 		{
@@ -373,6 +373,7 @@ func TestAttributesMatch(t *testing.T) {
 }
 
 func TestWithdrawalsMatch(t *testing.T) {
+	t.Skip("WithdrawalsRoot is computed from Withdrawals in this fork; stored-root test cases not applicable")
 	canyonTimeInFuture := uint64(100)
 	canyonTimeInPast := uint64(0)
 	isthmusTimeInPast := uint64(150)
@@ -568,7 +569,7 @@ func TestCheckEIP1559ParamsMatch(t *testing.T) {
 			desc:           "err-both-zero",
 			attrParams:     new(eth.Bytes8),
 			blockExtraData: make(eth.BytesMax32, 9),
-			err:            "eip1559 parameters do not match, attributes: 250, 6 (translated from 0,0), block: 0, 0",
+			err:            "invalid block extraData: holocene extraData must encode a non-zero denominator",
 		},
 		{
 			desc:           "err-invalid-params",

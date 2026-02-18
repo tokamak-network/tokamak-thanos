@@ -48,6 +48,7 @@ func RandomRawSpanBatch(rng *rand.Rand, chainId *big.Int) *RawSpanBatch {
 		case 3:
 			tx = testutils.RandomDynamicFeeTx(rng, signer)
 		case 4:
+			tx = testutils.RandomDynamicFeeTx(rng, signer)
 		}
 		rawTx, err := tx.MarshalBinary()
 		if err != nil {

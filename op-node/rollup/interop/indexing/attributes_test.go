@@ -13,6 +13,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/eip1559"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/trie"
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
@@ -45,7 +46,10 @@ func TestAttributesToReplaceInvalidBlock(t *testing.T) {
 	denominator := uint64(100)
 	elasticity := uint64(42)
 	extraData := eip1559.EncodeHoloceneExtraData(denominator, elasticity)
-	withdrawalsRoot := testutils.RandomHash(rng)
+	// WithdrawalsRoot is computed from the Withdrawals list in this fork
+	// For an empty withdrawals list, it's the empty trie root
+	emptyWithdrawals := types.Withdrawals{}
+	withdrawalsRoot := common.Hash(types.DeriveSha(emptyWithdrawals, trie.NewStackTrie(nil)))
 
 	beaconRoot := testutils.RandomHash(rng)
 	invalidatedBlock := &eth.ExecutionPayloadEnvelope{
