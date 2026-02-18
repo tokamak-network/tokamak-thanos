@@ -374,6 +374,14 @@ type DeployConfig struct {
 	Devnet bool `json:"devnet,omitempty"`
 	// ReuseDeployment is a flag that check if we re-use deployment
 	ReuseDeployment bool `json:"reuseDeployment,omitempty"`
+
+	// Nested config structs used by op-deployer. These overlay the flat fields above.
+	L1DependenciesConfig    L1DependenciesConfig    `json:"l1DependenciesConfig,omitempty"`
+	L2InitializationConfig  L2InitializationConfig  `json:"l2InitializationConfig,omitempty"`
+	FaultProofDeployConfig  FaultProofDeployConfig  `json:"faultProofDeployConfig,omitempty"`
+	AltDADeployConfig       AltDADeployConfig       `json:"altDADeployConfig,omitempty"`
+	SuperchainL1DeployConfig SuperchainL1DeployConfig `json:"superchainL1DeployConfig,omitempty"`
+	OutputOracleDeployConfig OutputOracleDeployConfig `json:"outputOracleDeployConfig,omitempty"`
 }
 
 // Copy will deeply copy the DeployConfig. This does a JSON roundtrip to copy
