@@ -272,9 +272,8 @@ func NewHost(
 	txContext := vm.TxContext{
 		Origin:       executionContext.Origin,
 		GasPrice:     big.NewInt(0),
-		BlobHashes:   executionContext.BlobHashes,
-		BlobFeeCap:   big.NewInt(0),
-		AccessEvents: state.NewAccessEvents(h.baseState.PointCache()),
+		BlobHashes: executionContext.BlobHashes,
+		BlobFeeCap: big.NewInt(0),
 	}
 
 	// Hook up the Host to capture the EVM environment changes

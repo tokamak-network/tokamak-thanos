@@ -150,11 +150,7 @@ func (f *ForkedAccountsTrie) GetStorage(addr common.Address, key []byte) ([]byte
 	return v.Bytes(), nil
 }
 
-func (f *ForkedAccountsTrie) UpdateAccount(address common.Address, account *types.StateAccount, codeLen int) error {
-	// Ignored, account contains the code details we need.
-	// Also see the trie.StateTrie of geth itself, which ignores this arg too.
-	_ = codeLen
-
+func (f *ForkedAccountsTrie) UpdateAccount(address common.Address, account *types.StateAccount) error {
 	nonce := account.Nonce
 	b := account.Balance.Clone()
 	codeHash := common.BytesToHash(account.CodeHash)
@@ -211,7 +207,7 @@ func (f *ForkedAccountsTrie) Hash() common.Hash {
 	return f.stateRoot
 }
 
-func (f *ForkedAccountsTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet) {
+func (f *ForkedAccountsTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, error) {
 	panic("cannot commit state-changes of a forked trie")
 }
 

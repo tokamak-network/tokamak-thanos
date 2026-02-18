@@ -8,10 +8,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie/utils"
 	"github.com/ethereum/go-ethereum/triedb"
 )
 
@@ -20,24 +18,6 @@ import (
 // and even finalize state changes (so we can accurately measure things like cold storage gas cost).
 type ForkDB struct {
 	active *ForkedAccountsTrie
-}
-
-// Reader for read-only access to a known state. All cold reads go through this.
-// So the state-DB creates one initially, and then holds on to it.
-// The diff will be overlaid on the reader still. To get rid of the diff, it has to be explicitly cleared.
-// Warning: diffs applied to the original state that the reader wraps will be visible.
-// Geth StateDB is meant to be reinitialized after committing state.
-func (f *ForkDB) Reader(root common.Hash) (state.Reader, error) {
-	if root != f.active.stateRoot {
-		return nil, fmt.Errorf("current state is at %s, cannot open state at %s", f.active.stateRoot, root)
-	}
-	return &forkStateReader{
-		f.active,
-	}, nil
-}
-
-func (f *ForkDB) Snapshot() *snapshot.Tree {
-	return nil
 }
 
 var _ state.Database = (*ForkDB)(nil)
@@ -94,10 +74,6 @@ func (f *ForkDB) ContractCodeSize(addr common.Address, codeHash common.Hash) (in
 
 func (f *ForkDB) DiskDB() ethdb.KeyValueStore {
 	panic("DiskDB() during active Fork is not supported")
-}
-
-func (f *ForkDB) PointCache() *utils.PointCache {
-	panic("PointCache() is not supported")
 }
 
 func (f *ForkDB) TrieDB() *triedb.Database {

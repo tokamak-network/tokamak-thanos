@@ -702,16 +702,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 	if d.SystemConfigProxy == (common.Address{}) {
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
-	var plasma *rollup.PlasmaConfig
-	if d.UsePlasma {
-		plasma = &rollup.PlasmaConfig{
-			CommitmentType:     d.DACommitmentType,
-			DAChallengeAddress: d.DAChallengeProxy,
-			DAChallengeWindow:  d.DAChallengeWindow,
-			DAResolveWindow:    d.DAResolveWindow,
-		}
-	}
-
 	rollupCfg := &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1: eth.BlockID{
@@ -733,7 +723,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		BlockTime:              d.L2BlockTime,
 		MaxSequencerDrift:      d.MaxSequencerDrift,
 		SeqWindowSize:          d.SequencerWindowSize,
-		ChannelTimeout:         d.ChannelTimeout,
+		ChannelTimeoutBedrock:  d.ChannelTimeout,
 		L1ChainID:              new(big.Int).SetUint64(d.L1ChainID),
 		L2ChainID:              new(big.Int).SetUint64(d.L2ChainID),
 		BatchInboxAddress:      d.BatchInboxAddress,
@@ -745,7 +735,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		EcotoneTime:            d.EcotoneTime(l1StartBlock.Time()),
 		FjordTime:              d.FjordTime(l1StartBlock.Time()),
 		InteropTime:            d.InteropTime(l1StartBlock.Time()),
-		PlasmaConfig:           plasma,
 	}
 
 	// Validate that FjordTime is properly set when L2GenesisFjordTimeOffset is configured

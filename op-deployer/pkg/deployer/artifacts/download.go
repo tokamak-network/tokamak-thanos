@@ -36,7 +36,7 @@ type Extractor interface {
 
 func Download(ctx context.Context, loc *Locator, progressor ioutil.Progressor, targetDir string) (foundry.StatDirFs, error) {
 	if progressor == nil {
-		progressor = ioutil.NoopProgressor()
+		progressor = ioutil.NoopProgressor
 	}
 
 	var err error

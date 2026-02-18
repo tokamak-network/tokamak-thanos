@@ -69,15 +69,15 @@ func (fst *ForkableState) ExportDiff(id ForkID) (*ExportDiff, error) {
 	}
 	// Finalize the state content, so we can get an accurate diff.
 	f.state.IntermediateRoot(true)
-	tr := f.state.GetTrie()
-	ft, ok := tr.(*ForkedAccountsTrie)
+	fdb, ok := f.state.Database().(*ForkDB)
 	if !ok {
-		return nil, fmt.Errorf("forked state trie is unexpectedly not a ForkedAccountsTrie: %T", tr)
+		return nil, fmt.Errorf("forked state database is unexpectedly not a ForkDB: %T", f.state.Database())
 	}
+	ft := fdb.active
 	diff := ft.ExportDiff()
 	// Now re-init the state, so we can use it again (albeit it cold).
 	forkDB := &ForkDB{active: ft}
-	st, err := state.New(forkDB.active.stateRoot, forkDB)
+	st, err := state.New(forkDB.active.stateRoot, forkDB, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct fork state: %w", err)
 	}
@@ -106,7 +106,7 @@ func (fst *ForkableState) CreateFork(source ForkSource) (ForkID, error) {
 		return id, fmt.Errorf("cannot create fork, fork %q already exists", id)
 	}
 	forkDB := NewForkDB(source)
-	st, err := state.New(forkDB.active.stateRoot, forkDB)
+	st, err := state.New(forkDB.active.stateRoot, forkDB, nil)
 	if err != nil {
 		return id, fmt.Errorf("failed to construct fork state: %w", err)
 	}
@@ -145,7 +145,7 @@ func (fst *ForkableState) ResetFork(id ForkID, src ForkSource) error {
 	}
 	// Now create a new state
 	forkDB := NewForkDB(src)
-	st, err := state.New(src.StateRoot(), forkDB)
+	st, err := state.New(src.StateRoot(), forkDB, nil)
 	if err != nil {
 		return fmt.Errorf("failed to construct fork state: %w", err)
 	}
