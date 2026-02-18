@@ -95,3 +95,21 @@ func LoadJSONFieldStrict[X any](inputPath string, field string) (*X, error) {
 	}
 	return &x, nil
 }
+
+// WriteJSONToTarget writes JSON to an OutputTarget.
+func WriteJSONToTarget[X any](value X, target ioutil.OutputTarget) error {
+	out, closer, abort, err := target()
+	if err != nil {
+		return err
+	}
+	if out == nil {
+		return nil
+	}
+	defer abort()
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(value); err != nil {
+		return fmt.Errorf("failed to write JSON: %w", err)
+	}
+	return closer.Close()
+}

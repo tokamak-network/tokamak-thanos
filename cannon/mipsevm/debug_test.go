@@ -31,7 +31,7 @@ func TestDebugInfo_Serialization(t *testing.T) {
 	// Serialize to file
 	dir := t.TempDir()
 	path := filepath.Join(dir, "debug-info-test.txt")
-	err := jsonutil.WriteJSON(debugInfo, ioutil.ToAtomicFile(path, 0o644))
+	err := jsonutil.WriteJSON[DebugInfo](path, *debugInfo, 0o644)
 	require.NoError(t, err)
 
 	// Deserialize
