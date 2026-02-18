@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,28 +15,33 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 
-	"github.com/pkg/profile"
-
-	"github.com/tokamak-network/tokamak-thanos/cannon/mipsevm"
-	preimage "github.com/tokamak-network/tokamak-thanos/op-preimage"
-	"github.com/tokamak-network/tokamak-thanos/op-service/jsonutil"
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm/arch"
+	mipsexec "github.com/ethereum-optimism/optimism/cannon/mipsevm/exec"
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm/versions"
+	preimage "github.com/ethereum-optimism/optimism/op-preimage"
+	"github.com/ethereum-optimism/optimism/op-service/ioutil"
+	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
+	"github.com/ethereum-optimism/optimism/op-service/serialize"
 )
 
 var (
 	RunInputFlag = &cli.PathFlag{
 		Name:      "input",
-		Usage:     "path of input JSON state. Stdin if left empty.",
+		Usage:     "path of input binary state. Stdin if left empty.",
 		TakesFile: true,
-		Value:     "state.json",
+		Value:     "state.bin.gz",
 		Required:  true,
 	}
 	RunOutputFlag = &cli.PathFlag{
 		Name:      "output",
-		Usage:     "path of output JSON state. Not written if empty, use - to write to Stdout.",
+		Usage:     "path of output binary state. Not written if empty, use - to write to Stdout.",
 		TakesFile: true,
-		Value:     "out.json",
+		Value:     "out.bin.gz",
 		Required:  false,
 	}
 	patternHelp    = "'never' (default), 'always', '=123' at exactly step 123, '%123' for every 123 steps"
@@ -59,7 +66,7 @@ var (
 	RunSnapshotFmtFlag = &cli.StringFlag{
 		Name:     "snapshot-fmt",
 		Usage:    "format for snapshot output file names.",
-		Value:    "state-%d.json",
+		Value:    "state-%d.bin.gz",
 		Required: false,
 	}
 	RunStopAtFlag = &cli.GenericFlag{
@@ -70,7 +77,7 @@ var (
 	}
 	RunStopAtPreimageFlag = &cli.StringFlag{
 		Name:     "stop-at-preimage",
-		Usage:    "stop at the first preimage request matching this key",
+		Usage:    "stop at the first preimage request matching this key. Format: <key-prefix>@<offset>@<step>",
 		Required: false,
 	}
 	RunStopAtPreimageTypeFlag = &cli.StringFlag{
@@ -78,7 +85,7 @@ var (
 		Usage:    "stop at the first preimage request matching this type",
 		Required: false,
 	}
-	RunStopAtPreimageLargerThanFlag = &cli.StringFlag{
+	RunStopAtPreimageLargerThanFlag = &cli.IntFlag{
 		Name:     "stop-at-preimage-larger-than",
 		Usage:    "stop at the first step that requests a preimage larger than the specified size (in bytes)",
 		Required: false,
@@ -92,7 +99,7 @@ var (
 	RunInfoAtFlag = &cli.GenericFlag{
 		Name:     "info-at",
 		Usage:    "step pattern to print info at: " + patternHelp,
-		Value:    MustStepMatcherFlag("%100000"),
+		Value:    MustStepMatcherFlag("%1000000000"),
 		Required: false,
 	}
 	RunPProfCPU = &cli.BoolFlag{
@@ -102,6 +109,12 @@ var (
 	RunDebugFlag = &cli.BoolFlag{
 		Name:  "debug",
 		Usage: "enable debug mode, which includes stack traces and other debug info in the output. Requires --meta.",
+	}
+	RunDebugInfoFlag = &cli.PathFlag{
+		Name:      "debug-info",
+		Usage:     "path to write debug info to",
+		TakesFile: true,
+		Required:  false,
 	}
 
 	OutFilePerm = os.FileMode(0o755)
@@ -118,7 +131,7 @@ type Proof struct {
 
 	OracleKey    hexutil.Bytes `json:"oracle-key,omitempty"`
 	OracleValue  hexutil.Bytes `json:"oracle-value,omitempty"`
-	OracleOffset uint32        `json:"oracle-offset,omitempty"`
+	OracleOffset arch.Word     `json:"oracle-offset,omitempty"`
 }
 
 type rawHint string
@@ -134,16 +147,18 @@ func (rk rawKey) PreimageKey() [32]byte {
 }
 
 type ProcessPreimageOracle struct {
-	pCl      *preimage.OracleClient
-	hCl      *preimage.HintWriter
-	cmd      *exec.Cmd
-	waitErr  chan error
-	cancelIO context.CancelCauseFunc
+	log       log.Logger
+	pCl       *preimage.OracleClient
+	hCl       *preimage.HintWriter
+	cmd       *exec.Cmd
+	waitErr   chan error
+	cancelIO  context.CancelCauseFunc
+	ioClosers ioutil.MultiCloser
 }
 
 const clientPollTimeout = time.Second * 15
 
-func NewProcessPreimageOracle(name string, args []string, stdout log.Logger, stderr log.Logger) (*ProcessPreimageOracle, error) {
+func NewProcessPreimageOracle(logger log.Logger, name string, args []string, stdout log.Logger, stderr log.Logger) (*ProcessPreimageOracle, error) {
 	if name == "" {
 		return &ProcessPreimageOracle{}, nil
 	}
@@ -166,6 +181,8 @@ func NewProcessPreimageOracle(name string, args []string, stdout log.Logger, std
 		pOracleRW.Reader(),
 		pOracleRW.Writer(),
 	}
+	// Discourage rust programs from using color in logs.
+	cmd.Env = append([]string{"NO_COLOR=1"}, os.Environ()...)
 
 	// Note that the client file descriptors are not closed when the pre-image server exits.
 	// So we use the FilePoller to ensure that we don't get stuck in a blocking read/write.
@@ -173,11 +190,14 @@ func NewProcessPreimageOracle(name string, args []string, stdout log.Logger, std
 	preimageClientIO := preimage.NewFilePoller(ctx, pClientRW, clientPollTimeout)
 	hostClientIO := preimage.NewFilePoller(ctx, hClientRW, clientPollTimeout)
 	out := &ProcessPreimageOracle{
+		log:      logger,
 		pCl:      preimage.NewOracleClient(preimageClientIO),
 		hCl:      preimage.NewHintWriter(hostClientIO),
 		cmd:      cmd,
 		waitErr:  make(chan error),
 		cancelIO: cancelIO,
+		// We only close our side of the channels, the client program owns the side we pass through as extra files
+		ioClosers: ioutil.MultiCloser{preimageClientIO, hostClientIO},
 	}
 	return out, nil
 }
@@ -209,16 +229,52 @@ func (p *ProcessPreimageOracle) Close() error {
 	if p.cmd == nil {
 		return nil
 	}
+
+	tryWait := func(dur time.Duration) (bool, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), dur)
+		defer cancel()
+		select {
+		case <-ctx.Done():
+			return false, nil
+		case err := <-p.waitErr:
+			return true, err
+		}
+	}
 	// Give the pre-image server time to exit cleanly before killing it.
-	time.Sleep(time.Second * 1)
-	_ = p.cmd.Process.Signal(os.Interrupt)
+	if exited, err := tryWait(1 * time.Second); exited {
+		return err
+	}
+
+	// Close the IO streams to the preimage server to encourage it to exit
+	if err := p.ioClosers.Close(); err != nil {
+		p.log.Warn("Failed to close preimage oracle IO streams", "err", err)
+	}
+	if exited, err := tryWait(30 * time.Second); exited {
+		return err
+	}
+
+	// Politely ask the process to exit
+	p.log.Info("Preimage server process did not exit when streams closed, sending interrupt signal")
+	if err := p.cmd.Process.Signal(os.Interrupt); err != nil {
+		p.log.Warn("Failed to send interrupt signal to preimage server process", "err", err)
+	}
+	if exited, err := tryWait(30 * time.Second); exited {
+		return err
+	}
+
+	// Just terminate the process
+	p.log.Warn("Preimage server process would not exit cleanly, terminating")
+	if err := p.cmd.Process.Kill(); err != nil {
+		p.log.Warn("Failed to kill preimage server process", "err", err)
+	}
 	return <-p.waitErr
 }
 
 func (p *ProcessPreimageOracle) wait() {
 	err := p.cmd.Wait()
 	var waitErr error
-	if err, ok := err.(*exec.ExitError); !ok || !err.Success() {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && !exitErr.Success() {
 		waitErr = err
 	}
 	p.cancelIO(fmt.Errorf("%w: pre-image server has exited", waitErr))
@@ -229,8 +285,20 @@ func (p *ProcessPreimageOracle) wait() {
 type StepFn func(proof bool) (*mipsevm.StepWitness, error)
 
 func Guard(proc *os.ProcessState, fn StepFn) StepFn {
-	return func(proof bool) (*mipsevm.StepWitness, error) {
-		wit, err := fn(proof)
+	return func(proof bool) (wit *mipsevm.StepWitness, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				const size = 64 << 10
+				buf := make([]byte, size)
+				buf = buf[:runtime.Stack(buf, false)]
+				if proc.Exited() {
+					err = fmt.Errorf("pre-image server exited with code %d, resulting in panic %s", proc.ExitCode(), string(buf))
+				} else {
+					err = fmt.Errorf("pre-image server resulted in panic %s", string(buf))
+				}
+			}
+		}()
+		wit, err = fn(proof)
 		if err != nil {
 			if proc.Exited() {
 				return nil, fmt.Errorf("pre-image server exited with code %d, resulting in err %w", proc.ExitCode(), err)
@@ -248,9 +316,7 @@ func Run(ctx *cli.Context) error {
 	if ctx.Bool(RunPProfCPU.Name) {
 		defer profile.Start(profile.NoShutdownHook, profile.ProfilePath("."), profile.CPUProfile).Stop()
 	}
-
-	state, err := jsonutil.LoadJSON[mipsevm.State](ctx.Path(RunInputFlag.Name))
-	if err != nil {
+	if err := checkFlags(ctx); err != nil {
 		return err
 	}
 
@@ -262,20 +328,28 @@ func Run(ctx *cli.Context) error {
 
 	stopAtAnyPreimage := false
 	var stopAtPreimageKeyPrefix []byte
-	stopAtPreimageOffset := uint32(0)
+	stopAtPreimageOffset := arch.Word(0)
+	stopAtPreimageStep := uint64(0)
 	if ctx.IsSet(RunStopAtPreimageFlag.Name) {
 		val := ctx.String(RunStopAtPreimageFlag.Name)
 		parts := strings.Split(val, "@")
-		if len(parts) > 2 {
+		if len(parts) > 3 {
 			return fmt.Errorf("invalid %v: %v", RunStopAtPreimageFlag.Name, val)
 		}
 		stopAtPreimageKeyPrefix = common.FromHex(parts[0])
-		if len(parts) == 2 {
-			x, err := strconv.ParseUint(parts[1], 10, 32)
+		if len(parts) >= 2 {
+			x, err := strconv.ParseUint(parts[1], 10, arch.WordSize)
 			if err != nil {
 				return fmt.Errorf("invalid preimage offset: %w", err)
 			}
-			stopAtPreimageOffset = uint32(x)
+			stopAtPreimageOffset = arch.Word(x)
+		}
+		if len(parts) == 3 {
+			x, err := strconv.ParseUint(parts[2], 10, arch.WordSize)
+			if err != nil {
+				return fmt.Errorf("invalid preimage offset: %w", err)
+			}
+			stopAtPreimageStep = x
 		}
 	} else {
 		switch ctx.String(RunStopAtPreimageTypeFlag.Name) {
@@ -313,7 +387,7 @@ func Run(ctx *cli.Context) error {
 
 	poOut := Logger(os.Stdout, log.LevelInfo).With("module", "host")
 	poErr := Logger(os.Stderr, log.LevelInfo).With("module", "host")
-	po, err := NewProcessPreimageOracle(args[0], args[1:], poOut, poErr)
+	po, err := NewProcessPreimageOracle(l, args[0], args[1:], poOut, poErr)
 	if err != nil {
 		return fmt.Errorf("failed to create pre-image oracle process: %w", err)
 	}
@@ -331,66 +405,77 @@ func Run(ctx *cli.Context) error {
 	snapshotAt := ctx.Generic(RunSnapshotAtFlag.Name).(*StepMatcherFlag).Matcher()
 	infoAt := ctx.Generic(RunInfoAtFlag.Name).(*StepMatcherFlag).Matcher()
 
-	var meta *mipsevm.Metadata
+	var meta *program.Metadata
 	if metaPath := ctx.Path(RunMetaFlag.Name); metaPath == "" {
 		l.Info("no metadata file specified, defaulting to empty metadata")
-		meta = &mipsevm.Metadata{Symbols: nil} // provide empty metadata by default
+		meta = &program.Metadata{Symbols: nil} // provide empty metadata by default
 	} else {
-		if m, err := jsonutil.LoadJSON[mipsevm.Metadata](metaPath); err != nil {
+		if m, err := jsonutil.LoadJSON[program.Metadata](metaPath); err != nil {
 			return fmt.Errorf("failed to load metadata: %w", err)
 		} else {
 			meta = m
 		}
 	}
 
-	us := mipsevm.NewInstrumentedState(state, po, outLog, errLog)
+	state, err := versions.LoadStateFromFileWithLargeICache(ctx.Path(RunInputFlag.Name))
+	if err != nil {
+		return fmt.Errorf("failed to load state: %w", err)
+	}
+	l.Info("Loaded input state", "version", state.Version)
+	vm := state.CreateVM(l, po, outLog, errLog, meta)
+
+	// Enable debug/stats tracking as requested
 	debugProgram := ctx.Bool(RunDebugFlag.Name)
 	if debugProgram {
 		if metaPath := ctx.Path(RunMetaFlag.Name); metaPath == "" {
-			return fmt.Errorf("cannot enable debug mode without a metadata file")
+			return errors.New("cannot enable debug mode without a metadata file")
 		}
-		if err := us.InitDebug(meta); err != nil {
+		if err := vm.InitDebug(); err != nil {
 			return fmt.Errorf("failed to initialize debug mode: %w", err)
 		}
 	}
+	if debugInfoFile := ctx.Path(RunDebugInfoFlag.Name); debugInfoFile != "" {
+		vm.EnableStats()
+	}
+
 	proofFmt := ctx.String(RunProofFmtFlag.Name)
 	snapshotFmt := ctx.String(RunSnapshotFmtFlag.Name)
 
-	stepFn := us.Step
+	stepFn := vm.Step
 	if po.cmd != nil {
 		stepFn = Guard(po.cmd.ProcessState, stepFn)
 	}
 
 	start := time.Now()
-	startStep := state.Step
 
-	// avoid symbol lookups every instruction by preparing a matcher func
-	sleepCheck := meta.SymbolMatcher("runtime.notesleep")
+	startStep := state.GetStep()
 
-	for !state.Exited {
-		if state.Step%100 == 0 { // don't do the ctx err check (includes lock) too often
+	for !state.GetExited() {
+		step := state.GetStep()
+		if step%100 == 0 { // don't do the ctx err check (includes lock) too often
 			if err := ctx.Context.Err(); err != nil {
 				return err
 			}
 		}
 
-		step := state.Step
-
 		if infoAt(state) {
 			delta := time.Since(start)
+			pc := state.GetPC()
+			insn := mipsexec.LoadSubWord(state.GetMemory(), pc, 4, false, new(mipsexec.NoopMemoryTracker))
 			l.Info("processing",
 				"step", step,
-				"pc", mipsevm.HexU32(state.PC),
-				"insn", mipsevm.HexU32(state.Memory.GetMemory(state.PC)),
+				"pc", mipsevm.HexU32(state.GetPC()),
+				"insn", mipsevm.HexU32(insn),
 				"ips", float64(step-startStep)/(float64(delta)/float64(time.Second)),
-				"pages", state.Memory.PageCount(),
-				"mem", state.Memory.Usage(),
-				"name", meta.LookupSymbol(state.PC),
+				"pages", state.GetMemory().PageCount(),
+				"mem", state.GetMemory().Usage(),
+				"name", meta.LookupSymbol(pc),
 			)
 		}
 
-		if sleepCheck(state.PC) { // don't loop forever when we get stuck because of an unexpected bad program
-			return fmt.Errorf("got stuck in Go sleep at step %d", step)
+		if vm.CheckInfiniteLoop() {
+			// don't loop forever when we get stuck because of an unexpected bad program
+			return fmt.Errorf("detected an infinite loop at step %d", step)
 		}
 
 		if stopAt(state) {
@@ -399,56 +484,49 @@ func Run(ctx *cli.Context) error {
 		}
 
 		if snapshotAt(state) {
-			if err := jsonutil.WriteJSON(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
+			if err := serialize.Write(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
 				return fmt.Errorf("failed to write state snapshot: %w", err)
 			}
 		}
 
 		if proofAt(state) {
-			preStateHash, err := state.EncodeWitness().StateHash()
-			if err != nil {
-				return fmt.Errorf("failed to hash prestate witness: %w", err)
-			}
 			witness, err := stepFn(true)
 			if err != nil {
-				return fmt.Errorf("failed at proof-gen step %d (PC: %08x): %w", step, state.PC, err)
+				return fmt.Errorf("failed at proof-gen step %d (PC: %08x): %w", step, state.GetPC(), err)
 			}
-			postStateHash, err := state.EncodeWitness().StateHash()
-			if err != nil {
-				return fmt.Errorf("failed to hash poststate witness: %w", err)
-			}
+			_, postStateHash := state.EncodeWitness()
 			proof := &Proof{
 				Step:      step,
-				Pre:       preStateHash,
+				Pre:       witness.StateHash,
 				Post:      postStateHash,
 				StateData: witness.State,
-				ProofData: witness.MemProof,
+				ProofData: witness.ProofData,
 			}
 			if witness.HasPreimage() {
 				proof.OracleKey = witness.PreimageKey[:]
 				proof.OracleValue = witness.PreimageValue
 				proof.OracleOffset = witness.PreimageOffset
 			}
-			if err := jsonutil.WriteJSON(fmt.Sprintf(proofFmt, step), proof, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSON(proof, ioutil.ToStdOutOrFileOrNoop(fmt.Sprintf(proofFmt, step), OutFilePerm)); err != nil {
 				return fmt.Errorf("failed to write proof data: %w", err)
 			}
 		} else {
 			_, err = stepFn(false)
 			if err != nil {
-				return fmt.Errorf("failed at step %d (PC: %08x): %w", step, state.PC, err)
+				return fmt.Errorf("failed at step %d (PC: %08x): %w", step, state.GetPC(), err)
 			}
 		}
 
-		lastPreimageKey, lastPreimageValue, lastPreimageOffset := us.LastPreimage()
-		if lastPreimageOffset != ^uint32(0) {
+		lastPreimageKey, lastPreimageValue, lastPreimageOffset := vm.LastPreimage()
+		if lastPreimageOffset != ^arch.Word(0) {
 			if stopAtAnyPreimage {
 				l.Info("Stopping at preimage read")
 				break
 			}
 			if len(stopAtPreimageKeyPrefix) > 0 &&
 				slices.Equal(lastPreimageKey[:len(stopAtPreimageKeyPrefix)], stopAtPreimageKeyPrefix) {
-				if stopAtPreimageOffset == lastPreimageOffset {
-					l.Info("Stopping at preimage read", "keyPrefix", common.Bytes2Hex(stopAtPreimageKeyPrefix), "offset", lastPreimageOffset)
+				if stopAtPreimageOffset == lastPreimageOffset && step >= stopAtPreimageStep {
+					l.Info("Stopping at preimage read", "keyPrefix", common.Bytes2Hex(stopAtPreimageKeyPrefix), "offset", lastPreimageOffset, "step", step)
 					break
 				}
 			}
@@ -458,36 +536,60 @@ func Run(ctx *cli.Context) error {
 			}
 		}
 	}
-	l.Info("Execution stopped", "exited", state.Exited, "code", state.ExitCode)
+	l.Info("Execution stopped", "exited", state.GetExited(), "code", state.GetExitCode())
 	if debugProgram {
-		us.Traceback()
+		vm.Traceback()
 	}
 
-	if err := jsonutil.WriteJSON(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
+	if err := serialize.Write(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
 		return fmt.Errorf("failed to write state output: %w", err)
+	}
+	if debugInfoFile := ctx.Path(RunDebugInfoFlag.Name); debugInfoFile != "" {
+		if err := jsonutil.WriteJSON(vm.GetDebugInfo(), ioutil.ToStdOutOrFileOrNoop(debugInfoFile, OutFilePerm)); err != nil {
+			return fmt.Errorf("failed to write benchmark data: %w", err)
+		}
 	}
 	return nil
 }
 
-var RunCommand = &cli.Command{
-	Name:        "run",
-	Usage:       "Run VM step(s) and generate proof data to replicate onchain.",
-	Description: "Run VM step(s) and generate proof data to replicate onchain. See flags to match when to output a proof, a snapshot, or to stop early.",
-	Action:      Run,
-	Flags: []cli.Flag{
-		RunInputFlag,
-		RunOutputFlag,
-		RunProofAtFlag,
-		RunProofFmtFlag,
-		RunSnapshotAtFlag,
-		RunSnapshotFmtFlag,
-		RunStopAtFlag,
-		RunStopAtPreimageFlag,
-		RunStopAtPreimageTypeFlag,
-		RunStopAtPreimageLargerThanFlag,
-		RunMetaFlag,
-		RunInfoAtFlag,
-		RunPProfCPU,
-		RunDebugFlag,
-	},
+func CreateRunCommand(action cli.ActionFunc) *cli.Command {
+	return &cli.Command{
+		Name:        "run",
+		Usage:       "Run VM step(s) and generate proof data to replicate onchain.",
+		Description: "Run VM step(s) and generate proof data to replicate onchain. See flags to match when to output a proof, a snapshot, or to stop early.",
+		Action:      action,
+		Flags: []cli.Flag{
+			RunInputFlag,
+			RunOutputFlag,
+			RunProofAtFlag,
+			RunProofFmtFlag,
+			RunSnapshotAtFlag,
+			RunSnapshotFmtFlag,
+			RunStopAtFlag,
+			RunStopAtPreimageFlag,
+			RunStopAtPreimageTypeFlag,
+			RunStopAtPreimageLargerThanFlag,
+			RunMetaFlag,
+			RunInfoAtFlag,
+			RunPProfCPU,
+			RunDebugFlag,
+			RunDebugInfoFlag,
+		},
+	}
+}
+
+var RunCommand = CreateRunCommand(Run)
+
+func checkFlags(ctx *cli.Context) error {
+	if output := ctx.Path(RunOutputFlag.Name); output != "" {
+		if !serialize.IsBinaryFile(output) {
+			return errors.New("invalid --output file format. Only binary file formats (ending in .bin or bin.gz) are supported")
+		}
+	}
+	if snapshotFmt := ctx.String(RunSnapshotFmtFlag.Name); snapshotFmt != "" {
+		if !serialize.IsBinaryFile(fmt.Sprintf(snapshotFmt, 0)) {
+			return errors.New("invalid --snapshot-fmt file format. Only binary file formats (ending in .bin or bin.gz) are supported")
+		}
+	}
+	return nil
 }

@@ -3,10 +3,12 @@ package kvstore
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 
+	"github.com/ethereum-optimism/optimism/op-program/client/boot"
+	"github.com/ethereum-optimism/optimism/op-program/host/config"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tokamak-network/tokamak-thanos/op-program/client"
-	"github.com/tokamak-network/tokamak-thanos/op-program/host/config"
 )
 
 type LocalPreimageSource struct {
@@ -18,13 +20,15 @@ func NewLocalPreimageSource(config *config.Config) *LocalPreimageSource {
 }
 
 var (
-	l1HeadKey             = client.L1HeadLocalIndex.PreimageKey()
-	l2OutputRootKey       = client.L2OutputRootLocalIndex.PreimageKey()
-	l2ClaimKey            = client.L2ClaimLocalIndex.PreimageKey()
-	l2ClaimBlockNumberKey = client.L2ClaimBlockNumberLocalIndex.PreimageKey()
-	l2ChainIDKey          = client.L2ChainIDLocalIndex.PreimageKey()
-	l2ChainConfigKey      = client.L2ChainConfigLocalIndex.PreimageKey()
-	rollupKey             = client.RollupConfigLocalIndex.PreimageKey()
+	l1HeadKey             = boot.L1HeadLocalIndex.PreimageKey()
+	l2OutputRootKey       = boot.L2OutputRootLocalIndex.PreimageKey()
+	l2ClaimKey            = boot.L2ClaimLocalIndex.PreimageKey()
+	l2ClaimBlockNumberKey = boot.L2ClaimBlockNumberLocalIndex.PreimageKey()
+	l2ChainIDKey          = boot.L2ChainIDLocalIndex.PreimageKey()
+	l2ChainConfigKey      = boot.L2ChainConfigLocalIndex.PreimageKey()
+	rollupKey             = boot.RollupConfigLocalIndex.PreimageKey()
+	dependencySetKey      = boot.DependencySetLocalIndex.PreimageKey()
+	l1ChainConfigKey      = boot.L1ChainConfigLocalIndex.PreimageKey()
 )
 
 func (s *LocalPreimageSource) Get(key common.Hash) ([]byte, error) {
@@ -38,19 +42,34 @@ func (s *LocalPreimageSource) Get(key common.Hash) ([]byte, error) {
 	case l2ClaimBlockNumberKey:
 		return binary.BigEndian.AppendUint64(nil, s.config.L2ClaimBlockNumber), nil
 	case l2ChainIDKey:
-		// The CustomChainIDIndicator informs the client to rely on the L2ChainConfigKey to
-		// read the chain config. Otherwise, it'll attempt to read a non-existent hardcoded chain config
-		var chainID uint64
-		if s.config.IsCustomChainConfig {
-			chainID = client.CustomChainIDIndicator
-		} else {
-			chainID = s.config.L2ChainConfig.ChainID.Uint64()
-		}
-		return binary.BigEndian.AppendUint64(nil, chainID), nil
+		return binary.BigEndian.AppendUint64(nil, eth.EvilChainIDToUInt64(s.config.L2ChainID)), nil
 	case l2ChainConfigKey:
-		return json.Marshal(s.config.L2ChainConfig)
+		if s.config.L2ChainID != boot.CustomChainIDIndicator {
+			return nil, ErrNotFound
+		}
+		if s.config.InteropEnabled {
+			return json.Marshal(s.config.L2ChainConfigs)
+		}
+		return json.Marshal(s.config.L2ChainConfigs[0])
 	case rollupKey:
-		return json.Marshal(s.config.Rollup)
+		if s.config.L2ChainID != boot.CustomChainIDIndicator {
+			return nil, ErrNotFound
+		}
+		if s.config.InteropEnabled {
+			return json.Marshal(s.config.Rollups)
+		}
+		return json.Marshal(s.config.Rollups[0])
+	case dependencySetKey:
+		if !s.config.InteropEnabled {
+			return nil, errors.New("host is not configured to serve dependencySet local keys")
+		}
+		return json.Marshal(s.config.DependencySet)
+	case l1ChainConfigKey:
+		// NOTE: We check the L2 chain ID again to determine if we are using custom configs
+		if s.config.L2ChainID != boot.CustomChainIDIndicator {
+			return nil, ErrNotFound
+		}
+		return json.Marshal(s.config.L1ChainConfig)
 	default:
 		return nil, ErrNotFound
 	}

@@ -31,7 +31,11 @@ func (p DB) Delete(key []byte) error {
 	return nil
 }
 
-func (p DB) Stat(property string) (string, error) {
+func (p *DB) DeleteRange(start, end []byte) error {
+	panic("not supported")
+}
+
+func (p DB) Stat() (string, error) {
 	panic("not supported")
 }
 
@@ -49,10 +53,6 @@ func (p DB) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 
 func (p DB) Compact(start []byte, limit []byte) error {
 	return nil // no-op
-}
-
-func (p DB) NewSnapshot() (ethdb.Snapshot, error) {
-	panic("not supported")
 }
 
 func (p DB) Close() error {
@@ -111,6 +111,14 @@ func (p *DB) MigrateTable(s string, f func([]byte) ([]byte, error)) error {
 }
 
 func (p *DB) AncientDatadir() (string, error) {
+	panic("not supported")
+}
+
+func (p *DB) SyncAncient() error {
+	panic("not supported")
+}
+
+func (p *DB) SyncKeyValue() error {
 	panic("not supported")
 }
 

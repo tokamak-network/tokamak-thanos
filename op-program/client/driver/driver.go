@@ -3,110 +3,96 @@ package driver
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
 
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-node/node/safedb"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/attributes"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
-	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/sync"
-	plasma "github.com/tokamak-network/tokamak-thanos/op-plasma"
-	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
+	altda "github.com/ethereum-optimism/optimism/op-alt-da"
+	"github.com/ethereum-optimism/optimism/op-node/metrics"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/attributes"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
+	"github.com/ethereum-optimism/optimism/op-service/event"
 )
 
-var ErrClaimNotValid = errors.New("invalid claim")
+var errTooManyEvents = errors.New("way too many events queued up, something is wrong")
 
-type Derivation interface {
-	Step(ctx context.Context) error
+type EndCondition interface {
+	Closing() bool
+	Result() (eth.L2BlockRef, error)
 }
-
-type EngineState interface {
-	SafeL2Head() eth.L2BlockRef
-}
-
-type L2Source interface {
-	derive.Engine
-	L2OutputRoot(uint64) (eth.Bytes32, error)
-}
-
-type NoopFinalizer struct{}
-
-func (n NoopFinalizer) OnDerivationL1End(ctx context.Context, derivedFrom eth.L1BlockRef) error {
-	return nil
-}
-
-func (n NoopFinalizer) PostProcessSafeL2(l2Safe eth.L2BlockRef, derivedFrom eth.L1BlockRef) {}
-
-func (n NoopFinalizer) Reset() {}
-
-var _ derive.FinalizerHooks = (*NoopFinalizer)(nil)
 
 type Driver struct {
-	logger         log.Logger
-	pipeline       Derivation
-	engine         EngineState
-	l2OutputRoot   func(uint64) (eth.Bytes32, error)
-	targetBlockNum uint64
+	logger log.Logger
+
+	events []event.Event
+
+	end     EndCondition
+	deriver event.Deriver
 }
 
-func NewDriver(logger log.Logger, cfg *rollup.Config, l1Source derive.L1Fetcher, l1BlobsSource derive.L1BlobsFetcher, l2Source L2Source, targetBlockNum uint64) *Driver {
-	engine := derive.NewEngineController(l2Source, logger, metrics.NoopMetrics, cfg, sync.CLSync)
-	attributesHandler := attributes.NewAttributesHandler(logger, cfg, engine, l2Source)
-	pipeline := derive.NewDerivationPipeline(logger, cfg, l1Source, l1BlobsSource, plasma.Disabled, l2Source, engine, metrics.NoopMetrics, &sync.Config{}, safedb.Disabled, NoopFinalizer{}, attributesHandler)
-	pipeline.Reset()
-	return &Driver{
-		logger:         logger,
-		pipeline:       pipeline,
-		engine:         engine,
-		l2OutputRoot:   l2Source.L2OutputRoot,
-		targetBlockNum: targetBlockNum,
+func NewDriver(logger log.Logger, cfg *rollup.Config, depSet derive.DependencySet, l1Source derive.L1Fetcher,
+	l1BlobsSource derive.L1BlobsFetcher, l2Source engine.Engine, targetBlockNum uint64, l1ChainConfig *params.ChainConfig) *Driver {
+
+	d := &Driver{
+		logger: logger,
 	}
+
+	pipeline := derive.NewDerivationPipeline(logger, cfg, depSet, l1Source, l1BlobsSource, altda.Disabled, l2Source, metrics.NoopMetrics, false, l1ChainConfig)
+	pipelineDeriver := derive.NewPipelineDeriver(context.Background(), pipeline)
+	pipelineDeriver.AttachEmitter(d)
+
+	syncCfg := &sync.Config{SyncMode: sync.CLSync}
+	ec := engine.NewEngineController(context.Background(), l2Source, logger, metrics.NoopMetrics, cfg, syncCfg, l1Source, d)
+
+	attrHandler := attributes.NewAttributesHandler(logger, cfg, context.Background(), l2Source, ec)
+	ec.SetAttributesResetter(attrHandler)
+	ec.SetPipelineResetter(pipelineDeriver)
+
+	prog := &ProgramDeriver{
+		logger:           logger,
+		Emitter:          d,
+		engineController: ec,
+		closing:          false,
+		result:           eth.L2BlockRef{},
+		targetBlockNum:   targetBlockNum,
+	}
+
+	d.deriver = &event.DeriverMux{
+		prog,
+		ec,
+		pipelineDeriver,
+	}
+	d.end = prog
+
+	return d
 }
 
-// Step runs the next step of the derivation pipeline.
-// Returns nil if there are further steps to be performed
-// Returns io.EOF if the derivation completed successfully
-// Returns a non-EOF error if the derivation failed
-func (d *Driver) Step(ctx context.Context) error {
-	if err := d.pipeline.Step(ctx); errors.Is(err, io.EOF) {
-		d.logger.Info("Derivation complete: reached L1 head", "head", d.engine.SafeL2Head())
-		return io.EOF
-	} else if errors.Is(err, derive.NotEnoughData) {
-		head := d.engine.SafeL2Head()
-		if head.Number >= d.targetBlockNum {
-			d.logger.Info("Derivation complete: reached L2 block", "head", head)
-			return io.EOF
+func (d *Driver) Emit(ctx context.Context, ev event.Event) {
+	if d.end.Closing() {
+		return
+	}
+	d.events = append(d.events, ev)
+}
+
+func (d *Driver) RunComplete() (eth.L2BlockRef, error) {
+	// Initial reset
+	d.Emit(context.Background(), engine.ResetEngineRequestEvent{})
+
+	for !d.end.Closing() {
+		if len(d.events) == 0 {
+			d.logger.Info("Derivation complete: no further data to process")
+			return d.end.Result()
 		}
-		d.logger.Debug("Data is lacking")
-		return nil
-	} else if errors.Is(err, derive.ErrTemporary) {
-		// While most temporary errors are due to requests for external data failing which can't happen,
-		// they may also be returned due to other events like channels timing out so need to be handled
-		d.logger.Warn("Temporary error in derivation", "err", err)
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("pipeline err: %w", err)
+		if len(d.events) > 10000 { // sanity check, in case of bugs. Better than going OOM.
+			return eth.L2BlockRef{}, errTooManyEvents
+		}
+		ev := d.events[0]
+		d.events = d.events[1:]
+		d.deriver.OnEvent(context.Background(), ev)
 	}
-	return nil
-}
-
-func (d *Driver) SafeHead() eth.L2BlockRef {
-	return d.engine.SafeL2Head()
-}
-
-func (d *Driver) ValidateClaim(l2ClaimBlockNum uint64, claimedOutputRoot eth.Bytes32) error {
-	l2Head := d.SafeHead()
-	outputRoot, err := d.l2OutputRoot(min(l2ClaimBlockNum, l2Head.Number))
-	if err != nil {
-		return fmt.Errorf("calculate L2 output root: %w", err)
-	}
-	d.logger.Info("Validating claim", "head", l2Head, "output", outputRoot, "claim", claimedOutputRoot)
-	if claimedOutputRoot != outputRoot {
-		return fmt.Errorf("%w: claim: %v actual: %v", ErrClaimNotValid, claimedOutputRoot, outputRoot)
-	}
-	return nil
+	return d.end.Result()
 }

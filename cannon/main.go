@@ -5,17 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	"github.com/urfave/cli/v2"
 
-	"github.com/tokamak-network/tokamak-thanos/cannon/cmd"
+	"github.com/ethereum-optimism/optimism/cannon/cmd"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "cannon"
+	app.Name = os.Args[0]
 	app.Usage = "MIPS Fault Proof tool"
 	app.Description = "MIPS Fault Proof tool"
 	app.Commands = []*cli.Command{
@@ -23,18 +22,7 @@ func main() {
 		cmd.WitnessCommand,
 		cmd.RunCommand,
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		for {
-			<-c
-			cancel()
-			fmt.Println("\r\nExiting...")
-		}
-	}()
-
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	err := app.RunContext(ctx, os.Args)
 	if err != nil {
 		if errors.Is(err, ctx.Err()) {
