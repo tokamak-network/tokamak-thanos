@@ -1,3 +1,6 @@
+//go:build newer_geth
+// +build newer_geth
+
 package l2
 
 import (
