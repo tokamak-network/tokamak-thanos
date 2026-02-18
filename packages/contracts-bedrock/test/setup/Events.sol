@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { FeeVault } from "src/universal/FeeVault.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+// Libraries
+import { Types } from "src/libraries/Types.sol";
 import "src/dispute/lib/Types.sol";
+
+// Interfaces
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 
 /// @title Events
 /// @dev Contains various events that are tested against. This contract needs to
 ///      exist until we either modularize the implementations or use a newer version of
 ///      solc that allows for referencing events from other contracts.
-contract Events {
+abstract contract Events {
     /// @dev OpenZeppelin Ownable.sol transferOwnership event
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event TransactionDeposited(address indexed from, address indexed to, uint256 indexed version, bytes opaqueData);
@@ -52,7 +55,7 @@ contract Events {
     event OutputsDeleted(uint256 indexed prevNextOutputIndex, uint256 indexed newNextOutputIndex);
 
     event Withdrawal(uint256 value, address to, address from);
-    event Withdrawal(uint256 value, address to, address from, FeeVault.WithdrawalNetwork withdrawalNetwork);
+    event Withdrawal(uint256 value, address to, address from, Types.WithdrawalNetwork withdrawalNetwork);
 
     event ETHDepositInitiated(address indexed from, address indexed to, uint256 amount, bytes data);
 
@@ -100,7 +103,15 @@ contract Events {
         bytes data
     );
 
-    event Paused(string identifier);
+    event Paused(address identifier);
 
-    event Unpaused();
+    event Unpaused(address identifier);
+
+    event BalanceChanged(address account, uint256 balance);
+
+    event ETHMigrated(address indexed lockbox, uint256 ethBalance);
+
+    event PortalMigrated(
+        address oldLockbox, address newLockbox, address oldAnchorStateRegistry, address newAnchorStateRegistry
+    );
 }

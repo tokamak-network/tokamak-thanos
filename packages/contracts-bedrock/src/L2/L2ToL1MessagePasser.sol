@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Libraries
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Burn } from "src/libraries/Burn.sol";
-import { ISemver } from "src/universal/ISemver.sol";
 
-/// @custom:proxied
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
+
+/// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000016
 /// @title L2ToL1MessagePasser
 /// @notice The L2ToL1MessagePasser is a dedicated contract where messages that are being sent from
@@ -45,11 +48,13 @@ contract L2ToL1MessagePasser is ISemver {
     );
 
     /// @notice Emitted when the balance of this contract is burned.
-    /// @param amount Amount of ETh that was burned.
+    /// @param amount Amount of ETH that was burned.
     event WithdrawerBalanceBurnt(uint256 indexed amount);
 
-    /// @custom:semver 1.1.0
-    string public constant version = "1.1.0";
+    /// @custom:semver 1.2.0
+    function version() public pure virtual returns (string memory) {
+        return "1.2.0";
+    }
 
     /// @notice Allows users to withdraw ETH by sending directly to this contract.
     receive() external payable {
@@ -70,7 +75,7 @@ contract L2ToL1MessagePasser is ISemver {
     /// @param _target   Address to call on L1 execution.
     /// @param _gasLimit Minimum gas limit for executing the message on L1.
     /// @param _data     Data to forward to L1 target.
-    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) public payable {
+    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) public payable virtual {
         bytes32 withdrawalHash = Hashing.hashWithdrawal(
             Types.WithdrawalTransaction({
                 nonce: messageNonce(),

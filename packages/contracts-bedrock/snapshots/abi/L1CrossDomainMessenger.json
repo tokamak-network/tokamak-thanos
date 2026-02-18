@@ -6,6 +6,32 @@
   },
   {
     "inputs": [],
+    "name": "ENCODING_OVERHEAD",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "FLOOR_CALLDATA_OVERHEAD",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "MESSAGE_VERSION",
     "outputs": [
       {
@@ -74,7 +100,7 @@
     "name": "PORTAL",
     "outputs": [
       {
-        "internalType": "contract OptimismPortal",
+        "internalType": "contract IOptimismPortal2",
         "name": "",
         "type": "address"
       }
@@ -135,6 +161,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "TX_BASE_GAS",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes",
@@ -178,20 +217,28 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "initVersion",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
-        "internalType": "contract SuperchainConfig",
-        "name": "_superchainConfig",
-        "type": "address"
-      },
-      {
-        "internalType": "contract OptimismPortal",
-        "name": "_portal",
-        "type": "address"
-      },
-      {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "_systemConfig",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IOptimismPortal2",
+        "name": "_portal",
         "type": "address"
       }
     ],
@@ -244,7 +291,33 @@
     "name": "portal",
     "outputs": [
       {
-        "internalType": "contract OptimismPortal",
+        "internalType": "contract IOptimismPortal2",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxyAdmin",
+    "outputs": [
+      {
+        "internalType": "contract IProxyAdmin",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxyAdminOwner",
+    "outputs": [
+      {
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
@@ -337,7 +410,7 @@
     "name": "superchainConfig",
     "outputs": [
       {
-        "internalType": "contract SuperchainConfig",
+        "internalType": "contract ISuperchainConfig",
         "name": "",
         "type": "address"
       }
@@ -350,7 +423,7 @@
     "name": "systemConfig",
     "outputs": [
       {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "",
         "type": "address"
       }
@@ -478,5 +551,40 @@
     ],
     "name": "SentMessageExtension1",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotResolvedDelegateProxy",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotSharedProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_ProxyAdminNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReinitializableBase_ZeroInitVersion",
+    "type": "error"
   }
 ]

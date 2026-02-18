@@ -39,7 +39,7 @@
     "label": "messenger",
     "offset": 0,
     "slot": "3",
-    "type": "contract CrossDomainMessenger"
+    "type": "contract ICrossDomainMessenger"
   },
   {
     "bytes": "20",
@@ -57,16 +57,23 @@
   },
   {
     "bytes": "20",
-    "label": "superchainConfig",
+    "label": "spacer_50_0_20",
     "offset": 0,
     "slot": "50",
-    "type": "contract SuperchainConfig"
+    "type": "address"
+  },
+  {
+    "bytes": "20",
+    "label": "spacer_51_0_20",
+    "offset": 0,
+    "slot": "51",
+    "type": "address"
   },
   {
     "bytes": "20",
     "label": "systemConfig",
     "offset": 0,
-    "slot": "51",
-    "type": "contract SystemConfig"
+    "slot": "52",
+    "type": "contract ISystemConfig"
   }
 ]

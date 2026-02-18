@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Testing
 import { Vm } from "forge-std/Vm.sol";
 import { StdUtils } from "forge-std/StdUtils.sol";
-import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
-import { FaultDisputeGame_Init } from "test/dispute/FaultDisputeGame.t.sol";
+import { BaseFaultDisputeGame_TestInit } from "test/dispute/FaultDisputeGame.t.sol";
 
+// Libraries
 import "src/dispute/lib/Types.sol";
 import "src/dispute/lib/Errors.sol";
 
-contract FaultDisputeGame_Solvency_Invariant is FaultDisputeGame_Init {
+// Interfaces
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+
+contract FaultDisputeGame_Solvency_Invariant is BaseFaultDisputeGame_TestInit {
     Claim internal constant ROOT_CLAIM = Claim.wrap(bytes32(uint256(10)));
     Claim internal constant ABSOLUTE_PRESTATE = Claim.wrap(bytes32((uint256(3) << 248) | uint256(0)));
 
@@ -35,11 +39,24 @@ contract FaultDisputeGame_Solvency_Invariant is FaultDisputeGame_Init {
 
         (,,, uint256 rootBond,,,) = gameProxy.claimData(0);
 
+        // Ensure the game creator has locked up the root bond.
+        assertEq(address(this).balance, type(uint96).max - rootBond);
+
         for (uint256 i = gameProxy.claimDataLen(); i > 0; i--) {
             (bool success,) = address(gameProxy).call(abi.encodeCall(gameProxy.resolveClaim, (i - 1, 0)));
             assertTrue(success);
         }
         gameProxy.resolve();
+
+        // Wait for finalization delay
+        vm.warp(block.timestamp + 3.5 days + 1 seconds);
+
+        // Close the game.
+        gameProxy.closeGame();
+
+        // Claim credit once to trigger unlock period.
+        gameProxy.claimCredit(address(this));
+        gameProxy.claimCredit(address(actor));
 
         // Wait for the withdrawal delay.
         vm.warp(block.timestamp + 7 days + 1 seconds);
@@ -59,13 +76,19 @@ contract FaultDisputeGame_Solvency_Invariant is FaultDisputeGame_Init {
         }
 
         if (gameProxy.status() == GameStatus.DEFENDER_WINS) {
+            // In the event that the defender wins, they receive their bond back. The root claim is never paid out
+            // bonds from claims below it, so the actor that has challenged the root claim (and potentially their)
+            // own receives all of their bonds back.
             assertEq(address(this).balance, type(uint96).max);
-            assertEq(address(actor).balance, actor.totalBonded() - rootBond);
+            assertEq(address(actor).balance, actor.totalBonded());
         } else if (gameProxy.status() == GameStatus.CHALLENGER_WINS) {
-            assertEq(DEFAULT_SENDER.balance, type(uint96).max - rootBond);
+            // If the defender wins, the game creator loses the root bond and the actor receives it. The actor also
+            // is the only party that may have challenged their own claims, so we expect them to receive all of them
+            // back.
+            assertEq(address(this).balance, type(uint96).max - rootBond);
             assertEq(address(actor).balance, actor.totalBonded() + rootBond);
         } else {
-            revert("unreachable");
+            revert("FaultDisputeGame_Solvency_Invariant: unreachable");
         }
 
         assertEq(address(gameProxy).balance, 0);
@@ -73,24 +96,28 @@ contract FaultDisputeGame_Solvency_Invariant is FaultDisputeGame_Init {
 }
 
 contract RandomClaimActor is StdUtils {
-    FaultDisputeGame internal immutable GAME;
+    IFaultDisputeGame internal immutable GAME;
     Vm internal immutable VM;
 
     uint256 public totalBonded;
 
-    constructor(FaultDisputeGame _gameProxy, Vm _vm) {
+    constructor(IFaultDisputeGame _gameProxy, Vm _vm) {
         GAME = _gameProxy;
         VM = _vm;
     }
 
-    function move(bool _isAttack, uint256 _parentIndex, Claim _claim, uint64 _bondAmount) public {
-        _parentIndex = bound(_parentIndex, 0, GAME.claimDataLen());
-        VM.deal(address(this), _bondAmount);
+    function move(bool _isAttack, uint256 _parentIndex, Claim _claim) public {
+        _parentIndex = bound(_parentIndex, 0, GAME.claimDataLen() - 1);
 
-        totalBonded += _bondAmount;
+        (,,,,, Position parentPos,) = GAME.claimData(_parentIndex);
+        Position nextPosition = parentPos.move(_isAttack);
+        uint256 bondAmount = GAME.getRequiredBond(nextPosition);
+
+        VM.deal(address(this), bondAmount);
+        totalBonded += bondAmount;
 
         (,,,, Claim disputed,,) = GAME.claimData(_parentIndex);
-        GAME.move{ value: _bondAmount }(disputed, _parentIndex, _claim, _isAttack);
+        GAME.move{ value: bondAmount }(disputed, _parentIndex, _claim, _isAttack);
     }
 
     fallback() external payable { }

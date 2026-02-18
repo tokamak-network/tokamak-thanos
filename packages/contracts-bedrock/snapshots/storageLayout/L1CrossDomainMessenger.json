@@ -127,23 +127,30 @@
   },
   {
     "bytes": "20",
-    "label": "superchainConfig",
+    "label": "spacer_251_0_20",
     "offset": 0,
     "slot": "251",
-    "type": "contract SuperchainConfig"
+    "type": "address"
   },
   {
     "bytes": "20",
     "label": "portal",
     "offset": 0,
     "slot": "252",
-    "type": "contract OptimismPortal"
+    "type": "contract IOptimismPortal2"
+  },
+  {
+    "bytes": "20",
+    "label": "spacer_253_0_20",
+    "offset": 0,
+    "slot": "253",
+    "type": "address"
   },
   {
     "bytes": "20",
     "label": "systemConfig",
     "offset": 0,
-    "slot": "253",
-    "type": "contract SystemConfig"
+    "slot": "254",
+    "type": "contract ISystemConfig"
   }
 ]

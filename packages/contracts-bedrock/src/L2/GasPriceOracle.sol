@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { ISemver } from "src/universal/ISemver.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { L1Block } from "src/L2/L1Block.sol";
-import { Constants } from "src/libraries/Constants.sol";
+// Libraries
 import { LibZip } from "@solady/utils/LibZip.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Constants } from "src/libraries/Constants.sol";
+import { Arithmetic } from "src/libraries/Arithmetic.sol";
 
-/// @custom:proxied
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
+
+/// @custom:proxied true
 /// @custom:predeploy 0x420000000000000000000000000000000000000F
 /// @title GasPriceOracle
 /// @notice This contract maintains the variables responsible for computing the L1 portion of the
@@ -26,8 +30,8 @@ contract GasPriceOracle is ISemver {
     uint256 public constant DECIMALS = 6;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.3.0
-    string public constant version = "1.3.0";
+    /// @custom:semver 1.6.0
+    string public constant version = "1.6.0";
 
     /// @notice This is the intercept value for the linear regression used to estimate the final size of the
     ///         compressed transaction.
@@ -46,6 +50,12 @@ contract GasPriceOracle is ISemver {
 
     /// @notice Indicates whether the network has gone through the Fjord upgrade.
     bool public isFjord;
+
+    /// @notice Indicates whether the network has gone through the Isthmus upgrade.
+    bool public isIsthmus;
+
+    /// @notice Indicates whether the network has gone through the Jovian upgrade.
+    bool public isJovian;
 
     /// @notice Computes the L1 portion of the fee based on the size of the rlp encoded input
     ///         transaction, the current L1 base fee, and the various dynamic parameters.
@@ -71,7 +81,7 @@ contract GasPriceOracle is ISemver {
 
         // Add 68 to the size to account for unsigned tx:
         uint256 txSize = _unsignedTxSize + 68;
-        // txSize / 255 + 16 is the pratical fastlz upper-bound covers %99.99 txs.
+        // txSize / 255 + 16 is the practical fastlz upper-bound covers %99.99 txs.
         uint256 flzUpperBound = txSize + txSize / 255 + 16;
 
         return _fjordL1Cost(flzUpperBound);
@@ -97,6 +107,28 @@ contract GasPriceOracle is ISemver {
         isFjord = true;
     }
 
+    /// @notice Set chain to be Isthmus chain (callable by depositor account)
+    function setIsthmus() external {
+        require(
+            msg.sender == Constants.DEPOSITOR_ACCOUNT,
+            "GasPriceOracle: only the depositor account can set isIsthmus flag"
+        );
+        require(isFjord, "GasPriceOracle: Isthmus can only be activated after Fjord");
+        require(isIsthmus == false, "GasPriceOracle: Isthmus already active");
+        isIsthmus = true;
+    }
+
+    /// @notice Set chain to be Jovian chain (callable by depositor account)
+    function setJovian() external {
+        require(
+            msg.sender == Constants.DEPOSITOR_ACCOUNT,
+            "GasPriceOracle: only the depositor account can set isJovian flag"
+        );
+        require(isIsthmus, "GasPriceOracle: Jovian can only be activated after Isthmus");
+        require(isJovian == false, "GasPriceOracle: Jovian already active");
+        isJovian = true;
+    }
+
     /// @notice Retrieves the current gas price (base fee).
     /// @return Current L2 gas price (base fee).
     function gasPrice() public view returns (uint256) {
@@ -114,7 +146,7 @@ contract GasPriceOracle is ISemver {
     /// @return Current fee overhead.
     function overhead() public view returns (uint256) {
         require(!isEcotone, "GasPriceOracle: overhead() is deprecated");
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead();
     }
 
     /// @custom:legacy
@@ -122,31 +154,31 @@ contract GasPriceOracle is ISemver {
     /// @return Current fee scalar.
     function scalar() public view returns (uint256) {
         require(!isEcotone, "GasPriceOracle: scalar() is deprecated");
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeScalar();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeScalar();
     }
 
     /// @notice Retrieves the latest known L1 base fee.
     /// @return Latest known L1 base fee.
     function l1BaseFee() public view returns (uint256) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).basefee();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).basefee();
     }
 
     /// @notice Retrieves the current blob base fee.
     /// @return Current blob base fee.
     function blobBaseFee() public view returns (uint256) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).blobBaseFee();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).blobBaseFee();
     }
 
     /// @notice Retrieves the current base fee scalar.
     /// @return Current base fee scalar.
     function baseFeeScalar() public view returns (uint32) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).baseFeeScalar();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).baseFeeScalar();
     }
 
     /// @notice Retrieves the current blob base fee scalar.
     /// @return Current blob base fee scalar.
     function blobBaseFeeScalar() public view returns (uint32) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).blobBaseFeeScalar();
+        return IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).blobBaseFeeScalar();
     }
 
     /// @custom:legacy
@@ -173,7 +205,29 @@ contract GasPriceOracle is ISemver {
         if (isEcotone) {
             return l1GasUsed;
         }
-        return l1GasUsed + L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead();
+        return l1GasUsed + IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead();
+    }
+
+    /// @notice Calculates the operator fee for a given gas usage.
+    /// @dev Formula varies based on fork activation:
+    ///      - Pre-Isthmus: Returns 0 (no operator fee)
+    ///      - Isthmus (pre-Jovian): operatorFee = (gasUsed * operatorFeeScalar / 1e6) + operatorFeeConstant
+    ///      - Jovian and after: operatorFee = (gasUsed * operatorFeeScalar * 100) + operatorFeeConstant
+    /// @param _gasUsed The amount of gas used by the transaction
+    /// @return The calculated operator fee
+    function getOperatorFee(uint256 _gasUsed) public view returns (uint256) {
+        if (!isIsthmus) {
+            return 0;
+        }
+
+        uint256 operatorScalar = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).operatorFeeScalar();
+        uint256 operatorConstant = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).operatorFeeConstant();
+
+        if (isJovian) {
+            return _gasUsed * operatorScalar * 100 + operatorConstant;
+        } else {
+            return Arithmetic.saturatingAdd(Arithmetic.saturatingMul(_gasUsed, operatorScalar) / 1e6, operatorConstant);
+        }
     }
 
     /// @notice Computation of the L1 portion of the fee for Bedrock.
@@ -181,8 +235,8 @@ contract GasPriceOracle is ISemver {
     /// @return L1 fee that should be paid for the tx
     function _getL1FeeBedrock(bytes memory _data) internal view returns (uint256) {
         uint256 l1GasUsed = _getCalldataGas(_data);
-        uint256 fee = (l1GasUsed + L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead()) * l1BaseFee()
-            * L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeScalar();
+        uint256 fee = (l1GasUsed + IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeOverhead()) * l1BaseFee()
+            * IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).l1FeeScalar();
         return fee / (10 ** DECIMALS);
     }
 

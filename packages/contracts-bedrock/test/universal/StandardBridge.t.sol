@@ -5,7 +5,6 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { OptimismMintableERC20, ILegacyMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { Constants } from "src/libraries/Constants.sol";
 
 /// @title StandardBridgeTester
 /// @notice Simple wrapper around the StandardBridge contract that exposes
@@ -21,16 +20,12 @@ contract StandardBridgeTester is StandardBridge {
         return _isCorrectTokenPair(_mintableToken, _otherToken);
     }
 
-    function gasPayingToken() internal pure override returns (address, uint8) {
-        return (Constants.ETHER, 18);
-    }
-
     receive() external payable override { }
 }
 
 /// @title LegacyMintable
 /// @notice Simple implementation of the legacy OptimismMintableERC20.
-contract LegacyMintable is ERC20, ILegacyMintableERC20 {
+contract LegacyMintable is ERC20 {
     constructor(string memory _name, string memory _ticker) ERC20(_name, _ticker) { }
 
     function l1Token() external pure returns (address) {
@@ -53,10 +48,11 @@ contract LegacyMintable is ERC20, ILegacyMintableERC20 {
     }
 }
 
-/// @title StandardBridge_Stateless_Test
-/// @notice Tests internal functions that require no existing state or contract
-///         interactions with the messenger.
-contract StandardBridge_Stateless_Test is CommonTest {
+/// @title StandardBridge_TestInit
+/// @notice Reusable test initialization for `StandardBridge` tests.
+/// @dev This setup is primarily for tests focusing on internal stateless logic or default states
+///      of the `StandardBridge` contract.
+abstract contract StandardBridge_TestInit is CommonTest {
     StandardBridgeTester internal bridge;
     OptimismMintableERC20 internal mintable;
     ERC20 internal erc20;
@@ -78,11 +74,23 @@ contract StandardBridge_Stateless_Test is CommonTest {
         erc20 = new ERC20("Altcoin", "ALT");
         legacy = new LegacyMintable("Legacy", "LEG");
     }
+}
 
-    /// @notice Test coverage for identifying OptimismMintableERC20 tokens.
-    ///         This function should return true for both modern and legacy
-    ///         OptimismMintableERC20 tokens and false for any accounts that
-    ///         do not implement the interface.
+/// @title StandardBridge_Paused_Test
+/// @notice Tests the `paused` function of the `StandardBridge` contract.
+contract StandardBridge_Paused_Test is StandardBridge_TestInit {
+    /// @notice The bridge by default should be unpaused.
+    function test_paused_succeeds() external view {
+        assertFalse(bridge.paused());
+    }
+}
+
+/// @title StandardBridge_IsOptimismMintableERC20_Test
+/// @notice Tests the `_isOptimismMintableERC20` internal function of `StandardBridge`.
+contract StandardBridge_IsOptimismMintableERC20_Test is StandardBridge_TestInit {
+    /// @notice Test coverage for identifying OptimismMintableERC20 tokens. This function should
+    ///         return true for both modern and legacy OptimismMintableERC20 tokens and false for
+    ///         any accounts that do not implement the interface.
     function test_isOptimismMintableERC20_succeeds() external view {
         // Both the modern and legacy mintable tokens should return true
         assertTrue(bridge.isOptimismMintableERC20(address(mintable)));
@@ -93,9 +101,12 @@ contract StandardBridge_Stateless_Test is CommonTest {
         assertEq(address(0x20).code.length, 0);
         assertFalse(bridge.isOptimismMintableERC20(address(0x20)));
     }
+}
 
-    /// @notice Test coverage of isCorrectTokenPair under different types of
-    ///         tokens.
+/// @title StandardBridge_IsCorrectTokenPair_Test
+/// @notice Tests the `_isCorrectTokenPair` internal function of `StandardBridge`.
+contract StandardBridge_IsCorrectTokenPair_Test is StandardBridge_TestInit {
+    /// @notice Test coverage of `isCorrectTokenPair` under different types of tokens.
     function test_isCorrectTokenPair_succeeds() external {
         // Modern + known to be correct remote token
         assertTrue(bridge.isCorrectTokenPair(address(mintable), mintable.remoteToken()));
@@ -109,14 +120,8 @@ contract StandardBridge_Stateless_Test is CommonTest {
         // Legacy + known to be incorrect l1Token
         assertTrue(legacy.l1Token() != address(0x20));
         assertFalse(bridge.isCorrectTokenPair(address(legacy), address(0x20)));
-        // A token that doesn't support either modern or legacy interface
-        // will revert
+        // A token that doesn't support either modern or legacy interface will revert
         vm.expectRevert(bytes(""));
         bridge.isCorrectTokenPair(address(erc20), address(1));
-    }
-
-    /// @notice The bridge by default should be unpaused.
-    function test_paused_succeeds() external view {
-        assertFalse(bridge.paused());
     }
 }

@@ -1,51 +1,76 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
+import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { ERC721Bridge } from "src/universal/ERC721Bridge.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
-import { ISemver } from "src/universal/ISemver.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
-import { StandardBridge } from "src/universal/StandardBridge.sol";
-import { Constants } from "src/libraries/Constants.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
+
+/// @custom:proxied true
 /// @title L1ERC721Bridge
 /// @notice The L1 ERC721 bridge is a contract which works together with the L2 ERC721 bridge to
 ///         make it possible to transfer ERC721 tokens from Ethereum to Optimism. This contract
 ///         acts as an escrow for ERC721 tokens deposited into L2.
-contract L1ERC721Bridge is ERC721Bridge, ISemver {
+contract L1ERC721Bridge is ERC721Bridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
     /// @notice Mapping of L1 token to L2 token to ID to boolean, indicating if the given L1 token
     ///         by ID was deposited for a given L2 token.
     mapping(address => mapping(address => mapping(uint256 => bool))) public deposits;
 
-    /// @notice Address of the SuperchainConfig contract.
-    SuperchainConfig public superchainConfig;
+    /// @custom:legacy
+    /// @custom:spacer superchainConfig
+    /// @notice Spacer taking up the legacy `superchainConfig` slot.
+    address private spacer_50_0_20;
 
     /// @notice Semantic version.
-    /// @custom:semver 2.1.0
-    string public constant version = "2.1.0";
+    /// @custom:semver 2.9.0
+    string public constant version = "2.9.0";
+
+    /// @notice Address of the SystemConfig contract.
+    ISystemConfig public systemConfig;
 
     /// @notice Constructs the L1ERC721Bridge contract.
-    constructor() ERC721Bridge() {
-        initialize({ _messenger: CrossDomainMessenger(address(0)), _superchainConfig: SuperchainConfig(address(0)) });
+    constructor() ERC721Bridge() ReinitializableBase(3) {
+        _disableInitializers();
     }
 
     /// @notice Initializes the contract.
     /// @param _messenger   Contract of the CrossDomainMessenger on this network.
-    /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
-    function initialize(CrossDomainMessenger _messenger, SuperchainConfig _superchainConfig) public initializer {
-        superchainConfig = _superchainConfig;
-        __ERC721Bridge_init({
-            _messenger: _messenger,
-            _otherBridge: StandardBridge(payable(Predeploys.L2_ERC721_BRIDGE))
-        });
+    /// @param _systemConfig Contract of the SystemConfig contract on this network.
+    function initialize(
+        ICrossDomainMessenger _messenger,
+        ISystemConfig _systemConfig
+    )
+        external
+        reinitializer(initVersion())
+    {
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        // Now perform initialization logic.
+        systemConfig = _systemConfig;
+        __ERC721Bridge_init({ _messenger: _messenger, _otherBridge: ERC721Bridge(payable(Predeploys.L2_ERC721_BRIDGE)) });
     }
 
     /// @inheritdoc ERC721Bridge
     function paused() public view override returns (bool) {
-        return superchainConfig.paused();
+        return systemConfig.paused();
+    }
+
+    /// @notice Returns the SuperchainConfig contract.
+    /// @return ISuperchainConfig The SuperchainConfig contract.
+    function superchainConfig() public view returns (ISuperchainConfig) {
+        return systemConfig.superchainConfig();
     }
 
     /// @notice Completes an ERC721 bridge from the other domain and sends the ERC721 token to the
@@ -106,8 +131,8 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
         require(_remoteToken != address(0), "L1ERC721Bridge: remote token cannot be address(0)");
 
         // Construct calldata for _l2Token.finalizeBridgeERC721(_to, _tokenId)
-        bytes memory message = abi.encodeWithSelector(
-            L2ERC721Bridge.finalizeBridgeERC721.selector, _remoteToken, _localToken, _from, _to, _tokenId, _extraData
+        bytes memory message = abi.encodeCall(
+            IL2ERC721Bridge.finalizeBridgeERC721, (_remoteToken, _localToken, _from, _to, _tokenId, _extraData)
         );
 
         // Lock token into bridge

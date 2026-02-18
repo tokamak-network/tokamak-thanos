@@ -1,51 +1,83 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Testing
 import { console2 as console } from "forge-std/console2.sol";
+import { Vm, VmSafe } from "forge-std/Vm.sol";
+import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
+import { FeatureFlags } from "test/setup/FeatureFlags.sol";
+
+// Scripts
+import { Deploy } from "scripts/deploy/Deploy.s.sol";
+import { ForkLive } from "test/setup/ForkLive.s.sol";
+import { Fork, LATEST_FORK } from "scripts/libraries/Config.sol";
+import { L2Genesis } from "scripts/L2Genesis.s.sol";
+import { Fork, ForkUtils } from "scripts/libraries/Config.sol";
+import { Artifacts } from "scripts/Artifacts.s.sol";
+import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { Config } from "scripts/libraries/Config.sol";
+
+// Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
-import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
-import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
-import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
-import { L2ERC721Bridge } from "src/L2/L2ERC721Bridge.sol";
-import { BaseFeeVault } from "src/L2/BaseFeeVault.sol";
-import { SequencerFeeVault } from "src/L2/SequencerFeeVault.sol";
-import { L1FeeVault } from "src/L2/L1FeeVault.sol";
-import { GasPriceOracle } from "src/L2/GasPriceOracle.sol";
-import { L1Block } from "src/L2/L1Block.sol";
-import { LegacyMessagePasser } from "src/legacy/LegacyMessagePasser.sol";
-import { GovernanceToken } from "src/governance/GovernanceToken.sol";
-import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
-import { StandardBridge } from "src/universal/StandardBridge.sol";
-import { FeeVault } from "src/universal/FeeVault.sol";
-import { OptimismPortal } from "src/L1/OptimismPortal.sol";
-import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
-import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
-import { DelayedWETH } from "src/dispute/weth/DelayedWETH.sol";
-import { AnchorStateRegistry } from "src/dispute/AnchorStateRegistry.sol";
-import { L1CrossDomainMessenger } from "src/L1/L1CrossDomainMessenger.sol";
-import { DeployConfig } from "scripts/DeployConfig.s.sol";
-import { Deploy } from "scripts/Deploy.s.sol";
-import { L2Genesis, L1Dependencies, OutputMode } from "scripts/L2Genesis.s.sol";
-import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
-import { ProtocolVersions } from "src/L1/ProtocolVersions.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { L1StandardBridge } from "src/L1/L1StandardBridge.sol";
-import { AddressManager } from "src/legacy/AddressManager.sol";
-import { L1ERC721Bridge } from "src/L1/L1ERC721Bridge.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { Executables } from "scripts/Executables.sol";
-import { Vm } from "forge-std/Vm.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
-import { DataAvailabilityChallenge } from "src/L1/DataAvailabilityChallenge.sol";
-import { WETH } from "src/L2/WETH.sol";
+import { Chains } from "scripts/libraries/Chains.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
+
+// Interfaces
+import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IDataAvailabilityChallenge } from "interfaces/L1/IDataAvailabilityChallenge.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
+import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
+import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
+import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
+import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
+import { IL2StandardBridgeInterop } from "interfaces/L2/IL2StandardBridgeInterop.sol";
+import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
+import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
+import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
+import { IOptimismSuperchainERC20Factory } from "interfaces/L2/IOptimismSuperchainERC20Factory.sol";
+import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
+import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
+import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
+import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
+import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
+import { ISuperchainETHBridge } from "interfaces/L2/ISuperchainETHBridge.sol";
+import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IWETH98 } from "interfaces/universal/IWETH98.sol";
+import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
+import { ILegacyMessagePasser } from "interfaces/legacy/ILegacyMessagePasser.sol";
+import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
+import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
 ///      sets the L2 contracts directly at the predeploy addresses instead of setting them
 ///      up behind proxies. In the future we will migrate to importing the genesis JSON
 ///      file that is created to set up the L2 contracts instead of setting them up manually.
-contract Setup {
+abstract contract Setup is FeatureFlags {
+    using ForkUtils for Fork;
+
     /// @notice The address of the foundry Vm contract.
     Vm private constant vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
@@ -53,62 +85,175 @@ contract Setup {
     ///         mutating any nonces. MUST not have constructor logic.
     Deploy internal constant deploy = Deploy(address(uint160(uint256(keccak256(abi.encode("optimism.deploy"))))));
 
+    /// @notice The address of the ForkLive contract. Set into state with `etch` to avoid
+    ///         mutating any nonces. MUST not have constructor logic.
+    ForkLive internal constant forkLive =
+        ForkLive(address(uint160(uint256(keccak256(abi.encode("optimism.forklive"))))));
+
+    /// @notice The address of the Artifacts contract. Set into state by Deployer.setUp() with `etch` to avoid
+    ///         mutating any nonces. MUST not have constructor logic.
+    Artifacts public constant artifacts =
+        Artifacts(address(uint160(uint256(keccak256(abi.encode("optimism.artifacts"))))));
+
     L2Genesis internal constant l2Genesis =
         L2Genesis(address(uint160(uint256(keccak256(abi.encode("optimism.l2genesis"))))));
 
-    // @notice Allows users of Setup to override what L2 genesis is being created.
-    OutputMode l2OutputMode = OutputMode.LOCAL_LATEST;
+    /// @notice Allows users of Setup to override what L2 genesis is being created.
+    Fork l2Fork = LATEST_FORK;
 
-    OptimismPortal optimismPortal;
-    OptimismPortal2 optimismPortal2;
-    DisputeGameFactory disputeGameFactory;
-    DelayedWETH delayedWeth;
-    L2OutputOracle l2OutputOracle;
-    SystemConfig systemConfig;
-    L1StandardBridge l1StandardBridge;
-    L1CrossDomainMessenger l1CrossDomainMessenger;
-    AddressManager addressManager;
-    L1ERC721Bridge l1ERC721Bridge;
-    OptimismMintableERC20Factory l1OptimismMintableERC20Factory;
-    ProtocolVersions protocolVersions;
-    SuperchainConfig superchainConfig;
-    DataAvailabilityChallenge dataAvailabilityChallenge;
-    AnchorStateRegistry anchorStateRegistry;
+    // L1 contracts - dispute
+    IDisputeGameFactory disputeGameFactory;
+    IAnchorStateRegistry anchorStateRegistry;
+    IFaultDisputeGame faultDisputeGame;
+    IDelayedWETH delayedWeth;
+    IPermissionedDisputeGame permissionedDisputeGame;
+    IDelayedWETH delayedWETHPermissionedGameProxy;
 
-    L2CrossDomainMessenger l2CrossDomainMessenger =
-        L2CrossDomainMessenger(payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER));
-    L2StandardBridge l2StandardBridge = L2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
-    L2ToL1MessagePasser l2ToL1MessagePasser = L2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER));
-    OptimismMintableERC20Factory l2OptimismMintableERC20Factory =
-        OptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
-    L2ERC721Bridge l2ERC721Bridge = L2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE);
-    BaseFeeVault baseFeeVault = BaseFeeVault(payable(Predeploys.BASE_FEE_VAULT));
-    SequencerFeeVault sequencerFeeVault = SequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
-    L1FeeVault l1FeeVault = L1FeeVault(payable(Predeploys.L1_FEE_VAULT));
-    GasPriceOracle gasPriceOracle = GasPriceOracle(Predeploys.GAS_PRICE_ORACLE);
-    L1Block l1Block = L1Block(Predeploys.L1_BLOCK_ATTRIBUTES);
-    LegacyMessagePasser legacyMessagePasser = LegacyMessagePasser(Predeploys.LEGACY_MESSAGE_PASSER);
-    GovernanceToken governanceToken = GovernanceToken(Predeploys.GOVERNANCE_TOKEN);
-    WETH weth = WETH(payable(Predeploys.WETH));
+    // L1 contracts - core
+    address proxyAdminOwner;
+    IProxyAdmin proxyAdmin;
+    address superchainProxyAdminOwner;
+    IProxyAdmin superchainProxyAdmin;
+    IOptimismPortal optimismPortal2;
+    IETHLockbox ethLockbox;
+    ISystemConfig systemConfig;
+    IL1StandardBridge l1StandardBridge;
+    IL1CrossDomainMessenger l1CrossDomainMessenger;
+    IAddressManager addressManager;
+    IL1ERC721Bridge l1ERC721Bridge;
+    IOptimismMintableERC20Factory l1OptimismMintableERC20Factory;
+    IProtocolVersions protocolVersions;
+    ISuperchainConfig superchainConfig;
+    IDataAvailabilityChallenge dataAvailabilityChallenge;
+    IOPContractsManager opcm;
+    IOPContractsManagerV2 opcmV2;
+    IBigStepper mips;
 
-    /// @dev Deploys the Deploy contract without including its bytecode in the bytecode
-    ///      of this contract by fetching the bytecode dynamically using `vm.getCode()`.
-    ///      If the Deploy bytecode is included in this contract, then it will double
+    // L2 contracts
+    ICrossL2Inbox crossL2Inbox = ICrossL2Inbox(payable(Predeploys.CROSS_L2_INBOX));
+    IL2CrossDomainMessenger l2CrossDomainMessenger =
+        IL2CrossDomainMessenger(payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER));
+    IL2StandardBridgeInterop l2StandardBridge = IL2StandardBridgeInterop(payable(Predeploys.L2_STANDARD_BRIDGE));
+    IL2ToL1MessagePasser l2ToL1MessagePasser = IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER));
+    IOptimismMintableERC20Factory l2OptimismMintableERC20Factory =
+        IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+    IL2ERC721Bridge l2ERC721Bridge = IL2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE);
+    IOptimismMintableERC721Factory l2OptimismMintableERC721Factory =
+        IOptimismMintableERC721Factory(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
+    IBaseFeeVault baseFeeVault = IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT));
+    ISequencerFeeVault sequencerFeeVault = ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
+    IL1FeeVault l1FeeVault = IL1FeeVault(payable(Predeploys.L1_FEE_VAULT));
+    IOperatorFeeVault operatorFeeVault = IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
+    IGasPriceOracle gasPriceOracle = IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE);
+    IL1Block l1Block = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES);
+    IGovernanceToken governanceToken = IGovernanceToken(Predeploys.GOVERNANCE_TOKEN);
+    ILegacyMessagePasser legacyMessagePasser = ILegacyMessagePasser(Predeploys.LEGACY_MESSAGE_PASSER);
+    IWETH98 weth = IWETH98(payable(Predeploys.WETH));
+    ISuperchainETHBridge superchainETHBridge = ISuperchainETHBridge(payable(Predeploys.SUPERCHAIN_ETH_BRIDGE));
+    IETHLiquidity ethLiquidity = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
+    ISuperchainTokenBridge superchainTokenBridge = ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+    IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
+        IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
+    ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+    INativeAssetLiquidity nativeAssetLiquidity = INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY);
+    IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
+    IL1Withdrawer l1Withdrawer;
+    ISuperchainRevSharesCalculator superchainRevSharesCalculator;
+
+    /// @notice Indicates whether a test is running against a forked production network.
+    function isForkTest() public view returns (bool) {
+        return Config.forkTest();
+    }
+
+    /// @notice Indicates whether a test is running against a forked network that is OP.
+    function isOpFork() public view returns (bool) {
+        string memory opChain = Config.forkOpChain();
+        return keccak256(bytes(opChain)) == keccak256(bytes("op"));
+    }
+
+    /// @dev Deploys either the Deploy.s.sol or Fork.s.sol contract, by fetching the bytecode dynamically using
+    ///      `vm.getDeployedCode()` and etching it into the state.
+    ///      This enables us to avoid including the bytecode of those contracts in the bytecode of this contract.
+    ///      If the bytecode of those contracts was included in this contract, then it will double
     ///      the compile time and bloat all of the test contract artifacts since they
     ///      will also need to include the bytecode for the Deploy contract.
     ///      This is a hack as we are pushing solidity to the edge.
     function setUp() public virtual {
-        console.log("L1 setup start!");
-        vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
-        vm.allowCheatcodes(address(deploy));
-        deploy.setUp();
-        console.log("L1 setup done!");
+        console.log("Setup: L1 setup start!");
 
-        console.log("L2 setup start!");
+        if (isForkTest()) {
+            vm.createSelectFork(Config.forkRpcUrl(), Config.forkBlockNumber());
+            console.log("Setup: fork selected!");
+            require(
+                block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
+                "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
+            );
+        }
+
+        // Etch the contracts used to setup the test environment
+        DeployUtils.etchLabelAndAllowCheatcodes({ _etchTo: address(deploy), _cname: "Deploy" });
+        DeployUtils.etchLabelAndAllowCheatcodes({ _etchTo: address(forkLive), _cname: "ForkLive" });
+
+        deploy.setUp();
+        forkLive.setUp();
+
+        resolveFeaturesFromEnv();
+        deploy.cfg().setDevFeatureBitmap(devFeatureBitmap);
+
+        console.log("Setup: L1 setup done!");
+
+        if (isForkTest()) {
+            // Return early if this is a fork test as we don't need to setup L2
+            console.log("Setup: fork test detected, skipping L2 genesis generation");
+            return;
+        }
+
+        console.log("Setup: L2 setup start!");
         vm.etch(address(l2Genesis), vm.getDeployedCode("L2Genesis.s.sol:L2Genesis"));
         vm.allowCheatcodes(address(l2Genesis));
-        l2Genesis.setUp();
-        console.log("L2 setup done!");
+        console.log("Setup: L2 setup done!");
+    }
+
+    /// @dev Skips tests when running in coverage mode.
+    function skipIfCoverage() public {
+        if (vm.isContext(VmSafe.ForgeContext.Coverage)) {
+            vm.skip(true);
+        }
+    }
+
+    /// @dev Skips tests when running against a forked production network.
+    function skipIfForkTest(string memory message) public {
+        if (isForkTest()) {
+            vm.skip(true);
+            console.log(string.concat("Skipping fork test: ", message));
+        }
+    }
+
+    /// @dev Skips tests when not running against forked production network.
+    function skipIfNotForkTest(string memory message) public {
+        if (!isForkTest()) {
+            vm.skip(true);
+            console.log(string.concat("Skipping non-fork test: ", message));
+        }
+    }
+
+    /// @dev Skips tests when running against a forked production network using the superchain ops repo.
+    function skipIfOpsRepoTest(string memory message) public {
+        if (forkLive.useOpsRepo()) {
+            vm.skip(true);
+            console.log(string.concat("Skipping ops repo test: ", message));
+        }
+    }
+
+    /// @dev Returns early when running against a forked production network. Useful for allowing a portion of a test
+    ///      to run.
+    function returnIfForkTest(string memory message) public view {
+        if (isForkTest()) {
+            console.log(string.concat("Returning early from fork test: ", message));
+            assembly {
+                return(0, 0)
+            }
+        }
     }
 
     /// @dev Sets up the L1 contracts.
@@ -120,70 +265,113 @@ contract Setup {
             hex"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3"
         );
 
-        deploy.run();
+        if (isForkTest()) {
+            forkLive.run();
+        } else {
+            deploy.run();
+        }
+
         console.log("Setup: completed L1 deployment, registering addresses now");
 
-        optimismPortal = OptimismPortal(deploy.mustGetAddress("OptimismPortalProxy"));
-        optimismPortal2 = OptimismPortal2(deploy.mustGetAddress("OptimismPortalProxy"));
-        disputeGameFactory = DisputeGameFactory(deploy.mustGetAddress("DisputeGameFactoryProxy"));
-        delayedWeth = DelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
-        l2OutputOracle = L2OutputOracle(deploy.mustGetAddress("L2OutputOracleProxy"));
-        systemConfig = SystemConfig(deploy.mustGetAddress("SystemConfigProxy"));
-        l1StandardBridge = L1StandardBridge(deploy.mustGetAddress("L1StandardBridgeProxy"));
-        l1CrossDomainMessenger = L1CrossDomainMessenger(deploy.mustGetAddress("L1CrossDomainMessengerProxy"));
-        addressManager = AddressManager(deploy.mustGetAddress("AddressManager"));
-        l1ERC721Bridge = L1ERC721Bridge(deploy.mustGetAddress("L1ERC721BridgeProxy"));
-        l1OptimismMintableERC20Factory =
-            OptimismMintableERC20Factory(deploy.mustGetAddress("OptimismMintableERC20FactoryProxy"));
-        protocolVersions = ProtocolVersions(deploy.mustGetAddress("ProtocolVersionsProxy"));
-        superchainConfig = SuperchainConfig(deploy.mustGetAddress("SuperchainConfigProxy"));
-        anchorStateRegistry = AnchorStateRegistry(deploy.mustGetAddress("AnchorStateRegistryProxy"));
+        optimismPortal2 = IOptimismPortal(artifacts.mustGetAddress("OptimismPortalProxy"));
 
-        vm.label(address(l2OutputOracle), "L2OutputOracle");
-        vm.label(deploy.mustGetAddress("L2OutputOracleProxy"), "L2OutputOracleProxy");
-        vm.label(address(optimismPortal), "OptimismPortal");
-        vm.label(deploy.mustGetAddress("OptimismPortalProxy"), "OptimismPortalProxy");
-        vm.label(address(disputeGameFactory), "DisputeGameFactory");
-        vm.label(deploy.mustGetAddress("DisputeGameFactoryProxy"), "DisputeGameFactoryProxy");
-        vm.label(address(delayedWeth), "DelayedWETH");
-        vm.label(deploy.mustGetAddress("DelayedWETHProxy"), "DelayedWETHProxy");
-        vm.label(address(systemConfig), "SystemConfig");
-        vm.label(deploy.mustGetAddress("SystemConfigProxy"), "SystemConfigProxy");
-        vm.label(address(l1StandardBridge), "L1StandardBridge");
-        vm.label(deploy.mustGetAddress("L1StandardBridgeProxy"), "L1StandardBridgeProxy");
-        vm.label(address(l1CrossDomainMessenger), "L1CrossDomainMessenger");
-        vm.label(deploy.mustGetAddress("L1CrossDomainMessengerProxy"), "L1CrossDomainMessengerProxy");
-        vm.label(address(addressManager), "AddressManager");
-        vm.label(address(l1ERC721Bridge), "L1ERC721Bridge");
-        vm.label(deploy.mustGetAddress("L1ERC721BridgeProxy"), "L1ERC721BridgeProxy");
-        vm.label(address(l1OptimismMintableERC20Factory), "OptimismMintableERC20Factory");
-        vm.label(deploy.mustGetAddress("OptimismMintableERC20FactoryProxy"), "OptimismMintableERC20FactoryProxy");
-        vm.label(address(protocolVersions), "ProtocolVersions");
-        vm.label(deploy.mustGetAddress("ProtocolVersionsProxy"), "ProtocolVersionsProxy");
-        vm.label(address(superchainConfig), "SuperchainConfig");
-        vm.label(deploy.mustGetAddress("SuperchainConfigProxy"), "SuperchainConfigProxy");
-        vm.label(AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger)), "L1CrossDomainMessenger_aliased");
-
-        if (deploy.cfg().usePlasma()) {
-            dataAvailabilityChallenge =
-                DataAvailabilityChallenge(deploy.mustGetAddress("DataAvailabilityChallengeProxy"));
-            vm.label(address(dataAvailabilityChallenge), "DataAvailabilityChallengeProxy");
-            vm.label(deploy.mustGetAddress("DataAvailabilityChallenge"), "DataAvailabilityChallenge");
+        // Only skip ETHLockbox assignment if we're in a fork test with non-upgraded fork
+        // TODO(#14691): Remove this check once Upgrade 15 is deployed on Mainnet.
+        if (!isForkTest() || deploy.cfg().useUpgradedFork()) {
+            // Here we use getAddress instead of mustGetAddress because some chains might not have
+            // the ETHLockbox proxy. Chains that don't have the ETHLockbox proxy will just return
+            // address(0) and cause a revert if we use mustGetAddress.
+            ethLockbox = IETHLockbox(artifacts.getAddress("ETHLockboxProxy"));
         }
+
+        systemConfig = ISystemConfig(artifacts.mustGetAddress("SystemConfigProxy"));
+        l1StandardBridge = IL1StandardBridge(artifacts.mustGetAddress("L1StandardBridgeProxy"));
+        l1CrossDomainMessenger = IL1CrossDomainMessenger(artifacts.mustGetAddress("L1CrossDomainMessengerProxy"));
+        vm.label(
+            AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger)), "L1CrossDomainMessengerProxy_aliased"
+        );
+        addressManager = IAddressManager(artifacts.mustGetAddress("AddressManager"));
+        l1ERC721Bridge = IL1ERC721Bridge(artifacts.mustGetAddress("L1ERC721BridgeProxy"));
+        l1OptimismMintableERC20Factory =
+            IOptimismMintableERC20Factory(artifacts.mustGetAddress("OptimismMintableERC20FactoryProxy"));
+        protocolVersions = IProtocolVersions(artifacts.mustGetAddress("ProtocolVersionsProxy"));
+        superchainConfig = ISuperchainConfig(artifacts.mustGetAddress("SuperchainConfigProxy"));
+        anchorStateRegistry = IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy"));
+        disputeGameFactory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
+        delayedWeth = IDelayedWETH(artifacts.mustGetAddress("DelayedWETHProxy"));
+        if (isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
+            opcmV2 = IOPContractsManagerV2(artifacts.mustGetAddress("OPContractsManagerV2"));
+        } else {
+            opcm = IOPContractsManager(artifacts.mustGetAddress("OPContractsManager"));
+        }
+        proxyAdmin = IProxyAdmin(artifacts.mustGetAddress("ProxyAdmin"));
+        proxyAdminOwner = proxyAdmin.owner();
+        superchainProxyAdmin = IProxyAdmin(EIP1967Helper.getAdmin(address(superchainConfig)));
+        superchainProxyAdminOwner = superchainProxyAdmin.owner();
+        mips = IBigStepper(artifacts.mustGetAddress("MipsSingleton"));
+
+        if (deploy.cfg().useAltDA()) {
+            dataAvailabilityChallenge =
+                IDataAvailabilityChallenge(artifacts.mustGetAddress("DataAvailabilityChallengeProxy"));
+        }
+
         console.log("Setup: registered L1 deployments");
+
+        // Update the SystemConfig address.
+        setSystemConfig(systemConfig);
     }
 
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
-        console.log("Setup: creating L2 genesis, with output mode %d", uint256(l2OutputMode));
-        l2Genesis.runWithOptions(
-            l2OutputMode,
-            L1Dependencies({
+        // Fork tests focus on L1 contracts so there is no need to do all the work of setting up L2.
+        if (isForkTest()) {
+            console.log("Setup: fork test detected, skipping L2 setup");
+            return;
+        }
+
+        console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
+        l2Genesis.run(
+            L2Genesis.Input({
+                l1ChainID: deploy.cfg().l1ChainID(),
+                l2ChainID: deploy.cfg().l2ChainID(),
                 l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
                 l1StandardBridgeProxy: payable(address(l1StandardBridge)),
-                l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
+                l1ERC721BridgeProxy: payable(address(l1ERC721Bridge)),
+                opChainProxyAdminOwner: deploy.cfg().proxyAdminOwner(),
+                sequencerFeeVaultRecipient: deploy.cfg().sequencerFeeVaultRecipient(),
+                sequencerFeeVaultMinimumWithdrawalAmount: deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount(),
+                sequencerFeeVaultWithdrawalNetwork: deploy.cfg().sequencerFeeVaultWithdrawalNetwork(),
+                baseFeeVaultRecipient: deploy.cfg().baseFeeVaultRecipient(),
+                baseFeeVaultMinimumWithdrawalAmount: deploy.cfg().baseFeeVaultMinimumWithdrawalAmount(),
+                baseFeeVaultWithdrawalNetwork: deploy.cfg().baseFeeVaultWithdrawalNetwork(),
+                l1FeeVaultRecipient: deploy.cfg().l1FeeVaultRecipient(),
+                l1FeeVaultMinimumWithdrawalAmount: deploy.cfg().l1FeeVaultMinimumWithdrawalAmount(),
+                l1FeeVaultWithdrawalNetwork: deploy.cfg().l1FeeVaultWithdrawalNetwork(),
+                operatorFeeVaultRecipient: deploy.cfg().operatorFeeVaultRecipient(),
+                operatorFeeVaultMinimumWithdrawalAmount: deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount(),
+                operatorFeeVaultWithdrawalNetwork: deploy.cfg().operatorFeeVaultWithdrawalNetwork(),
+                governanceTokenOwner: deploy.cfg().governanceTokenOwner(),
+                fork: uint256(l2Fork),
+                deployCrossL2Inbox: deploy.cfg().useInterop(),
+                enableGovernance: deploy.cfg().enableGovernance(),
+                fundDevAccounts: deploy.cfg().fundDevAccounts(),
+                useRevenueShare: deploy.cfg().useRevenueShare(),
+                chainFeesRecipient: deploy.cfg().chainFeesRecipient(),
+                l1FeesDepositor: deploy.cfg().l1FeesDepositor(),
+                useCustomGasToken: deploy.cfg().useCustomGasToken(),
+                gasPayingTokenName: deploy.cfg().gasPayingTokenName(),
+                gasPayingTokenSymbol: deploy.cfg().gasPayingTokenSymbol(),
+                nativeAssetLiquidityAmount: deploy.cfg().nativeAssetLiquidityAmount(),
+                liquidityControllerOwner: deploy.cfg().liquidityControllerOwner()
             })
         );
+
+        if (deploy.cfg().useRevenueShare()) {
+            superchainRevSharesCalculator = ISuperchainRevSharesCalculator(
+                address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator())
+            );
+            l1Withdrawer = IL1Withdrawer(superchainRevSharesCalculator.shareRecipient());
+        }
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
@@ -197,8 +385,10 @@ contract Setup {
         labelPredeploy(Predeploys.L2_TO_L1_MESSAGE_PASSER);
         labelPredeploy(Predeploys.SEQUENCER_FEE_WALLET);
         labelPredeploy(Predeploys.L2_ERC721_BRIDGE);
+        labelPredeploy(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
         labelPredeploy(Predeploys.BASE_FEE_VAULT);
         labelPredeploy(Predeploys.L1_FEE_VAULT);
+        labelPredeploy(Predeploys.OPERATOR_FEE_VAULT);
         labelPredeploy(Predeploys.L1_BLOCK_ATTRIBUTES);
         labelPredeploy(Predeploys.GAS_PRICE_ORACLE);
         labelPredeploy(Predeploys.LEGACY_MESSAGE_PASSER);
@@ -206,6 +396,14 @@ contract Setup {
         labelPredeploy(Predeploys.EAS);
         labelPredeploy(Predeploys.SCHEMA_REGISTRY);
         labelPredeploy(Predeploys.WETH);
+        labelPredeploy(Predeploys.SUPERCHAIN_ETH_BRIDGE);
+        labelPredeploy(Predeploys.ETH_LIQUIDITY);
+        labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
+        labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON);
+        labelPredeploy(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+        labelPredeploy(Predeploys.NATIVE_ASSET_LIQUIDITY);
+        labelPredeploy(Predeploys.LIQUIDITY_CONTROLLER);
+        labelPredeploy(Predeploys.FEE_SPLITTER);
 
         // L2 Preinstalls
         labelPreinstall(Preinstalls.MultiCall3);
@@ -217,9 +415,13 @@ contract Setup {
         labelPreinstall(Preinstalls.DeterministicDeploymentProxy);
         labelPreinstall(Preinstalls.MultiSend_v130);
         labelPreinstall(Preinstalls.Permit2);
-        labelPreinstall(Preinstalls.SenderCreator);
-        labelPreinstall(Preinstalls.EntryPoint);
+        labelPreinstall(Preinstalls.SenderCreator_v060);
+        labelPreinstall(Preinstalls.EntryPoint_v060);
+        labelPreinstall(Preinstalls.SenderCreator_v070);
+        labelPreinstall(Preinstalls.EntryPoint_v070);
         labelPreinstall(Preinstalls.BeaconBlockRoots);
+        labelPreinstall(Preinstalls.HistoryStorage);
+        labelPreinstall(Preinstalls.CreateX);
 
         console.log("Setup: completed L2 genesis");
     }

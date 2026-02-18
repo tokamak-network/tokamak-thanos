@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { DeploymentSummary } from "./utils/DeploymentSummary.sol";
+import { DeploymentSummaryFaultProofs } from "./utils/DeploymentSummaryFaultProofs.sol";
 import { KontrolUtils } from "./utils/KontrolUtils.sol";
-import {
-    IL1CrossDomainMessenger as L1CrossDomainMessenger,
-    ISuperchainConfig as SuperchainConfig
-} from "./interfaces/KontrolInterfaces.sol";
+import { IL1CrossDomainMessenger as L1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
+import { ISuperchainConfig as SuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
-contract L1CrossDomainMessengerKontrol is DeploymentSummary, KontrolUtils {
+contract L1CrossDomainMessengerKontrol is DeploymentSummaryFaultProofs, KontrolUtils {
     L1CrossDomainMessenger l1CrossDomainMessenger;
     SuperchainConfig superchainConfig;
 
@@ -33,7 +31,7 @@ contract L1CrossDomainMessengerKontrol is DeploymentSummary, KontrolUtils {
 
         // Pause System
         vm.prank(superchainConfig.guardian());
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         vm.expectRevert("CrossDomainMessenger: paused");
         l1CrossDomainMessenger.relayMessage(_nonce, _sender, _target, _value, _gas, _message);

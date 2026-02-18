@@ -1,28 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Testing
 import { StdUtils } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
-
-import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
-import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { ResourceMetering } from "src/L1/ResourceMetering.sol";
-import { Constants } from "src/libraries/Constants.sol";
-
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
-import { Types } from "src/libraries/Types.sol";
+import { DisputeGameFactory_TestInit } from "test/dispute/DisputeGameFactory.t.sol";
 
-import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
+// Contracts
+import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+
+// Libraries
+import { Constants } from "src/libraries/Constants.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Features } from "src/libraries/Features.sol";
 import "src/dispute/lib/Types.sol";
+
+// Interfaces
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 
 contract OptimismPortal2_Depositor is StdUtils, ResourceMetering {
     Vm internal vm;
-    OptimismPortal2 internal portal;
+    IOptimismPortal2 internal portal;
     bool public failedToComplete;
 
-    constructor(Vm _vm, OptimismPortal2 _portal) {
+    constructor(Vm _vm, IOptimismPortal2 _portal) {
         vm = _vm;
         portal = _portal;
         initialize();
@@ -36,9 +41,11 @@ contract OptimismPortal2_Depositor is StdUtils, ResourceMetering {
         return _resourceConfig();
     }
 
-    function _resourceConfig() internal pure override returns (ResourceMetering.ResourceConfig memory) {
-        ResourceMetering.ResourceConfig memory rcfg = Constants.DEFAULT_RESOURCE_CONFIG();
-        return rcfg;
+    function _resourceConfig() internal pure override returns (ResourceMetering.ResourceConfig memory config_) {
+        IResourceMetering.ResourceConfig memory rcfg = Constants.DEFAULT_RESOURCE_CONFIG();
+        assembly ("memory-safe") {
+            config_ := rcfg
+        }
     }
 
     // A test intended to identify any unexpected halting conditions
@@ -61,6 +68,11 @@ contract OptimismPortal2_Depositor is StdUtils, ResourceMetering {
         uint256 preDepositBalance = address(this).balance;
         uint256 value = bound(preDepositvalue, 0, preDepositBalance);
 
+        // If custom gas token is enabled, set deposit value to 0
+        if (portal.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
+            value = 0;
+        }
+
         (, uint64 cachedPrevBoughtGas,) = ResourceMetering(address(portal)).params();
         ResourceMetering.ResourceConfig memory rcfg = resourceConfig();
         uint256 maxResourceLimit = uint64(rcfg.maxResourceLimit);
@@ -76,7 +88,7 @@ contract OptimismPortal2_Depositor is StdUtils, ResourceMetering {
     }
 }
 
-contract OptimismPortal2_Invariant_Harness is CommonTest {
+contract OptimismPortal2_Invariant_Harness is DisputeGameFactory_TestInit {
     // Reusable default values for a test withdrawal
     Types.WithdrawalTransaction _defaultTx;
 
@@ -90,7 +102,6 @@ contract OptimismPortal2_Invariant_Harness is CommonTest {
     Types.OutputRootProof internal _outputRootProof;
 
     function setUp() public virtual override {
-        super.enableFaultProofs();
         super.setUp();
 
         _defaultTx = Types.WithdrawalTransaction({
@@ -101,6 +112,12 @@ contract OptimismPortal2_Invariant_Harness is CommonTest {
             gasLimit: 100_000,
             data: hex""
         });
+
+        // If custom gas token is enabled, set deposit value to 0
+        if (systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
+            _defaultTx.value = 0;
+        }
+
         // Get withdrawal proof data we can use for testing.
         (_stateRoot, _storageRoot, _outputRoot, _withdrawalHash, _withdrawalProof) =
             ffi.getProveWithdrawalTransactionInputs(_defaultTx);
@@ -113,12 +130,17 @@ contract OptimismPortal2_Invariant_Harness is CommonTest {
             latestBlockhash: bytes32(uint256(0))
         });
 
+        // Warp forward in time to ensure that the game is created after the retirement timestamp.
+        vm.warp(anchorStateRegistry.retirementTimestamp() + 1);
+
+        setupFaultDisputeGame(Claim.wrap(bytes32(0)));
+
         // Create a dispute game with the output root we've proposed.
         _proposedBlockNumber = 0xFF;
-        FaultDisputeGame game = FaultDisputeGame(
+        IFaultDisputeGame game = IFaultDisputeGame(
             payable(
                 address(
-                    disputeGameFactory.create(
+                    disputeGameFactory.create{ value: disputeGameFactory.initBonds(optimismPortal2.respectedGameType()) }(
                         optimismPortal2.respectedGameType(), Claim.wrap(_outputRoot), abi.encode(_proposedBlockNumber)
                     )
                 )
@@ -132,6 +154,7 @@ contract OptimismPortal2_Invariant_Harness is CommonTest {
         game.resolve();
 
         // Fund the portal so that we can withdraw ETH.
+        vm.deal(address(ethLockbox), 0xFFFFFFFF);
         vm.deal(address(optimismPortal2), 0xFFFFFFFF);
     }
 }
@@ -180,7 +203,7 @@ contract OptimismPortal2_CannotTimeTravel is OptimismPortal2_Invariant_Harness {
     ///                   A withdrawal that has been proven should not be able to be finalized
     ///                   until after the proof maturity period has elapsed.
     function invariant_cannotFinalizeBeforePeriodHasPassed() external {
-        vm.expectRevert("OptimismPortal: proven withdrawal has not matured yet");
+        vm.expectRevert(IOptimismPortal2.OptimismPortal_ProofNotOldEnough.selector);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
     }
 }
@@ -209,7 +232,7 @@ contract OptimismPortal2_CannotFinalizeTwice is OptimismPortal2_Invariant_Harnes
     ///                   Ensures that there is no chain of calls that can be made that allows a withdrawal to be
     ///                   finalized twice.
     function invariant_cannotFinalizeTwice() external {
-        vm.expectRevert("OptimismPortal: withdrawal has already been finalized");
+        vm.expectRevert(IOptimismPortal2.OptimismPortal_AlreadyFinalized.selector);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx);
     }
 }

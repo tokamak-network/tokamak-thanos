@@ -13,7 +13,7 @@
     "name": "MESSENGER",
     "outputs": [
       {
-        "internalType": "contract CrossDomainMessenger",
+        "internalType": "contract ICrossDomainMessenger",
         "name": "",
         "type": "address"
       }
@@ -415,19 +415,27 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "initVersion",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
-        "internalType": "contract CrossDomainMessenger",
+        "internalType": "contract ICrossDomainMessenger",
         "name": "_messenger",
         "type": "address"
       },
       {
-        "internalType": "contract SuperchainConfig",
-        "name": "_superchainConfig",
-        "type": "address"
-      },
-      {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "_systemConfig",
         "type": "address"
       }
@@ -455,7 +463,7 @@
     "name": "messenger",
     "outputs": [
       {
-        "internalType": "contract CrossDomainMessenger",
+        "internalType": "contract ICrossDomainMessenger",
         "name": "",
         "type": "address"
       }
@@ -491,10 +499,36 @@
   },
   {
     "inputs": [],
+    "name": "proxyAdmin",
+    "outputs": [
+      {
+        "internalType": "contract IProxyAdmin",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxyAdminOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "superchainConfig",
     "outputs": [
       {
-        "internalType": "contract SuperchainConfig",
+        "internalType": "contract ISuperchainConfig",
         "name": "",
         "type": "address"
       }
@@ -507,7 +541,7 @@
     "name": "systemConfig",
     "outputs": [
       {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "",
         "type": "address"
       }
@@ -836,5 +870,40 @@
     ],
     "name": "Initialized",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdmin",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotResolvedDelegateProxy",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotSharedProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_ProxyAdminNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReinitializableBase_ZeroInitVersion",
+    "type": "error"
   }
 ]

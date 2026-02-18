@@ -1,16 +1,27 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_proofMaturityDelaySeconds",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
     "stateMutability": "payable",
     "type": "receive"
   },
   {
     "inputs": [],
-    "name": "balance",
+    "name": "anchorStateRegistry",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "contract IAnchorStateRegistry",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -19,39 +30,19 @@
   {
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "_withdrawalHash",
+        "type": "bytes32"
+      },
+      {
         "internalType": "address",
-        "name": "_to",
+        "name": "_proofSubmitter",
         "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_mint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_value",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint64",
-        "name": "_gasLimit",
-        "type": "uint64"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isCreation",
-        "type": "bool"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_data",
-        "type": "bytes"
       }
     ],
-    "name": "depositERC20Transaction",
+    "name": "checkWithdrawal",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -88,10 +79,68 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract IDisputeGame",
+        "name": "_disputeGame",
+        "type": "address"
+      }
+    ],
+    "name": "disputeGameBlacklist",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "disputeGameFactory",
+    "outputs": [
+      {
+        "internalType": "contract IDisputeGameFactory",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "disputeGameFinalityDelaySeconds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "donateETH",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ethLockbox",
+    "outputs": [
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -142,6 +191,56 @@
   {
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "sender",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "target",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gasLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct Types.WithdrawalTransaction",
+        "name": "_tx",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "_proofSubmitter",
+        "type": "address"
+      }
+    ],
+    "name": "finalizeWithdrawalTransactionExternalProof",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
@@ -172,58 +271,39 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "initVersion",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
-        "internalType": "contract L2OutputOracle",
-        "name": "_l2Oracle",
-        "type": "address"
-      },
-      {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "_systemConfig",
         "type": "address"
       },
       {
-        "internalType": "contract SuperchainConfig",
-        "name": "_superchainConfig",
+        "internalType": "contract IAnchorStateRegistry",
+        "name": "_anchorStateRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "_ethLockbox",
         "type": "address"
       }
     ],
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_l2OutputIndex",
-        "type": "uint256"
-      }
-    ],
-    "name": "isOutputFinalized",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "l2Oracle",
-    "outputs": [
-      {
-        "internalType": "contract L2OutputOracle",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -237,6 +317,31 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "migrateLiquidity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "_newLockbox",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IAnchorStateRegistry",
+        "name": "_newAnchorStateRegistry",
+        "type": "address"
+      }
+    ],
+    "name": "migrateToSuperRoots",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -256,6 +361,25 @@
       }
     ],
     "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_withdrawalHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "numProofSubmitters",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -287,8 +411,45 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "paused_",
+        "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proofMaturityDelaySeconds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "proofSubmitters",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -335,8 +496,129 @@
       },
       {
         "internalType": "uint256",
-        "name": "_l2OutputIndex",
+        "name": "_disputeGameIndex",
         "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "version",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "stateRoot",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "messagePasserStorageRoot",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "latestBlockhash",
+            "type": "bytes32"
+          }
+        ],
+        "internalType": "struct Types.OutputRootProof",
+        "name": "_outputRootProof",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "_withdrawalProof",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "proveWithdrawalTransaction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "sender",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "target",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gasLimit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct Types.WithdrawalTransaction",
+        "name": "_tx",
+        "type": "tuple"
+      },
+      {
+        "internalType": "contract IDisputeGame",
+        "name": "_disputeGameProxy",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_outputRootIndex",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bytes1",
+            "name": "version",
+            "type": "bytes1"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "chainId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes32",
+                "name": "root",
+                "type": "bytes32"
+              }
+            ],
+            "internalType": "struct Types.OutputRootWithChainId[]",
+            "name": "outputRoots",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct Types.SuperRootProof",
+        "name": "_superRootProof",
+        "type": "tuple"
       },
       {
         "components": [
@@ -382,73 +664,92 @@
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "name": "provenWithdrawals",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "outputRoot",
-        "type": "bytes32"
+        "internalType": "contract IDisputeGame",
+        "name": "disputeGameProxy",
+        "type": "address"
       },
       {
-        "internalType": "uint128",
+        "internalType": "uint64",
         "name": "timestamp",
-        "type": "uint128"
-      },
-      {
-        "internalType": "uint128",
-        "name": "l2OutputIndex",
-        "type": "uint128"
+        "type": "uint64"
       }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "proxyAdmin",
+    "outputs": [
       {
-        "internalType": "enum ConfigType",
-        "name": "_type",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_value",
-        "type": "bytes"
+        "internalType": "contract IProxyAdmin",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name": "setConfig",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "proxyAdminOwner",
+    "outputs": [
       {
         "internalType": "address",
-        "name": "_token",
+        "name": "",
         "type": "address"
-      },
-      {
-        "internalType": "uint8",
-        "name": "_decimals",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_name",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_symbol",
-        "type": "bytes32"
       }
     ],
-    "name": "setGasPayingToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "respectedGameType",
+    "outputs": [
+      {
+        "internalType": "GameType",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "respectedGameTypeUpdatedAt",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "superRootsActive",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -456,7 +757,7 @@
     "name": "superchainConfig",
     "outputs": [
       {
-        "internalType": "contract SuperchainConfig",
+        "internalType": "contract ISuperchainConfig",
         "name": "",
         "type": "address"
       }
@@ -469,12 +770,30 @@
     "name": "systemConfig",
     "outputs": [
       {
-        "internalType": "contract SystemConfig",
+        "internalType": "contract ISystemConfig",
         "name": "",
         "type": "address"
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IAnchorStateRegistry",
+        "name": "_anchorStateRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "_ethLockbox",
+        "type": "address"
+      }
+    ],
+    "name": "upgrade",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -494,6 +813,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lockbox",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "ETHMigrated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "uint8",
         "name": "version",
@@ -501,6 +839,37 @@
       }
     ],
     "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "contract IETHLockbox",
+        "name": "oldLockbox",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IETHLockbox",
+        "name": "newLockbox",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IAnchorStateRegistry",
+        "name": "oldAnchorStateRegistry",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IAnchorStateRegistry",
+        "name": "newAnchorStateRegistry",
+        "type": "address"
+      }
+    ],
+    "name": "PortalMigrated",
     "type": "event"
   },
   {
@@ -579,14 +948,23 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "BadTarget",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CallPaused",
-    "type": "error"
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "withdrawalHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proofSubmitter",
+        "type": "address"
+      }
+    ],
+    "name": "WithdrawalProvenExtension1",
+    "type": "event"
   },
   {
     "inputs": [],
@@ -600,7 +978,12 @@
   },
   {
     "inputs": [],
-    "name": "GasEstimation",
+    "name": "Encoding_EmptySuperRoot",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Encoding_InvalidSuperRootVersion",
     "type": "error"
   },
   {
@@ -615,22 +998,102 @@
   },
   {
     "inputs": [],
-    "name": "LargeCalldata",
+    "name": "OptimismPortal_AlreadyFinalized",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "NoValue",
+    "name": "OptimismPortal_BadTarget",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "NonReentrant",
+    "name": "OptimismPortal_CallPaused",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OnlyCustomGasToken",
+    "name": "OptimismPortal_CalldataTooLarge",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_GasEstimation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_GasLimitTooLow",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_ImproperDisputeGame",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidDisputeGame",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidMerkleProof",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidOutputRootChainId",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidOutputRootIndex",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidOutputRootProof",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidProofTimestamp",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidRootClaim",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_InvalidSuperRootProof",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_MigratingToSameRegistry",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_NoReentrancy",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_ProofNotOldEnough",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_Unproven",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_WrongProofMethod",
     "type": "error"
   },
   {
@@ -640,22 +1103,37 @@
   },
   {
     "inputs": [],
-    "name": "SmallGasLimit",
+    "name": "ProxyAdminOwnedBase_NotProxyAdmin",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "TransferFailed",
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "Unauthorized",
+    "name": "ProxyAdminOwnedBase_NotProxyAdminOwner",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "Unauthorized",
+    "name": "ProxyAdminOwnedBase_NotResolvedDelegateProxy",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_NotSharedProxyAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProxyAdminOwnedBase_ProxyAdminNotFound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReinitializableBase_ZeroInitVersion",
     "type": "error"
   },
   {
