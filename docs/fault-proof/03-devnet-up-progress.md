@@ -73,3 +73,25 @@
 ### Delta vs previous run
 - No new code-level failure discovered after `.gitmodules` repair.
 - Blocker remains environment provisioning (Go/Docker missing), preventing challenger runtime and reproducibility validation.
+
+---
+
+## Re-check: 2026-02-23 15:28 KST
+- Branch: `feat/fault-proof`
+- Commit: `42d507c69e279e7227dc5292c1398fc40d5b0948`
+- Result: **FAIL (same hard blocker)**
+
+### Evidence
+- `git pull --rebase` → `Already up to date.`
+- Dependency probe:
+  - `go version` → not found
+  - `docker --version` → not found
+  - `docker compose version` → not found
+- `make devnet-up` fails in `pre-devnet` with same signature:
+  - `geth: command not found`
+  - `/bin/sh: 4: go: not found`
+  - `env: ‘go’: No such file or directory`
+
+### Delta vs previous run
+- No additional repository-level defect identified.
+- Hard blocker unchanged: host toolchain not provisioned, so devnet boot and op-challenger verification remain blocked.
