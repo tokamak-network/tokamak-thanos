@@ -55,3 +55,21 @@
   - Go (>= version expected by repo; geth install path currently expects Go toolchain)
   - Docker + Docker Compose (required by devnet services)
 - After environment provisioning, re-run full checklist including 2 successful `make devnet-up` cycles for reproducibility.
+
+---
+
+## Re-check: 2026-02-23 15:13 KST
+- Branch: `feat/fault-proof`
+- Commit: `58e950300cdf3c23e2d7307122dfa45bda742524`
+- Result: **FAIL (same hard blocker)**
+
+### Evidence
+- `git pull --rebase` → `Already up to date.`
+- `make devnet-up` now passes submodule init step, then fails in `pre-devnet`:
+  - `./ops/scripts/geth-version-checker.sh: line 7: geth: command not found`
+  - `/bin/sh: 4: go: not found`
+  - `env: ‘go’: No such file or directory`
+
+### Delta vs previous run
+- No new code-level failure discovered after `.gitmodules` repair.
+- Blocker remains environment provisioning (Go/Docker missing), preventing challenger runtime and reproducibility validation.
