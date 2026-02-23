@@ -95,3 +95,25 @@
 ### Delta vs previous run
 - No additional repository-level defect identified.
 - Hard blocker unchanged: host toolchain not provisioned, so devnet boot and op-challenger verification remain blocked.
+
+---
+
+## Re-check: 2026-02-23 15:43 KST
+- Branch: `feat/fault-proof`
+- Commit: `9e770dcd0dc729c4b73dd27bf736417a8002486c`
+- Result: **FAIL (same hard blocker)**
+
+### Evidence
+- `git pull --rebase` → `Already up to date.`
+- Dependency probe:
+  - `go version` → not found
+  - `docker --version` → not found
+  - `docker compose version` → not found
+- `make devnet-up` fails in `pre-devnet` with unchanged signature:
+  - `./ops/scripts/geth-version-checker.sh: line 7: geth: command not found`
+  - `/bin/sh: 4: go: not found`
+  - `env: ‘go’: No such file or directory`
+
+### Delta vs previous run
+- No new code-level or config-level defects found.
+- Blocker remains strictly environment provisioning (Go + Docker/Compose missing).
