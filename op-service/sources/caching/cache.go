@@ -15,7 +15,9 @@ type LRUCache[K comparable, V any] struct {
 }
 
 func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
-	value, ok = c.inner.Get(key)
+	if c.inner != nil {
+		value, ok = c.inner.Get(key)
+	}
 	if c.m != nil {
 		c.m.CacheGet(c.label, ok)
 	}
@@ -23,9 +25,13 @@ func (c *LRUCache[K, V]) Get(key K) (value V, ok bool) {
 }
 
 func (c *LRUCache[K, V]) Add(key K, value V) (evicted bool) {
-	evicted = c.inner.Add(key, value)
+	cacheSize := 0
+	if c.inner != nil {
+		evicted = c.inner.Add(key, value)
+		cacheSize = c.inner.Len()
+	}
 	if c.m != nil {
-		c.m.CacheAdd(c.label, c.inner.Len(), evicted)
+		c.m.CacheAdd(c.label, cacheSize, evicted)
 	}
 	return evicted
 }
@@ -33,8 +39,11 @@ func (c *LRUCache[K, V]) Add(key K, value V) (evicted bool) {
 // NewLRUCache creates a LRU cache with the given metrics, labeling the cache adds/gets.
 // Metrics are optional: no metrics will be tracked if m == nil.
 func NewLRUCache[K comparable, V any](m Metrics, label string, maxSize int) *LRUCache[K, V] {
-	// no errors if the size is positive
-	cache, _ := lru.New[K, V](maxSize)
+	cache, err := lru.New[K, V](maxSize)
+	if err != nil {
+		// Invalid size disables caching while preserving call-sites and metrics behavior.
+		cache = nil
+	}
 	return &LRUCache[K, V]{
 		m:     m,
 		label: label,

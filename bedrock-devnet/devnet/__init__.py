@@ -66,6 +66,55 @@ class ChildProcess:
         return self.errq.get() if not self.errq.empty() else None
 
 
+def list_buildx_builders():
+    result = subprocess.run(
+        ['docker', 'buildx', 'ls'],
+        check=True,
+        capture_output=True,
+        text=True
+    )
+    builders = []
+    lines = result.stdout.splitlines()
+    for line in lines[1:]:
+        if not line.strip() or line.startswith(' '):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        builders.append((parts[0].rstrip('*'), parts[1]))
+    return builders
+
+
+def select_devnet_buildx_builder():
+    # Explicit overrides always win.
+    if os.getenv('BUILDX_BUILDER'):
+        return None
+
+    forced = os.getenv('DEVNET_BUILDX_BUILDER')
+    if forced:
+        return forced
+
+    try:
+        context = subprocess.run(
+            ['docker', 'context', 'show'],
+            check=True,
+            capture_output=True,
+            text=True
+        ).stdout.strip()
+        docker_driver_builders = {
+            name for name, driver in list_buildx_builders() if driver == 'docker'
+        }
+    except Exception as err:
+        log.info(f'Could not auto-detect a docker buildx builder: {err}')
+        return None
+
+    if context in docker_driver_builders:
+        return context
+    if 'default' in docker_driver_builders:
+        return 'default'
+    return None
+
+
 def main():
     args = parser.parse_args()
 
@@ -151,9 +200,7 @@ def main():
             # Include op-challenger, da-server, and sentinel when DEVNET_L2OO is false
             build_services.extend(['op-challenger', 'da-server', 'sentinel'])
 
-        run_command(['docker', 'compose', 'build', '--progress', 'plain',
-                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'] + build_services,
-                cwd=paths.ops_bedrock_dir, env={
+        build_env = {
             'PWD': paths.ops_bedrock_dir,
             'DOCKER_BUILDKIT': '1', # (should be available by default in later versions, but explicitly enable it anyway)
             'COMPOSE_DOCKER_CLI_BUILD': '1',  # use the docker cache
@@ -161,9 +208,16 @@ def main():
             'L1_DOCKER_FILE': 'Dockerfile.l1.fork' if paths.fork_public_network else 'Dockerfile.l1',
             'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
             'BLOCK_NUMBER': paths.block_number,
-            'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network),
             'L1_RPC_BEACON': paths.l1_beacon if paths.l1_beacon else ''
-        })
+        }
+        preferred_buildx_builder = select_devnet_buildx_builder()
+        if preferred_buildx_builder:
+            build_env['BUILDX_BUILDER'] = preferred_buildx_builder
+            log.info(f'Using BUILDX_BUILDER={preferred_buildx_builder} for docker compose build')
+
+        run_command(['docker', 'compose', 'build', '--progress', 'plain',
+                    '--build-arg', f'GIT_COMMIT={git_commit}', '--build-arg', f'GIT_DATE={git_date}'] + build_services,
+                cwd=paths.ops_bedrock_dir, env=build_env)
 
     log.info('Devnet starting')
     devnet_deploy(paths, args)
@@ -367,8 +421,7 @@ def devnet_deploy(paths, args):
         'L1_RPC': paths.l1_rpc_url if paths.fork_public_network else '',
         'BLOCK_NUMBER': paths.block_number,
         'WAITING_L1_PORT': '9999' if paths.fork_public_network else '8545',
-        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else '',
-        'L1_FORK_PUBLIC_NETWORK': str(paths.fork_public_network)
+        'L1_BEACON': paths.l1_beacon if paths.l1_beacon else ''
     }
 
     # Selectively set the L2OO_ADDRESS or DGF_ADDRESS if using L2OO.

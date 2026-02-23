@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
-import { Guard as BaseGuard } from "safe-contracts/base/GuardManager.sol";
-import { SafeSigners } from "src/Safe/SafeSigners.sol";
+// Safe
+import { Safe } from "safe-contracts/Safe.sol";
+import { BaseGuard } from "safe-contracts/base/GuardManager.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
-import { ISemver } from "src/universal/ISemver.sol";
+
+// Libraries
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { SafeSigners } from "src/safe/SafeSigners.sol";
+
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title LivenessGuard
 /// @notice This Guard contract is used to track the liveness of Safe owners.
@@ -25,8 +30,8 @@ contract LivenessGuard is ISemver, BaseGuard {
     event OwnerRecorded(address owner);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
+    /// @custom:semver 1.1.0
+    string public constant version = "1.1.0";
 
     /// @notice The safe account for which this contract will be the guard.
     Safe internal immutable SAFE;
@@ -66,21 +71,21 @@ contract LivenessGuard is ISemver, BaseGuard {
     /// @notice Records the most recent time which any owner has signed a transaction.
     /// @dev Called by the Safe contract before execution of a transaction.
     function checkTransaction(
-        address to,
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation,
-        uint256 safeTxGas,
-        uint256 baseGas,
-        uint256 gasPrice,
-        address gasToken,
-        address payable refundReceiver,
-        bytes memory signatures,
-        address msgSender
+        address _to,
+        uint256 _value,
+        bytes memory _data,
+        Enum.Operation _operation,
+        uint256 _safeTxGas,
+        uint256 _baseGas,
+        uint256 _gasPrice,
+        address _gasToken,
+        address payable _refundReceiver,
+        bytes memory _signatures,
+        address _msgSender
     )
         external
     {
-        msgSender; // silence unused variable warning
+        _msgSender; // silence unused variable warning
         _requireOnlySafe();
 
         // Cache the set of owners prior to execution.
@@ -93,21 +98,21 @@ contract LivenessGuard is ISemver, BaseGuard {
         // This call will reenter to the Safe which is calling it. This is OK because it is only reading the
         // nonce, and using the getTransactionHash() method.
         bytes32 txHash = SAFE.getTransactionHash({
-            to: to,
-            value: value,
-            data: data,
-            operation: operation,
-            safeTxGas: safeTxGas,
-            baseGas: baseGas,
-            gasPrice: gasPrice,
-            gasToken: gasToken,
-            refundReceiver: refundReceiver,
+            to: _to,
+            value: _value,
+            data: _data,
+            operation: _operation,
+            safeTxGas: _safeTxGas,
+            baseGas: _baseGas,
+            gasPrice: _gasPrice,
+            gasToken: _gasToken,
+            refundReceiver: _refundReceiver,
             _nonce: SAFE.nonce() - 1
         });
 
         uint256 threshold = SAFE.getThreshold();
         address[] memory signers =
-            SafeSigners.getNSigners({ dataHash: txHash, signatures: signatures, requiredSignatures: threshold });
+            SafeSigners.getNSigners({ _dataHash: txHash, _signatures: _signatures, _requiredSignatures: threshold });
 
         for (uint256 i = 0; i < signers.length; i++) {
             lastLive[signers[i]] = block.timestamp;

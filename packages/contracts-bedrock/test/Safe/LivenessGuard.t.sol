@@ -4,16 +4,16 @@ pragma solidity 0.8.15;
 import { Test } from "forge-std/Test.sol";
 import { StdUtils } from "forge-std/StdUtils.sol";
 import { StdCheats } from "forge-std/StdCheats.sol";
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
+import { Safe } from "safe-contracts/Safe.sol";
 import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 import "test/safe-tools/SafeTestTools.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import { LivenessGuard } from "src/Safe/LivenessGuard.sol";
+import { LivenessGuard } from "src/safe/LivenessGuard.sol";
 
-/// @dev A wrapper contract exposing the length of the ownersBefore set in the LivenessGuard.
-contract WrappedGuard is LivenessGuard {
+/// @notice A wrapper contract exposing the length of the ownersBefore set in the LivenessGuard.
+contract LivenessGuard_WrappedGuard_Harness is LivenessGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     constructor(Safe safe) LivenessGuard(safe) { }
@@ -23,12 +23,14 @@ contract WrappedGuard is LivenessGuard {
     }
 }
 
-contract LivenessGuard_TestInit is Test, SafeTestTools {
+/// @title LivenessGuard_TestInit
+/// @notice Reusable test initialization for `LivenessGuard` tests.
+abstract contract LivenessGuard_TestInit is Test, SafeTestTools {
     using SafeTestLib for SafeInstance;
 
     event OwnerRecorded(address owner);
 
-    WrappedGuard livenessGuard;
+    LivenessGuard_WrappedGuard_Harness livenessGuard;
     SafeInstance safeInstance;
 
     // This needs to be non-zero so that the `lastLive` mapping can record non-zero timestamps
@@ -37,62 +39,49 @@ contract LivenessGuard_TestInit is Test, SafeTestTools {
     uint256 threshold = 10;
     uint256 ownerCount = 13;
 
-    /// @dev Sets up the test environment
+    /// @notice Sets up the test environment
     function setUp() public {
         vm.warp(initTime);
         (, uint256[] memory privKeys) = SafeTestLib.makeAddrsAndKeys("test-owners", ownerCount);
         safeInstance = _setupSafe(privKeys, threshold);
-        livenessGuard = new WrappedGuard(safeInstance.safe);
+        livenessGuard = new LivenessGuard_WrappedGuard_Harness(safeInstance.safe);
         safeInstance.setGuard(address(livenessGuard));
     }
 }
 
+/// @title LivenessGuard_Constructor_Test
+/// @notice Tests the constructor of the `LivenessGuard` contract.
 contract LivenessGuard_Constructor_Test is LivenessGuard_TestInit {
-    /// @dev Tests that the constructor correctly sets the current time as the lastLive time for each owner
+    /// @notice Tests that the constructor correctly sets the current time as the lastLive time for
+    ///         each owner.
     function test_constructor_works() external {
         address[] memory owners = safeInstance.owners;
-        livenessGuard = new WrappedGuard(safeInstance.safe);
+        livenessGuard = new LivenessGuard_WrappedGuard_Harness(safeInstance.safe);
         for (uint256 i; i < owners.length; i++) {
             assertEq(livenessGuard.lastLive(owners[i]), initTime);
         }
     }
 }
 
-contract LivenessGuard_Getters_Test is LivenessGuard_TestInit {
-    /// @dev Tests that the getters return the correct values
-    function test_getters_works() external view {
+/// @title LivenessGuard_Safe_Test
+/// @notice Tests the `safe` getter of the `LivenessGuard` contract.
+contract LivenessGuard_Safe_Test is LivenessGuard_TestInit {
+    /// @notice Tests that the getters return the correct values
+    function test_safe_works() external view {
         assertEq(address(livenessGuard.safe()), address(safeInstance.safe));
         assertEq(livenessGuard.lastLive(address(0)), 0);
     }
 }
 
-contract LivenessGuard_CheckTx_TestFails is LivenessGuard_TestInit {
-    /// @dev Tests that the checkTransaction function reverts if the caller is not the Safe
-    function test_checkTransaction_callerIsNotSafe_revert() external {
-        vm.expectRevert("LivenessGuard: only Safe can call this function");
-        livenessGuard.checkTransaction({
-            to: address(0),
-            value: 0,
-            data: hex"00",
-            operation: Enum.Operation.Call,
-            safeTxGas: 0,
-            baseGas: 0,
-            gasPrice: 0,
-            gasToken: address(0),
-            refundReceiver: payable(address(0)),
-            signatures: hex"00",
-            msgSender: address(0)
-        });
-    }
-}
-
-contract LivenessGuard_CheckTx_Test is LivenessGuard_TestInit {
+/// @title LivenessGuard_CheckTransaction_Test
+/// @notice Tests the `checkTransaction` function of the `LivenessGuard` contract.
+contract LivenessGuard_CheckTransaction_Test is LivenessGuard_TestInit {
     using SafeTestLib for SafeInstance;
 
-    /// @dev Tests that the checkTransaction function succeeds
+    /// @notice Tests that the checkTransaction function succeeds
     function test_checkTransaction_succeeds() external {
-        // Create an array of the addresses who will sign the transaction. SafeTestTools
-        // will generate these signatures up to the threshold by iterating over the owners array.
+        // Create an array of the addresses who will sign the transaction. SafeTestTools will
+        // generate these signatures up to the threshold by iterating over the owners array.
         address[] memory signers = new address[](safeInstance.threshold);
         // copy the first threshold owners into the signers array
         for (uint256 i; i < safeInstance.threshold; i++) {
@@ -110,7 +99,7 @@ contract LivenessGuard_CheckTx_Test is LivenessGuard_TestInit {
             vm.expectEmit(address(livenessGuard));
             emit OwnerRecorded(signers[i]);
         }
-        vm.expectCall(address(safeInstance.safe), abi.encodeWithSignature("nonce()"));
+        vm.expectCall(address(safeInstance.safe), abi.encodeCall(safeInstance.safe.nonce, ()));
         vm.expectCall(address(safeInstance.safe), abi.encodeCall(OwnerManager.getThreshold, ()));
         safeInstance.execTransaction({ to: address(1111), value: 0, data: hex"abba" });
         for (uint256 i; i < safeInstance.threshold; i++) {
@@ -119,26 +108,40 @@ contract LivenessGuard_CheckTx_Test is LivenessGuard_TestInit {
             assertEq(lastLive, newTimestamp);
         }
     }
+
+    /// @notice Tests that the checkTransaction function reverts if the caller is not the Safe.
+    function test_checkTransaction_callerIsNotSafe_reverts() external {
+        vm.expectRevert("LivenessGuard: only Safe can call this function");
+        livenessGuard.checkTransaction({
+            _to: address(0),
+            _value: 0,
+            _data: hex"00",
+            _operation: Enum.Operation.Call,
+            _safeTxGas: 0,
+            _baseGas: 0,
+            _gasPrice: 0,
+            _gasToken: address(0),
+            _refundReceiver: payable(address(0)),
+            _signatures: hex"00",
+            _msgSender: address(0)
+        });
+    }
 }
 
-contract LivenessGuard_CheckAfterExecution_TestFails is LivenessGuard_TestInit {
-    /// @dev Tests that the checkAfterExecution function reverts if the caller is not the Safe
-    function test_checkAfterExecution_callerIsNotSafe_revert() external {
+/// @title LivenessGuard_CheckAfterExecution_Test
+/// @notice Tests the `checkAfterExecution` function of the `LivenessGuard` contract.
+contract LivenessGuard_CheckAfterExecution_Test is LivenessGuard_TestInit {
+    /// @notice Tests that the checkAfterExecution function reverts if the caller is not the Safe.
+    function test_checkAfterExecution_callerIsNotSafe_reverts() external {
         vm.expectRevert("LivenessGuard: only Safe can call this function");
         livenessGuard.checkAfterExecution(bytes32(0), false);
     }
 }
 
-contract LivenessGuard_ShowLiveness_TestFail is LivenessGuard_TestInit {
-    /// @dev Tests that the showLiveness function reverts if the caller is not an owner
-    function test_showLiveness_callIsNotSafeOwner_reverts() external {
-        vm.expectRevert("LivenessGuard: only Safe owners may demonstrate liveness");
-        livenessGuard.showLiveness();
-    }
-}
-
+/// @title LivenessGuard_ShowLiveness_Test
+/// @notice Tests the `showLiveness` function of the `LivenessGuard` contract.
 contract LivenessGuard_ShowLiveness_Test is LivenessGuard_TestInit {
-    /// @dev Tests that the showLiveness function succeeds
+    /// @notice Tests that the showLiveness function succeeds
     function test_showLiveness_succeeds() external {
         // Cache the caller
         address caller = safeInstance.owners[0];
@@ -151,12 +154,40 @@ contract LivenessGuard_ShowLiveness_Test is LivenessGuard_TestInit {
 
         assertEq(livenessGuard.lastLive(caller), block.timestamp);
     }
+
+    /// @notice Tests that the showLiveness function reverts if the caller is not an owner.
+    function test_showLiveness_callIsNotSafeOwner_reverts() external {
+        vm.expectRevert("LivenessGuard: only Safe owners may demonstrate liveness");
+        livenessGuard.showLiveness();
+    }
 }
 
-contract LivenessGuard_OwnerManagement_Test is LivenessGuard_TestInit {
+/// @title LivenessGuard_Uncategorized_Test
+/// @notice General tests that are not testing any function directly of the `LivenessGuard`
+///         contract or are testing multiple functions at once.
+contract LivenessGuard_Uncategorized_Test is StdCheats, StdUtils, LivenessGuard_TestInit {
     using SafeTestLib for SafeInstance;
 
-    /// @dev Tests that the guard correctly deletes the owner from the lastLive mapping when it is removed
+    /// @notice Enumerates the possible owner management operations
+    enum OwnerOp {
+        Add,
+        Remove,
+        Swap
+    }
+
+    /// @notice Describes a change to be made to the safe
+    struct OwnerChange {
+        uint8 timeDelta; // used to warp the vm
+        uint8 operation; // used to choose an OwnerOp
+        uint256 ownerIndex; // used to choose the owner to remove or swap out
+        uint256 newThreshold;
+    }
+
+    /// @notice Maps addresses to private keys
+    mapping(address => uint256) privateKeys;
+
+    /// @notice Tests that the guard correctly deletes the owner from the lastLive mapping when it
+    ///         is removed.
     function test_removeOwner_succeeds() external {
         address ownerToRemove = safeInstance.owners[0];
         assertGe(livenessGuard.lastLive(ownerToRemove), 0);
@@ -170,7 +201,8 @@ contract LivenessGuard_OwnerManagement_Test is LivenessGuard_TestInit {
         assertEq(livenessGuard.lastLive(ownerToRemove), 0);
     }
 
-    /// @dev Tests that the guard correctly adds an owner to the lastLive mapping when it is added
+    /// @notice Tests that the guard correctly adds an owner to the lastLive mapping when it is
+    ///         added.
     function test_addOwner_succeeds() external {
         address ownerToAdd = makeAddr("new owner");
         assertEq(livenessGuard.lastLive(ownerToAdd), 0);
@@ -184,7 +216,8 @@ contract LivenessGuard_OwnerManagement_Test is LivenessGuard_TestInit {
         assertEq(livenessGuard.lastLive(ownerToAdd), block.timestamp);
     }
 
-    /// @dev Tests that the guard correctly adds an owner to the lastLive mapping when it is added
+    /// @notice Tests that the guard correctly adds an owner to the lastLive mapping when it is
+    ///         added.
     function test_swapOwner_succeeds() external {
         address ownerToRemove = safeInstance.owners[0];
         assertGe(livenessGuard.lastLive(ownerToRemove), 0);
@@ -204,39 +237,28 @@ contract LivenessGuard_OwnerManagement_Test is LivenessGuard_TestInit {
         assertTrue(safeInstance.safe.isOwner(ownerToAdd));
         assertEq(livenessGuard.lastLive(ownerToAdd), block.timestamp);
     }
-}
 
-contract LivenessGuard_FuzzOwnerManagement_Test is StdCheats, StdUtils, LivenessGuard_TestInit {
-    using SafeTestLib for SafeInstance;
-
-    /// @dev Enumerates the possible owner management operations
-    enum OwnerOp {
-        Add,
-        Remove,
-        Swap
-    }
-
-    /// @dev Describes a change to be made to the safe
-    struct OwnerChange {
-        uint8 timeDelta; // used to warp the vm
-        uint8 operation; // used to choose an OwnerOp
-        uint256 ownerIndex; // used to choose the owner to remove or swap out
-        uint256 newThreshold;
-    }
-
-    /// @dev Maps addresses to private keys
-    mapping(address => uint256) privateKeys;
-
-    /// @dev Tests that the guard correctly manages the lastLive mapping when owners are added, removed, or swapped
-    function testFuzz_OwnerManagement_works(
+    /// @notice Tests that the guard correctly manages the lastLive mapping when owners are added,
+    ///         removed, or swapped.
+    function testFuzz_ownerManagement_works(
         uint256 initialOwners,
         uint256 threshold,
         OwnerChange[] memory changes
     )
         external
     {
-        vm.assume(changes.length < 20);
-        // Initialize the safe with more owners than changes, to ensure we don't try to remove them all
+        // Cut down the changes array to a maximum of 20.
+        // We don't use vm.assume to avoid throwing out too many inputs.
+        OwnerChange[] memory boundedChanges = new OwnerChange[](bound(changes.length, 0, 20));
+        for (uint256 i; i < boundedChanges.length; i++) {
+            boundedChanges[i] = changes[i];
+        }
+
+        // Update the original array.
+        changes = boundedChanges;
+
+        // Initialize the safe with more owners than changes, to ensure we don't try to remove them
+        // all.
         initialOwners = bound(initialOwners, changes.length, 2 * changes.length);
 
         // We need at least one owner
@@ -257,7 +279,7 @@ contract LivenessGuard_FuzzOwnerManagement_Test is StdCheats, StdUtils, Liveness
         saltNonce = uint256(keccak256(bytes("LIVENESS GUARD OWNER MANAGEMENT TEST")));
         // Create the new safe and register the guard.
         SafeInstance memory safeInstance = _setupSafe(ownerkeys, threshold);
-        livenessGuard = new WrappedGuard(safeInstance.safe);
+        livenessGuard = new LivenessGuard_WrappedGuard_Harness(safeInstance.safe);
         safeInstance.setGuard(address(livenessGuard));
 
         for (uint256 i; i < changes.length; i++) {
@@ -314,7 +336,7 @@ contract LivenessGuard_FuzzOwnerManagement_Test is StdCheats, StdUtils, Liveness
         }
     }
 
-    /// @dev Refreshes the owners and ownerPKs arrays in the SafeInstance
+    /// @notice Refreshes the owners and ownerPKs arrays in the SafeInstance
     function _refreshOwners(SafeInstance memory instance) internal view {
         // Get the current owners
         instance.owners = instance.safe.getOwners();
@@ -328,7 +350,8 @@ contract LivenessGuard_FuzzOwnerManagement_Test is StdCheats, StdUtils, Liveness
         // Sort the keys by address and store them in the SafeInstance
         instance.ownerPKs = SafeTestLib.sortPKsByComputedAddress(unsortedOwnerPKs);
 
-        // Overwrite the SafeInstances owners array with the computed addresses from the ownerPKs array
+        // Overwrite the SafeInstances owners array with the computed addresses from the ownerPKs
+        // array.
         for (uint256 i; i < instance.owners.length; i++) {
             instance.owners[i] = SafeTestLib.getAddr(instance.ownerPKs[i]);
         }

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/stretchr/testify/require"
@@ -108,4 +110,43 @@ func TestL1Deployments(t *testing.T) {
 	require.Equal(t, "OptimismPortalProxy", deployments.GetName(deployments.OptimismPortalProxy))
 	// One that doesn't exist returns empty string
 	require.Equal(t, "", deployments.GetName(common.Address{19: 0xff}))
+}
+
+func TestOpChainConfig_Defaults(t *testing.T) {
+	cfg := &DeployConfig{}
+	opCfg := cfg.OpChainConfig()
+
+	require.Equal(t, uint64(50), opCfg.EIP1559Denominator)
+	require.Equal(t, uint64(250), opCfg.EIP1559DenominatorCanyon)
+	require.Equal(t, uint64(10), opCfg.EIP1559Elasticity)
+}
+
+func TestOpChainConfig_UsesConfiguredValues(t *testing.T) {
+	cfg := &DeployConfig{
+		EIP1559Denominator:       9,
+		EIP1559DenominatorCanyon: 99,
+		EIP1559Elasticity:        19,
+	}
+	opCfg := cfg.OpChainConfig()
+
+	require.Equal(t, uint64(9), opCfg.EIP1559Denominator)
+	require.Equal(t, uint64(99), opCfg.EIP1559DenominatorCanyon)
+	require.Equal(t, uint64(19), opCfg.EIP1559Elasticity)
+}
+
+func TestRollupConfig_SetsChainOpConfig(t *testing.T) {
+	b, err := os.ReadFile("testdata/test-deploy-config-full.json")
+	require.NoError(t, err)
+
+	cfg := new(DeployConfig)
+	require.NoError(t, json.NewDecoder(bytes.NewReader(b)).Decode(cfg))
+
+	l1StartBlock := types.NewBlockWithHeader(&types.Header{
+		Number: big.NewInt(1),
+		Time:   100,
+	})
+	rollupCfg, err := cfg.RollupConfig(l1StartBlock, common.HexToHash("0x1234"), 0)
+	require.NoError(t, err)
+	require.NotNil(t, rollupCfg.ChainOpConfig)
+	require.Equal(t, cfg.OpChainConfig(), rollupCfg.ChainOpConfig)
 }

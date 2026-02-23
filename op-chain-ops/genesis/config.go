@@ -376,10 +376,10 @@ type DeployConfig struct {
 	ReuseDeployment bool `json:"reuseDeployment,omitempty"`
 
 	// Nested config structs used by op-deployer. These overlay the flat fields above.
-	L1DependenciesConfig    L1DependenciesConfig    `json:"l1DependenciesConfig,omitempty"`
-	L2InitializationConfig  L2InitializationConfig  `json:"l2InitializationConfig,omitempty"`
-	FaultProofDeployConfig  FaultProofDeployConfig  `json:"faultProofDeployConfig,omitempty"`
-	AltDADeployConfig       AltDADeployConfig       `json:"altDADeployConfig,omitempty"`
+	L1DependenciesConfig     L1DependenciesConfig     `json:"l1DependenciesConfig,omitempty"`
+	L2InitializationConfig   L2InitializationConfig   `json:"l2InitializationConfig,omitempty"`
+	FaultProofDeployConfig   FaultProofDeployConfig   `json:"faultProofDeployConfig,omitempty"`
+	AltDADeployConfig        AltDADeployConfig        `json:"altDADeployConfig,omitempty"`
 	SuperchainL1DeployConfig SuperchainL1DeployConfig `json:"superchainL1DeployConfig,omitempty"`
 	OutputOracleDeployConfig OutputOracleDeployConfig `json:"outputOracleDeployConfig,omitempty"`
 }
@@ -701,6 +701,28 @@ func (d *DeployConfig) InteropTime(genesisTime uint64) *uint64 {
 	return &v
 }
 
+// OpChainConfig returns the Optimism chain-level fee config used by rollup and execution config.
+func (d *DeployConfig) OpChainConfig() *params.OptimismConfig {
+	eip1559Denom := d.EIP1559Denominator
+	if eip1559Denom == 0 {
+		eip1559Denom = 50
+	}
+	eip1559DenomCanyon := d.EIP1559DenominatorCanyon
+	if eip1559DenomCanyon == 0 {
+		eip1559DenomCanyon = 250
+	}
+	eip1559Elasticity := d.EIP1559Elasticity
+	if eip1559Elasticity == 0 {
+		eip1559Elasticity = 10
+	}
+
+	return &params.OptimismConfig{
+		EIP1559Denominator:       eip1559Denom,
+		EIP1559Elasticity:        eip1559Elasticity,
+		EIP1559DenominatorCanyon: eip1559DenomCanyon,
+	}
+}
+
 // RollupConfig converts a DeployConfig to a rollup.Config. If Ecotone is active at genesis, the
 // Overhead value is considered a noop.
 func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHash common.Hash, l2GenesisBlockNumber uint64) (*rollup.Config, error) {
@@ -743,6 +765,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		EcotoneTime:            d.EcotoneTime(l1StartBlock.Time()),
 		FjordTime:              d.FjordTime(l1StartBlock.Time()),
 		InteropTime:            d.InteropTime(l1StartBlock.Time()),
+		ChainOpConfig:          d.OpChainConfig(),
 	}
 
 	// Validate that FjordTime is properly set when L2GenesisFjordTimeOffset is configured

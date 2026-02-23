@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/prometheus/client_golang/prometheus"
 	altda "github.com/tokamak-network/tokamak-thanos/op-alt-da"
 	"github.com/tokamak-network/tokamak-thanos/op-node/config"
 	"github.com/tokamak-network/tokamak-thanos/op-node/metrics"
@@ -43,7 +44,6 @@ import (
 	oprpc "github.com/tokamak-network/tokamak-thanos/op-service/rpc"
 	opsigner "github.com/tokamak-network/tokamak-thanos/op-service/signer"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var ErrAlreadyClosed = errors.New("node is already closed")
@@ -560,7 +560,6 @@ func initL2(ctx context.Context, cfg *config.Config, node *OpNode) (*sources.Eng
 		return nil, nil, nil, nil, fmt.Errorf("failed to setup L2 execution-engine RPC client: %w", err)
 	}
 
-
 	l2Source, err := sources.NewEngineClient(rpcClient, node.log, node.metrics.L2SourceCache, rpcCfg)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to create Engine client: %w", err)
@@ -636,10 +635,11 @@ func initRPCServer(cfg *config.Config, node *OpNode) (*oprpc.Server, error) {
 	server := newRPCServer(&cfg.RPC, &cfg.Rollup, cfg.DependencySet,
 		node.l2Source.L2Client, node.l2Driver, node.safeDB,
 		node.log, node.metrics, node.appVersion)
-	if err := registerAPIs(cfg, node, server.Handler); err != nil {
-		// panic here is to match the behavior of oprcp.Server.AddAPI,
-		// which wraps the Handler and panics if the API can't be added.
-		panic(fmt.Errorf("invalid API: %w", err))
+	if err := registerOptionalAPIs(cfg, node, func(api rpc.API) error {
+		server.AddAPI(api)
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to queue optional APIs: %w", err)
 	}
 	node.log.Info("Starting JSON-RPC server")
 	if err := server.Start(); err != nil {
@@ -650,6 +650,10 @@ func initRPCServer(cfg *config.Config, node *OpNode) (*oprpc.Server, error) {
 }
 
 func registerAPIs(cfg *config.Config, node *OpNode, handler *oprpc.Handler) error {
+	if handler == nil {
+		return fmt.Errorf("rpc handler is nil")
+	}
+
 	// Register the main optimism namespace API
 	// The optimism namespace may already be registered
 	api := NewNodeAPI(&cfg.Rollup, cfg.DependencySet, node.l2Source.L2Client, node.l2Driver, node.safeDB, node.log)
@@ -660,8 +664,12 @@ func registerAPIs(cfg *config.Config, node *OpNode, handler *oprpc.Handler) erro
 		return fmt.Errorf("failed to add Optimism API: %w", err)
 	}
 
+	return registerOptionalAPIs(cfg, node, handler.AddAPI)
+}
+
+func registerOptionalAPIs(cfg *config.Config, node *OpNode, addAPI func(rpc.API) error) error {
 	if p2pNode := node.getP2PNodeIfEnabled(); p2pNode != nil {
-		if err := handler.AddAPI(rpc.API{
+		if err := addAPI(rpc.API{
 			Namespace: p2p.NamespaceRPC,
 			Service:   p2p.NewP2PAPIBackend(p2pNode, node.log),
 		}); err != nil {
@@ -670,7 +678,7 @@ func registerAPIs(cfg *config.Config, node *OpNode, handler *oprpc.Handler) erro
 		node.log.Info("P2P RPC enabled")
 	}
 	if cfg.ExperimentalOPStackAPI {
-		if err := handler.AddAPI(rpc.API{
+		if err := addAPI(rpc.API{
 			Namespace: "opstack",
 			Service:   NewOpstackAPI(node.l2Driver.SyncDeriver.Engine, node),
 		}); err != nil {
@@ -679,7 +687,7 @@ func registerAPIs(cfg *config.Config, node *OpNode, handler *oprpc.Handler) erro
 		node.log.Info("Experimental OP stack API enabled")
 	}
 	if cfg.RPC.EnableAdmin {
-		if err := handler.AddAPI(rpc.API{
+		if err := addAPI(rpc.API{
 			Namespace: "admin",
 			Service:   NewAdminAPI(node.l2Driver, node.metrics, node.log),
 		}); err != nil {
@@ -886,8 +894,6 @@ func (n *OpNode) Stop(ctx context.Context) error {
 	n.p2pMu.Unlock()
 
 	if n.p2pSigner != nil {
-
-
 
 	}
 

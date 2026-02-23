@@ -12,7 +12,7 @@ ARG TARGETARCH
 ARG TARGET_BASE_IMAGE=alpine:3.21
 
 # We may be cross-building for another platform. Specify which platform we need as builder.
-FROM --platform=$BUILDPLATFORM golang:1.23.8-alpine3.21 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24.0-alpine3.21 AS builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers git jq bash
 
@@ -76,18 +76,18 @@ RUN --mount=type=cache,target=/root/.cache/go-build cd op-wheel && make op-wheel
 FROM --platform=$BUILDPLATFORM builder AS op-node-builder
 ARG OP_NODE_VERSION=v0.0.0
 RUN echo TARGETOS=$TARGETOS TARGETARCH=$TARGETARCH BUILDPLATFORM=$BUILDPLATFORM TARGETPLATFORM=$TARGETPLATFORM OP_NODE_VERSION=$OP_NODE_VERSION
-RUN --mount=type=cache,target=/root/.cache/go-build cd op-node && make op-node  \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_NODE_VERSION"
+RUN --mount=type=cache,target=/root/.cache/go-build cd op-node && env GO111MODULE=on GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -v -ldflags "-X main.GitCommit=$GIT_COMMIT -X main.GitDate=$GIT_DATE" -o ./bin/op-node ./cmd
 
 FROM --platform=$BUILDPLATFORM builder AS op-challenger-builder
 ARG OP_CHALLENGER_VERSION=v0.0.0
-RUN --mount=type=cache,target=/root/.cache/go-build cd op-challenger && make op-challenger  \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE  VERSION="$OP_CHALLENGER_VERSION"
+RUN --mount=type=cache,target=/root/.cache/go-build cd op-challenger && env GO111MODULE=on GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -v -ldflags "-X main.GitCommit=$GIT_COMMIT -X main.GitDate=$GIT_DATE" -o ./bin/op-challenger ./cmd
 
 FROM --platform=$BUILDPLATFORM builder AS op-dispute-mon-builder
 ARG OP_DISPUTE_MON_VERSION=v0.0.0
-RUN --mount=type=cache,target=/root/.cache/go-build cd op-dispute-mon && make op-dispute-mon  \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE  VERSION="$OP_DISPUTE_MON_VERSION"
+RUN --mount=type=cache,target=/root/.cache/go-build cd op-dispute-mon && env GO111MODULE=on GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -v -ldflags "-X main.GitCommit=$GIT_COMMIT -X main.GitDate=$GIT_DATE" -o ./bin/op-dispute-mon ./cmd
 
 FROM --platform=$BUILDPLATFORM builder AS op-batcher-builder
 ARG OP_BATCHER_VERSION=v0.0.0

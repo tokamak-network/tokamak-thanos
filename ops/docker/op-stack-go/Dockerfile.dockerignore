@@ -3,11 +3,13 @@
 *
 
 !/cannon
+!/op-alt-da
 !/op-batcher
 !/op-bindings
 !/op-bootnode
 !/op-chain-ops
 !/op-challenger
+!/op-core
 !/packages/contracts-bedrock/snapshots
 !/op-dispute-mon
 !/op-conductor
@@ -17,6 +19,8 @@
 !/op-program
 !/op-proposer
 !/op-service
+!/op-supervisor
+!/op-test-sequencer
 !/op-wheel
 !/op-plasma
 !/go.mod

@@ -26,18 +26,7 @@ func NewL2Genesis(config *DeployConfig, block *types.Block) (*core.Genesis, erro
 		return nil, errors.New("must define L2 ChainID")
 	}
 
-	eip1559Denom := config.EIP1559Denominator
-	if eip1559Denom == 0 {
-		eip1559Denom = 50
-	}
-	eip1559DenomCanyon := config.EIP1559DenominatorCanyon
-	if eip1559DenomCanyon == 0 {
-		eip1559DenomCanyon = 250
-	}
-	eip1559Elasticity := config.EIP1559Elasticity
-	if eip1559Elasticity == 0 {
-		eip1559Elasticity = 10
-	}
+	opChainCfg := config.OpChainConfig()
 
 	optimismChainConfig := params.ChainConfig{
 		ChainID:                 new(big.Int).SetUint64(config.L2ChainID),
@@ -66,11 +55,7 @@ func NewL2Genesis(config *DeployConfig, block *types.Block) (*core.Genesis, erro
 		EcotoneTime:             config.EcotoneTime(block.Time()),
 		FjordTime:               config.FjordTime(block.Time()),
 		InteropTime:             config.InteropTime(block.Time()),
-		Optimism: &params.OptimismConfig{
-			EIP1559Denominator:       eip1559Denom,
-			EIP1559Elasticity:        eip1559Elasticity,
-			EIP1559DenominatorCanyon: eip1559DenomCanyon,
-		},
+		Optimism:                opChainCfg,
 	}
 
 	gasLimit := config.L2GenesisBlockGasLimit

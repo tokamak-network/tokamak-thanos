@@ -120,14 +120,15 @@ func (s *L1Client) L1BlockRefByHash(ctx context.Context, hash common.Hash) (eth.
 func L1ClientSimpleConfig(trustRPC bool, kind RPCProviderKind, cacheSize int) *L1ClientConfig {
 	return &L1ClientConfig{
 		EthClientConfig: EthClientConfig{
-			TrustRPC:          trustRPC,
-			RPCProviderKind:   kind,
-			ReceiptsCacheSize: cacheSize,
+			TrustRPC:              trustRPC,
+			RPCProviderKind:       kind,
+			ReceiptsCacheSize:     cacheSize,
 			TransactionsCacheSize: cacheSize,
-			HeadersCacheSize:  cacheSize,
-			PayloadsCacheSize: cacheSize,
-			MaxRequestsPerBatch: 20,
+			HeadersCacheSize:      cacheSize,
+			PayloadsCacheSize:     cacheSize,
+			MaxRequestsPerBatch:   20,
 			MaxConcurrentRequests: 10,
 		},
+		L1BlockRefsCacheSize: cacheSize,
 	}
 }
