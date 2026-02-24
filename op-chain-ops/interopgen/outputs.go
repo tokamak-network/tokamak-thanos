@@ -1,3 +1,5 @@
+//go:build opdeployer
+
 package interopgen
 
 import (
