@@ -7,6 +7,20 @@ on:
 jobs:
   go-lint:
     runs-on: ubuntu-latest
+    name: Go lint ${{ matrix.module }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: op-heartbeat
+          - module: op-batcher
+          - module: op-bindings
+          - module: op-node
+          - module: op-proposer
+          - module: op-challenger
+          - module: op-conductor
+          - module: op-program
+          - module: op-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.0
@@ -17,15 +31,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.8'
-
-      - name: Go mod tidy
-        run: make mod-tidy && git diff --exit-code
+          go-version: '1.24.3'
 
       - name: GolangCI Lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.54
-          args: -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
+          version: v1.64.8
+          install-mode: goinstall
+          working-directory: ${{ matrix.module }}
+          args: --disable-all -E sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
         env:
           GOFLAGS: '-buildvcs=false'

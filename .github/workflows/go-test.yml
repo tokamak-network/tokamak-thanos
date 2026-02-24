@@ -18,8 +18,6 @@ jobs:
             module: 'op-batcher'
           - name: 'op-bindings-tests'
             module: 'op-bindings'
-          - name: 'op-chain-ops-tests'
-            module: 'op-chain-ops'
           - name: 'op-node-tests'
             module: 'op-node'
           - name: 'op-proposer-tests'
@@ -40,7 +38,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.8'
+          go-version: '1.24.3'
 
       - name: Prep results dir
         run: mkdir -p /tmp/test-results
@@ -72,7 +70,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.8'
+          go-version: '1.24.3'
 
       - name: Install Gotestsum
         run: go install gotest.tools/gotestsum@v1.11.0

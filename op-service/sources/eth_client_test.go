@@ -39,6 +39,11 @@ func (m *mockRPC) EthSubscribe(ctx context.Context, channel any, args ...any) (e
 	return called.Get(0).(*rpc.ClientSubscription), called.Get(1).([]error)[0]
 }
 
+func (m *mockRPC) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	called := m.MethodCalled("Subscribe", namespace, channel, args)
+	return called.Get(0).(*rpc.ClientSubscription), called.Get(1).([]error)[0]
+}
+
 func (m *mockRPC) Close() {
 	m.MethodCalled("Close")
 }

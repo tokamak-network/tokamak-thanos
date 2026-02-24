@@ -147,7 +147,7 @@ func (g *gasPricer) expGasFeeCap() *big.Int {
 
 func (g *gasPricer) expBlobFeeCap() *big.Int {
 	_, _, excessBlobGas := g.feesForEpoch(g.mineAtEpoch)
-	return eip4844.CalcBlobFee(excessBlobGas)
+	return calcBlobFeeAtExcess(excessBlobGas)
 }
 
 func (g *gasPricer) shouldMine(gasFeeCap *big.Int) bool {
@@ -156,6 +156,20 @@ func (g *gasPricer) shouldMine(gasFeeCap *big.Int) bool {
 
 func (g *gasPricer) shouldMineBlobTx(gasFeeCap, blobFeeCap *big.Int) bool {
 	return g.shouldMine(gasFeeCap) && g.expBlobFeeCap().Cmp(blobFeeCap) <= 0
+}
+
+func calcBlobFeeAtExcess(excessBlobGas uint64) *big.Int {
+	cfg := *params.MainnetChainConfig
+	cfg.BlobScheduleConfig = params.DefaultBlobSchedule
+	cancunTime := uint64(0)
+	if cfg.CancunTime != nil {
+		cancunTime = *cfg.CancunTime
+	}
+	header := &types.Header{
+		Time:          cancunTime,
+		ExcessBlobGas: &excessBlobGas,
+	}
+	return eip4844.CalcBlobFee(&cfg, header)
 }
 
 func (g *gasPricer) feesForEpoch(epoch int64) (*big.Int, *big.Int, uint64) {
@@ -447,7 +461,7 @@ func TestTxMgrConfirmsBlobTxAtHigherGasPrice(t *testing.T) {
 	h := newTestHarness(t)
 
 	gasTipCap, gasFeeCap, excessBlobGas := h.gasPricer.sample()
-	blobFeeCap := eip4844.CalcBlobFee(excessBlobGas)
+	blobFeeCap := calcBlobFeeAtExcess(excessBlobGas)
 	t.Log("Blob fee cap:", blobFeeCap, "gasFeeCap:", gasFeeCap)
 
 	tx := types.NewTx(&types.BlobTx{
@@ -563,7 +577,7 @@ func TestTxMgr_CraftBlobTx(t *testing.T) {
 
 	// verify the blobs
 	for i := range sidecar.Blobs {
-		require.NoError(t, kzg4844.VerifyBlobProof(sidecar.Blobs[i], sidecar.Commitments[i], sidecar.Proofs[i]))
+		require.NoError(t, kzg4844.VerifyBlobProof(&sidecar.Blobs[i], sidecar.Commitments[i], sidecar.Proofs[i]))
 	}
 	b1 := eth.Blob(sidecar.Blobs[0])
 	d1, err := b1.ToData()
@@ -1480,7 +1494,14 @@ func TestMakeSidecar(t *testing.T) {
 	require.Equal(t, len(sidecar.Proofs), len(hashes)*kzg4844.CellProofsPerBlob)
 	require.Equal(t, len(sidecar.Commitments), len(hashes))
 
-	require.NoError(t, kzg4844.VerifyCellProofs(sidecar.Blobs, sidecar.Commitments, sidecar.Proofs), "cell proof must be valid")
+	proofOffset := 0
+	for i := range sidecar.Blobs {
+		expProofs, err := kzg4844.ComputeCellProofs(&sidecar.Blobs[i])
+		require.NoError(t, err)
+		require.Equal(t, expProofs, sidecar.Proofs[proofOffset:proofOffset+len(expProofs)], "cell proof must be valid")
+		proofOffset += len(expProofs)
+	}
+	require.Equal(t, len(sidecar.Proofs), proofOffset)
 	for i, commit := range sidecar.Commitments {
 		require.Equal(t, hashes[i], eth.KZGToVersionedHash(commit))
 	}

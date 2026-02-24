@@ -20,7 +20,6 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-conductor/health"
 	"github.com/tokamak-network/tokamak-thanos/op-conductor/metrics"
 	conductorrpc "github.com/tokamak-network/tokamak-thanos/op-conductor/rpc"
-	opp2p "github.com/tokamak-network/tokamak-thanos/op-node/p2p"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/driver"
 	"github.com/tokamak-network/tokamak-thanos/op-service/cliapp"
 	opclient "github.com/tokamak-network/tokamak-thanos/op-service/client"
@@ -174,7 +173,7 @@ func (c *OpConductor) initHealthMonitor(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create p2p rpc client")
 	}
-	p2p := opp2p.NewClient(pc)
+	p2p := sources.NewP2PClient(opclient.NewBaseRPCClient(pc))
 
 	c.hmon = health.NewSequencerHealthMonitor(
 		c.log,

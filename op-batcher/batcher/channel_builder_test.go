@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup/derive"
@@ -63,7 +64,7 @@ func newMiniL2BlockWithNumberParentAndL1Information(numTx int, l2Number *big.Int
 		Number:     big.NewInt(l1Number),
 		Time:       blockTime,
 	}, nil, nil, nil, trie.NewStackTrie(nil))
-	l1InfoTx, err := derive.L1InfoDeposit(&defaultTestRollupConfig, eth.SystemConfig{}, 0, eth.BlockToInfo(l1Block), blockTime)
+	l1InfoTx, err := derive.L1InfoDeposit(&defaultTestRollupConfig, params.OptimismTestConfig, eth.SystemConfig{}, 0, eth.BlockToInfo(l1Block), blockTime)
 	if err != nil {
 		panic(err)
 	}
@@ -367,7 +368,7 @@ func ChannelBuilder_OutputWrongFramePanic(t *testing.T, batchType uint) {
 	// the type of batch does not matter here because we are using it to construct a broken frame
 	c, err := channelConfig.CompressorConfig.NewCompressor()
 	require.NoError(t, err)
-	co, err := derive.NewSingularChannelOut(c)
+	co, err := derive.NewSingularChannelOut(c, rollup.NewChainSpec(&defaultTestRollupConfig))
 	require.NoError(t, err)
 	var buf bytes.Buffer
 	fn, err := co.OutputFrame(&buf, channelConfig.MaxFrameSize)
@@ -505,7 +506,7 @@ func ChannelBuilder_OutputFrames_SpanBatch(t *testing.T, algo derive.Compression
 func ChannelBuilder_MaxRLPBytesPerChannel(t *testing.T, batchType uint) {
 	t.Parallel()
 	channelConfig := defaultTestChannelConfig()
-	channelConfig.MaxFrameSize = rollup.SafeMaxRLPBytesPerChannel * 2
+	channelConfig.MaxFrameSize = rollup.NewChainSpec(&defaultTestRollupConfig).MaxRLPBytesPerChannel(0) * 2
 	channelConfig.InitNoneCompressor()
 	channelConfig.BatchType = batchType
 

@@ -39,6 +39,11 @@ func (m *MockRPC) EthSubscribe(ctx context.Context, channel any, args ...any) (e
 	return nil, nil
 }
 
+func (m *MockRPC) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (ethereum.Subscription, error) {
+	m.t.Fatal("Subscribe should not be called")
+	return nil, nil
+}
+
 func asyncCallContext(ctx context.Context, lc client.RPC) chan error {
 	errC := make(chan error)
 	go func() {

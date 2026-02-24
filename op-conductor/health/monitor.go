@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/tokamak-network/tokamak-thanos/op-conductor/metrics"
-	"github.com/tokamak-network/tokamak-thanos/op-node/p2p"
 	"github.com/tokamak-network/tokamak-thanos/op-node/rollup"
+	"github.com/tokamak-network/tokamak-thanos/op-service/apis"
 	"github.com/tokamak-network/tokamak-thanos/op-service/dial"
 )
 
@@ -35,7 +35,7 @@ type HealthMonitor interface {
 // interval is the interval between health checks measured in seconds.
 // safeInterval is the interval between safe head progress measured in seconds.
 // minPeerCount is the minimum number of peers required for the sequencer to be healthy.
-func NewSequencerHealthMonitor(log log.Logger, metrics metrics.Metricer, interval, unsafeInterval, safeInterval, minPeerCount uint64, safeEnabled bool, rollupCfg *rollup.Config, node dial.RollupClientInterface, p2p p2p.API) HealthMonitor {
+func NewSequencerHealthMonitor(log log.Logger, metrics metrics.Metricer, interval, unsafeInterval, safeInterval, minPeerCount uint64, safeEnabled bool, rollupCfg *rollup.Config, node dial.RollupClientInterface, p2p peerStatsClient) HealthMonitor {
 	return &SequencerHealthMonitor{
 		log:            log,
 		metrics:        metrics,
@@ -51,6 +51,10 @@ func NewSequencerHealthMonitor(log log.Logger, metrics metrics.Metricer, interva
 		node:           node,
 		p2p:            p2p,
 	}
+}
+
+type peerStatsClient interface {
+	PeerStats(ctx context.Context) (*apis.PeerStats, error)
 }
 
 // SequencerHealthMonitor monitors sequencer health.
@@ -73,7 +77,7 @@ type SequencerHealthMonitor struct {
 	timeProviderFn func() uint64
 
 	node dial.RollupClientInterface
-	p2p  p2p.API
+	p2p  peerStatsClient
 }
 
 var _ HealthMonitor = (*SequencerHealthMonitor)(nil)
