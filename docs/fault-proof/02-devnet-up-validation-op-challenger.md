@@ -75,3 +75,73 @@
 - **통과 항목**
 - **실패 항목 / 리스크**
 - **권고:** merge-forward / fix-before-merge
+
+---
+
+## 검증 결과 (2026-02-24 12:30 KST, Cycle 3/4)
+- **결과:** PARTIAL (**NO-GO**; proposer 경고 폭증 리스크 미해소)
+- **환경 + 커밋:** `feat/fault-proof` @ `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- **환경 스냅샷:** Go `1.24.0`, Docker `27.4.0`, Compose `v2.31.0-desktop.2`, Python `3.14.2`, Node `v20.16.0`, pnpm `10.8.0`
+- **사전 점검 특이사항:** 워킹 트리는 검증 시작 시점부터 문서 파일 변경 상태였음 (`docs/fault-proof/03-devnet-up-progress.md`, `docs/lessons.md`, `docs/todo.md`)
+
+### 체크리스트 판정
+| 섹션 | 상태 | 증적 |
+|---|---|---|
+| 1) 사전 점검 | PARTIAL | 브랜치/커밋/도구 버전 고정은 완료, 워킹 트리는 clean 조건 미충족 |
+| 2) 빌드 및 호환성 게이트 | PASS | `make pre-devnet` 성공 (`/tmp/fault-proof-pre-devnet-20260224-123055.log`), challenger 이미지 `tokamaknetwork/thanos-op-challenger:latest`, unknown flag 시그니처 없음 |
+| 3) 부팅 검증 (`make devnet-up`) | PASS | 1차/2차 모두 `make devnet-up` 성공, 핵심 서비스 `Up` |
+| 4) Fault-Proof 런타임 검증 | PARTIAL | challenger 시작/스케줄러/모니터링/서비스 시작 완료 로그 확인, restart `0`; 활성 dispute 부재로 polling 동작의 풍부한 런타임 로그는 제한적 |
+| 5) 회귀 게이트 | PARTIAL | L1/L2 블록 지속 증가, batcher publish/confirm 정상 지속. proposer는 `failed to estimate gas: execution reverted` 경고 폭증(사이클당 31회) + `Failed to send proposal transaction` 1회 후 회복 |
+| 6) 재현성 재실행 | PASS | `make devnet-down` 후 동일 config로 `make devnet-up` 재실행 성공, 서비스/블록 진행 신호 재현 |
+
+### 실행 증적 (주요 로그)
+- `/tmp/fault-proof-devnet-down-20260224-123038.log`
+- `/tmp/fault-proof-pre-devnet-20260224-123055.log`
+- `/tmp/fault-proof-devnet-up-20260224-123101.log`
+- `/tmp/fault-proof-runtime-observe-20260224-123150.log`
+- `/tmp/fault-proof-proposer-logs-20260224-123607.log`
+- `/tmp/fault-proof-challenger-logs-20260224-123607.log`
+- `/tmp/fault-proof-batcher-logs-20260224-123616.log`
+- `/tmp/fault-proof-devnet-down-20260224-123636.log`
+- `/tmp/fault-proof-devnet-up-20260224-123651.log`
+- `/tmp/fault-proof-repro-samples-20260224-123732.log`
+- `/tmp/fault-proof-proposer-recovery-20260224-123932.log`
+
+### 권고
+- **권고:** `fix-before-merge`  
+  - 근거: proposer의 estimate-gas revert 경고 폭증 및 주기적 영구 실패 로그(`operation failed permanently after 30 attempts`)가 반복 재현됨
+
+---
+
+## 검증 결과 (2026-02-24 13:59 KST, Cycle 5 - dispute lifecycle)
+- **결과:** PARTIAL (**NO-GO**; dispute lifecycle 완주 성공, proposer 경고 리스크 지속)
+- **환경 + 커밋:** `feat/fault-proof` @ `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- **핵심 설정:** `faultGameMaxClockDuration=120`, `faultGameWithdrawalDelay=0`, `faultGameClockExtension=0`
+
+### 체크리스트 판정
+| 섹션 | 상태 | 증적 |
+|---|---|---|
+| 1) 사전 점검 | PARTIAL | 워킹 트리 변경 상태 유지, 커밋/브랜치/도구는 고정 |
+| 2) 빌드 및 호환성 게이트 | PASS | `make devnet-clean` 후 `make devnet-up` 성공 |
+| 3) 부팅 검증 (`make devnet-up`) | PASS | 핵심 서비스(`l1/l2/op-node/op-batcher/op-proposer/op-challenger`) `Up` |
+| 4) Fault-Proof 런타임 검증 | PASS | dispute game 생성→move(bond deposit)→resolve-claim→resolve→claimCredit(refund) 완주 |
+| 5) 회귀 게이트 | PARTIAL | proposer의 `failed to estimate gas: execution reverted` 경고 패턴은 동일하게 관측 |
+| 6) 재현성 재실행 | PASS | `devnet-clean`으로 상태 초기화 후 동일 시나리오 재수행 가능성 확인 |
+
+### dispute lifecycle 증적
+- 수집 로그: `/tmp/fault-proof-dispute-bond-20260224-1358.log`
+- 게임 주소: `0x4D67490e0D3FE0f3Ca16C7d0E6D64785E553c612` (Type `0`)
+- 생성 tx: `0x53db92ef3dc5b296debf4e9d5a6e9df69d4b3f5ea23469192ed5d18f05768bd3`
+- 공격(move) tx: `0xab96797d9df0aabecb465e27665e41eff1fdcf23ff76f6ad1dda5c4355df1ffc`
+  - claim #1 bond: `0.09132520 ETH`
+- `resolve` 1차 시도: `operation failed permanently after 30 attempts: failed to estimate gas: execution reverted`
+- 해소 순서:
+  - `resolve-claim(1)` tx: `0x7a2a0f713d8497fd5d175f7b08ec9ab25348678e8ef1a4abc629190406e6fb76`
+  - `resolve-claim(0)` tx: `0x94dc310ef3c5072dccaa3b910c11eed01c5038a0000e550df3a79f0fdb316ec0`
+  - `resolve` tx: `0xfdc4f83745e3d7f1595cabcb528bda0d8e96478f9f489ef0b4cb204d0ab01d27`
+- 환급(claimCredit) tx: `0xd63c72a0f630b8e2a9842eb7e12b15bc3facddb2b9c2c2b5178d0ab0454c386d`
+  - post-check: `credit(attacker)=0`, `DelayedWETH.balanceOf(game)=0`, game status=`1`(`Challenger Won`)
+
+### 권고
+- **권고:** `fix-before-merge`
+  - 근거: dispute lifecycle 자체는 완주되었지만 proposer estimate-gas revert 경고 폭증 및 주기적 영구 실패 패턴은 여전히 남아 있음

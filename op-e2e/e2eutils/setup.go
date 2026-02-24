@@ -138,9 +138,9 @@ func Setup(t require.TestingT, deployParams *DeployParams, alloc *AllocParams) *
 		l2Genesis.Alloc[addr] = val
 	}
 
-	var pcfg *rollup.PlasmaConfig
+	var altDA *rollup.AltDAConfig
 	if deployConf.UsePlasma {
-		pcfg = &rollup.PlasmaConfig{
+		altDA = &rollup.AltDAConfig{
 			DAChallengeAddress: l1Deployments.DataAvailabilityChallengeProxy,
 			DAChallengeWindow:  deployConf.DAChallengeWindow,
 			DAResolveWindow:    deployConf.DAResolveWindow,
@@ -164,7 +164,7 @@ func Setup(t require.TestingT, deployParams *DeployParams, alloc *AllocParams) *
 		BlockTime:              deployConf.L2BlockTime,
 		MaxSequencerDrift:      deployConf.MaxSequencerDrift,
 		SeqWindowSize:          deployConf.SequencerWindowSize,
-		ChannelTimeout:         deployConf.ChannelTimeout,
+		ChannelTimeoutBedrock:  deployConf.ChannelTimeout,
 		L1ChainID:              new(big.Int).SetUint64(deployConf.L1ChainID),
 		L2ChainID:              new(big.Int).SetUint64(deployConf.L2ChainID),
 		BatchInboxAddress:      deployConf.BatchInboxAddress,
@@ -176,7 +176,7 @@ func Setup(t require.TestingT, deployParams *DeployParams, alloc *AllocParams) *
 		EcotoneTime:            deployConf.EcotoneTime(uint64(deployConf.L1GenesisBlockTimestamp)),
 		FjordTime:              deployConf.FjordTime(uint64(deployConf.L1GenesisBlockTimestamp)),
 		InteropTime:            deployConf.InteropTime(uint64(deployConf.L1GenesisBlockTimestamp)),
-		PlasmaConfig:           pcfg,
+		AltDAConfig:            altDA,
 	}
 
 	require.NoError(t, rollupCfg.Check())

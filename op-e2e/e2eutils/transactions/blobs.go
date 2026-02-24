@@ -16,11 +16,11 @@ var (
 func init() {
 	var err error
 	emptyBlob = kzg4844.Blob{}
-	emptyBlobCommit, err = kzg4844.BlobToCommitment(emptyBlob)
+	emptyBlobCommit, err = kzg4844.BlobToCommitment(&emptyBlob)
 	if err != nil {
 		panic("failed to create empty blob commitment: " + err.Error())
 	}
-	emptyBlobProof, err = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
+	emptyBlobProof, err = kzg4844.ComputeBlobProof(&emptyBlob, emptyBlobCommit)
 	if err != nil {
 		panic("failed to create empty blob proof: " + err.Error())
 	}

@@ -117,3 +117,183 @@
 ### Delta vs previous run
 - No new code-level or config-level defects found.
 - Blocker remains strictly environment provisioning (Go + Docker/Compose missing).
+
+---
+
+## 재검증: 2026-02-24 11:32 KST (Cycle 1)
+- 브랜치: `feat/fault-proof`
+- 커밋: `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- 결과: **PARTIAL (핵심 기동/재현성 성공, proposer 경고 패턴 리스크)**
+
+### 체크리스트 상태 (Cycle 1)
+| 섹션 | 상태 | 증적 |
+|---|---|---|
+| 1) 사전 점검 | PASS | `git status --porcelain` clean, 도구 버전 스냅샷 확보 (`go1.24.0`, `Docker 27.4.0`, `compose v2.31.0`) |
+| 2) 빌드 및 호환성 게이트 | PASS | `make pre-devnet` 성공 (exit 0), `op-challenger` 이미지/환경변수 확인, unknown flag 시그니처 없음 |
+| 3) 부팅 검증 (`make devnet-up`) | PASS | `make devnet-up` 성공 (exit 0), 핵심 서비스(`l1/l2/op-node/op-batcher/op-proposer/op-challenger`) up |
+| 4) Fault-Proof 런타임 검증 | PARTIAL | challenger 시작/스케줄러/모니터링 로그 확인, restart 0; 활성 dispute 부재로 polling 동작의 풍부한 로그는 제한적 |
+| 5) 회귀 게이트 | PARTIAL | L1/L2 블록 지속 증가, batcher 정상 제출; proposer에서 `failed to estimate gas: execution reverted` 경고 반복 후 정상 제출 지속 |
+| 6) 재현성 재실행 | PASS | Cycle 2에서 `devnet-down` + `devnet-up` 동일 성공 재현 |
+
+### 명령어 + 주요 출력
+1. `make pre-devnet`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-pre-devnet-20260224-113244.log`
+2. `make devnet-up`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-up-20260224-113303.log`
+3. 안정성 샘플링(4회):  
+   - `[11:37:16] l1=0x18b0 l2=0x4a3d restart=0`  
+   - `[11:38:16] l1=0x18ba l2=0x4a5b restart=0`  
+   - `[11:39:16] l1=0x18c4 l2=0x4a79 restart=0`  
+   - `[11:40:16] l1=0x18ce l2=0x4a97 restart=0`
+4. challenger 로그(요약):  
+   - `Starting op-challenger`  
+   - `starting scheduler`  
+   - `starting monitoring`  
+   - `challenger game service start completed`
+
+### Delta vs previous run
+- 기존 하드 블로커(Go/Docker 미설치)는 해소되었고 `make devnet-up`이 정상 완주됨.
+- 남은 리스크는 proposer의 반복 경고(`estimate gas reverted`)이며, 현재 관측상 서비스 중단 없이 다음 제출 사이클로 회복됨.
+
+---
+
+## 재검증: 2026-02-24 11:42 KST (Cycle 2, 재현성)
+- 브랜치: `feat/fault-proof`
+- 커밋: `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- 결과: **PASS (재실행 성공)**
+
+### 명령어 + 주요 출력
+1. `make devnet-down`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-down-20260224-114210.log`
+2. `make devnet-up` (재실행)  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-up-20260224-114217.log`
+3. 서비스 상태: `docker compose ps`에서 핵심 서비스 전부 `Up`
+4. 블록 진행 샘플:
+   - `[11:43:03] l1=0x18e7 l2=0x4aeb restart=0`
+   - `[11:43:13] l1=0x18e9 l2=0x4af0 restart=0`
+   - `[11:43:23] l1=0x18ea l2=0x4af5 restart=0`
+
+### 비고
+- Cycle 1과 동일하게 proposer 경고 패턴은 재관측됨.
+- challenger는 재실행에서도 즉시 기동되고 restart 없이 유지됨.
+
+---
+
+## 재검증: 2026-02-24 12:30 KST (Cycle 3)
+- 브랜치: `feat/fault-proof`
+- 커밋: `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- 결과: **PARTIAL (기동/재현성 성공, proposer 경고 폭증 리스크 지속)**
+
+### 체크리스트 상태 (Cycle 3)
+| 섹션 | 상태 | 증적 |
+|---|---|---|
+| 1) 사전 점검 | PARTIAL | 브랜치/커밋/도구 버전 고정 완료. 단, 시작 시 워킹 트리는 clean 아님 (`docs/fault-proof/03-devnet-up-progress.md`, `docs/lessons.md`, `docs/todo.md`) |
+| 2) 빌드 및 호환성 게이트 | PASS | `make pre-devnet` 성공 (exit 0), challenger 이미지/환경변수 확인, unknown flag 시그니처 없음 |
+| 3) 부팅 검증 (`make devnet-up`) | PASS | `make devnet-up` 성공 (exit 0), 핵심 서비스 전부 `Up` |
+| 4) Fault-Proof 런타임 검증 | PARTIAL | challenger start/scheduler/monitoring/game service 시작 완료 로그 확인, restart 0; dispute 부재로 polling 상세 로그는 제한적 |
+| 5) 회귀 게이트 | PARTIAL | L1/L2 블록 지속 증가, batcher publish/confirm 정상. proposer는 경고 폭증(31회) + 영구 실패 1회 후 회복 |
+| 6) 재현성 재실행 | PASS | Cycle 4에서 `devnet-down -> devnet-up` 재실행 성공 |
+
+### 명령어 + 주요 출력
+1. `make devnet-down`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-down-20260224-123038.log`
+2. `make pre-devnet`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-pre-devnet-20260224-123055.log`
+3. `make devnet-up`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-up-20260224-123101.log`
+4. 안정성 샘플링(5회):  
+   - `[12:31:50] sample=1 l1=0x1aca l2=0x50a2 challenger_restart=0 proposer_restart=0`  
+   - `[12:32:50] sample=2 l1=0x1ad4 l2=0x50c0 challenger_restart=0 proposer_restart=0`  
+   - `[12:33:50] sample=3 l1=0x1ade l2=0x50de challenger_restart=0 proposer_restart=0`  
+   - `[12:34:50] sample=4 l1=0x1ae8 l2=0x50fd challenger_restart=0 proposer_restart=0`  
+   - `[12:35:51] sample=5 l1=0x1af2 l2=0x511b challenger_restart=0 proposer_restart=0`
+5. proposer 로그 집계 (15m 창):  
+   - `WARN_COUNT=31` (`failed to estimate gas: execution reverted`)  
+   - `PERMANENT_FAIL_COUNT=1` (`operation failed permanently after 30 attempts`)  
+   - `SUCCESS_COUNT=16` (`proposer tx successfully published`)  
+   - log: `/tmp/fault-proof-proposer-logs-20260224-123607.log`
+6. challenger 로그 집계:  
+   - `Starting op-challenger`  
+   - `starting scheduler`  
+   - `starting monitoring`  
+   - `challenger game service start completed`  
+   - log: `/tmp/fault-proof-challenger-logs-20260224-123607.log`
+
+### Delta vs previous run
+- Cycle 1/2와 동일하게 proposer 경고 패턴(경고 폭증 + 영구 실패 1회 + 이후 회복)이 반복 재현됨.
+- challenger/l1/l2/batcher 관점의 기동 안정성은 동일하게 유지됨.
+
+---
+
+## 재검증: 2026-02-24 12:36 KST (Cycle 4, 재현성)
+- 브랜치: `feat/fault-proof`
+- 커밋: `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- 결과: **PASS (재실행 성공, 동일 리스크 재현)**
+
+### 명령어 + 주요 출력
+1. `make devnet-down`  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-down-20260224-123636.log`
+2. `make devnet-up` (재실행)  
+   - exit: `0`  
+   - log: `/tmp/fault-proof-devnet-up-20260224-123651.log`
+3. 블록 진행 샘플:  
+   - `[12:37:32] sample=1 l1=0x1afe l2=0x514d challenger_restart=0 proposer_restart=0`  
+   - `[12:37:42] sample=2 l1=0x1b00 l2=0x5152 challenger_restart=0 proposer_restart=0`  
+   - `[12:37:52] sample=3 l1=0x1b02 l2=0x5157 challenger_restart=0 proposer_restart=0`
+4. proposer 패턴 재확인(재실행 후 2m 창):  
+   - `WARN_COUNT=31`  
+   - `PERMANENT_FAIL_COUNT=1`  
+   - `SUCCESS_COUNT=4` (영구 실패 이후 회복 확인)  
+   - log: `/tmp/fault-proof-proposer-recovery-20260224-123932.log`
+5. challenger 재기동 로그:  
+   - `Starting op-challenger` / `starting scheduler` / `starting monitoring` / `challenger game service start completed`  
+   - log: `/tmp/fault-proof-challenger-repro-logs-20260224-123804.log`
+
+### 비고
+- 재현성 관점에서 `devnet-up` 성공 경로는 안정적으로 재현됨.
+- proposer 경고 폭증 패턴은 2차 재기동에서도 동일하게 재현되어, 기능 저하 리스크가 지속됨.
+
+---
+
+## 재검증: 2026-02-24 13:59 KST (Cycle 5, dispute lifecycle + bond refund)
+- 브랜치: `feat/fault-proof`
+- 커밋: `f44c3b92e37dff23aa52f4a9958db5791c969775`
+- 결과: **PARTIAL (lifecycle 완주 성공, proposer 경고 리스크 지속)**
+
+### 명령어 + 주요 출력
+1. 설정 반영/초기화
+   - `make devnet-clean` -> `make devnet-up`
+   - `faultGameMaxClockDuration=120`, `faultGameWithdrawalDelay=0`, `faultGameClockExtension=0` 확인
+2. dispute game 생성 (type 0)
+   - create tx: `0x53db92ef3dc5b296debf4e9d5a6e9df69d4b3f5ea23469192ed5d18f05768bd3`
+   - game: `0x4D67490e0D3FE0f3Ca16C7d0E6D64785E553c612`
+3. move(attack)로 bond deposit 발생
+   - attack tx: `0xab96797d9df0aabecb465e27665e41eff1fdcf23ff76f6ad1dda5c4355df1ffc`
+   - claim #1 bond: `0.09132520 ETH`
+   - pre-resolve 확인: `DelayedWETH.balanceOf(game)=91325200000000000`
+4. 종료 단계
+   - `resolve` 1차 직접 시도는 `failed to estimate gas: execution reverted`로 30회 후 영구 실패
+   - `resolve-claim(1)` tx: `0x7a2a0f713d8497fd5d175f7b08ec9ab25348678e8ef1a4abc629190406e6fb76`
+   - `resolve-claim(0)` tx: `0x94dc310ef3c5072dccaa3b910c11eed01c5038a0000e550df3a79f0fdb316ec0`
+   - `resolve` 재시도 tx: `0xfdc4f83745e3d7f1595cabcb528bda0d8e96478f9f489ef0b4cb204d0ab01d27` (성공)
+5. bond refund
+   - `claimCredit` tx: `0xd63c72a0f630b8e2a9842eb7e12b15bc3facddb2b9c2c2b5178d0ab0454c386d`
+   - post-check: `credit(attacker)=0`, `DelayedWETH.balanceOf(game)=0`
+   - game status: `Challenger Won`
+
+### 실행 증적
+- `/tmp/fault-proof-devnet-clean-20260224-1351.log`
+- `/tmp/fault-proof-devnet-up-20260224-1351-clean.log`
+- `/tmp/fault-proof-dispute-bond-20260224-1358.log`
+
+### Delta vs previous run
+- 기존 Cycle 3/4의 “활성 dispute 부재” 공백을 해소하고, 실제 dispute lifecycle + bond 환급까지 검증 완료.
+- proposer 경고 폭증 패턴은 dispute lifecycle 검증 중에도 동일하게 관측되어 잔여 리스크로 유지.

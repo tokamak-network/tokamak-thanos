@@ -34,7 +34,7 @@ type Helper struct {
 	client         *ethclient.Client
 	opts           *bind.TransactOpts
 	oracleBindings *bindings.PreimageOracle
-	oracle         *contracts.PreimageOracleContract
+	oracle         contracts.PreimageOracleContract
 	uuidProvider   atomic.Int64
 }
 
@@ -43,7 +43,8 @@ func NewHelper(t *testing.T, opts *bind.TransactOpts, client *ethclient.Client, 
 	oracleBindings, err := bindings.NewPreimageOracle(addr, client)
 	require.NoError(err)
 
-	oracle := contracts.NewPreimageOracleContract(addr, batching.NewMultiCaller(client.Client(), batching.DefaultBatchSize))
+	oracle, err := contracts.NewPreimageOracleContract(context.Background(), addr, batching.NewMultiCaller(client.Client(), batching.DefaultBatchSize))
+	require.NoError(err)
 	return &Helper{
 		t:              t,
 		require:        require,

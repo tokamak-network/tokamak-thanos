@@ -1,0 +1,136 @@
+volumes:
+  l2_data:
+  safedb_data:
+  challenger_data:
+
+services:
+  l2:
+    image: ${L2_IMAGE:-tokamaknetwork/thanos-op-geth:nightly}
+    ports:
+      - "${L2_HTTP_PORT:-9545}:8545"
+      - "${L2_WS_PORT:-9546}:8546"
+      - "${L2_AUTH_PORT:-8551}:8551"
+      - "${L2_METRICS_PORT:-8060}:6060"
+    volumes:
+      - "l2_data:/db"
+      - "${GENESIS_L2_PATH}:/genesis.json:ro"
+      - "${JWT_SECRET_PATH}:/config/jwt-secret.txt:ro"
+    entrypoint:
+      - /bin/sh
+      - /entrypoint.sh
+      - --authrpc.jwtsecret=/config/jwt-secret.txt
+    environment:
+      GETH_VERBOSITY: "${GETH_VERBOSITY:-3}"
+
+  op-node:
+    depends_on:
+      - l2
+    image: tokamaknetwork/thanos-op-node:${IMAGE_TAG:-latest}
+    command: >
+      op-node
+      --l1=${L1_RPC_URL}
+      --l1.beacon=${L1_BEACON_URL}
+      --l1.beacon.ignore
+      --l1.trustrpc
+      --l2=http://l2:8551
+      --l2.jwt-secret=/config/jwt-secret.txt
+      --rollup.config=/config/rollup.json
+      --rpc.addr=0.0.0.0
+      --rpc.enable-admin
+      --rpc.port=8545
+      --metrics.addr=0.0.0.0
+      --metrics.enabled
+      --metrics.port=7300
+      --pprof.enabled
+      --pprof.addr=0.0.0.0
+      --pprof.port=6060
+      --safedb.path=/db
+      --p2p.disable
+      --sequencer.enabled
+      --sequencer.l1-confs=${SEQUENCER_L1_CONFS:-4}
+      --verifier.l1-confs=${VERIFIER_L1_CONFS:-4}
+    ports:
+      - "${OP_NODE_RPC_PORT:-7545}:8545"
+      - "${OP_NODE_METRICS_PORT:-7300}:7300"
+      - "${OP_NODE_PPROF_PORT:-6060}:6060"
+    volumes:
+      - "safedb_data:/db"
+      - "${ROLLUP_CONFIG_PATH}:/config/rollup.json:ro"
+      - "${JWT_SECRET_PATH}:/config/jwt-secret.txt:ro"
+
+  op-batcher:
+    depends_on:
+      - l2
+      - op-node
+    image: tokamaknetwork/thanos-op-batcher:${IMAGE_TAG:-latest}
+    command: op-batcher
+    ports:
+      - "${OP_BATCHER_RPC_PORT:-8548}:8545"
+      - "${OP_BATCHER_METRICS_PORT:-7301}:7300"
+      - "${OP_BATCHER_PPROF_PORT:-6061}:6060"
+    environment:
+      OP_BATCHER_L1_ETH_RPC: "${L1_RPC_URL}"
+      OP_BATCHER_L2_ETH_RPC: "http://l2:8545"
+      OP_BATCHER_ROLLUP_RPC: "http://op-node:8545"
+      OP_BATCHER_PRIVATE_KEY: "${BATCHER_PRIVATE_KEY}"
+      OP_BATCHER_MAX_CHANNEL_DURATION: "${BATCHER_MAX_CHANNEL_DURATION:-300}"
+      OP_BATCHER_SUB_SAFETY_MARGIN: "${BATCHER_SUB_SAFETY_MARGIN:-6}"
+      OP_BATCHER_POLL_INTERVAL: "${BATCHER_POLL_INTERVAL:-6s}"
+      OP_BATCHER_NUM_CONFIRMATIONS: "${BATCHER_NUM_CONFIRMATIONS:-1}"
+      OP_BATCHER_SAFE_ABORT_NONCE_TOO_LOW_COUNT: "${BATCHER_SAFE_ABORT_NONCE_TOO_LOW_COUNT:-3}"
+      OP_BATCHER_RESUBMISSION_TIMEOUT: "${BATCHER_RESUBMISSION_TIMEOUT:-30s}"
+      OP_BATCHER_TARGET_NUM_FRAMES: "${BATCHER_TARGET_NUM_FRAMES:-1}"
+      OP_BATCHER_APPROX_COMPR_RATIO: "${BATCHER_APPROX_COMPR_RATIO:-0.4}"
+      OP_BATCHER_BATCH_TYPE: "${OP_BATCHER_BATCH_TYPE:-0}"
+      OP_BATCHER_PPROF_ENABLED: "true"
+      OP_BATCHER_METRICS_ENABLED: "true"
+      OP_BATCHER_RPC_ENABLE_ADMIN: "true"
+
+  op-proposer:
+    depends_on:
+      - op-node
+    image: tokamaknetwork/thanos-op-proposer:${IMAGE_TAG:-latest}
+    command: op-proposer
+    ports:
+      - "${OP_PROPOSER_RPC_PORT:-8560}:8545"
+      - "${OP_PROPOSER_METRICS_PORT:-7302}:7300"
+      - "${OP_PROPOSER_PPROF_PORT:-6062}:6060"
+    environment:
+      OP_PROPOSER_L1_ETH_RPC: "${L1_RPC_URL}"
+      OP_PROPOSER_ROLLUP_RPC: "http://op-node:8545"
+      OP_PROPOSER_PRIVATE_KEY: "${PROPOSER_PRIVATE_KEY}"
+      OP_PROPOSER_POLL_INTERVAL: "${PROPOSER_POLL_INTERVAL:-12s}"
+      OP_PROPOSER_GAME_FACTORY_ADDRESS: "${DGF_ADDRESS}"
+      OP_PROPOSER_GAME_TYPE: "${DG_TYPE:-0}"
+      OP_PROPOSER_PROPOSAL_INTERVAL: "${PROPOSAL_INTERVAL:-10m}"
+      OP_PROPOSER_ALLOW_NON_FINALIZED: "${PROPOSER_ALLOW_NON_FINALIZED:-false}"
+      OP_PROPOSER_PPROF_ENABLED: "true"
+      OP_PROPOSER_METRICS_ENABLED: "true"
+      OP_PROPOSER_RPC_ENABLE_ADMIN: "true"
+
+  op-challenger:
+    depends_on:
+      - l2
+      - op-node
+    image: tokamaknetwork/thanos-op-challenger:${IMAGE_TAG:-latest}
+    command: op-challenger
+    volumes:
+      - "challenger_data:/db"
+      - "${ROLLUP_CONFIG_PATH}:/config/rollup.json:ro"
+      - "${GENESIS_L2_PATH}:/config/genesis-l2.json:ro"
+      - "${CANNON_PRESTATE_PATH}:/config/prestate.json:ro"
+    environment:
+      OP_CHALLENGER_L1_ETH_RPC: "${L1_RPC_URL}"
+      OP_CHALLENGER_L1_BEACON: "${L1_BEACON_URL}"
+      OP_CHALLENGER_ROLLUP_RPC: "http://op-node:8545"
+      OP_CHALLENGER_GAME_FACTORY_ADDRESS: "${DGF_ADDRESS}"
+      OP_CHALLENGER_GAME_TYPES: "${CHALLENGER_GAME_TYPES:-cannon}"
+      OP_CHALLENGER_DATADIR: "/db"
+      OP_CHALLENGER_CANNON_ROLLUP_CONFIG: "/config/rollup.json"
+      OP_CHALLENGER_CANNON_L2_GENESIS: "/config/genesis-l2.json"
+      OP_CHALLENGER_CANNON_PRESTATE: "/config/prestate.json"
+      OP_CHALLENGER_CANNON_BIN: "/usr/local/bin/cannon"
+      OP_CHALLENGER_CANNON_SERVER: "/usr/local/bin/op-program"
+      OP_CHALLENGER_L2_ETH_RPC: "http://l2:8545"
+      OP_CHALLENGER_PRIVATE_KEY: "${CHALLENGER_PRIVATE_KEY}"
+      OP_CHALLENGER_NUM_CONFIRMATIONS: "${CHALLENGER_NUM_CONFIRMATIONS:-1}"
