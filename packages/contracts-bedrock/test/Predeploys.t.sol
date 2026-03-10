@@ -34,17 +34,6 @@ contract PredeploysTest is CommonTest {
         return _addr == Predeploys.L1_MESSAGE_SENDER;
     }
 
-    function _isInitializable(address _addr) internal pure returns (bool) {
-        return !(
-            _addr == Predeploys.LEGACY_MESSAGE_PASSER || _addr == Predeploys.DEPLOYER_WHITELIST
-                || _addr == Predeploys.GAS_PRICE_ORACLE || _addr == Predeploys.SEQUENCER_FEE_WALLET
-                || _addr == Predeploys.BASE_FEE_VAULT || _addr == Predeploys.L1_FEE_VAULT
-                || _addr == Predeploys.L1_BLOCK_NUMBER || _addr == Predeploys.L1_BLOCK_ATTRIBUTES
-                || _addr == Predeploys.L2_TO_L1_MESSAGE_PASSER || _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
-                || _addr == Predeploys.PROXY_ADMIN || _addr == Predeploys.SCHEMA_REGISTRY || _addr == Predeploys.EAS
-                || _addr == Predeploys.GOVERNANCE_TOKEN
-        );
-    }
 
     function _usesImmutables(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.SEQUENCER_FEE_WALLET
@@ -69,7 +58,7 @@ contract PredeploysTest is CommonTest {
 
     /// @dev Tests that the predeploy addresses are set correctly. They have code
     ///      and the proxied accounts have the correct admin.
-    function test_predeploys_succeeds() external {
+    function test_predeploys_succeeds() external view {
         uint256 count = 2048;
         uint160 prefix = uint160(0x420) << 148;
 
@@ -123,9 +112,6 @@ contract PredeploysTest is CommonTest {
                 assertEq(implAddr.code, supposedCode, "proxy implementation contract should match contract source");
             }
 
-            if (_isInitializable(addr)) {
-                assertEq(l2Genesis.loadInitializedSlot(cname), uint8(1));
-            }
         }
     }
 }

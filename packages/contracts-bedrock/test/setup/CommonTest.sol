@@ -244,6 +244,20 @@ abstract contract CommonTest is Test, Setup, Events {
         useUpgradedFork = false;
     }
 
+    /// @dev Helper function to warp time to when a given L2 block number can be proposed.
+    /// @param _l2BlockNumber The L2 block number to warp to proposal time for.
+    function warpToProposeTime(uint256 _l2BlockNumber) public {
+        vm.warp(l2OutputOracle.computeL2Timestamp(_l2BlockNumber) + 1);
+    }
+
+    /// @dev Helper function to propose the next L2 output using a nonzero hash.
+    function proposeAnotherOutput() public {
+        uint256 nextBlockNumber = l2OutputOracle.nextBlockNumber();
+        warpToProposeTime(nextBlockNumber);
+        vm.prank(deploy.cfg().l2OutputOracleProposer());
+        l2OutputOracle.proposeL2Output(nonZeroHash, nextBlockNumber, 0, 0);
+    }
+
     /// @dev Helper function to setup a prank for delegatecall.
     /// @param _caller The address to prank as the caller.
     function prankDelegateCall(address _caller) internal {

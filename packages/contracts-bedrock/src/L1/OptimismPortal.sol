@@ -223,7 +223,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     ///         The SystemConfig is the source of truth for the resource config.
     /// @return ResourceMetering ResourceConfig
     function _resourceConfig() internal view override returns (ResourceMetering.ResourceConfig memory) {
-        return systemConfig.resourceConfig();
+        return abi.decode(abi.encode(systemConfig.resourceConfig()), (ResourceMetering.ResourceConfig));
     }
 
     /// @notice Proves a withdrawal transaction.
@@ -578,7 +578,7 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
                 uint256(0), // value
                 uint64(SYSTEM_DEPOSIT_GAS_LIMIT), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(L1Block.setGasPayingToken, (_token, _decimals, _name, _symbol))
+                abi.encodeWithSignature("setGasPayingToken(address,uint8,bytes32,bytes32)", _token, _decimals, _name, _symbol)
             )
         );
     }

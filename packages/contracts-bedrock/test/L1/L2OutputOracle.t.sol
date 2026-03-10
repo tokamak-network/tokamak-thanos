@@ -408,7 +408,7 @@ contract L2OutputOracle_deleteOutputs_Test is CommonTest {
 contract L2OutputOracleUpgradeable_Test is CommonTest {
     /// @dev Tests that the proxy can be successfully upgraded.
     function test_upgrading_succeeds() external {
-        Proxy proxy = Proxy(deploy.mustGetAddress("L2OutputOracleProxy"));
+        Proxy proxy = Proxy(deploy.artifacts().mustGetAddress("L2OutputOracleProxy"));
         // Check an unused slot before upgrading.
         bytes32 slot21Before = vm.load(address(l2OutputOracle), bytes32(uint256(21)));
         assertEq(bytes32(0), slot21Before);

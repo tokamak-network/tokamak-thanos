@@ -33,8 +33,11 @@ contract DeployConfig is Script {
     address public p2pSequencerAddress;
     address public batchInboxAddress;
     address public batchSenderAddress;
+    uint256 public l2BlockTime;
+    uint256 public finalizationPeriodSeconds;
     int256 internal _l2OutputOracleStartingTimestamp;
     uint256 public l2OutputOracleStartingBlockNumber;
+    uint256 public l2OutputOracleSubmissionInterval;
     address public l2OutputOracleProposer;
     address public l2OutputOracleChallenger;
     bool public fundDevAccounts;
@@ -125,8 +128,11 @@ contract DeployConfig is Script {
         p2pSequencerAddress = stdJson.readAddress(_json, "$.p2pSequencerAddress");
         batchInboxAddress = stdJson.readAddress(_json, "$.batchInboxAddress");
         batchSenderAddress = stdJson.readAddress(_json, "$.batchSenderAddress");
+        l2BlockTime = stdJson.readUint(_json, "$.l2BlockTime");
+        finalizationPeriodSeconds = stdJson.readUint(_json, "$.finalizationPeriodSeconds");
         _l2OutputOracleStartingTimestamp = stdJson.readInt(_json, "$.l2OutputOracleStartingTimestamp");
         l2OutputOracleStartingBlockNumber = stdJson.readUint(_json, "$.l2OutputOracleStartingBlockNumber");
+        l2OutputOracleSubmissionInterval = _readOr(_json, "$.l2OutputOracleSubmissionInterval", 1800);
         l2OutputOracleProposer = stdJson.readAddress(_json, "$.l2OutputOracleProposer");
         l2OutputOracleChallenger = stdJson.readAddress(_json, "$.l2OutputOracleChallenger");
         fundDevAccounts = _readOr(_json, "$.fundDevAccounts", false);

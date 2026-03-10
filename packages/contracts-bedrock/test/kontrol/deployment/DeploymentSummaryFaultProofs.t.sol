@@ -5,6 +5,12 @@ pragma solidity 0.8.15;
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
+// Interfaces
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+
 // Target contract dependencies
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -18,13 +24,16 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 
 // Tests
-import { L1CrossDomainMessenger_Test } from "test/L1/L1CrossDomainMessenger.t.sol";
-import { OptimismPortal2_Test } from "test/L1/OptimismPortal2.t.sol";
-import { L1ERC721Bridge_Test, TestERC721 } from "test/L1/L1ERC721Bridge.t.sol";
+import { L1CrossDomainMessenger_TestInit as L1CrossDomainMessenger_Test } from "test/L1/L1CrossDomainMessenger.t.sol";
+import { OptimismPortal2_TestInit as OptimismPortal2_Test } from "test/L1/OptimismPortal2.t.sol";
 import {
-    L1StandardBridge_Getter_Test,
+    L1ERC721Bridge_TestInit as L1ERC721Bridge_Test,
+    L1ERC721Bridge_TestERC721_Harness as TestERC721
+} from "test/L1/L1ERC721Bridge.t.sol";
+import {
+    L1StandardBridge_Constructor_Test as L1StandardBridge_Getter_Test,
     L1StandardBridge_Initialize_Test,
-    L1StandardBridge_Pause_Test
+    L1StandardBridge_Paused_Test as L1StandardBridge_Pause_Test
 } from "test/L1/L1StandardBridge.t.sol";
 
 /// @dev Contract testing the deployment summary correctness
@@ -36,10 +45,10 @@ contract DeploymentSummaryFaultProofs_TestOptimismPortal is DeploymentSummaryFau
         deploymentSummary.recreateDeployment();
 
         // Set summary addresses
-        optimismPortal2 = OptimismPortal2(payable(optimismPortalProxyAddress));
-        superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
-        disputeGameFactory = DisputeGameFactory(disputeGameFactoryProxyAddress);
-        systemConfig = SystemConfig(systemConfigProxyAddress);
+        optimismPortal2 = IOptimismPortal(payable(optimismPortalProxyAddress));
+        superchainConfig = ISuperchainConfig(superchainConfigProxyAddress);
+        disputeGameFactory = IDisputeGameFactory(disputeGameFactoryProxyAddress);
+        systemConfig = ISystemConfig(systemConfigProxyAddress);
 
         // Set up utilized addresses
         depositor = makeAddr("depositor");
@@ -52,7 +61,7 @@ contract DeploymentSummaryFaultProofs_TestOptimismPortal is DeploymentSummaryFau
     /// @dev Skips the first line of `super.test_constructor_succeeds` because
     ///      we're not exercising the `Deploy` logic in these tests. However,
     ///      the remaining assertions of the test are important to check
-    function test_constructor_succeeds() external view override {
+    function test_constructor_succeeds() external view {
         // OptimismPortal opImpl = OptimismPortal(payable(deploy.mustGetAddress("OptimismPortal")));
         OptimismPortal2 opImpl = OptimismPortal2(payable(optimismPortal2Address));
         assertEq(address(opImpl.disputeGameFactory()), address(0));
@@ -64,7 +73,7 @@ contract DeploymentSummaryFaultProofs_TestOptimismPortal is DeploymentSummaryFau
     /// @dev Skips the first line of `super.test_initialize_succeeds` because
     ///      we're not exercising the `Deploy` logic in these tests. However,
     ///      the remaining assertions of the test are important to check
-    function test_initialize_succeeds() external view override {
+    function test_initialize_succeeds() external view {
         // address guardian = deploy.cfg().superchainConfigGuardian();
         address guardian = superchainConfig.guardian();
         assertEq(address(optimismPortal2.disputeGameFactory()), address(disputeGameFactory));

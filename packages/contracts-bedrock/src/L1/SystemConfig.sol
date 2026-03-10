@@ -9,6 +9,7 @@ import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
 // Libraries
 import { Storage } from "src/libraries/Storage.sol";
 import { Features } from "src/libraries/Features.sol";
+import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -622,5 +623,18 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @return bool True if the custom gas token feature is enabled, false otherwise.
     function isCustomGasToken() public view returns (bool) {
         return isFeatureEnabled[Features.CUSTOM_GAS_TOKEN];
+    }
+
+    /// @notice Getter for the gas paying token address and its decimals.
+    /// @return addr_     Address of the gas paying token.
+    /// @return decimals_ Decimals of the gas paying token.
+    function gasPayingToken() public view returns (address addr_, uint8 decimals_) {
+        (addr_, decimals_) = GasPayingToken.getToken();
+    }
+
+    /// @notice Internal setter for the gas paying token. Override in subcontracts to add validation.
+    /// @param _token Address of the gas paying token.
+    function _setGasPayingToken(address _token) internal virtual {
+        // Default implementation is a no-op. Override in subcontracts as needed.
     }
 }

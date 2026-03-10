@@ -301,11 +301,6 @@ contract Specification_Test is CommonTest {
             _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
         });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: OptimismPortalInterop.setConfig.selector,
-            _auth: Role.SYSTEMCONFIGOWNER
-        });
 
         // OptimismPortal2
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)") });
@@ -392,7 +387,8 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("renounceOwnership()"), _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfig", _sel: SystemConfig.resourceConfig.selector });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("scalar()") });
-        _addSpec({ _name: "SystemConfig", _sel: SystemConfig.setBatcherHash.selector, _auth: Role.SYSTEMCONFIGOWNER });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("setBatcherHash(address)"), _auth: Role.SYSTEMCONFIGOWNER });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("setBatcherHash(bytes32)"), _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfig", _sel: SystemConfig.setGasConfig.selector, _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfig", _sel: SystemConfig.setGasLimit.selector, _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({
@@ -444,11 +440,8 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("renounceOwnership()"), _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfigInterop", _sel: SystemConfig.resourceConfig.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("scalar()") });
-        _addSpec({
-            _name: "SystemConfigInterop",
-            _sel: SystemConfig.setBatcherHash.selector,
-            _auth: Role.SYSTEMCONFIGOWNER
-        });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("setBatcherHash(address)"), _auth: Role.SYSTEMCONFIGOWNER });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("setBatcherHash(bytes32)"), _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({
             _name: "SystemConfigInterop",
             _sel: SystemConfig.setGasConfig.selector,

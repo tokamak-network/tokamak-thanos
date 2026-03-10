@@ -7,9 +7,9 @@ import { Script } from "forge-std/Script.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
+import { Safe } from "safe-contracts/Safe.sol";
 import { OwnerManager } from "safe-contracts/base/OwnerManager.sol";
-import { GnosisSafeProxyFactory as SafeProxyFactory } from "safe-contracts/proxies/GnosisSafeProxyFactory.sol";
+import { SafeProxyFactory } from "safe-contracts/proxies/SafeProxyFactory.sol";
 import { Enum as SafeOps } from "safe-contracts/common/Enum.sol";
 
 import { Deployer } from "scripts/Deployer.sol";
@@ -47,8 +47,18 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Chains } from "scripts/Chains.sol";
 import { Config } from "scripts/Config.sol";
 
-import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
-import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
+import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
+import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
+import { IPreimageOracle as IPreimageOracleMinimal } from "src/cannon/interfaces/IPreimageOracle.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
 import "src/dispute/lib/Types.sol";
 import { ChainAssertions } from "scripts/ChainAssertions.sol";
@@ -511,11 +521,11 @@ contract Deploy is Deployer {
         require(admin.owner() == msg.sender);
 
         AddressManager addressManager = AddressManager(mustGetAddress("AddressManager"));
-        if (admin.addressManager() != addressManager) {
-            admin.setAddressManager(addressManager);
+        if (address(admin.addressManager()) != address(addressManager)) {
+            admin.setAddressManager(IAddressManager(address(addressManager)));
         }
 
-        require(admin.addressManager() == addressManager);
+        require(address(admin.addressManager()) == address(addressManager));
 
         save("ProxyAdmin", address(admin));
         console.log("ProxyAdmin deployed at %s", address(admin));
@@ -642,7 +652,7 @@ contract Deploy is Deployer {
     function deployOptimismPortal() public broadcast returns (address addr_) {
         console.log("Deploying OptimismPortal implementation");
         if (cfg.useInterop()) {
-            addr_ = address(new OptimismPortalInterop{ salt: _implSalt() }());
+            addr_ = address(new OptimismPortalInterop{ salt: _implSalt() }(cfg.proofMaturityDelaySeconds()));
         } else {
             addr_ = address(new OptimismPortal{ salt: _implSalt() }());
         }
@@ -666,10 +676,7 @@ contract Deploy is Deployer {
             uint32(cfg.respectedGameType()) == cfg.respectedGameType(), "Deploy: respectedGameType must fit into uint32"
         );
 
-        OptimismPortal2 portal = new OptimismPortal2{ salt: _implSalt() }({
-            _proofMaturityDelaySeconds: cfg.proofMaturityDelaySeconds(),
-            _disputeGameFinalityDelaySeconds: cfg.disputeGameFinalityDelaySeconds()
-        });
+        OptimismPortal2 portal = new OptimismPortal2{ salt: _implSalt() }(cfg.proofMaturityDelaySeconds());
 
         save("OptimismPortal2", address(portal));
         console.log("OptimismPortal2 deployed at %s", address(portal));
@@ -795,7 +802,7 @@ contract Deploy is Deployer {
     /// @notice Deploy Mips
     function deployMips() public broadcast returns (address addr_) {
         console.log("Deploying Mips implementation");
-        MIPS mips = new MIPS{ salt: _implSalt() }(IPreimageOracle(mustGetAddress("PreimageOracle")));
+        MIPS mips = new MIPS{ salt: _implSalt() }(IPreimageOracleMinimal(mustGetAddress("PreimageOracle")));
         save("Mips", address(mips));
         console.log("MIPS deployed at %s", address(mips));
 
@@ -806,7 +813,7 @@ contract Deploy is Deployer {
     function deployAnchorStateRegistry() public broadcast returns (address addr_) {
         console.log("Deploying AnchorStateRegistry implementation");
         AnchorStateRegistry anchorStateRegistry =
-            new AnchorStateRegistry{ salt: _implSalt() }(DisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy")));
+            new AnchorStateRegistry{ salt: _implSalt() }(cfg.disputeGameFinalityDelaySeconds());
         save("AnchorStateRegistry", address(anchorStateRegistry));
         console.log("AnchorStateRegistry deployed at %s", address(anchorStateRegistry));
 
@@ -905,7 +912,7 @@ contract Deploy is Deployer {
         _upgradeAndCallViaSafe({
             _proxy: superchainConfigProxy,
             _implementation: superchainConfig,
-            _innerCallData: abi.encodeCall(SuperchainConfig.initialize, (cfg.superchainConfigGuardian(), false))
+            _innerCallData: abi.encodeCall(SuperchainConfig.initialize, (cfg.superchainConfigGuardian()))
         });
 
         ChainAssertions.checkSuperchainConfig({ _contracts: _proxiesUnstrict(), _cfg: cfg, _isPaused: false });
@@ -957,47 +964,23 @@ contract Deploy is Deployer {
         address anchorStateRegistryProxy = mustGetAddress("AnchorStateRegistryProxy");
         address anchorStateRegistry = mustGetAddress("AnchorStateRegistry");
 
-        AnchorStateRegistry.StartingAnchorRoot[] memory roots = new AnchorStateRegistry.StartingAnchorRoot[](5);
-        roots[0] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[1] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.PERMISSIONED_CANNON,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[2] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ALPHABET,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[3] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.ASTERISC,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
-        });
-        roots[4] = AnchorStateRegistry.StartingAnchorRoot({
-            gameType: GameTypes.FAST,
-            outputRoot: OutputRoot({
-                root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
-                l2BlockNumber: cfg.faultGameGenesisBlock()
-            })
+        Proposal memory startingAnchorRoot = Proposal({
+            root: Hash.wrap(cfg.faultGameGenesisOutputRoot()),
+            l2SequenceNumber: cfg.faultGameGenesisBlock()
         });
 
         _upgradeAndCallViaSafe({
             _proxy: payable(anchorStateRegistryProxy),
             _implementation: anchorStateRegistry,
-            _innerCallData: abi.encodeCall(AnchorStateRegistry.initialize, (roots))
+            _innerCallData: abi.encodeCall(
+                AnchorStateRegistry.initialize,
+                (
+                    ISystemConfig(mustGetAddress("SystemConfigProxy")),
+                    IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy")),
+                    startingAnchorRoot,
+                    GameTypes.CANNON
+                )
+            )
         });
 
         string memory version = AnchorStateRegistry(payable(anchorStateRegistryProxy)).version();
@@ -1035,11 +1018,13 @@ contract Deploy is Deployer {
                         l1CrossDomainMessenger: mustGetAddress("L1CrossDomainMessengerProxy"),
                         l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
                         l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
-                        disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
-                        gasPayingToken: customGasTokenAddress
-                    })
+                        delayedWETH: getAddress("DelayedWETHProxy"),
+                        opcm: getAddress("OPContractsManager")
+                    }),
+                    cfg.l2ChainID(),
+                    ISuperchainConfig(mustGetAddress("SuperchainConfigProxy"))
                 )
             )
         });
@@ -1058,7 +1043,6 @@ contract Deploy is Deployer {
         address l1StandardBridgeProxy = mustGetAddress("L1StandardBridgeProxy");
         address l1StandardBridge = mustGetAddress("L1StandardBridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         uint256 proxyType = uint256(proxyAdmin.proxyType(l1StandardBridgeProxy));
@@ -1078,9 +1062,8 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L1StandardBridge.initialize,
                 (
-                    L1CrossDomainMessenger(l1CrossDomainMessengerProxy),
-                    SuperchainConfig(superchainConfigProxy),
-                    SystemConfig(systemConfigProxy)
+                    ICrossDomainMessenger(l1CrossDomainMessengerProxy),
+                    ISystemConfig(systemConfigProxy)
                 )
             )
         });
@@ -1097,14 +1080,14 @@ contract Deploy is Deployer {
         address l1ERC721BridgeProxy = mustGetAddress("L1ERC721BridgeProxy");
         address l1ERC721Bridge = mustGetAddress("L1ERC721Bridge");
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
+        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
         _upgradeAndCallViaSafe({
             _proxy: payable(l1ERC721BridgeProxy),
             _implementation: l1ERC721Bridge,
             _innerCallData: abi.encodeCall(
                 L1ERC721Bridge.initialize,
-                (L1CrossDomainMessenger(payable(l1CrossDomainMessengerProxy)), SuperchainConfig(superchainConfigProxy))
+                (ICrossDomainMessenger(l1CrossDomainMessengerProxy), ISystemConfig(systemConfigProxy))
             )
         });
 
@@ -1141,7 +1124,6 @@ contract Deploy is Deployer {
         ProxyAdmin proxyAdmin = ProxyAdmin(mustGetAddress("ProxyAdmin"));
         address l1CrossDomainMessengerProxy = mustGetAddress("L1CrossDomainMessengerProxy");
         address l1CrossDomainMessenger = mustGetAddress("L1CrossDomainMessenger");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
 
@@ -1176,9 +1158,8 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 L1CrossDomainMessenger.initialize,
                 (
-                    SuperchainConfig(superchainConfigProxy),
-                    OptimismPortal(payable(optimismPortalProxy)),
-                    SystemConfig(systemConfigProxy)
+                    ISystemConfig(systemConfigProxy),
+                    IOptimismPortal(payable(optimismPortalProxy))
                 )
             )
         });
@@ -1259,9 +1240,7 @@ contract Deploy is Deployer {
         console.log("Upgrading and initializing OptimismPortal2 proxy");
         address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
         address optimismPortal2 = mustGetAddress("OptimismPortal2");
-        address disputeGameFactoryProxy = mustGetAddress("DisputeGameFactoryProxy");
         address systemConfigProxy = mustGetAddress("SystemConfigProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
 
         _upgradeAndCallViaSafe({
             _proxy: payable(optimismPortalProxy),
@@ -1269,10 +1248,8 @@ contract Deploy is Deployer {
             _innerCallData: abi.encodeCall(
                 OptimismPortal2.initialize,
                 (
-                    DisputeGameFactory(disputeGameFactoryProxy),
-                    SystemConfig(systemConfigProxy),
-                    SuperchainConfig(superchainConfigProxy),
-                    GameType.wrap(uint32(cfg.respectedGameType()))
+                    ISystemConfig(systemConfigProxy),
+                    IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy"))
                 )
             )
         });
@@ -1427,7 +1404,7 @@ contract Deploy is Deployer {
                 weth: weth,
                 gameType: GameTypes.ALPHABET,
                 absolutePrestate: outputAbsolutePrestate,
-                faultVm: IBigStepper(new AlphabetVM(outputAbsolutePrestate, PreimageOracle(mustGetAddress("PreimageOracle")))),
+                faultVm: IBigStepper(address(new AlphabetVM(outputAbsolutePrestate, IPreimageOracle(mustGetAddress("PreimageOracle"))))),
                 // The max depth for the alphabet trace is always 3. Add 1 because split depth is fully inclusive.
                 maxGameDepth: cfg.faultGameSplitDepth() + 3 + 1,
                 maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
@@ -1450,7 +1427,7 @@ contract Deploy is Deployer {
                 weth: weth,
                 gameType: GameTypes.FAST,
                 absolutePrestate: outputAbsolutePrestate,
-                faultVm: IBigStepper(new AlphabetVM(outputAbsolutePrestate, PreimageOracle(mustGetAddress("PreimageOracle")))),
+                faultVm: IBigStepper(address(new AlphabetVM(outputAbsolutePrestate, IPreimageOracle(mustGetAddress("PreimageOracle"))))),
                 // The max depth for the alphabet trace is always 3. Add 1 because split depth is fully inclusive.
                 maxGameDepth: cfg.faultGameSplitDepth() + 3 + 1,
                 maxClockDuration: Duration.wrap(0) // Resolvable immediately
@@ -1478,36 +1455,40 @@ contract Deploy is Deployer {
         if (rawGameType != GameTypes.PERMISSIONED_CANNON.raw()) {
             _factory.setImplementation(
                 _params.gameType,
-                new FaultDisputeGame({
-                    _gameType: _params.gameType,
-                    _absolutePrestate: _params.absolutePrestate,
-                    _maxGameDepth: _params.maxGameDepth,
-                    _splitDepth: cfg.faultGameSplitDepth(),
-                    _clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
-                    _maxClockDuration: _params.maxClockDuration,
-                    _vm: _params.faultVm,
-                    _weth: _params.weth,
-                    _anchorStateRegistry: _params.anchorStateRegistry,
-                    _l2ChainId: cfg.l2ChainID()
-                })
+                IDisputeGame(address(new FaultDisputeGame(
+                    FaultDisputeGame.GameConstructorParams({
+                        gameType: _params.gameType,
+                        absolutePrestate: _params.absolutePrestate,
+                        maxGameDepth: _params.maxGameDepth,
+                        splitDepth: cfg.faultGameSplitDepth(),
+                        clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+                        maxClockDuration: _params.maxClockDuration,
+                        vm: _params.faultVm,
+                        weth: IDelayedWETH(payable(address(_params.weth))),
+                        anchorStateRegistry: IAnchorStateRegistry(address(_params.anchorStateRegistry)),
+                        l2ChainId: cfg.l2ChainID()
+                    })
+                )))
             );
         } else {
             _factory.setImplementation(
                 _params.gameType,
-                new PermissionedDisputeGame({
-                    _gameType: _params.gameType,
-                    _absolutePrestate: _params.absolutePrestate,
-                    _maxGameDepth: _params.maxGameDepth,
-                    _splitDepth: cfg.faultGameSplitDepth(),
-                    _clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
-                    _maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
-                    _vm: _params.faultVm,
-                    _weth: _params.weth,
-                    _anchorStateRegistry: _params.anchorStateRegistry,
-                    _l2ChainId: cfg.l2ChainID(),
-                    _proposer: cfg.l2OutputOracleProposer(),
-                    _challenger: cfg.l2OutputOracleChallenger()
-                })
+                IDisputeGame(address(new PermissionedDisputeGame(
+                    FaultDisputeGame.GameConstructorParams({
+                        gameType: _params.gameType,
+                        absolutePrestate: _params.absolutePrestate,
+                        maxGameDepth: _params.maxGameDepth,
+                        splitDepth: cfg.faultGameSplitDepth(),
+                        clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+                        maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
+                        vm: _params.faultVm,
+                        weth: IDelayedWETH(payable(address(_params.weth))),
+                        anchorStateRegistry: IAnchorStateRegistry(address(_params.anchorStateRegistry)),
+                        l2ChainId: cfg.l2ChainID()
+                    }),
+                    cfg.l2OutputOracleProposer(),
+                    cfg.l2OutputOracleChallenger()
+                )))
             );
         }
 

@@ -18,4 +18,10 @@ contract DeploymentSummaryFaultProofs is DeploymentSummaryFaultProofsCode {
     address l1ERC721BridgeProxyAddress;
     address l1StandardBridgeProxyAddress;
     address optimismPortalProxyAddress;
+    address disputeGameFactoryProxyAddress;
+    address systemConfigProxyAddress;
+    address optimismPortal2Address;
+
+    // Will be populated by Kontrol
+    function recreateDeployment() public virtual { }
 }

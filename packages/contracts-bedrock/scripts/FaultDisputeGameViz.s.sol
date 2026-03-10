@@ -4,10 +4,10 @@ pragma solidity ^0.8.15;
 import { Script } from "forge-std/Script.sol";
 import { console2 as console } from "forge-std/console2.sol";
 
-import { FaultDisputeGame_Init } from "test/dispute/FaultDisputeGame.t.sol";
+import { FaultDisputeGame_TestInit as FaultDisputeGame_Init } from "test/dispute/FaultDisputeGame.t.sol";
 import { DisputeGameFactory } from "src/dispute/DisputeGameFactory.sol";
 import { FaultDisputeGame } from "src/dispute/FaultDisputeGame.sol";
-import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
 import "src/dispute/lib/Types.sol";
@@ -19,13 +19,13 @@ import "src/dispute/lib/Errors.sol";
  */
 contract FaultDisputeGameViz is Script, FaultDisputeGame_Init {
     /// @dev The root claim of the game.
-    Claim internal constant ROOT_CLAIM = Claim.wrap(bytes32(uint256(1)));
+    Claim internal constant VIZ_ROOT_CLAIM = Claim.wrap(bytes32(uint256(1)));
     /// @dev The absolute prestate of the trace.
-    Claim internal constant ABSOLUTE_PRESTATE = Claim.wrap(bytes32((uint256(3) << 248) | uint256(0)));
+    Claim internal constant VIZ_ABSOLUTE_PRESTATE = Claim.wrap(bytes32((uint256(3) << 248) | uint256(0)));
 
     function setUp() public override {
         super.setUp();
-        super.init({ rootClaim: ROOT_CLAIM, absolutePrestate: ABSOLUTE_PRESTATE, l2BlockNumber: 0x10 });
+        super.init({ rootClaim: VIZ_ROOT_CLAIM, absolutePrestate: VIZ_ABSOLUTE_PRESTATE, l2BlockNumber: 0x10 });
     }
 
     /**
@@ -43,7 +43,7 @@ contract FaultDisputeGameViz is Script, FaultDisputeGame_Init {
      * @dev Entry point
      */
     function remote(address _addr) public {
-        gameProxy = FaultDisputeGame(payable(_addr));
+        gameProxy = IFaultDisputeGame(payable(_addr));
         buildGraph();
         console.log("Saved graph to `./dispute_game.svg");
     }

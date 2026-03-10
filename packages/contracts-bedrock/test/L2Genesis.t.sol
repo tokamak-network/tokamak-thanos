@@ -2,7 +2,9 @@
 pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
-import { L2Genesis, OutputMode, L1Dependencies } from "scripts/L2Genesis.s.sol";
+import { L2Genesis } from "scripts/L2Genesis.s.sol";
+import { OutputMode } from "scripts/libraries/Config.sol";
+import { Fork } from "scripts/libraries/Config.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Process } from "scripts/libraries/Process.sol";
@@ -14,10 +16,43 @@ contract L2GenesisTest is Test {
 
     function setUp() public {
         genesis = new L2Genesis();
-        // Note: to customize L1 addresses,
-        // simply pass in the L1 addresses argument for Genesis setup functions that depend on it.
-        // L1 addresses, or L1 artifacts, are not stored globally.
-        genesis.setUp();
+    }
+
+    /// @notice Creates a default Input for testing.
+    function _defaultInput() internal pure returns (L2Genesis.Input memory) {
+        return L2Genesis.Input({
+            l1ChainID: 1,
+            l2ChainID: 10,
+            l1CrossDomainMessengerProxy: payable(address(0x100000)),
+            l1StandardBridgeProxy: payable(address(0x100001)),
+            l1ERC721BridgeProxy: payable(address(0x100002)),
+            opChainProxyAdminOwner: address(0x200000),
+            sequencerFeeVaultRecipient: address(0x300000),
+            sequencerFeeVaultMinimumWithdrawalAmount: 0,
+            sequencerFeeVaultWithdrawalNetwork: 0,
+            baseFeeVaultRecipient: address(0x400000),
+            baseFeeVaultMinimumWithdrawalAmount: 0,
+            baseFeeVaultWithdrawalNetwork: 0,
+            l1FeeVaultRecipient: address(0x500000),
+            l1FeeVaultMinimumWithdrawalAmount: 0,
+            l1FeeVaultWithdrawalNetwork: 0,
+            operatorFeeVaultRecipient: address(0x600000),
+            operatorFeeVaultMinimumWithdrawalAmount: 0,
+            operatorFeeVaultWithdrawalNetwork: 0,
+            governanceTokenOwner: address(0x700000),
+            fork: uint256(Fork.DELTA),
+            deployCrossL2Inbox: false,
+            enableGovernance: true,
+            fundDevAccounts: false,
+            useRevenueShare: false,
+            chainFeesRecipient: address(0),
+            l1FeesDepositor: address(0),
+            useCustomGasToken: false,
+            gasPayingTokenName: "",
+            gasPayingTokenSymbol: "",
+            nativeAssetLiquidityAmount: 0,
+            liquidityControllerOwner: address(0)
+        });
     }
 
     /// @notice Creates a temp file and returns the path to it.
@@ -122,14 +157,14 @@ contract L2GenesisTest is Test {
         return abi.decode(Process.run(commands), (uint256));
     }
 
-    /// @notice Tests the genesis predeploys setup using a temp file for the case where useInterop is false.
+    /// @notice Tests the genesis predeploys setup using a temp file for the case where deployCrossL2Inbox is false.
     function test_genesis_predeploys_notUsingInterop() external {
         string memory path = tmpfile();
         _test_genesis_predeploys(path, false);
         deleteFile(path);
     }
 
-    /// @notice Tests the genesis predeploys setup using a temp file for the case where useInterop is true.
+    /// @notice Tests the genesis predeploys setup using a temp file for the case where deployCrossL2Inbox is true.
     function test_genesis_predeploys_usingInterop() external {
         string memory path = tmpfile();
         _test_genesis_predeploys(path, true);
@@ -138,20 +173,22 @@ contract L2GenesisTest is Test {
 
     /// @notice Tests the genesis predeploys setup.
     function _test_genesis_predeploys(string memory _path, bool _useInterop) internal {
-        // Set the useInterop value
-        vm.mockCall(
-            address(genesis.cfg()), abi.encodeWithSelector(genesis.cfg().useInterop.selector), abi.encode(_useInterop)
-        );
+        L2Genesis.Input memory input = _defaultInput();
+        input.deployCrossL2Inbox = _useInterop;
+        if (_useInterop) {
+            input.fork = uint256(Fork.INTEROP);
+        }
 
-        // Set the predeploy proxies into state
-        genesis.setPredeployProxies();
-        genesis.writeGenesisAllocs(_path);
+        genesis.run(input);
+        vm.dumpState(_path);
 
-        // 2 predeploys do not have proxies
+        // 2 predeploys do not have proxies (WETH and GovernanceToken)
         assertEq(getCodeCount(_path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
 
-        // 19 proxies have the implementation set if useInterop is true and 17 if useInterop is false
-        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), _useInterop ? 19 : 17);
+        // Count predeploys with implementation slot set.
+        // Tokamak adds OPERATOR_FEE_VAULT and FEE_SPLITTER over upstream (17 -> 19 without interop).
+        // With interop, CrossL2Inbox and L2ToL2CrossDomainMessenger are also added (19 -> 21).
+        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), _useInterop ? 21 : 19);
 
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
         assertEq(
@@ -169,28 +206,26 @@ contract L2GenesisTest is Test {
         withTempDump(_test_allocs_size);
     }
 
-    /// @notice Creates mock L1Dependencies for testing purposes.
-    function _dummyL1Deps() internal pure returns (L1Dependencies memory _deps) {
-        return L1Dependencies({
-            l1CrossDomainMessengerProxy: payable(address(0x100000)),
-            l1StandardBridgeProxy: payable(address(0x100001)),
-            l1ERC721BridgeProxy: payable(address(0x100002))
-        });
-    }
-
     /// @notice Tests the number of accounts in the genesis setup
     function _test_allocs_size(string memory _path) internal {
-        genesis.cfg().setFundDevAccounts(false);
-        genesis.runWithOptions(OutputMode.LOCAL_LATEST, _dummyL1Deps());
-        genesis.writeGenesisAllocs(_path);
+        L2Genesis.Input memory input = _defaultInput();
+        input.fundDevAccounts = false;
+
+        genesis.run(input);
+        vm.dumpState(_path);
 
         uint256 expected = 0;
-        expected += 2048 - 2; // predeploy proxies
-        expected += 19; // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
+        expected += 2048 - 2; // predeploy proxies (excludes WETH and GovernanceToken which are direct)
+        // predeploy implementations: 19 namespace addresses + WETH (direct) + GovernanceToken (direct, enableGovernance=true)
+        expected += 19; // namespace implementation addresses
+        expected += 2; // WETH and GovernanceToken at direct predeploy addresses
         expected += 256; // precompiles
-        expected += 12; // preinstalls
-        expected += 1; // 4788 deployer account
-        // 16 prefunded dev accounts are excluded
+        expected += 16; // preinstalls (MultiCall3, Create2Deployer, Safe_v130, SafeL2_v130, MultiSendCallOnly_v130,
+                        // SafeSingletonFactory, DeterministicDeploymentProxy, MultiSend_v130, Permit2,
+                        // SenderCreator_v060, EntryPoint_v060, SenderCreator_v070, EntryPoint_v070,
+                        // BeaconBlockRoots, HistoryStorage, CreateX)
+        expected += 2; // BeaconBlockRootsSender and HistoryStorageSender (nonce bumped)
+        // 16 prefunded dev accounts are excluded (fundDevAccounts=false)
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 
         // 3 slots: implementation, owner, admin

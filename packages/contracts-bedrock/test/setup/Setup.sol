@@ -9,6 +9,8 @@ import { FeatureFlags } from "test/setup/FeatureFlags.sol";
 
 // Scripts
 import { Deploy } from "scripts/deploy/Deploy.s.sol";
+import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
+import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { ForkLive } from "test/setup/ForkLive.s.sol";
 import { Fork, LATEST_FORK } from "scripts/libraries/Config.sol";
 import { L2Genesis } from "scripts/L2Genesis.s.sol";
@@ -109,6 +111,10 @@ abstract contract Setup is FeatureFlags {
     IPermissionedDisputeGame permissionedDisputeGame;
     IDelayedWETH delayedWETHPermissionedGameProxy;
 
+    // L1 contracts - legacy
+    L2OutputOracle l2OutputOracle;
+    OptimismPortal optimismPortal;
+
     // L1 contracts - core
     address proxyAdminOwner;
     IProxyAdmin proxyAdmin;
@@ -127,7 +133,7 @@ abstract contract Setup is FeatureFlags {
     IDataAvailabilityChallenge dataAvailabilityChallenge;
     IOPContractsManager opcm;
     IOPContractsManagerV2 opcmV2;
-    IBigStepper mips;
+    IBigStepper mipsSingleton;
 
     // L2 contracts
     ICrossL2Inbox crossL2Inbox = ICrossL2Inbox(payable(Predeploys.CROSS_L2_INBOX));
@@ -274,6 +280,8 @@ abstract contract Setup is FeatureFlags {
         console.log("Setup: completed L1 deployment, registering addresses now");
 
         optimismPortal2 = IOptimismPortal(artifacts.mustGetAddress("OptimismPortalProxy"));
+        optimismPortal = OptimismPortal(payable(artifacts.getAddress("OptimismPortalProxy")));
+        l2OutputOracle = L2OutputOracle(artifacts.getAddress("L2OutputOracleProxy"));
 
         // Only skip ETHLockbox assignment if we're in a fork test with non-upgraded fork
         // TODO(#14691): Remove this check once Upgrade 15 is deployed on Mainnet.
@@ -308,7 +316,7 @@ abstract contract Setup is FeatureFlags {
         proxyAdminOwner = proxyAdmin.owner();
         superchainProxyAdmin = IProxyAdmin(EIP1967Helper.getAdmin(address(superchainConfig)));
         superchainProxyAdminOwner = superchainProxyAdmin.owner();
-        mips = IBigStepper(artifacts.mustGetAddress("MipsSingleton"));
+        mipsSingleton = IBigStepper(artifacts.mustGetAddress("MipsSingleton"));
 
         if (deploy.cfg().useAltDA()) {
             dataAvailabilityChallenge =

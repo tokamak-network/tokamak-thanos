@@ -99,11 +99,13 @@ contract PreinstallsTest is CommonTest {
     }
 
     function test_preinstall_senderCreator_succeeds() external view {
-        assertPreinstall(Preinstalls.SenderCreator, Preinstalls.SenderCreatorCode);
+        assertPreinstall(Preinstalls.SenderCreator_v060, Preinstalls.SenderCreator_v060Code);
+        assertPreinstall(Preinstalls.SenderCreator_v070, Preinstalls.SenderCreator_v070Code);
     }
 
     function test_preinstall_entrypoint_succeeds() external view {
-        assertPreinstall(Preinstalls.EntryPoint, Preinstalls.EntryPointCode);
+        assertPreinstall(Preinstalls.EntryPoint_v060, Preinstalls.EntryPoint_v060Code);
+        assertPreinstall(Preinstalls.EntryPoint_v070, Preinstalls.EntryPoint_v070Code);
     }
 
     function test_preinstall_beaconBlockRoots_succeeds() external view {

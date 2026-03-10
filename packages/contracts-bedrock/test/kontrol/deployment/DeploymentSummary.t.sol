@@ -5,6 +5,14 @@ pragma solidity 0.8.15;
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
+// Interfaces
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
+import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
+import { ILegacyMintableERC20Full } from "interfaces/legacy/ILegacyMintableERC20Full.sol";
+
 // Target contract dependencies
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -18,13 +26,16 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { LegacyMintableERC20 } from "src/legacy/LegacyMintableERC20.sol";
 
 // Tests
-import { L1CrossDomainMessenger_Test } from "test/L1/L1CrossDomainMessenger.t.sol";
+import { L1CrossDomainMessenger_TestInit as L1CrossDomainMessenger_Test } from "test/L1/L1CrossDomainMessenger.t.sol";
 import { OptimismPortal_Test } from "test/L1/OptimismPortal.t.sol";
-import { L1ERC721Bridge_Test, TestERC721 } from "test/L1/L1ERC721Bridge.t.sol";
 import {
-    L1StandardBridge_Getter_Test,
+    L1ERC721Bridge_TestInit as L1ERC721Bridge_Test,
+    L1ERC721Bridge_TestERC721_Harness as TestERC721
+} from "test/L1/L1ERC721Bridge.t.sol";
+import {
+    L1StandardBridge_Constructor_Test as L1StandardBridge_Getter_Test,
     L1StandardBridge_Initialize_Test,
-    L1StandardBridge_Pause_Test
+    L1StandardBridge_Paused_Test as L1StandardBridge_Pause_Test
 } from "test/L1/L1StandardBridge.t.sol";
 
 /// @dev Contract testing the deployment summary correctness
@@ -37,9 +48,9 @@ contract DeploymentSummary_TestOptimismPortal is DeploymentSummary, OptimismPort
 
         // Set summary addresses
         optimismPortal = OptimismPortal(payable(optimismPortalProxyAddress));
-        superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
+        superchainConfig = ISuperchainConfig(superchainConfigProxyAddress);
         l2OutputOracle = L2OutputOracle(l2OutputOracleProxyAddress);
-        systemConfig = SystemConfig(systemConfigProxyAddress);
+        systemConfig = ISystemConfig(systemConfigProxyAddress);
 
         // Set up utilized addresses
         depositor = makeAddr("depositor");
@@ -93,10 +104,10 @@ contract DeploymentSummary_TestL1CrossDomainMessenger is DeploymentSummary, L1Cr
 
         // Set summary addresses
         optimismPortal = OptimismPortal(payable(optimismPortalProxyAddress));
-        superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
+        superchainConfig = ISuperchainConfig(superchainConfigProxyAddress);
         l2OutputOracle = L2OutputOracle(l2OutputOracleProxyAddress);
-        systemConfig = SystemConfig(systemConfigProxyAddress);
-        l1CrossDomainMessenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
+        systemConfig = ISystemConfig(systemConfigProxyAddress);
+        l1CrossDomainMessenger = IL1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
 
         // Set up utilized addresses
         alice = makeAddr("alice");
@@ -108,7 +119,7 @@ contract DeploymentSummary_TestL1CrossDomainMessenger is DeploymentSummary, L1Cr
     /// @dev Skips the first line of `super.test_constructor_succeeds` because
     ///      we're not exercising the `Deploy` logic in these tests. However,
     ///      the remaining assertions of the test are important to check
-    function test_constructor_succeeds() external view override {
+    function test_constructor_succeeds() external view {
         // L1CrossDomainMessenger impl = L1CrossDomainMessenger(deploy.mustGetAddress("L1CrossDomainMessenger"));
         L1CrossDomainMessenger impl = L1CrossDomainMessenger(l1CrossDomainMessengerAddress);
         assertEq(address(impl.superchainConfig()), address(0));
@@ -120,7 +131,7 @@ contract DeploymentSummary_TestL1CrossDomainMessenger is DeploymentSummary, L1Cr
 
     /// @notice This test is overridden because `KontrolDeployment` doesn't deploy
     ///         L2CrossDomainMessenger, which is needed in this test
-    function test_relayMessage_v2_reverts() external override { }
+    function test_relayMessage_v2_reverts() external { }
 }
 
 contract DeploymentSummary_TestL1ERC721Bridge is DeploymentSummary, L1ERC721Bridge_Test {
@@ -132,11 +143,11 @@ contract DeploymentSummary_TestL1ERC721Bridge is DeploymentSummary, L1ERC721Brid
 
         // Set summary addresses
         optimismPortal = OptimismPortal(payable(optimismPortalProxyAddress));
-        superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
+        superchainConfig = ISuperchainConfig(superchainConfigProxyAddress);
         l2OutputOracle = L2OutputOracle(l2OutputOracleProxyAddress);
-        systemConfig = SystemConfig(systemConfigProxyAddress);
-        l1CrossDomainMessenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
-        l1ERC721Bridge = L1ERC721Bridge(l1ERC721BridgeProxyAddress);
+        systemConfig = ISystemConfig(systemConfigProxyAddress);
+        l1CrossDomainMessenger = IL1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
+        l1ERC721Bridge = IL1ERC721Bridge(l1ERC721BridgeProxyAddress);
 
         // Set up utilized addresses
         alice = makeAddr("alice");
@@ -147,12 +158,12 @@ contract DeploymentSummary_TestL1ERC721Bridge is DeploymentSummary, L1ERC721Brid
         // Bridge_Initializer setUp
         L1Token = new ERC20("Native L1 Token", "L1T");
 
-        LegacyL2Token = new LegacyMintableERC20({
+        LegacyL2Token = ILegacyMintableERC20Full(address(new LegacyMintableERC20({
             _l2Bridge: address(l2StandardBridge),
             _l1Token: address(L1Token),
             _name: string.concat("LegacyL2-", L1Token.name()),
             _symbol: string.concat("LegacyL2-", L1Token.symbol())
-        });
+        })));
         vm.label(address(LegacyL2Token), "LegacyMintableERC20");
 
         // Deploy the L2 ERC20 now
@@ -205,7 +216,7 @@ contract DeploymentSummary_TestL1ERC721Bridge is DeploymentSummary, L1ERC721Brid
     /// @dev Skips the first line of `super.test_constructor_succeeds` because
     ///      we're not exercising the `Deploy` logic in these tests. However,
     ///      the remaining assertions of the test are important to check
-    function test_constructor_succeeds() public view override {
+    function test_constructor_succeeds() public view {
         // L1ERC721Bridge impl = L1ERC721Bridge(deploy.mustGetAddress("L1ERC721Bridge"));
         L1ERC721Bridge impl = L1ERC721Bridge(l1ERC721BridgeAddress);
         assertEq(address(impl.MESSENGER()), address(0));
@@ -230,12 +241,12 @@ contract DeploymentSummary_TestL1StandardBridge is
 
         // Set summary addresses
         optimismPortal = OptimismPortal(payable(optimismPortalProxyAddress));
-        superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
+        superchainConfig = ISuperchainConfig(superchainConfigProxyAddress);
         l2OutputOracle = L2OutputOracle(l2OutputOracleProxyAddress);
-        systemConfig = SystemConfig(systemConfigProxyAddress);
-        l1CrossDomainMessenger = L1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
-        l1ERC721Bridge = L1ERC721Bridge(l1ERC721BridgeProxyAddress);
-        l1StandardBridge = L1StandardBridge(payable(l1StandardBridgeProxyAddress));
+        systemConfig = ISystemConfig(systemConfigProxyAddress);
+        l1CrossDomainMessenger = IL1CrossDomainMessenger(l1CrossDomainMessengerProxyAddress);
+        l1ERC721Bridge = IL1ERC721Bridge(l1ERC721BridgeProxyAddress);
+        l1StandardBridge = IL1StandardBridge(payable(l1StandardBridgeProxyAddress));
     }
 
     /// @dev Skips the first line of `super.test_constructor_succeeds` because

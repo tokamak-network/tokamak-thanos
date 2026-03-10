@@ -24,6 +24,9 @@ enum ConfigType {
 contract L1BlockInterop is L1Block {
     using EnumerableSet for EnumerableSet.UintSet;
 
+    /// @notice Event emitted when the gas paying token is set.
+    event GasPayingTokenSet(address indexed token, uint8 indexed decimals, bytes32 name, bytes32 symbol);
+
     /// @notice Event emitted when a new dependency is added to the interop dependency set.
     event DependencyAdded(uint256 indexed chainId);
 

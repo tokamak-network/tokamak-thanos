@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
 import { PreimageOracle } from "src/cannon/PreimageOracle.sol";
+import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
 import "src/dispute/lib/Types.sol";
 
 contract MIPS_Test is CommonTest {
@@ -13,7 +14,7 @@ contract MIPS_Test is CommonTest {
     function setUp() public virtual override {
         super.setUp();
         oracle = new PreimageOracle(0, 0);
-        mips = new MIPS(oracle);
+        mips = new MIPS(IPreimageOracle(address(oracle)));
         vm.store(address(mips), 0x0, bytes32(abi.encode(address(oracle))));
         vm.label(address(oracle), "PreimageOracle");
         vm.label(address(mips), "MIPS");

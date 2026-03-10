@@ -7,6 +7,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { OptimismPortal } from "src/L1/OptimismPortal.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 import { CommonTest } from "test/setup/CommonTest.sol";
@@ -32,9 +33,9 @@ contract OptimismPortal_Depositor is StdUtils, ResourceMetering {
         return _resourceConfig();
     }
 
-    function _resourceConfig() internal pure override returns (ResourceMetering.ResourceConfig memory) {
-        ResourceMetering.ResourceConfig memory rcfg = Constants.DEFAULT_RESOURCE_CONFIG();
-        return rcfg;
+    function _resourceConfig() internal pure override returns (ResourceMetering.ResourceConfig memory rcfg_) {
+        IResourceMetering.ResourceConfig memory rcfg = Constants.DEFAULT_RESOURCE_CONFIG();
+        assembly ("memory-safe") { rcfg_ := rcfg }
     }
 
     // A test intended to identify any unexpected halting conditions

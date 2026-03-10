@@ -12,11 +12,11 @@ contract ExtendedPause_Test is CommonTest {
         assertFalse(superchainConfig.paused());
 
         vm.prank(superchainConfig.guardian());
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         // validate the paused state
         assertTrue(superchainConfig.paused());
-        assertTrue(optimismPortal.paused());
+        assertTrue(optimismPortal2.paused());
         assertTrue(l1CrossDomainMessenger.paused());
         assertTrue(l1StandardBridge.paused());
         assertTrue(l1ERC721Bridge.paused());
@@ -28,11 +28,11 @@ contract ExtendedPause_Test is CommonTest {
         test_pause_fullSystem_succeeds();
 
         vm.prank(superchainConfig.guardian());
-        superchainConfig.unpause();
+        superchainConfig.unpause(address(0));
 
         // validate the unpaused state
         assertFalse(superchainConfig.paused());
-        assertFalse(optimismPortal.paused());
+        assertFalse(optimismPortal2.paused());
         assertFalse(l1CrossDomainMessenger.paused());
         assertFalse(l1StandardBridge.paused());
         assertFalse(l1ERC721Bridge.paused());

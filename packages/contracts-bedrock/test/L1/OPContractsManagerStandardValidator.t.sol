@@ -1106,7 +1106,7 @@ contract OPContractsManagerStandardValidator_PermissionedDisputeGame_Test is
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         PermissionedDisputeGame VM's state version is invalid.
     function test_validate_permissionedDisputeGameInvalidVMStateVersion_succeeds() public {
-        vm.mockCall(address(mips), abi.encodeCall(IMIPS64.stateVersion, ()), abi.encode(6));
+        vm.mockCall(address(mipsSingleton), abi.encodeCall(IMIPS64.stateVersion, ()), abi.encode(6));
         assertEq("PDDG-VM-30,PLDG-VM-30,CKDG-VM-30", _validate(true));
     }
 
@@ -1578,7 +1578,7 @@ contract OPContractsManagerStandardValidator_FaultDisputeGame_Test is OPContract
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         FaultDisputeGame (permissionless) VM's state version is invalid.
     function test_validate_faultDisputeGameInvalidVMStateVersion_succeeds() public {
-        vm.mockCall(address(mips), abi.encodeCall(IMIPS64.stateVersion, ()), abi.encode(6));
+        vm.mockCall(address(mipsSingleton), abi.encodeCall(IMIPS64.stateVersion, ()), abi.encode(6));
         assertEq("PDDG-VM-30,PLDG-VM-30,CKDG-VM-30", _validate(true));
     }
 

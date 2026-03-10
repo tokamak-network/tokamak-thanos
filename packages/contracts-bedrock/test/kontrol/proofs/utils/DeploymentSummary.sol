@@ -13,9 +13,18 @@ contract DeploymentSummary is DeploymentSummaryCode {
     Vm private constant vm = Vm(VM_ADDRESS);
 
     // Addresses required for compilation to work.
+    address l1CrossDomainMessengerAddress;
     address l1CrossDomainMessengerProxyAddress;
     address superchainConfigProxyAddress;
+    address l1ERC721BridgeAddress;
     address l1ERC721BridgeProxyAddress;
+    address l1StandardBridgeAddress;
     address l1StandardBridgeProxyAddress;
     address optimismPortalProxyAddress;
+    address l2OutputOracleProxyAddress;
+    address systemConfigProxyAddress;
+    address optimismPortalAddress;
+
+    // Will be populated by Kontrol
+    function recreateDeployment() public virtual { }
 }

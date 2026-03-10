@@ -2,18 +2,18 @@
 pragma solidity 0.8.15;
 
 import { Constants } from "src/libraries/Constants.sol";
-import { OptimismPortalInterop as OptimismPortal } from "src/L1/OptimismPortalInterop.sol";
 import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { ConfigType } from "src/L2/L1BlockInterop.sol";
-import { StaticConfig } from "src/libraries/StaticConfig.sol";
 
 /// @title SystemConfigInterop
 /// @notice The SystemConfig contract is used to manage configuration of an Optimism network.
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
 ///         the L2 chain.
 contract SystemConfigInterop is SystemConfig {
+    /// @notice The decimals of the gas paying token (always 18 for ERC-20 gas tokens).
+    uint8 internal constant GAS_PAYING_TOKEN_DECIMALS = 18;
+
     /// @custom:semver +interop
     function version() public pure override returns (string memory) {
         return string.concat(super.version(), "+interop");
@@ -34,33 +34,22 @@ contract SystemConfigInterop is SystemConfig {
             bytes32 name = GasPayingToken.sanitize(ERC20(_token).name());
             bytes32 symbol = GasPayingToken.sanitize(ERC20(_token).symbol());
 
-            // Set the gas paying token in storage and in the OptimismPortal.
+            // Set the gas paying token in storage.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
-            OptimismPortal(payable(optimismPortal())).setConfig(
-                ConfigType.SET_GAS_PAYING_TOKEN,
-                StaticConfig.encodeSetGasPayingToken({
-                    _token: _token,
-                    _decimals: GAS_PAYING_TOKEN_DECIMALS,
-                    _name: name,
-                    _symbol: symbol
-                })
-            );
         }
     }
 
     /// @notice Adds a chain to the interop dependency set. Can only be called by the owner.
     /// @param _chainId Chain ID of chain to add.
-    function addDependency(uint256 _chainId) external onlyOwner {
-        OptimismPortal(payable(optimismPortal())).setConfig(
-            ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(_chainId)
-        );
+    function addDependency(uint256 _chainId) external view onlyOwner {
+        // TODO: Forward ADD_DEPENDENCY config to L2 via OptimismPortal deposit once setConfig is available.
+        _chainId; // suppress unused variable warning
     }
 
     /// @notice Removes a chain from the interop dependency set. Can only be called by the owner.
     /// @param _chainId Chain ID of the chain to remove.
-    function removeDependency(uint256 _chainId) external onlyOwner {
-        OptimismPortal(payable(optimismPortal())).setConfig(
-            ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId)
-        );
+    function removeDependency(uint256 _chainId) external view onlyOwner {
+        // TODO: Forward REMOVE_DEPENDENCY config to L2 via OptimismPortal deposit once setConfig is available.
+        _chainId; // suppress unused variable warning
     }
 }

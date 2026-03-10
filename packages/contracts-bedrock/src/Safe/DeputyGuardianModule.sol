@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
+import { Safe } from "safe-contracts/Safe.sol";
 import { Enum } from "safe-contracts/common/Enum.sol";
 
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
-import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Unauthorized } from "src/libraries/PortalErrors.sol";
 
@@ -84,7 +85,7 @@ contract DeputyGuardianModule is ISemver {
     function pause() external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(SUPERCHAIN_CONFIG.pause, ("Deputy Guardian"));
+        bytes memory data = abi.encodeCall(SUPERCHAIN_CONFIG.pause, (address(SAFE)));
         (bool success, bytes memory returnData) =
             SAFE.execTransactionFromModuleReturnData(address(SUPERCHAIN_CONFIG), 0, data, Enum.Operation.Call);
         if (!success) {
@@ -99,7 +100,7 @@ contract DeputyGuardianModule is ISemver {
     function unpause() external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(SUPERCHAIN_CONFIG.unpause, ());
+        bytes memory data = abi.encodeCall(SUPERCHAIN_CONFIG.unpause, (address(SAFE)));
         (bool success, bytes memory returnData) =
             SAFE.execTransactionFromModuleReturnData(address(SUPERCHAIN_CONFIG), 0, data, Enum.Operation.Call);
         if (!success) {
@@ -109,16 +110,17 @@ contract DeputyGuardianModule is ISemver {
     }
 
     /// @notice Calls the Security Council Safe's `execTransactionFromModuleReturnData()`, with the arguments
-    ///      necessary to call `blacklistDisputeGame()` on the `OptimismPortal2` contract.
+    ///      necessary to call `blacklistDisputeGame()` on the `AnchorStateRegistry` contract.
     ///      Only the deputy guardian can call this function.
     /// @param _portal The `OptimismPortal2` contract instance.
     /// @param _game The `IDisputeGame` contract instance.
     function blacklistDisputeGame(OptimismPortal2 _portal, IDisputeGame _game) external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(OptimismPortal2.blacklistDisputeGame, (_game));
+        IAnchorStateRegistry anchorStateRegistry = _portal.anchorStateRegistry();
+        bytes memory data = abi.encodeCall(IAnchorStateRegistry.blacklistDisputeGame, (_game));
         (bool success, bytes memory returnData) =
-            SAFE.execTransactionFromModuleReturnData(address(_portal), 0, data, Enum.Operation.Call);
+            SAFE.execTransactionFromModuleReturnData(address(anchorStateRegistry), 0, data, Enum.Operation.Call);
         if (!success) {
             revert ExecutionFailed(string(returnData));
         }
@@ -126,16 +128,17 @@ contract DeputyGuardianModule is ISemver {
     }
 
     /// @notice Calls the Security Council Safe's `execTransactionFromModuleReturnData()`, with the arguments
-    ///      necessary to call `setRespectedGameType()` on the `OptimismPortal2` contract.
+    ///      necessary to call `setRespectedGameType()` on the `AnchorStateRegistry` contract.
     ///      Only the deputy guardian can call this function.
     /// @param _portal The `OptimismPortal2` contract instance.
     /// @param _gameType The `GameType` to set as the respected game type.
     function setRespectedGameType(OptimismPortal2 _portal, GameType _gameType) external {
         _onlyDeputyGuardian();
 
-        bytes memory data = abi.encodeCall(OptimismPortal2.setRespectedGameType, (_gameType));
+        IAnchorStateRegistry anchorStateRegistry = _portal.anchorStateRegistry();
+        bytes memory data = abi.encodeCall(IAnchorStateRegistry.setRespectedGameType, (_gameType));
         (bool success, bytes memory returnData) =
-            SAFE.execTransactionFromModuleReturnData(address(_portal), 0, data, Enum.Operation.Call);
+            SAFE.execTransactionFromModuleReturnData(address(anchorStateRegistry), 0, data, Enum.Operation.Call);
         if (!success) {
             revert ExecutionFailed(string(returnData));
         }

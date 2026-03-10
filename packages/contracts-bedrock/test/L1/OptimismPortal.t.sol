@@ -17,6 +17,7 @@ import { Constants } from "src/libraries/Constants.sol";
 // Target contract dependencies
 import { Proxy } from "src/universal/Proxy.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { L2OutputOracle } from "src/L1/L2OutputOracle.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -43,7 +44,7 @@ contract OptimismPortal_Test is CommonTest {
     /// @notice Marked virtual to be overridden in
     ///         test/kontrol/deployment/DeploymentSummary.t.sol
     function test_constructor_succeeds() external virtual {
-        OptimismPortal opImpl = OptimismPortal(payable(deploy.mustGetAddress("OptimismPortal")));
+        OptimismPortal opImpl = OptimismPortal(payable(deploy.artifacts().mustGetAddress("OptimismPortal")));
         assertEq(address(opImpl.l2Oracle()), address(0));
         assertEq(address(opImpl.systemConfig()), address(0));
         assertEq(address(opImpl.superchainConfig()), address(0));
@@ -79,10 +80,10 @@ contract OptimismPortal_Test is CommonTest {
         assertEq(optimismPortal.paused(), false);
 
         vm.expectEmit(address(superchainConfig));
-        emit Paused("identifier");
+        emit Paused(address(0));
 
         vm.prank(guardian);
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         assertEq(optimismPortal.paused(), true);
     }
@@ -92,9 +93,9 @@ contract OptimismPortal_Test is CommonTest {
         assertEq(optimismPortal.paused(), false);
 
         assertTrue(optimismPortal.guardian() != alice);
-        vm.expectRevert("SuperchainConfig: only guardian can pause");
+        vm.expectRevert(abi.encodeWithSelector(SuperchainConfig.SuperchainConfig_OnlyGuardian.selector));
         vm.prank(alice);
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         assertEq(optimismPortal.paused(), false);
     }
@@ -105,13 +106,13 @@ contract OptimismPortal_Test is CommonTest {
         address guardian = optimismPortal.guardian();
 
         vm.prank(guardian);
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
         assertEq(optimismPortal.paused(), true);
 
         vm.expectEmit(address(superchainConfig));
-        emit Unpaused();
+        emit Unpaused(address(0));
         vm.prank(guardian);
-        superchainConfig.unpause();
+        superchainConfig.unpause(address(0));
 
         assertEq(optimismPortal.paused(), false);
     }
@@ -121,13 +122,13 @@ contract OptimismPortal_Test is CommonTest {
         address guardian = optimismPortal.guardian();
 
         vm.prank(guardian);
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
         assertEq(optimismPortal.paused(), true);
 
         assertTrue(optimismPortal.guardian() != alice);
-        vm.expectRevert("SuperchainConfig: only guardian can unpause");
+        vm.expectRevert(abi.encodeWithSelector(SuperchainConfig.SuperchainConfig_OnlyGuardian.selector));
         vm.prank(alice);
-        superchainConfig.unpause();
+        superchainConfig.unpause(address(0));
 
         assertEq(optimismPortal.paused(), true);
     }
@@ -170,14 +171,14 @@ contract OptimismPortal_Test is CommonTest {
             _to = address(0);
         }
         vm.assume(_data.length <= 120_000);
-        ResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
+        IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
         _gasLimit =
             uint64(bound(_gasLimit, optimismPortal.minimumGasLimit(uint64(_data.length)), rcfg.maxResourceLimit));
 
         uint256 prevBalance = address(optimismPortal).balance;
 
         // Ensure that no custom gas token is set
-        (address gasPayingToken,) = systemConfig.gasPayingToken();
+        (address gasPayingToken,) = SystemConfig(payable(address(systemConfig))).gasPayingToken();
         assertEq(gasPayingToken, Constants.ETHER);
 
         bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data);
@@ -463,7 +464,7 @@ contract OptimismPortal_Test is CommonTest {
                 uint256(0), // value
                 uint64(200_000), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(L1Block.setGasPayingToken, (_token, _decimals, _name, _symbol))
+                abi.encodeWithSignature("setGasPayingToken(address,uint8,bytes32,bytes32)", _token, _decimals, _name, _symbol)
             )
         );
 
@@ -498,7 +499,7 @@ contract OptimismPortal_Test is CommonTest {
             _value: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(L1Block.setGasPayingToken, (_token, 18, name, symbol))
+            _data: abi.encodeWithSignature("setGasPayingToken(address,uint8,bytes32,bytes32)", _token, 18, name, symbol)
         });
 
         VmSafe.Log[] memory logs = vm.getRecordedLogs();
@@ -527,7 +528,7 @@ contract OptimismPortal_Test is CommonTest {
     /// @dev Tests that `depositERC20Transaction` reverts when the gas paying token is ether.
     function test_depositERC20Transaction_noCustomGasToken_reverts() external {
         // Check that the gas paying token is set to ether
-        (address token,) = systemConfig.gasPayingToken();
+        (address token,) = SystemConfig(payable(address(systemConfig))).gasPayingToken();
         assertEq(token, Constants.ETHER);
 
         vm.expectRevert(OnlyCustomGasToken.selector);
@@ -555,7 +556,7 @@ contract OptimismPortal_Test is CommonTest {
     /// @dev Tests that `balance()` returns the correct balance when the gas paying token is ether.
     function testFuzz_balance_ether_succeeds(uint256 _amount) external {
         // Check that the gas paying token is set to ether
-        (address token,) = systemConfig.gasPayingToken();
+        (address token,) = SystemConfig(payable(address(systemConfig))).gasPayingToken();
         assertEq(token, Constants.ETHER);
 
         // Increase the balance of the gas paying token
@@ -634,7 +635,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is CommonTest {
     /// @dev Tests that `proveWithdrawalTransaction` reverts when paused.
     function test_proveWithdrawalTransaction_paused_reverts() external {
         vm.prank(optimismPortal.guardian());
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         vm.expectRevert(CallPaused.selector);
         optimismPortal.proveWithdrawalTransaction({
@@ -802,7 +803,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is CommonTest {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
     function test_finalizeWithdrawalTransaction_paused_reverts() external {
         vm.prank(optimismPortal.guardian());
-        superchainConfig.pause("identifier");
+        superchainConfig.pause(address(0));
 
         vm.expectRevert(CallPaused.selector);
         optimismPortal.finalizeWithdrawalTransaction(_defaultTx);
@@ -1156,7 +1157,7 @@ contract OptimismPortalUpgradeable_Test is CommonTest {
     /// @dev Tests that the proxy is initialized correctly.
     function test_params_initValuesOnProxy_succeeds() external view {
         (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = optimismPortal.params();
-        ResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
+        IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
 
         assertEq(prevBaseFee, rcfg.minimumBaseFee);
         assertEq(prevBoughtGas, 0);
@@ -1287,7 +1288,7 @@ contract OptimismPortalWithMockERC20_Test is OptimismPortal_FinalizeWithdrawal_T
             _to = address(0);
         }
         vm.assume(_data.length <= 120_000);
-        ResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
+        IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
         _gasLimit =
             uint64(bound(_gasLimit, optimismPortal.minimumGasLimit(uint64(_data.length)), rcfg.maxResourceLimit));
 
@@ -1502,7 +1503,7 @@ contract OptimismPortalWithMockERC20_Test is OptimismPortal_FinalizeWithdrawal_T
             _to = address(0);
         }
         vm.assume(_data.length <= 120_000);
-        ResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
+        IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
         _gasLimit =
             uint64(bound(_gasLimit, optimismPortal.minimumGasLimit(uint64(_data.length)), rcfg.maxResourceLimit));
 
