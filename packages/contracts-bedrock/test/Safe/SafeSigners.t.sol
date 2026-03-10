@@ -2,11 +2,12 @@
 pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
-import { GnosisSafe as Safe } from "safe-contracts/GnosisSafe.sol";
-import { SafeSigners } from "src/Safe/SafeSigners.sol";
+import { SafeSigners } from "src/safe/SafeSigners.sol";
 import "test/safe-tools/SafeTestTools.sol";
 
-contract SafeSigners_Test is Test, SafeTestTools {
+/// @title SafeSigners_TestInit
+/// @notice Reusable test initialization for `SafeSigners` tests.
+abstract contract SafeSigners_TestInit is Test {
     bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
 
     enum SigTypes {
@@ -16,22 +17,31 @@ contract SafeSigners_Test is Test, SafeTestTools {
         Contract
     }
 
-    /// @dev Maps every key to one of the 4 signatures types.
-    ///      This is used in the tests below as a pseudorandom mechanism for determining which
-    ///      signature type to use for each key.
+    /// @notice Maps every key to one of the 4 signatures types.
+    ///         This is used in the tests below as a pseudorandom mechanism for determining which
+    ///         signature type to use for each key.
     /// @param _key The key to map to a signature type.
     function sigType(uint256 _key) internal pure returns (SigTypes sigType_) {
         uint256 t = _key % 4;
         sigType_ = SigTypes(t);
     }
+}
 
-    /// @dev Test that for a given set of signatures:
-    ///      1. safe.checkNSignatures() succeeds
-    ///      2. the getSigners() method returns the expected signers
-    ///      3. the expected signers are all owners of the safe.
-    ///      Demonstrating these three properties is sufficient to prove that the getSigners() method
-    ///      returns the same signatures as those recovered by safe.checkNSignatures().
-    function testDiff_getSignaturesVsCheckSignatures_succeeds(bytes memory _data, uint256 _numSigs) external {
+/// @title SafeSigners_GetNSigners_Test
+/// @notice Tests the `getNSigners` function of the `SafeSigners` library.
+contract SafeSigners_GetNSigners_Test is SafeSigners_TestInit, SafeTestTools {
+    /// @notice Test that for a given set of signatures:
+    ///         1. safe.checkNSignatures() succeeds
+    ///         2. the getSigners() method returns the expected signers
+    ///         3. the expected signers are all owners of the safe.
+    ///         Demonstrating these three properties is sufficient to prove that the getSigners()
+    ///         method returns the same signatures as those recovered by safe.checkNSignatures().
+    function testDiff_getNSigners_getSignaturesVsCheckSignatures_succeeds(
+        bytes memory _data,
+        uint256 _numSigs
+    )
+        external
+    {
         bytes32 digest = keccak256(_data);
 
         // Limit the number of signatures to 25
@@ -48,8 +58,8 @@ contract SafeSigners_Test is Test, SafeTestTools {
         // Create a new safeInstance with M=N, so that it requires a signature from each key.
         SafeInstance memory safeInstance = SafeTestTools._setupSafe(keys, numSigs, 0);
 
-        // Next we will generate signatures by iterating over the keys, and choosing the signature type
-        // based on the key.
+        // Next we will generate signatures by iterating over the keys, and choosing the signature
+        // type based on the key.
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -75,6 +85,7 @@ contract SafeSigners_Test is Test, SafeTestTools {
                 contractSigs++;
                 address addr = SafeTestLib.decodeSmartContractWalletAsAddress(pks[i]);
                 r = bytes32(uint256(uint160(addr)));
+                // nosemgrep: sol-style-use-abi-encodecall
                 vm.mockCall(
                     addr, abi.encodeWithSignature("isValidSignature(bytes,bytes)"), abi.encode(EIP1271_MAGIC_VALUE)
                 );
@@ -98,7 +109,7 @@ contract SafeSigners_Test is Test, SafeTestTools {
 
         // Recover the signatures using the _getNSigners() method.
         address[] memory gotSigners =
-            SafeSigners.getNSigners({ dataHash: digest, signatures: signatures, requiredSignatures: numSigs });
+            SafeSigners.getNSigners({ _dataHash: digest, _signatures: signatures, _requiredSignatures: numSigs });
 
         // Compare the list of recovered signers to the expected signers.
         assertEq(gotSigners.length, numSigs);
