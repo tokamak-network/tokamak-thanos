@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [indexer, op-exporter, proxyd]
+        target: [op-exporter, proxyd]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
