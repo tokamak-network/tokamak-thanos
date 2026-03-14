@@ -2,8 +2,6 @@ module github.com/tokamak-network/tokamak-thanos/proxyd
 
 go 1.23.8
 
-toolchain go1.23.8
-
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/alicebob/miniredis v2.5.0+incompatible
