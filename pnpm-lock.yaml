@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@eth-optimism/contracts-bedrock': '@tokamak-network/thanos-contracts'
+
 pnpmfileChecksum: sha256-waSOtZf8m+0ygPybreudUhDGIvgkM3Al/Hx6tT8qR58=
 
 importers:
@@ -128,9 +131,6 @@ importers:
       '@eth-optimism/common-ts':
         specifier: ^0.8.9
         version: 0.8.9(bufferutil@4.0.8)(utf-8-validate@5.0.7)
-      '@eth-optimism/contracts-bedrock':
-        specifier: workspace:*
-        version: link:../contracts-bedrock
       '@eth-optimism/contracts-periphery':
         specifier: 1.0.8
         version: 1.0.8
@@ -140,6 +140,9 @@ importers:
       '@eth-optimism/sdk':
         specifier: ^3.3.1
         version: 3.3.1(bufferutil@4.0.8)(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.7))(utf-8-validate@5.0.7)
+      '@tokamak-network/thanos-contracts':
+        specifier: workspace:*
+        version: link:../tokamak/contracts-bedrock
       '@types/dateformat':
         specifier: ^5.0.0
         version: 5.0.0
@@ -174,21 +177,6 @@ importers:
       tsx:
         specifier: ^4.7.0
         version: 4.7.0
-
-  packages/contracts-bedrock:
-    devDependencies:
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^6.21.0
-        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.4.5))(eslint@8.56.0)(typescript@5.4.5)
-      '@typescript-eslint/parser':
-        specifier: ^6.21.0
-        version: 6.21.0(eslint@8.56.0)(typescript@5.4.5)
-      tsx:
-        specifier: ^4.7.0
-        version: 4.7.0
-      typescript:
-        specifier: ^5.4.5
-        version: 5.4.5
 
   packages/sdk:
     dependencies:
@@ -287,8 +275,8 @@ importers:
   packages/tokamak/contracts-bedrock:
     devDependencies:
       '@eth-optimism/contracts-bedrock':
-        specifier: workspace:*
-        version: link:../../contracts-bedrock
+        specifier: '@tokamak-network/thanos-contracts'
+        version: link:@tokamak-network/thanos-contracts
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.21.0
         version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.56.0)(typescript@5.4.5))(eslint@8.56.0)(typescript@5.4.5)
@@ -6604,6 +6592,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-fetch@3.6.17:
     resolution: {integrity: sha512-c4ghIvG6th0eudYwKZY5keb81wtFz9/WeAHAoy8+r18kcWlitUIrmGFQ2rWEl4UCKUilD3zCLHOIPheHx5ypRQ==}

@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@eth-optimism/common-ts": "^0.8.9",
-    "@eth-optimism/contracts-bedrock": "workspace:*",
+    "@tokamak-network/thanos-contracts": "workspace:*",
     "@eth-optimism/contracts-periphery": "1.0.8",
     "@eth-optimism/core-utils": "^0.13.2",
     "@eth-optimism/sdk": "^3.3.1",

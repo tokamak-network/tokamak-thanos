@@ -2,3 +2,7 @@ packages:
   - 'packages/*'
   - 'packages/tokamak/*'
   - 'indexer/api-ts'
+
+# Alias @eth-optimism/contracts-bedrock to tokamak fork
+overrides:
+  '@eth-optimism/contracts-bedrock': '@tokamak-network/thanos-contracts'

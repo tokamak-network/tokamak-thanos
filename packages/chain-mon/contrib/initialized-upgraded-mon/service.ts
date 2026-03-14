@@ -8,8 +8,8 @@ import {
 } from '@eth-optimism/common-ts'
 import { getChainId, compareAddrs } from '@eth-optimism/core-utils'
 import { Provider, TransactionResponse } from '@ethersproject/abstract-provider'
-import mainnetConfig from '@eth-optimism/contracts-bedrock/deploy-config/mainnet.json'
-import sepoliaConfig from '@eth-optimism/contracts-bedrock/deploy-config/sepolia.json'
+import mainnetConfig from '@tokamak-network/thanos-contracts/deploy-config/mainnet.json'
+import sepoliaConfig from '@tokamak-network/thanos-contracts/deploy-config/sepolia.json'
 
 import { version } from '../../package.json'
 
