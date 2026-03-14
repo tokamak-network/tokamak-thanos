@@ -72,7 +72,7 @@ func L1CrossDomainMessenger(batch *safe.Batch, implementations superchain.Implem
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L11-L13
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L11-L13
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -154,7 +154,7 @@ func L1ERC721Bridge(batch *safe.Batch, implementations superchain.Implementation
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L100-L102
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L100-L102
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -236,7 +236,7 @@ func L1StandardBridge(batch *safe.Batch, implementations superchain.Implementati
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L36-L37
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L36-L37
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -320,7 +320,7 @@ func L2OutputOracle(batch *safe.Batch, implementations superchain.Implementation
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L50-L51
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L50-L51
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -464,7 +464,7 @@ func OptimismMintableERC20Factory(batch *safe.Batch, implementations superchain.
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L287-L289
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L287-L289
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -539,7 +539,7 @@ func OptimismPortal(batch *safe.Batch, implementations superchain.Implementation
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L64-L65
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L64-L65
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},
@@ -632,7 +632,7 @@ func SystemConfig(batch *safe.Batch, implementations superchain.ImplementationLi
 		}
 
 		input := []bindings.StorageSetterSlot{
-			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/contracts-bedrock/.storage-layout#L82-L83
+			// https://github.com/tokamak-network/tokamak-thanos/blob/86a96023ffd04d119296dff095d02fff79fa15de/packages/tokamak/contracts-bedrock/.storage-layout#L82-L83
 			{
 				Key:   common.Hash{},
 				Value: common.Hash{},

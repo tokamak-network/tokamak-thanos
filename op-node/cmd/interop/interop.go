@@ -46,12 +46,12 @@ var (
 	}
 	artifactsDirFlag = &cli.StringFlag{
 		Name:    "artifacts-dir",
-		Value:   "packages/contracts-bedrock/forge-artifacts",
+		Value:   "packages/tokamak/contracts-bedrock/forge-artifacts",
 		EnvVars: op_service.PrefixEnvVar(EnvPrefix, "ARTIFACTS_DIR"),
 	}
 	foundryDirFlag = &cli.StringFlag{
 		Name:    "foundry-dir",
-		Value:   "packages/contracts-bedrock",
+		Value:   "packages/tokamak/contracts-bedrock",
 		EnvVars: op_service.PrefixEnvVar(EnvPrefix, "FOUNDRY_DIR"),
 		Usage:   "Optional, for source-map info during genesis generation",
 	}

@@ -15,7 +15,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/rpcblock"
 	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testlog"
-	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
+	"github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"

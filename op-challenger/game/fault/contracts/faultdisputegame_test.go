@@ -21,7 +21,7 @@ import (
 	batchingTest "github.com/tokamak-network/tokamak-thanos/op-service/sources/batching/test"
 	"github.com/tokamak-network/tokamak-thanos/op-service/testutils"
 	"github.com/tokamak-network/tokamak-thanos/op-service/txmgr"
-	"github.com/tokamak-network/tokamak-thanos/packages/contracts-bedrock/snapshots"
+	"github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock/snapshots"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
