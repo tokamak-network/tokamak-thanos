@@ -6,7 +6,10 @@ import {
   validators,
   waitForProvider,
 } from '@eth-optimism/common-ts'
-import { getOEContract, DEFAULT_L2_CONTRACT_ADDRESSES } from '@tokamak-network/thanos-sdk'
+import {
+  getOEContract,
+  DEFAULT_L2_CONTRACT_ADDRESSES,
+} from '@tokamak-network/thanos-sdk'
 import { getChainId, sleep } from '@eth-optimism/core-utils'
 import { Provider } from '@ethersproject/abstract-provider'
 import { ethers } from 'ethers'

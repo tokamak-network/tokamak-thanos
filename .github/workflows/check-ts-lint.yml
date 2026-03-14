@@ -21,8 +21,8 @@ jobs:
         id: filter
         with:
           filters: |
-            packages/chain-mon:
-              - 'packages/chain-mon/**'
+            packages/tokamak/chain-mon:
+              - 'packages/tokamak/chain-mon/**'
             packages/common-ts:
               - 'packages/common-ts/**'
             packages/contracts-ts:
