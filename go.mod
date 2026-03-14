@@ -259,6 +259,9 @@ require (
 // Production: Use remote tokamak-thanos-geth
 replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251106090936-0a428baeb619
 
+// Local package path replacement for relocated contracts-bedrock
+replace github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock => ./packages/tokamak/contracts-bedrock
+
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 
 // This release keeps breaking Go builds. Stop that.
