@@ -262,6 +262,15 @@ replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-th
 // Local package path replacement for relocated contracts-bedrock
 replace github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock => ./packages/tokamak/contracts-bedrock
 
+// op-deployer was removed; these replace directives are for files with //go:build opdeployer constraints
+replace (
+	github.com/tokamak-network/tokamak-thanos/op-deployer => ./op-chain-ops/opdeployer-stubs
+	github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer => ./op-chain-ops/opdeployer-stubs
+	github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/manage => ./op-chain-ops/opdeployer-stubs
+	github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/opcm => ./op-chain-ops/opdeployer-stubs
+	github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/standard => ./op-chain-ops/opdeployer-stubs
+)
+
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 
 // This release keeps breaking Go builds. Stop that.
