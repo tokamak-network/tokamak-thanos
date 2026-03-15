@@ -19,6 +19,8 @@ jobs:
         with:
           # This makes Actions fetch all Git history so that Changesets can generate changelogs with the correct commits
           fetch-depth: 0
+          # Initialize submodules to ensure all dependencies are available during Docker builds
+          submodules: true
 
       - name: Docker Image Name
         id: docker-image-name
@@ -32,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -84,6 +88,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -114,6 +120,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -149,6 +157,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

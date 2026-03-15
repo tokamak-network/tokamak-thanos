@@ -20,21 +20,18 @@ RUN apk add --no-cache make gcc musl-dev linux-headers git jq bash
 COPY ./go.mod /app/go.mod
 COPY ./go.sum /app/go.sum
 
-# Copy local Go modules referenced in go.mod replace directives before go mod download
-# These are required to resolve replace directive paths in go.mod
-COPY ./op-chain-ops/opdeployer-stubs /app/op-chain-ops/opdeployer-stubs
-COPY ./packages/tokamak/contracts-bedrock /app/packages/tokamak/contracts-bedrock
-
 WORKDIR /app
 
 RUN echo "go mod cache: $(go env GOMODCACHE)"
 RUN echo "go build cache: $(go env GOCACHE)"
 
+# Copy all source code for go mod download
+# This includes local Go modules referenced in go.mod replace directives
+# (op-chain-ops/opdeployer-stubs, packages/tokamak/contracts-bedrock)
+COPY . /app
+
 # warm-up the cache
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build go mod download
-
-# NOTE: the Dockerfile.dockerignore file effectively describes all dependencies
-COPY . /app
 
 # We avoid copying the full .git dir into the build for just some metadata.
 # Instead, specify:
