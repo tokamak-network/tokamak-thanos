@@ -259,6 +259,21 @@ require (
 // Production: Use remote tokamak-thanos-geth
 replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251106090936-0a428baeb619
 
+// contracts-bedrock is a local Solidity contracts package (not a Go module in go.work)
+// This replace directive is used by op-node's import of contracts-bedrock/snapshots
+require github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock v0.0.0
+replace github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock => ./packages/tokamak/contracts-bedrock
+
+// op-deployer stub package for build-constrained code (go.work only for go mod resolution)
+replace github.com/tokamak-network/tokamak-thanos/op-deployer => ./op-chain-ops/opdeployer-stubs
+replace github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer => ./op-chain-ops/opdeployer-stubs
+replace github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/manage => ./op-chain-ops/opdeployer-stubs
+replace github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/opcm => ./op-chain-ops/opdeployer-stubs
+replace github.com/tokamak-network/tokamak-thanos/op-deployer/pkg/deployer/standard => ./op-chain-ops/opdeployer-stubs
+
+// Other local modules (with go.mod) are managed via go.work for local development
+// Docker and CI builds ignore go.work but still use the replace directives above
+
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 
 // This release keeps breaking Go builds. Stop that.

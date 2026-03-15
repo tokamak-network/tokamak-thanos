@@ -20,6 +20,13 @@ RUN apk add --no-cache make gcc musl-dev linux-headers git jq bash
 COPY ./go.mod /app/go.mod
 COPY ./go.sum /app/go.sum
 
+# Copy local Go modules referenced in go.mod replace directives before go mod download
+# These are required to resolve replace directive paths in go.mod
+COPY ./op-chain-ops/opdeployer-stubs /app/op-chain-ops/opdeployer-stubs
+COPY ./packages/tokamak/contracts-bedrock/go.mod /app/packages/tokamak/contracts-bedrock/
+COPY ./packages/tokamak/contracts-bedrock/go.sum /app/packages/tokamak/contracts-bedrock/
+COPY ./packages/tokamak/contracts-bedrock/snapshots /app/packages/tokamak/contracts-bedrock/snapshots
+
 WORKDIR /app
 
 RUN echo "go mod cache: $(go env GOMODCACHE)"
