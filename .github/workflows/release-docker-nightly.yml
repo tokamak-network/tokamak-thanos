@@ -60,7 +60,7 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           context: .
-          file: ./ops/docker/op-stack-go/Dockerfile
+          file: ./Dockerfile.go-services
           push: true
           tags: tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
           build-args: |
@@ -108,7 +108,7 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           context: .
-          file: ./ops/docker/op-stack-go/Dockerfile
+          file: ./Dockerfile.go-services
           target: ${{ matrix.target }}-target
           push: true
           tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
@@ -140,7 +140,7 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           context: .
-          file: ./ops/docker/op-stack-go/Dockerfile
+          file: ./Dockerfile.go-services
           target: op-challenger-target
           push: true
           tags: |
