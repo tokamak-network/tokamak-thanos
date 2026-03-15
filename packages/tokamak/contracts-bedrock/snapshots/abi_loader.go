@@ -25,6 +25,12 @@ var delayedWETH []byte
 //go:embed abi/SystemConfig.json
 var systemConfig []byte
 
+//go:embed abi/SuperFaultDisputeGame.json
+var superFaultDisputeGame []byte
+
+//go:embed abi/ZKDisputeGame.json
+var zkDisputeGame []byte
+
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
 }
@@ -42,6 +48,12 @@ func LoadDelayedWETHABI() *abi.ABI {
 }
 func LoadSystemConfigABI() *abi.ABI {
 	return loadABI(systemConfig)
+}
+func LoadSuperFaultDisputeGameABI() *abi.ABI {
+	return loadABI(superFaultDisputeGame)
+}
+func LoadZKDisputeGameABI() *abi.ABI {
+	return loadABI(zkDisputeGame)
 }
 
 func loadABI(json []byte) *abi.ABI {
