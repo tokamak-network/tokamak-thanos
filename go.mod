@@ -261,6 +261,7 @@ replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-th
 
 // contracts-bedrock is a local Solidity contracts package (not a Go module in go.work)
 // This replace directive is used by op-node's import of contracts-bedrock/snapshots
+require github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock v0.0.0
 replace github.com/tokamak-network/tokamak-thanos/packages/tokamak/contracts-bedrock => ./packages/tokamak/contracts-bedrock
 
 // op-deployer stub package for build-constrained code (go.work only for go mod resolution)
