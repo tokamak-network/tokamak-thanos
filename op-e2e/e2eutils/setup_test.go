@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tokamak-network/tokamak-thanos/op-e2e/config"
@@ -36,4 +37,108 @@ func TestSetup(t *testing.T) {
 
 	require.Contains(t, sd.L1Cfg.Alloc, config.L1Deployments.OptimismPortalProxy)
 	require.Contains(t, sd.L2Cfg.Alloc, predeploys.L1BlockAddr)
+}
+
+func TestSetupPresets(t *testing.T) {
+	if config.DeployConfig == nil {
+		t.Skip("deploy config not available, run make devnet-allocs")
+	}
+
+	type presetCase struct {
+		name    string
+		preset  string
+		present []common.Address
+		absent  []common.Address
+		setup   func(*DeployParams)
+	}
+
+	testCases := []presetCase{
+		{
+			name:   "General",
+			preset: "general",
+			present: []common.Address{
+				predeploys.L1BlockAddr,
+			},
+			absent: []common.Address{
+				predeploys.L2UsdcBridgeAddr,
+				predeploys.UniswapV3FactoryAddr,
+				predeploys.VRFPredeployAddr,
+				predeploys.AAEntryPointAddr,
+			},
+		},
+		{
+			name:   "DeFi",
+			preset: "defi",
+			present: []common.Address{
+				predeploys.L1BlockAddr,
+				predeploys.L2UsdcBridgeAddr,
+				predeploys.UniswapV3FactoryAddr,
+			},
+			absent: []common.Address{
+				predeploys.VRFPredeployAddr,
+				predeploys.AAEntryPointAddr,
+			},
+		},
+		{
+			name:   "Gaming",
+			preset: "gaming",
+			present: []common.Address{
+				predeploys.L1BlockAddr,
+				predeploys.VRFPredeployAddr,
+				predeploys.AAEntryPointAddr,
+			},
+			absent: []common.Address{
+				predeploys.L2UsdcBridgeAddr,
+				predeploys.UniswapV3FactoryAddr,
+			},
+			setup: func(dp *DeployParams) {
+				dp.DeployConfig.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+				dp.DeployConfig.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+			},
+		},
+		{
+			name:   "Full",
+			preset: "full",
+			present: []common.Address{
+				predeploys.L1BlockAddr,
+				predeploys.L2UsdcBridgeAddr,
+				predeploys.UniswapV3FactoryAddr,
+				predeploys.VRFPredeployAddr,
+				predeploys.AAEntryPointAddr,
+			},
+			absent: []common.Address{},
+			setup: func(dp *DeployParams) {
+				dp.DeployConfig.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+				dp.DeployConfig.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+			},
+		},
+	}
+
+	tp := &TestParams{
+		MaxSequencerDrift:   40,
+		SequencerWindowSize: 120,
+		ChannelTimeout:      120,
+		L1BlockTime:         15,
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			dp := MakeDeployParams(t, tp)
+			dp.DeployConfig.Preset = tt.preset
+			if tt.setup != nil {
+				tt.setup(dp)
+			}
+			sd := Setup(t, dp, &AllocParams{PrefundTestUsers: true})
+
+			for _, addr := range tt.present {
+				_, ok := sd.L2Cfg.Alloc[addr]
+				require.True(t, ok, "expected predeploy %s to be present for preset %s", addr, tt.preset)
+			}
+			for _, addr := range tt.absent {
+				_, ok := sd.L2Cfg.Alloc[addr]
+				require.False(t, ok, "expected predeploy %s to be absent for preset %s", addr, tt.preset)
+			}
+		})
+	}
 }
