@@ -133,3 +133,79 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	gen := testBuildL2Genesis(t, config)
 	require.Equal(t, 2081, len(gen.Alloc))
 }
+
+func TestBuildL2GenesisGeneralPreset(t *testing.T) {
+	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.Nil(t, err)
+	config.Preset = "general"
+	config.EnableGovernance = false
+	config.FundDevAccounts = false
+
+	backend := simulated.NewBackend(
+		types.GenesisAlloc{
+			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+		},
+	)
+	defer backend.Close()
+	client := backend.Client()
+	block, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(t, err)
+
+	gen, err := genesis.BuildL2Genesis(config, block)
+	require.Nil(t, err)
+	require.NotNil(t, gen)
+
+	// General preset: USDC Bridge predeploys must NOT be in genesis
+	for _, addr := range []common.Address{
+		predeploys.L2UsdcBridgeAddr,
+		predeploys.SignatureCheckerAddr,
+		predeploys.MasterMinterAddr,
+		predeploys.FiatTokenV2_2Addr,
+	} {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "USDC address should not be in General preset: %s", addr.Hex())
+	}
+
+	// General preset: Uniswap V3 predeploys must NOT be in genesis
+	for _, addr := range []common.Address{
+		predeploys.QuoterV2Addr,
+		predeploys.SwapRouter02Addr,
+		predeploys.UniswapV3FactoryAddr,
+		predeploys.NFTDescriptorAddr,
+		predeploys.NonfungiblePositionManagerAddr,
+		predeploys.NonfungibleTokenPositionDescriptorAddr,
+		predeploys.TickLensAddr,
+		predeploys.UniswapInterfaceMulticallAddr,
+		predeploys.UniversalRouterAddr,
+		predeploys.UnsupportedProtocolAddr,
+	} {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "Uniswap address should not be in General preset: %s", addr.Hex())
+	}
+}
+
+func TestBuildL2GenesisDefiPreset(t *testing.T) {
+	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.Nil(t, err)
+	config.Preset = "defi"
+	config.EnableGovernance = false
+	config.FundDevAccounts = false
+
+	backend := simulated.NewBackend(
+		types.GenesisAlloc{
+			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+		},
+	)
+	defer backend.Close()
+	client := backend.Client()
+	block, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(t, err)
+
+	gen, err := genesis.BuildL2Genesis(config, block)
+	require.Nil(t, err)
+	require.NotNil(t, gen)
+
+	// DeFi preset: USDC Bridge and Uniswap V3 must be present
+	require.Contains(t, gen.Alloc, predeploys.L2UsdcBridgeAddr, "DeFi preset must have L2UsdcBridge")
+	require.Contains(t, gen.Alloc, predeploys.UniswapV3FactoryAddr, "DeFi preset must have UniswapV3Factory")
+}

@@ -134,20 +134,32 @@ func init() {
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
 	Predeploys["ETH"] = &Predeploy{Address: ETHAddr, ProxyDisabled: true}
-	Predeploys["QuoterV2"] = &Predeploy{Address: QuoterV2Addr, ProxyDisabled: true}
-	Predeploys["SwapRouter02"] = &Predeploy{Address: SwapRouter02Addr, ProxyDisabled: true}
-	Predeploys["UniswapV3Factory"] = &Predeploy{Address: UniswapV3FactoryAddr, ProxyDisabled: true}
-	Predeploys["NFTDescriptor"] = &Predeploy{Address: NFTDescriptorAddr, ProxyDisabled: true}
-	Predeploys["NonfungiblePositionManager"] = &Predeploy{Address: NonfungiblePositionManagerAddr, ProxyDisabled: true}
-	Predeploys["NonfungibleTokenPositionDescriptor"] = &Predeploy{Address: NonfungibleTokenPositionDescriptorAddr}
-	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr, ProxyDisabled: true}
-	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr, ProxyDisabled: true}
-	Predeploys["UniversalRouter"] = &Predeploy{Address: UniversalRouterAddr, ProxyDisabled: true}
-	Predeploys["UnsupportedProtocol"] = &Predeploy{Address: UnsupportedProtocolAddr, ProxyDisabled: true}
-	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr}
-	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true}
-	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true}
-	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr}
+	// usdcEnabled returns true for DeFi and Full presets only
+	usdcEnabled := func(config DeployConfig) bool {
+		id := config.PresetID()
+		return id == "defi" || id == "full"
+	}
+
+	// uniswapEnabled returns true for DeFi and Full presets only
+	uniswapEnabled := func(config DeployConfig) bool {
+		id := config.PresetID()
+		return id == "defi" || id == "full"
+	}
+
+	Predeploys["QuoterV2"] = &Predeploy{Address: QuoterV2Addr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["SwapRouter02"] = &Predeploy{Address: SwapRouter02Addr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["UniswapV3Factory"] = &Predeploy{Address: UniswapV3FactoryAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["NFTDescriptor"] = &Predeploy{Address: NFTDescriptorAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["NonfungiblePositionManager"] = &Predeploy{Address: NonfungiblePositionManagerAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["NonfungibleTokenPositionDescriptor"] = &Predeploy{Address: NonfungibleTokenPositionDescriptorAddr, Enabled: uniswapEnabled}
+	Predeploys["TickLens"] = &Predeploy{Address: TickLensAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["UniswapInterfaceMulticall"] = &Predeploy{Address: UniswapInterfaceMulticallAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["UniversalRouter"] = &Predeploy{Address: UniversalRouterAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["UnsupportedProtocol"] = &Predeploy{Address: UnsupportedProtocolAddr, ProxyDisabled: true, Enabled: uniswapEnabled}
+	Predeploys["L2UsdcBridge"] = &Predeploy{Address: L2UsdcBridgeAddr, Enabled: usdcEnabled}
+	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true, Enabled: usdcEnabled}
+	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true, Enabled: usdcEnabled}
+	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr, Enabled: usdcEnabled}
 
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,

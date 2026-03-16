@@ -81,6 +81,8 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 	for name, predeploy := range predeploys.Predeploys {
 		if predeploy.Enabled != nil && !predeploy.Enabled(config) {
 			log.Warn("Skipping disabled predeploy.", "name", name, "address", predeploy.Address)
+			// Remove the proxy account that setProxies created for this address
+			delete(db.Genesis().Alloc, predeploy.Address)
 			continue
 		}
 
