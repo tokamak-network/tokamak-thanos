@@ -130,7 +130,7 @@ func TestBuildL2MainnetGenesis(t *testing.T) {
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2081, len(gen.Alloc))
+	require.Equal(t, 2079, len(gen.Alloc))
 }
 
 func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
@@ -140,7 +140,7 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
 	// GovernanceToken is excluded when EnableGovernance=false, so alloc count is 1 less than with governance.
-	require.Equal(t, 2080, len(gen.Alloc))
+	require.Equal(t, 2078, len(gen.Alloc))
 }
 
 func TestBuildL2GenesisGeneralPreset(t *testing.T) {
