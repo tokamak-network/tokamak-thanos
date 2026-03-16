@@ -73,6 +73,11 @@ contract MultiTokenPaymasterTest is Test {
         paymaster.addToken(makeAddr("newToken"), ITokenPriceOracle(address(ethOracle)), 51, 18);
     }
 
+    function test_AddToken_InvalidDecimalsReverts() public {
+        vm.expectRevert("invalid decimals");
+        paymaster.addToken(makeAddr("newToken"), ITokenPriceOracle(address(ethOracle)), 5, 19);
+    }
+
     function test_RemoveToken_DisablesToken() public {
         paymaster.removeToken(address(l2Eth));
         (bool enabled,,,) = _getTokenConfig(address(l2Eth));

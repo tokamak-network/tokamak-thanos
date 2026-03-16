@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -24,6 +24,8 @@ contract MultiTokenPaymaster is BasePaymaster {
     }
 
     mapping(address => TokenConfig) public supportedTokens;
+    /// @dev Retains all ever-registered token addresses (including removed ones).
+    ///      Use supportedTokens[token].enabled to filter active tokens.
     address[] public tokenList;
     mapping(address => uint256) public collectedFees;
 
@@ -53,6 +55,7 @@ contract MultiTokenPaymaster is BasePaymaster {
         require(!supportedTokens[token].enabled, "already enabled");
         require(address(oracle) != address(0), "zero oracle");
         require(markupPercent <= 50, "markup too high");
+        require(decimals > 0 && decimals <= 18, "invalid decimals");
 
         supportedTokens[token] = TokenConfig({
             enabled: true,
@@ -153,6 +156,8 @@ contract MultiTokenPaymaster is BasePaymaster {
         uint256 actualGasCost,
         uint256 /*actualUserOpFeePerGas*/
     ) internal override {
+        // ERC-4337: validate + postOp execute in the same handleOps() transaction.
+        // Oracle price cannot change between _validatePaymasterUserOp and _postOp.
         (
             address sender,
             address token,
