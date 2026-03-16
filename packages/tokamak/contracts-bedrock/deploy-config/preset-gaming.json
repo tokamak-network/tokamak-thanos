@@ -64,6 +64,7 @@
   "disputeGameFinalityDelaySeconds": 302400,
   "respectedGameType": 0,
   "useFaultProofs": true,
+  "vrfAdmin": "0x0000000000000000000000000000000000000001",
   "nativeCurrencyLabelBytes": [
     84, 87, 79, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0

@@ -382,6 +382,9 @@ type DeployConfig struct {
 	// UniversalRouterRewardsDistributor is the address handling rewards distribution in the UniversalRouter.
 	UniversalRouterRewardsDistributor common.Address `json:"universalRouterRewardsDistributor"`
 
+	// VRFAdmin is the admin address for VRFCoordinator (required for Gaming/Full presets)
+	VRFAdmin common.Address `json:"vrfAdmin"`
+
 	// UseInterop is a flag that indicates if the system is using interop
 	UseInterop bool `json:"useInterop,omitempty"`
 
@@ -1259,6 +1262,17 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	storage["ETH"] = state.StorageValues{
 		"_name":   "Ether",
 		"_symbol": "ETH",
+	}
+	// Gaming and Full presets include VRF predeploy storage.
+	if id := config.PresetID(); id == PresetGaming || id == PresetFull {
+		storage["VRFCoordinator"] = state.StorageValues{
+			"admin":       config.VRFAdmin,
+			"vrfPredeploy": predeploys.VRFPredeployAddr,
+		}
+		storage["VRFPredeploy"] = state.StorageValues{
+			"_initialized": 1,
+			"coordinator":  predeploys.VRFCoordinatorAddr,
+		}
 	}
 	// DeFi and Full presets include USDC Bridge and Uniswap V3 storage.
 	if id := config.PresetID(); id == PresetDeFi || id == PresetFull {

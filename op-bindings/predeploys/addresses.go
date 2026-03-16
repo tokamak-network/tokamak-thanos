@@ -177,7 +177,7 @@ func init() {
 	}
 	Predeploys["VRFPredeploy"] = &Predeploy{Address: VRFPredeployAddr, Enabled: vrfEnabled}
 	Predeploys["VRFCoordinator"] = &Predeploy{Address: VRFCoordinatorAddr, Enabled: vrfEnabled}
-	Predeploys["VRFConsumerBase"] = &Predeploy{Address: VRFConsumerBaseAddr, Enabled: vrfEnabled}
+	// VRFConsumerBase is an abstract contract (no deployable bytecode); not registered as a predeploy.
 
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,

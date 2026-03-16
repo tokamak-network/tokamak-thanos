@@ -31,6 +31,12 @@ var superFaultDisputeGame []byte
 //go:embed abi/ZKDisputeGame.json
 var zkDisputeGame []byte
 
+//go:embed abi/VRFPredeploy.json
+var vrfPredeploy []byte
+
+//go:embed abi/VRFCoordinator.json
+var vrfCoordinator []byte
+
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
 }
@@ -54,6 +60,12 @@ func LoadSuperFaultDisputeGameABI() *abi.ABI {
 }
 func LoadZKDisputeGameABI() *abi.ABI {
 	return loadABI(zkDisputeGame)
+}
+func LoadVRFPredeployABI() *abi.ABI {
+	return loadABI(vrfPredeploy)
+}
+func LoadVRFCoordinatorABI() *abi.ABI {
+	return loadABI(vrfCoordinator)
 }
 
 func loadABI(json []byte) *abi.ABI {

@@ -193,6 +193,37 @@ func TestBuildL2GenesisGeneralPreset(t *testing.T) {
 	}
 }
 
+func TestBuildL2GenesisGamingPreset(t *testing.T) {
+	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.Nil(t, err)
+	config.Preset = genesis.PresetGaming
+	config.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+	config.EnableGovernance = false
+	config.FundDevAccounts = false
+
+	backend := simulated.NewBackend(
+		types.GenesisAlloc{
+			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+		},
+	)
+	defer backend.Close()
+	client := backend.Client()
+	block, err := client.BlockByNumber(context.Background(), nil)
+	require.NoError(t, err)
+
+	gen, err := genesis.BuildL2Genesis(config, block)
+	require.Nil(t, err)
+	require.NotNil(t, gen)
+
+	// Gaming preset: VRF predeploys must be present
+	require.Contains(t, gen.Alloc, predeploys.VRFPredeployAddr, "Gaming preset must have VRFPredeploy")
+	require.Contains(t, gen.Alloc, predeploys.VRFCoordinatorAddr, "Gaming preset must have VRFCoordinator")
+
+	// Gaming preset: USDC/Uniswap must NOT be present
+	require.NotContains(t, gen.Alloc, predeploys.L2UsdcBridgeAddr, "Gaming preset must not have L2UsdcBridge")
+	require.NotContains(t, gen.Alloc, predeploys.UniswapV3FactoryAddr, "Gaming preset must not have UniswapV3Factory")
+}
+
 func TestBuildL2GenesisDefiPreset(t *testing.T) {
 	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
