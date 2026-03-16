@@ -231,6 +231,42 @@ func TestAAPredeployAddressConstants(t *testing.T) {
 	require.NotNil(t, predeploys.Simple7702AccountAddr)
 }
 
+func TestNewL2StorageConfigGamingPreset_HasAAStorage(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = PresetGaming
+	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
+	require.True(t, hasPaymaster, "Gaming preset must have VerifyingPaymasterPredeploy storage")
+}
+
+func TestNewL2StorageConfigGeneralPreset_NoAAStorage(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = PresetGeneral
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
+	require.False(t, hasPaymaster, "General preset must not have VerifyingPaymasterPredeploy storage")
+}
+
 func TestRollupConfig_SetsChainOpConfig(t *testing.T) {
 	b, err := os.ReadFile("testdata/test-deploy-config-full.json")
 	require.NoError(t, err)

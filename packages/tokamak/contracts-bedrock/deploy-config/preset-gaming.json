@@ -65,6 +65,7 @@
   "respectedGameType": 0,
   "useFaultProofs": true,
   "vrfAdmin": "0x0000000000000000000000000000000000000001",
+  "aaPaymasterSigner": "0x0000000000000000000000000000000000000002",
   "nativeCurrencyLabelBytes": [
     84, 87, 79, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0

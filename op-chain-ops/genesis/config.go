@@ -385,6 +385,9 @@ type DeployConfig struct {
 	// VRFAdmin is the admin address for VRFCoordinator (required for Gaming/Full presets)
 	VRFAdmin common.Address `json:"vrfAdmin"`
 
+	// AAPaymasterSigner is the address of the VerifyingPaymaster signer (Gaming/Full preset).
+	AAPaymasterSigner common.Address `json:"aaPaymasterSigner"`
+
 	// UseInterop is a flag that indicates if the system is using interop
 	UseInterop bool `json:"useInterop,omitempty"`
 
@@ -1276,6 +1279,16 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 			"_initializing": false,
 			"coordinator":   predeploys.VRFCoordinatorAddr,
 		}
+	}
+	// AA predeploys (Gaming/Full preset)
+	if id := config.PresetID(); id == PresetGaming || id == PresetFull {
+		storage["VerifyingPaymasterPredeploy"] = state.StorageValues{
+			"_initialized":    1,
+			"_initializing":   false,
+			"verifyingSigner": config.AAPaymasterSigner,
+		}
+		// AAEntryPoint: no genesis storage needed (permissionless, empty state)
+		// Simple7702Account: stateless delegation target, no genesis storage needed
 	}
 	// DeFi and Full presets include USDC Bridge and Uniswap V3 storage.
 	if id := config.PresetID(); id == PresetDeFi || id == PresetFull {
