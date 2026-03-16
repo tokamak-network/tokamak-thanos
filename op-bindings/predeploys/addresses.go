@@ -137,13 +137,14 @@ func init() {
 	// usdcEnabled returns true for DeFi and Full presets only
 	usdcEnabled := func(config DeployConfig) bool {
 		id := config.PresetID()
-		return id == "defi" || id == "full"
+		return id == PresetDeFi || id == PresetFull
 	}
 
-	// uniswapEnabled returns true for DeFi and Full presets only
+	// uniswapEnabled returns true for DeFi and Full presets only.
+	// Kept separate from usdcEnabled to allow independent preset control in the future.
 	uniswapEnabled := func(config DeployConfig) bool {
 		id := config.PresetID()
-		return id == "defi" || id == "full"
+		return id == PresetDeFi || id == PresetFull
 	}
 
 	Predeploys["QuoterV2"] = &Predeploy{Address: QuoterV2Addr, ProxyDisabled: true, Enabled: uniswapEnabled}
