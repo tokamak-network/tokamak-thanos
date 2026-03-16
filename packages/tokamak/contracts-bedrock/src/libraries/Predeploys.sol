@@ -119,6 +119,15 @@ library Predeploys {
     /// @notice Address of the FiatTokenV2_2 predeploy.
     address internal constant FIATTOKENV2_2 = 0x4200000000000000000000000000000000000778;
 
+    /// @notice Address of the VRFPredeploy predeploy (Gaming/Full presets only).
+    address internal constant VRF_PREDEPLOY     = 0x4200000000000000000000000000000000000060;
+
+    /// @notice Address of the VRFCoordinator predeploy (Gaming/Full presets only).
+    address internal constant VRF_COORDINATOR   = 0x4200000000000000000000000000000000000061;
+
+    /// @notice Address of the VRFConsumerBase predeploy (Gaming/Full presets only).
+    address internal constant VRF_CONSUMER_BASE = 0x4200000000000000000000000000000000000062;
+
     /// @notice Address of the GovernanceToken predeploy.
     address internal constant GOVERNANCE_TOKEN = 0x4200000000000000000000000000000000000042;
 

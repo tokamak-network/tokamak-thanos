@@ -41,6 +41,10 @@ const (
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
 	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
 
+	VRFPredeploy    = "0x4200000000000000000000000000000000000060"
+	VRFCoordinator  = "0x4200000000000000000000000000000000000061"
+	VRFConsumerBase = "0x4200000000000000000000000000000000000062"
+
 	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
 	Safe_v130                    = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
@@ -89,6 +93,10 @@ var (
 	SignatureCheckerAddr                   = common.HexToAddress(SignatureChecker)
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
 	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
+
+	VRFPredeployAddr    = common.HexToAddress(VRFPredeploy)
+	VRFCoordinatorAddr  = common.HexToAddress(VRFCoordinator)
+	VRFConsumerBaseAddr = common.HexToAddress(VRFConsumerBase)
 
 	Create2DeployerAddr              = common.HexToAddress(Create2Deployer)
 	MultiCall3Addr                   = common.HexToAddress(MultiCall3)
@@ -161,6 +169,15 @@ func init() {
 	Predeploys["SignatureChecker"] = &Predeploy{Address: SignatureCheckerAddr, ProxyDisabled: true, Enabled: usdcEnabled}
 	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true, Enabled: usdcEnabled}
 	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr, Enabled: usdcEnabled}
+
+	// vrfEnabled returns true for Gaming and Full presets only
+	vrfEnabled := func(config DeployConfig) bool {
+		id := config.PresetID()
+		return id == PresetGaming || id == PresetFull
+	}
+	Predeploys["VRFPredeploy"] = &Predeploy{Address: VRFPredeployAddr, Enabled: vrfEnabled}
+	Predeploys["VRFCoordinator"] = &Predeploy{Address: VRFCoordinatorAddr, Enabled: vrfEnabled}
+	Predeploys["VRFConsumerBase"] = &Predeploy{Address: VRFConsumerBaseAddr, Enabled: vrfEnabled}
 
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
