@@ -128,6 +128,15 @@ library Predeploys {
     /// @notice Address of the VRFConsumerBase predeploy (Gaming/Full presets only).
     address internal constant VRF_CONSUMER_BASE = 0x4200000000000000000000000000000000000062;
 
+    /// @notice Address of the AAEntryPoint predeploy (Gaming/Full presets only, ERC-4337 v0.8+).
+    address internal constant AA_ENTRY_POINT                = 0x4200000000000000000000000000000000000063;
+
+    /// @notice Address of the VerifyingPaymaster predeploy (Gaming/Full presets only).
+    address internal constant VERIFYING_PAYMASTER_PREDEPLOY = 0x4200000000000000000000000000000000000064;
+
+    /// @notice Address of the Simple7702Account predeploy (Gaming/Full presets only, EIP-7702).
+    address internal constant SIMPLE_7702_ACCOUNT           = 0x4200000000000000000000000000000000000065;
+
     /// @notice Address of the GovernanceToken predeploy.
     address internal constant GOVERNANCE_TOKEN = 0x4200000000000000000000000000000000000042;
 

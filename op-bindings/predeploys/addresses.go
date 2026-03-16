@@ -45,6 +45,13 @@ const (
 	VRFCoordinator  = "0x4200000000000000000000000000000000000061"
 	VRFConsumerBase = "0x4200000000000000000000000000000000000062"
 
+	// AA predeploy address strings (Gaming/Full preset, ERC-4337 v0.8+)
+	// Note: existing EntryPoint const refers to ERC-4337 v0.7 canonical (0x5FF...).
+	//       Use AAEntryPoint for v0.8 Thanos predeploy.
+	AAEntryPoint                = "0x4200000000000000000000000000000000000063"
+	VerifyingPaymasterPredeploy = "0x4200000000000000000000000000000000000064"
+	Simple7702Account           = "0x4200000000000000000000000000000000000065"
+
 	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
 	Safe_v130                    = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
@@ -97,6 +104,10 @@ var (
 	VRFPredeployAddr    = common.HexToAddress(VRFPredeploy)
 	VRFCoordinatorAddr  = common.HexToAddress(VRFCoordinator)
 	VRFConsumerBaseAddr = common.HexToAddress(VRFConsumerBase)
+
+	AAEntryPointAddr                = common.HexToAddress(AAEntryPoint)
+	VerifyingPaymasterPredeployAddr = common.HexToAddress(VerifyingPaymasterPredeploy)
+	Simple7702AccountAddr           = common.HexToAddress(Simple7702Account)
 
 	Create2DeployerAddr              = common.HexToAddress(Create2Deployer)
 	MultiCall3Addr                   = common.HexToAddress(MultiCall3)
@@ -178,6 +189,22 @@ func init() {
 	Predeploys["VRFPredeploy"] = &Predeploy{Address: VRFPredeployAddr, Enabled: vrfEnabled}
 	Predeploys["VRFCoordinator"] = &Predeploy{Address: VRFCoordinatorAddr, Enabled: vrfEnabled}
 	// VRFConsumerBase is an abstract contract (no deployable bytecode); not registered as a predeploy.
+
+	// AA predeploys (0x63-0x65) — Gaming/Full preset, ERC-4337 v0.8+
+	// aaEnabled reuses vrfEnabled (same condition: Gaming || Full)
+	Predeploys["AAEntryPoint"] = &Predeploy{
+		Address: AAEntryPointAddr,
+		Enabled: vrfEnabled, // same as aaEnabled (Gaming || Full)
+	}
+	Predeploys["VerifyingPaymasterPredeploy"] = &Predeploy{
+		Address: VerifyingPaymasterPredeployAddr,
+		Enabled: vrfEnabled,
+	}
+	Predeploys["Simple7702Account"] = &Predeploy{
+		Address:       Simple7702AccountAddr,
+		Enabled:       vrfEnabled,
+		ProxyDisabled: true, // stateless delegation target — no proxy needed
+	}
 
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,

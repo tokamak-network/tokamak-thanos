@@ -14,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/tokamak-network/tokamak-thanos/op-bindings/predeploys"
 )
 
 func TestConfigDataMarshalUnmarshal(t *testing.T) {
@@ -213,6 +215,20 @@ func TestNewL2StorageConfigDefiPreset(t *testing.T) {
 
 	_, hasUniswap := storage["UniswapV3Factory"]
 	require.True(t, hasUniswap, "DeFi preset must have UniswapV3Factory storage")
+}
+
+func TestAAPredeployAddressConstants(t *testing.T) {
+	// ⚠️ existing predeploys.EntryPoint = 0x5FF... (v0.7 canonical) is separate.
+	//    v0.8 predeploy uses AAEntryPoint constant name.
+	require.Equal(t, "0x4200000000000000000000000000000000000063",
+		predeploys.AAEntryPoint)
+	require.Equal(t, "0x4200000000000000000000000000000000000064",
+		predeploys.VerifyingPaymasterPredeploy)
+	require.Equal(t, "0x4200000000000000000000000000000000000065",
+		predeploys.Simple7702Account)
+	require.NotNil(t, predeploys.AAEntryPointAddr)
+	require.NotNil(t, predeploys.VerifyingPaymasterPredeployAddr)
+	require.NotNil(t, predeploys.Simple7702AccountAddr)
 }
 
 func TestRollupConfig_SetsChainOpConfig(t *testing.T) {
