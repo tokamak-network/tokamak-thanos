@@ -146,7 +146,7 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 func TestBuildL2GenesisGeneralPreset(t *testing.T) {
 	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
-	config.Preset = "general"
+	config.Preset = genesis.PresetGeneral
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
@@ -196,7 +196,7 @@ func TestBuildL2GenesisGeneralPreset(t *testing.T) {
 func TestBuildL2GenesisDefiPreset(t *testing.T) {
 	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
-	config.Preset = "defi"
+	config.Preset = genesis.PresetDeFi
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
