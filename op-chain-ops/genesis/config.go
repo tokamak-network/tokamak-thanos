@@ -1260,40 +1260,43 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_name":   "Ether",
 		"_symbol": "ETH",
 	}
-	storage["L2UsdcBridge"] = state.StorageValues{
-		"messenger":          predeploys.L2CrossDomainMessengerAddr,
-		"otherBridge":        config.L1UsdcBridgeProxy,
-		"l1Usdc":             config.L1UsdcAddr,
-		"l2Usdc":             predeploys.FiatTokenV2_2Addr,
-		"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
-	}
-	storage["MasterMinter"] = state.StorageValues{
-		"_owner": config.MasterMinterOwner,
-		"controllers": map[any]any{
-			predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
-		},
-		"minterManager": predeploys.FiatTokenV2_2Addr,
-	}
-	storage["FiatTokenV2_2"] = state.StorageValues{
-		"_owner":              config.FiatTokenOwner,
-		"pauser":              config.NewPauser,
-		"blacklister":         config.NewBlacklister,
-		"name":                config.UsdcTokenName,
-		"symbol":              "USDC.e",
-		"decimals":            6,
-		"currency":            "USD",
-		"masterMinter":        predeploys.MasterMinterAddr,
-		"initialized":         true,
-		"_initializedVersion": 3,
-	}
-	storage["UniswapV3Factory"] = state.StorageValues{
-		"owner": config.UniswapV3FactoryOwner,
-		"feeAmountTickSpacing": map[any]any{
-			config.UniswapV3FactoryFee500:   config.UniswapV3FactoryTickSpacing10,
-			config.UniswapV3FactoryFee3000:  config.UniswapV3FactoryTickSpacing60,
-			config.UniswapV3FactoryFee10000: config.UniswapV3FactoryTickSpacing200,
-			config.UniswapV3FactoryFee100:   config.UniswapV3FactoryTickSpacing1,
-		},
+	// DeFi and Full presets include USDC Bridge and Uniswap V3 storage.
+	if id := config.PresetID(); id == PresetDeFi || id == PresetFull {
+		storage["L2UsdcBridge"] = state.StorageValues{
+			"messenger":          predeploys.L2CrossDomainMessengerAddr,
+			"otherBridge":        config.L1UsdcBridgeProxy,
+			"l1Usdc":             config.L1UsdcAddr,
+			"l2Usdc":             predeploys.FiatTokenV2_2Addr,
+			"l2UsdcMasterMinter": predeploys.MasterMinterAddr,
+		}
+		storage["MasterMinter"] = state.StorageValues{
+			"_owner": config.MasterMinterOwner,
+			"controllers": map[any]any{
+				predeploys.L2UsdcBridgeAddr: predeploys.L2UsdcBridgeAddr,
+			},
+			"minterManager": predeploys.FiatTokenV2_2Addr,
+		}
+		storage["FiatTokenV2_2"] = state.StorageValues{
+			"_owner":              config.FiatTokenOwner,
+			"pauser":              config.NewPauser,
+			"blacklister":         config.NewBlacklister,
+			"name":                config.UsdcTokenName,
+			"symbol":              "USDC.e",
+			"decimals":            6,
+			"currency":            "USD",
+			"masterMinter":        predeploys.MasterMinterAddr,
+			"initialized":         true,
+			"_initializedVersion": 3,
+		}
+		storage["UniswapV3Factory"] = state.StorageValues{
+			"owner": config.UniswapV3FactoryOwner,
+			"feeAmountTickSpacing": map[any]any{
+				config.UniswapV3FactoryFee500:   config.UniswapV3FactoryTickSpacing10,
+				config.UniswapV3FactoryFee3000:  config.UniswapV3FactoryTickSpacing60,
+				config.UniswapV3FactoryFee10000: config.UniswapV3FactoryTickSpacing200,
+				config.UniswapV3FactoryFee100:   config.UniswapV3FactoryTickSpacing1,
+			},
+		}
 	}
 	return storage, nil
 }

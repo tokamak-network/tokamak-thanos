@@ -163,6 +163,52 @@ func TestOpChainConfig_UsesConfiguredValues(t *testing.T) {
 	require.Equal(t, uint64(19), opCfg.EIP1559Elasticity)
 }
 
+func TestNewL2StorageConfigGeneralPreset(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = "general"
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasUsdcBridge := storage["L2UsdcBridge"]
+	require.False(t, hasUsdcBridge, "General preset must not have L2UsdcBridge storage")
+
+	_, hasMasterMinter := storage["MasterMinter"]
+	require.False(t, hasMasterMinter, "General preset must not have MasterMinter storage")
+
+	_, hasFiatToken := storage["FiatTokenV2_2"]
+	require.False(t, hasFiatToken, "General preset must not have FiatTokenV2_2 storage")
+
+	_, hasUniswap := storage["UniswapV3Factory"]
+	require.False(t, hasUniswap, "General preset must not have UniswapV3Factory storage")
+}
+
+func TestNewL2StorageConfigDefiPreset(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = "defi"
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasUsdcBridge := storage["L2UsdcBridge"]
+	require.True(t, hasUsdcBridge, "DeFi preset must have L2UsdcBridge storage")
+
+	_, hasUniswap := storage["UniswapV3Factory"]
+	require.True(t, hasUniswap, "DeFi preset must have UniswapV3Factory storage")
+}
+
 func TestRollupConfig_SetsChainOpConfig(t *testing.T) {
 	b, err := os.ReadFile("testdata/test-deploy-config-full.json")
 	require.NoError(t, err)
