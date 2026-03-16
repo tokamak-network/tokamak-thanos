@@ -5,8 +5,11 @@ pragma solidity ^0.8.23;
 // https://github.com/eth-infinitism/account-abstraction
 // License: GPL-3.0
 // Thanos modifications: import path updates, "ETH" → "native token (TON)" in error strings,
-//   ReentrancyGuardTransient replaced with ReentrancyGuard (OZ v5.0.1),
 //   @openzeppelin imports use _v5.0.1 remapping.
+// Thanos modification: ReentrancyGuardTransient (EIP-1153) replaced with ReentrancyGuard
+//   (OZ v4.x does not include ReentrancyGuardTransient).
+//   Behavior is equivalent; gas cost is slightly higher (no transient storage refund).
+//   TODO: restore ReentrancyGuardTransient when OZ v5.x is adopted.
 
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable no-inline-assembly */

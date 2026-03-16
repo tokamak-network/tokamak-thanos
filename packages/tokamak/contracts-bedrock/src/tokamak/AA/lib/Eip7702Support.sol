@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.28;
 
 // Ported from eth-infinitism/account-abstraction v0.8.0
