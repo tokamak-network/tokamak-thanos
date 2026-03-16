@@ -22,6 +22,41 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-service/eth"
 )
 
+// usdcAddrs contains the 4 USDC Bridge predeploy addresses.
+var usdcAddrs = []common.Address{
+	predeploys.L2UsdcBridgeAddr,
+	predeploys.SignatureCheckerAddr,
+	predeploys.MasterMinterAddr,
+	predeploys.FiatTokenV2_2Addr,
+}
+
+// uniswapAddrs contains the 10 Uniswap V3 predeploy addresses.
+var uniswapAddrs = []common.Address{
+	predeploys.QuoterV2Addr,
+	predeploys.SwapRouter02Addr,
+	predeploys.UniswapV3FactoryAddr,
+	predeploys.NFTDescriptorAddr,
+	predeploys.NonfungiblePositionManagerAddr,
+	predeploys.NonfungibleTokenPositionDescriptorAddr,
+	predeploys.TickLensAddr,
+	predeploys.UniswapInterfaceMulticallAddr,
+	predeploys.UniversalRouterAddr,
+	predeploys.UnsupportedProtocolAddr,
+}
+
+// vrfAddrs contains the 2 VRF predeploy addresses.
+var vrfAddrs = []common.Address{
+	predeploys.VRFPredeployAddr,
+	predeploys.VRFCoordinatorAddr,
+}
+
+// aaAddrs contains the 3 AA predeploy addresses.
+var aaAddrs = []common.Address{
+	predeploys.AAEntryPointAddr,
+	predeploys.VerifyingPaymasterPredeployAddr,
+	predeploys.Simple7702AccountAddr,
+}
+
 var writeFile bool
 
 func init() {
@@ -150,46 +185,30 @@ func TestBuildL2GenesisGeneralPreset(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
-	backend := simulated.NewBackend(
-		types.GenesisAlloc{
-			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
-		},
-	)
-	defer backend.Close()
-	client := backend.Client()
-	block, err := client.BlockByNumber(context.Background(), nil)
-	require.NoError(t, err)
-
-	gen, err := genesis.BuildL2Genesis(config, block)
-	require.Nil(t, err)
-	require.NotNil(t, gen)
+	gen := testBuildL2Genesis(t, config)
 
 	// General preset: USDC Bridge predeploys must NOT be in genesis
-	for _, addr := range []common.Address{
-		predeploys.L2UsdcBridgeAddr,
-		predeploys.SignatureCheckerAddr,
-		predeploys.MasterMinterAddr,
-		predeploys.FiatTokenV2_2Addr,
-	} {
+	for _, addr := range usdcAddrs {
 		_, ok := gen.Alloc[addr]
 		require.False(t, ok, "USDC address should not be in General preset: %s", addr.Hex())
 	}
 
 	// General preset: Uniswap V3 predeploys must NOT be in genesis
-	for _, addr := range []common.Address{
-		predeploys.QuoterV2Addr,
-		predeploys.SwapRouter02Addr,
-		predeploys.UniswapV3FactoryAddr,
-		predeploys.NFTDescriptorAddr,
-		predeploys.NonfungiblePositionManagerAddr,
-		predeploys.NonfungibleTokenPositionDescriptorAddr,
-		predeploys.TickLensAddr,
-		predeploys.UniswapInterfaceMulticallAddr,
-		predeploys.UniversalRouterAddr,
-		predeploys.UnsupportedProtocolAddr,
-	} {
+	for _, addr := range uniswapAddrs {
 		_, ok := gen.Alloc[addr]
 		require.False(t, ok, "Uniswap address should not be in General preset: %s", addr.Hex())
+	}
+
+	// General preset: VRF predeploys must NOT be in genesis
+	for _, addr := range vrfAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "VRF address should not be in General preset: %s", addr.Hex())
+	}
+
+	// General preset: AA predeploys must NOT be in genesis
+	for _, addr := range aaAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "AA address should not be in General preset: %s", addr.Hex())
 	}
 }
 
@@ -202,32 +221,29 @@ func TestBuildL2GenesisGamingPreset(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
-	backend := simulated.NewBackend(
-		types.GenesisAlloc{
-			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
-		},
-	)
-	defer backend.Close()
-	client := backend.Client()
-	block, err := client.BlockByNumber(context.Background(), nil)
-	require.NoError(t, err)
-
-	gen, err := genesis.BuildL2Genesis(config, block)
-	require.Nil(t, err)
-	require.NotNil(t, gen)
+	gen := testBuildL2Genesis(t, config)
 
 	// Gaming preset: VRF predeploys must be present
-	require.Contains(t, gen.Alloc, predeploys.VRFPredeployAddr, "Gaming preset must have VRFPredeploy")
-	require.Contains(t, gen.Alloc, predeploys.VRFCoordinatorAddr, "Gaming preset must have VRFCoordinator")
+	for _, addr := range vrfAddrs {
+		require.Contains(t, gen.Alloc, addr, "Gaming preset must have VRF predeploy: %s", addr.Hex())
+	}
 
 	// Gaming preset: AA predeploys must be present
-	require.Contains(t, gen.Alloc, predeploys.AAEntryPointAddr, "Gaming preset must have AAEntryPoint")
-	require.Contains(t, gen.Alloc, predeploys.VerifyingPaymasterPredeployAddr, "Gaming preset must have VerifyingPaymasterPredeploy")
-	require.Contains(t, gen.Alloc, predeploys.Simple7702AccountAddr, "Gaming preset must have Simple7702Account")
+	for _, addr := range aaAddrs {
+		require.Contains(t, gen.Alloc, addr, "Gaming preset must have AA predeploy: %s", addr.Hex())
+	}
 
-	// Gaming preset: USDC/Uniswap must NOT be present
-	require.NotContains(t, gen.Alloc, predeploys.L2UsdcBridgeAddr, "Gaming preset must not have L2UsdcBridge")
-	require.NotContains(t, gen.Alloc, predeploys.UniswapV3FactoryAddr, "Gaming preset must not have UniswapV3Factory")
+	// Gaming preset: USDC Bridge predeploys must NOT be in genesis
+	for _, addr := range usdcAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "USDC address should not be in Gaming preset: %s", addr.Hex())
+	}
+
+	// Gaming preset: Uniswap V3 predeploys must NOT be in genesis
+	for _, addr := range uniswapAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "Uniswap address should not be in Gaming preset: %s", addr.Hex())
+	}
 }
 
 func TestBuildL2GenesisDefiPreset(t *testing.T) {
@@ -237,21 +253,59 @@ func TestBuildL2GenesisDefiPreset(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
-	backend := simulated.NewBackend(
-		types.GenesisAlloc{
-			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
-		},
-	)
-	defer backend.Close()
-	client := backend.Client()
-	block, err := client.BlockByNumber(context.Background(), nil)
-	require.NoError(t, err)
+	gen := testBuildL2Genesis(t, config)
 
-	gen, err := genesis.BuildL2Genesis(config, block)
+	// DeFi preset: USDC Bridge predeploys must be present
+	for _, addr := range usdcAddrs {
+		require.Contains(t, gen.Alloc, addr, "DeFi preset must have USDC predeploy: %s", addr.Hex())
+	}
+
+	// DeFi preset: Uniswap V3 predeploys must be present
+	for _, addr := range uniswapAddrs {
+		require.Contains(t, gen.Alloc, addr, "DeFi preset must have Uniswap predeploy: %s", addr.Hex())
+	}
+
+	// DeFi preset: VRF predeploys must NOT be in genesis
+	for _, addr := range vrfAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "VRF address should not be in DeFi preset: %s", addr.Hex())
+	}
+
+	// DeFi preset: AA predeploys must NOT be in genesis
+	for _, addr := range aaAddrs {
+		_, ok := gen.Alloc[addr]
+		require.False(t, ok, "AA address should not be in DeFi preset: %s", addr.Hex())
+	}
+}
+
+func TestBuildL2GenesisFullPreset(t *testing.T) {
+	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
-	require.NotNil(t, gen)
+	config.Preset = genesis.PresetFull
+	config.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+	config.EnableGovernance = false
+	config.FundDevAccounts = false
 
-	// DeFi preset: USDC Bridge and Uniswap V3 must be present
-	require.Contains(t, gen.Alloc, predeploys.L2UsdcBridgeAddr, "DeFi preset must have L2UsdcBridge")
-	require.Contains(t, gen.Alloc, predeploys.UniswapV3FactoryAddr, "DeFi preset must have UniswapV3Factory")
+	gen := testBuildL2Genesis(t, config)
+
+	// Full preset: VRF predeploys must be present
+	for _, addr := range vrfAddrs {
+		require.Contains(t, gen.Alloc, addr, "Full preset must have VRF predeploy: %s", addr.Hex())
+	}
+
+	// Full preset: AA predeploys must be present
+	for _, addr := range aaAddrs {
+		require.Contains(t, gen.Alloc, addr, "Full preset must have AA predeploy: %s", addr.Hex())
+	}
+
+	// Full preset: USDC Bridge predeploys must be present
+	for _, addr := range usdcAddrs {
+		require.Contains(t, gen.Alloc, addr, "Full preset must have USDC predeploy: %s", addr.Hex())
+	}
+
+	// Full preset: Uniswap V3 predeploys must be present
+	for _, addr := range uniswapAddrs {
+		require.Contains(t, gen.Alloc, addr, "Full preset must have Uniswap predeploy: %s", addr.Hex())
+	}
 }
