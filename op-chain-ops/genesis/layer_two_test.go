@@ -60,6 +60,14 @@ func testBuildL2Genesis(t *testing.T, config *genesis.DeployConfig) *core.Genesi
 	require.NoError(t, err)
 
 	for name, predeploy := range predeploys.Predeploys {
+		// If the predeploy has an Enabled function and it returns false for this config,
+		// assert it's absent from genesis and skip further checks.
+		if predeploy.Enabled != nil && !predeploy.Enabled(config) {
+			_, ok := gen.Alloc[predeploy.Address]
+			require.False(t, ok, "disabled predeploy should not be in genesis: %s", name)
+			continue
+		}
+
 		addr := predeploy.Address
 
 		account, ok := gen.Alloc[addr]
@@ -131,7 +139,8 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2081, len(gen.Alloc))
+	// GovernanceToken is excluded when EnableGovernance=false, so alloc count is 1 less than with governance.
+	require.Equal(t, 2080, len(gen.Alloc))
 }
 
 func TestBuildL2GenesisGeneralPreset(t *testing.T) {
