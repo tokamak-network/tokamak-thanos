@@ -1266,12 +1266,15 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	// Gaming and Full presets include VRF predeploy storage.
 	if id := config.PresetID(); id == PresetGaming || id == PresetFull {
 		storage["VRFCoordinator"] = state.StorageValues{
-			"admin":       config.VRFAdmin,
-			"vrfPredeploy": predeploys.VRFPredeployAddr,
+			"_initialized":  1,
+			"_initializing": false,
+			"admin":         config.VRFAdmin,
+			"vrfPredeploy":  predeploys.VRFPredeployAddr,
 		}
 		storage["VRFPredeploy"] = state.StorageValues{
-			"_initialized": 1,
-			"coordinator":  predeploys.VRFCoordinatorAddr,
+			"_initialized":  1,
+			"_initializing": false,
+			"coordinator":   predeploys.VRFCoordinatorAddr,
 		}
 	}
 	// DeFi and Full presets include USDC Bridge and Uniswap V3 storage.
