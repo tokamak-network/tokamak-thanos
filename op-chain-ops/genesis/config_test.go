@@ -51,6 +51,35 @@ func TestRegolithTimeAsOffset(t *testing.T) {
 	require.Equal(t, uint64(1500+5000), *config.RegolithTime(5000))
 }
 
+func TestDeployConfigPresetID(t *testing.T) {
+	cfg := &DeployConfig{}
+	require.Equal(t, "defi", cfg.PresetID()) // empty string → "defi" for backward compat
+
+	cfg.Preset = "general"
+	require.Equal(t, "general", cfg.PresetID())
+
+	cfg.Preset = "defi"
+	require.Equal(t, "defi", cfg.PresetID())
+
+	cfg.Preset = "gaming"
+	require.Equal(t, "gaming", cfg.PresetID())
+
+	cfg.Preset = "full"
+	require.Equal(t, "full", cfg.PresetID())
+}
+
+func TestDeployConfigPresetValidation(t *testing.T) {
+	cfg := &DeployConfig{}
+
+	for _, id := range []string{"", "general", "defi", "gaming", "full"} {
+		cfg.Preset = id
+		require.NoError(t, cfg.validatePreset())
+	}
+
+	cfg.Preset = "invalid"
+	require.Error(t, cfg.validatePreset())
+}
+
 func TestCanyonTimeZero(t *testing.T) {
 	canyonOffset := hexutil.Uint64(0)
 	config := &DeployConfig{L2GenesisCanyonTimeOffset: &canyonOffset}

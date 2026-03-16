@@ -38,6 +38,17 @@ var (
 )
 
 const (
+	// PresetGeneral is the general-purpose predeploy preset.
+	PresetGeneral = "general"
+	// PresetDeFi is the DeFi-focused predeploy preset (default for backward compatibility).
+	PresetDeFi = "defi"
+	// PresetGaming is the gaming-focused predeploy preset.
+	PresetGaming = "gaming"
+	// PresetFull includes all available predeploys.
+	PresetFull = "full"
+)
+
+const (
 	// MaxResourceLimit represents the maximum amount of L2 gas that a single deposit can use.
 	MaxResourceLimit = 20_000_000
 	// ElasticityMultiplier represents the elasticity of the deposit EIP-1559 fee market.
@@ -223,6 +234,10 @@ type DeployConfig struct {
 	GasPriceOracleBaseFeeScalar uint32 `json:"gasPriceOracleBaseFeeScalar"`
 	// GasPriceOracleBlobBaseFeeScalar represents the value of the blob base fee scalar used for fee calculations.
 	GasPriceOracleBlobBaseFeeScalar uint32 `json:"gasPriceOracleBlobBaseFeeScalar"`
+	// Preset determines which predeploy contract set to include in genesis.
+	// Valid values: "", "general", "defi", "gaming", "full"
+	// Empty string defaults to "defi" for backward compatibility.
+	Preset string `json:"preset,omitempty"`
 	// EnableGovernance configures whether or not include governance token predeploy.
 	EnableGovernance bool `json:"enableGovernance"`
 	// GovernanceTokenSymbol represents the  ERC20 symbol of the GovernanceToken.
@@ -399,8 +414,29 @@ func (d *DeployConfig) Copy() *DeployConfig {
 	return &cpy
 }
 
+// PresetID implements the predeploys.DeployConfig interface.
+// Empty string returns "defi" for backward compatibility with existing deploy configs.
+func (d *DeployConfig) PresetID() string {
+	if d.Preset == "" {
+		return PresetDeFi
+	}
+	return d.Preset
+}
+
+func (d *DeployConfig) validatePreset() error {
+	switch d.Preset {
+	case "", PresetGeneral, PresetDeFi, PresetGaming, PresetFull:
+		return nil
+	default:
+		return fmt.Errorf("invalid preset %q: must be one of '', 'general', 'defi', 'gaming', 'full'", d.Preset)
+	}
+}
+
 // Check will ensure that the config is sane and return an error when it is not
 func (d *DeployConfig) Check() error {
+	if err := d.validatePreset(); err != nil {
+		return err
+	}
 	if d.L1StartingBlockTag == nil {
 		return fmt.Errorf("%w: L1StartingBlockTag cannot be nil", ErrInvalidDeployConfig)
 	}
