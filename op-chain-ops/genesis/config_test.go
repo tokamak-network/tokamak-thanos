@@ -189,6 +189,12 @@ func TestNewL2StorageConfigGeneralPreset(t *testing.T) {
 
 	_, hasUniswap := storage["UniswapV3Factory"]
 	require.False(t, hasUniswap, "General preset must not have UniswapV3Factory storage")
+
+	_, hasVRFCoordinator := storage["VRFCoordinator"]
+	require.False(t, hasVRFCoordinator, "General preset must not have VRFCoordinator storage")
+
+	_, hasVRFPredeploy := storage["VRFPredeploy"]
+	require.False(t, hasVRFPredeploy, "General preset must not have VRFPredeploy storage")
 }
 
 func TestNewL2StorageConfigDefiPreset(t *testing.T) {
@@ -215,6 +221,15 @@ func TestNewL2StorageConfigDefiPreset(t *testing.T) {
 
 	_, hasUniswap := storage["UniswapV3Factory"]
 	require.True(t, hasUniswap, "DeFi preset must have UniswapV3Factory storage")
+
+	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
+	require.False(t, hasPaymaster, "DeFi preset must not have VerifyingPaymasterPredeploy storage")
+
+	_, hasVRFCoordinator := storage["VRFCoordinator"]
+	require.False(t, hasVRFCoordinator, "DeFi preset must not have VRFCoordinator storage")
+
+	_, hasVRFPredeploy := storage["VRFPredeploy"]
+	require.False(t, hasVRFPredeploy, "DeFi preset must not have VRFPredeploy storage")
 }
 
 func TestAAPredeployAddressConstants(t *testing.T) {
@@ -265,6 +280,65 @@ func TestNewL2StorageConfigGeneralPreset_NoAAStorage(t *testing.T) {
 
 	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
 	require.False(t, hasPaymaster, "General preset must not have VerifyingPaymasterPredeploy storage")
+}
+
+func TestNewL2StorageConfigFullPreset(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = PresetFull
+	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasUsdcBridge := storage["L2UsdcBridge"]
+	require.True(t, hasUsdcBridge, "Full preset must have L2UsdcBridge storage")
+
+	_, hasMasterMinter := storage["MasterMinter"]
+	require.True(t, hasMasterMinter, "Full preset must have MasterMinter storage")
+
+	_, hasFiatToken := storage["FiatTokenV2_2"]
+	require.True(t, hasFiatToken, "Full preset must have FiatTokenV2_2 storage")
+
+	_, hasUniswap := storage["UniswapV3Factory"]
+	require.True(t, hasUniswap, "Full preset must have UniswapV3Factory storage")
+
+	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
+	require.True(t, hasPaymaster, "Full preset must have VerifyingPaymasterPredeploy storage")
+
+	_, hasVRFCoordinator := storage["VRFCoordinator"]
+	require.True(t, hasVRFCoordinator, "Full preset must have VRFCoordinator storage")
+
+	_, hasVRFPredeploy := storage["VRFPredeploy"]
+	require.True(t, hasVRFPredeploy, "Full preset must have VRFPredeploy storage")
+}
+
+func TestNewL2StorageConfigGamingPreset_HasVRFStorage(t *testing.T) {
+	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
+	require.NoError(t, err)
+	config.Preset = PresetGaming
+	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
+
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:  big.NewInt(1),
+		BaseFee: big.NewInt(1000000000),
+	})
+
+	storage, err := NewL2StorageConfig(config, block)
+	require.NoError(t, err)
+
+	_, hasVRFCoordinator := storage["VRFCoordinator"]
+	require.True(t, hasVRFCoordinator, "Gaming preset must have VRFCoordinator storage")
+
+	_, hasVRFPredeploy := storage["VRFPredeploy"]
+	require.True(t, hasVRFPredeploy, "Gaming preset must have VRFPredeploy storage")
 }
 
 func TestRollupConfig_SetsChainOpConfig(t *testing.T) {
