@@ -130,7 +130,7 @@ func TestBuildL2MainnetGenesis(t *testing.T) {
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2079, len(gen.Alloc))
+	require.Equal(t, 2076, len(gen.Alloc))
 }
 
 func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
@@ -140,7 +140,7 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
 	// GovernanceToken is excluded when EnableGovernance=false, so alloc count is 1 less than with governance.
-	require.Equal(t, 2078, len(gen.Alloc))
+	require.Equal(t, 2075, len(gen.Alloc))
 }
 
 func TestBuildL2GenesisGeneralPreset(t *testing.T) {
@@ -198,6 +198,7 @@ func TestBuildL2GenesisGamingPreset(t *testing.T) {
 	require.Nil(t, err)
 	config.Preset = genesis.PresetGaming
 	config.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
@@ -218,6 +219,11 @@ func TestBuildL2GenesisGamingPreset(t *testing.T) {
 	// Gaming preset: VRF predeploys must be present
 	require.Contains(t, gen.Alloc, predeploys.VRFPredeployAddr, "Gaming preset must have VRFPredeploy")
 	require.Contains(t, gen.Alloc, predeploys.VRFCoordinatorAddr, "Gaming preset must have VRFCoordinator")
+
+	// Gaming preset: AA predeploys must be present
+	require.Contains(t, gen.Alloc, predeploys.AAEntryPointAddr, "Gaming preset must have AAEntryPoint")
+	require.Contains(t, gen.Alloc, predeploys.VerifyingPaymasterPredeployAddr, "Gaming preset must have VerifyingPaymasterPredeploy")
+	require.Contains(t, gen.Alloc, predeploys.Simple7702AccountAddr, "Gaming preset must have Simple7702Account")
 
 	// Gaming preset: USDC/Uniswap must NOT be present
 	require.NotContains(t, gen.Alloc, predeploys.L2UsdcBridgeAddr, "Gaming preset must not have L2UsdcBridge")

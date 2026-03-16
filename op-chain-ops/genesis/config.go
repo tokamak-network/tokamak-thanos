@@ -1283,8 +1283,6 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 	// AA predeploys (Gaming/Full preset)
 	if id := config.PresetID(); id == PresetGaming || id == PresetFull {
 		storage["VerifyingPaymasterPredeploy"] = state.StorageValues{
-			"_initialized":    1,
-			"_initializing":   false,
 			"verifyingSigner": config.AAPaymasterSigner,
 		}
 		// AAEntryPoint: no genesis storage needed (permissionless, empty state)
