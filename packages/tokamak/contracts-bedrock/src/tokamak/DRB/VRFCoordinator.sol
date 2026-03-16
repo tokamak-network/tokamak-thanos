@@ -10,11 +10,13 @@ import { VRFConsumerBase } from "./VRFConsumerBase.sol";
 ///         Admin = SystemConfig owner.
 contract VRFCoordinator is Initializable {
     address public admin;
+    address public vrfPredeploy;
     uint256 private _requestCounter;
 
     struct Request {
         address requester;
         uint32 numWords;
+        uint256 callbackGasLimit;
         bool fulfilled;
         uint256[] randomWords;
     }
@@ -37,9 +39,21 @@ contract VRFCoordinator is Initializable {
         _;
     }
 
+    modifier onlyVRFPredeploy() {
+        require(msg.sender == vrfPredeploy, "VRFCoordinator: only VRFPredeploy");
+        _;
+    }
+
     /// @notice Initializer (called once by proxy).
     function initialize(address _admin) external initializer {
+        require(_admin != address(0), "VRFCoordinator: zero admin");
         admin = _admin;
+    }
+
+    /// @notice Set the VRFPredeploy address (admin only). Resolves circular init dependency.
+    function setPredeploy(address _vrfPredeploy) external onlyAdmin {
+        require(_vrfPredeploy != address(0), "VRFCoordinator: zero predeploy");
+        vrfPredeploy = _vrfPredeploy;
     }
 
     /// @notice Register a DRB node (admin only).
@@ -55,14 +69,19 @@ contract VRFCoordinator is Initializable {
     }
 
     /// @notice Called by VRFPredeploy to record a randomness request.
-    function requestRandomWords(address requester, uint32 numWords, uint256 /*callbackGasLimit*/)
+    function requestRandomWords(address requester, uint32 numWords, uint256 callbackGasLimit)
         external
+        onlyVRFPredeploy
         returns (uint256 requestId)
     {
+        require(requester != address(0), "VRFCoordinator: zero requester");
+        require(numWords > 0 && numWords <= 10, "VRFCoordinator: invalid numWords");
+
         requestId = ++_requestCounter;
         requests[requestId] = Request({
             requester: requester,
             numWords: numWords,
+            callbackGasLimit: callbackGasLimit,
             fulfilled: false,
             randomWords: new uint256[](0)
         });
@@ -78,8 +97,8 @@ contract VRFCoordinator is Initializable {
         req.fulfilled = true;
         req.randomWords = randomWords;
 
-        VRFConsumerBase(req.requester).rawFulfillRandomWords(requestId, randomWords);
         emit RandomWordsFulfilled(requestId, randomWords);
+        VRFConsumerBase(req.requester).rawFulfillRandomWords{gas: req.callbackGasLimit}(requestId, randomWords);
     }
 
     /// @notice Returns the status and result of a randomness request.

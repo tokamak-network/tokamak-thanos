@@ -18,6 +18,7 @@ contract VRFPredeploy is Initializable {
 
     /// @notice Initializer (called once by proxy).
     function initialize(address _coordinator) external initializer {
+        require(_coordinator != address(0), "VRFPredeploy: zero coordinator");
         coordinator = _coordinator;
     }
 

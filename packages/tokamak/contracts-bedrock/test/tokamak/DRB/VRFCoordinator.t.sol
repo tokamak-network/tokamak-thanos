@@ -9,8 +9,17 @@ import { VRFConsumerBase } from "../../../src/tokamak/DRB/VRFConsumerBase.sol";
 contract MockConsumer is VRFConsumerBase {
     uint256 public lastRequestId;
     uint256[] public lastRandomWords;
+    uint256 public pendingRequestId;
 
     constructor(address coordinator) VRFConsumerBase(coordinator) {}
+
+    function requestViaVRF(VRFPredeploy vrfPredeploy, uint32 numWords, uint256 gasLimit)
+        external
+        returns (uint256)
+    {
+        pendingRequestId = vrfPredeploy.requestRandomWords(numWords, gasLimit);
+        return pendingRequestId;
+    }
 
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
         lastRequestId = requestId;
@@ -32,6 +41,9 @@ contract VRFCoordinatorTest is Test {
         vrfPredeploy = new VRFPredeploy();
         vrfPredeploy.initialize(address(coordinator));
 
+        vm.prank(admin);
+        coordinator.setPredeploy(address(vrfPredeploy));
+
         consumer = new MockConsumer(address(coordinator));
     }
 
@@ -39,30 +51,22 @@ contract VRFCoordinatorTest is Test {
         vm.prank(admin);
         coordinator.registerNode(node);
 
-        uint256 reqId = vrfPredeploy.requestRandomWords(1, 200_000);
-        // Note: consumer.address is the requester in the real flow;
-        // here we request via vrfPredeploy which records msg.sender as requester.
-        // For simplicity test fulfillment via coordinator directly.
+        // Consumer requests via VRFPredeploy (end-to-end)
+        uint256 reqId = consumer.requestViaVRF(vrfPredeploy, 1, 200_000);
         assertEq(reqId, 1);
 
         uint256[] memory words = new uint256[](1);
         words[0] = 42;
 
-        // Fulfill via the coordinator (node calling)
         vm.prank(node);
-        // The requester is vrfPredeploy itself in this test (msg.sender of requestRandomWords call)
-        // We need coordinator to call rawFulfillRandomWords on requester
-        // So make consumer the requester by requesting from coordinator directly
-        uint256 reqId2 = coordinator.requestRandomWords(address(consumer), 1, 200_000);
-        vm.prank(node);
-        coordinator.fulfillRandomWords(reqId2, words);
+        coordinator.fulfillRandomWords(reqId, words);
 
-        assertEq(consumer.lastRequestId(), reqId2);
+        assertEq(consumer.lastRequestId(), reqId);
         assertEq(consumer.lastRandomWords(0), 42);
     }
 
     function test_onlyNodeCanFulfill() public {
-        uint256 reqId = coordinator.requestRandomWords(address(consumer), 1, 200_000);
+        uint256 reqId = consumer.requestViaVRF(vrfPredeploy, 1, 200_000);
 
         uint256[] memory words = new uint256[](1);
         words[0] = 42;
@@ -80,7 +84,7 @@ contract VRFCoordinatorTest is Test {
         vm.prank(admin);
         coordinator.registerNode(node);
 
-        uint256 reqId = coordinator.requestRandomWords(address(consumer), 1, 200_000);
+        uint256 reqId = consumer.requestViaVRF(vrfPredeploy, 1, 200_000);
         uint256[] memory words = new uint256[](1);
         words[0] = 42;
 
@@ -90,5 +94,15 @@ contract VRFCoordinatorTest is Test {
         vm.expectRevert("VRFCoordinator: already fulfilled");
         vm.prank(node);
         coordinator.fulfillRandomWords(reqId, words);
+    }
+
+    function test_onlyVRFPredeployCanRequest() public {
+        vm.expectRevert("VRFCoordinator: only VRFPredeploy");
+        coordinator.requestRandomWords(address(consumer), 1, 200_000);
+    }
+
+    function test_setPredeploy_onlyAdmin() public {
+        vm.expectRevert("VRFCoordinator: only admin");
+        coordinator.setPredeploy(address(vrfPredeploy));
     }
 }
