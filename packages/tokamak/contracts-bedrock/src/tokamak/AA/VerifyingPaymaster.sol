@@ -80,6 +80,9 @@ contract VerifyingPaymaster is BasePaymaster, Initializable {
         uint48 validUntil,
         uint48 validAfter
     ) public view returns (bytes32) {
+        // Note: validationGasLimit/postOpGasLimit (paymasterAndData[20:52]) are NOT included
+        // in the signing hash. Bundlers can adjust these values without invalidating the signature.
+        // This matches the eth-infinitism reference design (intentional tradeoff).
         // Can't use userOp.hash(), since it contains also the paymasterAndData itself.
         address sender = userOp.sender;
         return
@@ -134,6 +137,8 @@ contract VerifyingPaymaster is BasePaymaster, Initializable {
     function parsePaymasterAndData(
         bytes calldata paymasterAndData
     ) public pure returns (uint48 validUntil, uint48 validAfter) {
+        // Requires off-chain signer to use abi.encode(validUntil, validAfter) (32 bytes each).
+        // Using abi.encodePacked would produce incorrect parsing.
         (validUntil, validAfter) = abi.decode(
             paymasterAndData[VALID_TIMESTAMP_OFFSET:SIGNATURE_OFFSET],
             (uint48, uint48)
