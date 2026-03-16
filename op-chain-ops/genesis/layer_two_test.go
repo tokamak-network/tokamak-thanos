@@ -50,11 +50,13 @@ var vrfAddrs = []common.Address{
 	predeploys.VRFCoordinatorAddr,
 }
 
-// aaAddrs contains the 3 AA predeploy addresses.
+// aaAddrs contains the 5 AA predeploy addresses (ERC-4337 + oracle/paymaster).
 var aaAddrs = []common.Address{
 	predeploys.AAEntryPointAddr,
 	predeploys.VerifyingPaymasterPredeployAddr,
 	predeploys.Simple7702AccountAddr,
+	predeploys.SimplePriceOraclePredeployAddr,
+	predeploys.MultiTokenPaymasterPredeployAddr,
 }
 
 var writeFile bool
@@ -165,7 +167,9 @@ func TestBuildL2MainnetGenesis(t *testing.T) {
 	config.EnableGovernance = true
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
-	require.Equal(t, 2076, len(gen.Alloc))
+	// SimplePriceOraclePredeploy (0x66) and MultiTokenPaymasterPredeploy (0x67)
+	// are disabled for DeFi preset, so their proxy slots are removed from alloc.
+	require.Equal(t, 2074, len(gen.Alloc))
 }
 
 func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
@@ -175,7 +179,8 @@ func TestBuildL2MainnetNoGovernanceGenesis(t *testing.T) {
 	config.FundDevAccounts = false
 	gen := testBuildL2Genesis(t, config)
 	// GovernanceToken is excluded when EnableGovernance=false, so alloc count is 1 less than with governance.
-	require.Equal(t, 2075, len(gen.Alloc))
+	// SimplePriceOraclePredeploy (0x66) and MultiTokenPaymasterPredeploy (0x67) are disabled for DeFi preset.
+	require.Equal(t, 2073, len(gen.Alloc))
 }
 
 func TestBuildL2GenesisGeneralPreset(t *testing.T) {

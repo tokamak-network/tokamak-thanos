@@ -51,6 +51,8 @@ const (
 	AAEntryPoint                = "0x4200000000000000000000000000000000000063"
 	VerifyingPaymasterPredeploy = "0x4200000000000000000000000000000000000064"
 	Simple7702Account           = "0x4200000000000000000000000000000000000065"
+	SimplePriceOraclePredeploy  = "0x4200000000000000000000000000000000000066"
+	MultiTokenPaymasterPredeploy = "0x4200000000000000000000000000000000000067"
 
 	Create2Deployer              = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 	MultiCall3                   = "0xcA11bde05977b3631167028862bE2a173976CA11"
@@ -105,9 +107,11 @@ var (
 	VRFCoordinatorAddr  = common.HexToAddress(VRFCoordinator)
 	VRFConsumerBaseAddr = common.HexToAddress(VRFConsumerBase)
 
-	AAEntryPointAddr                = common.HexToAddress(AAEntryPoint)
-	VerifyingPaymasterPredeployAddr = common.HexToAddress(VerifyingPaymasterPredeploy)
-	Simple7702AccountAddr           = common.HexToAddress(Simple7702Account)
+	AAEntryPointAddr                 = common.HexToAddress(AAEntryPoint)
+	VerifyingPaymasterPredeployAddr  = common.HexToAddress(VerifyingPaymasterPredeploy)
+	Simple7702AccountAddr            = common.HexToAddress(Simple7702Account)
+	SimplePriceOraclePredeployAddr   = common.HexToAddress(SimplePriceOraclePredeploy)
+	MultiTokenPaymasterPredeployAddr = common.HexToAddress(MultiTokenPaymasterPredeploy)
 
 	Create2DeployerAddr              = common.HexToAddress(Create2Deployer)
 	MultiCall3Addr                   = common.HexToAddress(MultiCall3)
@@ -204,6 +208,14 @@ func init() {
 		Address:       Simple7702AccountAddr,
 		Enabled:       vrfEnabled,
 		ProxyDisabled: true, // stateless delegation target — no proxy needed
+	}
+	Predeploys["SimplePriceOraclePredeploy"] = &Predeploy{
+		Address: SimplePriceOraclePredeployAddr,
+		Enabled: vrfEnabled, // Gaming || Full
+	}
+	Predeploys["MultiTokenPaymasterPredeploy"] = &Predeploy{
+		Address: MultiTokenPaymasterPredeployAddr,
+		Enabled: vrfEnabled, // Gaming || Full
 	}
 
 	Predeploys["Create2Deployer"] = &Predeploy{

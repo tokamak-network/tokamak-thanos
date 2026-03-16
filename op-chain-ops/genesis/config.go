@@ -1287,6 +1287,17 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		}
 		// AAEntryPoint: no genesis storage needed (permissionless, empty state)
 		// Simple7702Account: stateless delegation target, no genesis storage needed
+
+		// SimplePriceOracle (0x66): owner pre-set; operator must call updatePrice() before use.
+		// lastUpdated=0 means stale immediately — intentional, forces price update before use.
+		storage["SimplePriceOraclePredeploy"] = state.StorageValues{
+			"owner": config.AAPaymasterSigner,
+		}
+		// MultiTokenPaymaster (0x67): entryPoint and owner pre-set at genesis.
+		storage["MultiTokenPaymasterPredeploy"] = state.StorageValues{
+			"entryPoint": predeploys.AAEntryPointAddr,
+			"_owner":     config.AAPaymasterSigner,
+		}
 	}
 	// DeFi and Full presets include USDC Bridge and Uniswap V3 storage.
 	if id := config.PresetID(); id == PresetDeFi || id == PresetFull {

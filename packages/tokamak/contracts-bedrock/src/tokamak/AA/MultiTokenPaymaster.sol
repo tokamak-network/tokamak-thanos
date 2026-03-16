@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts_v5.0.1/proxy/utils/Initializable.sol";
 import "./lib/BasePaymaster.sol";
 import "./interfaces/ITokenPriceOracle.sol";
 
@@ -10,9 +11,9 @@ import "./interfaces/ITokenPriceOracle.sol";
 /// @notice Users pay gas fees in ERC-20 tokens (ETH, USDC, USDT, etc.).
 ///         The paymaster fronts the gas in TON (native) from its EntryPoint deposit
 ///         and collects the equivalent ERC-20 amount from the user.
-/// @dev Post-deployment module (NOT a genesis predeploy). Deployed in trh-sdk deploy Phase 6.
+/// @dev Genesis predeploy (0x4200...0067). Uses Initializable for predeploy compatibility.
 ///      REQUIRES EXTERNAL AUDIT — multi-token, decimal conversion, price oracle.
-contract MultiTokenPaymaster is BasePaymaster {
+contract MultiTokenPaymaster is BasePaymaster, Initializable {
     using SafeERC20 for IERC20;
     using UserOperationLib for PackedUserOperation;
 
@@ -39,9 +40,21 @@ contract MultiTokenPaymaster is BasePaymaster {
     event FeesCollected(address indexed token, address indexed sender, uint256 amount);
     event FeesWithdrawn(address indexed token, address indexed to, uint256 amount);
 
-    constructor(IEntryPoint _entryPoint) BasePaymaster() {
-        // BasePaymaster() is empty constructor (Thanos modification: supports initialize() pattern)
+    // Empty constructor for genesis predeploy pattern (0x4200...0067).
+    // Calls BasePaymaster() which is empty (Thanos modification).
+    // State is pre-set via genesis storage; entryPoint set directly at genesis.
+    constructor() BasePaymaster() {}
+
+    /**
+     * Initialize the paymaster. For non-genesis deployments only.
+     * Genesis predeploys use direct storage initialization instead.
+     * @param _entryPoint - The EntryPoint contract address (0x4200...0063).
+     * @param _owner      - Owner address for admin operations.
+     */
+    function initialize(IEntryPoint _entryPoint, address _owner) external initializer {
+        require(_owner != address(0), "MultiTokenPaymaster: zero owner");
         _setEntryPoint(_entryPoint);
+        _transferOwnership(_owner);
     }
 
     // ═══ Admin ═══════════════════════════════════════════

@@ -46,6 +46,12 @@ var verifyingPaymasterPredeploy []byte
 //go:embed abi/Simple7702Account.json
 var simple7702Account []byte
 
+//go:embed abi/SimplePriceOracle.json
+var simplePriceOracle []byte
+
+//go:embed abi/MultiTokenPaymaster.json
+var multiTokenPaymaster []byte
+
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
 }
@@ -79,6 +85,8 @@ func LoadVRFCoordinatorABI() *abi.ABI {
 func LoadAAEntryPointABI() *abi.ABI                { return loadABI(aaEntryPoint) }
 func LoadVerifyingPaymasterPredeployABI() *abi.ABI { return loadABI(verifyingPaymasterPredeploy) }
 func LoadSimple7702AccountABI() *abi.ABI           { return loadABI(simple7702Account) }
+func LoadSimplePriceOraclePredeployABI() *abi.ABI  { return loadABI(simplePriceOracle) }
+func LoadMultiTokenPaymasterPredeployABI() *abi.ABI { return loadABI(multiTokenPaymaster) }
 
 func loadABI(json []byte) *abi.ABI {
 	if parsed, err := abi.JSON(bytes.NewReader(json)); err != nil {
