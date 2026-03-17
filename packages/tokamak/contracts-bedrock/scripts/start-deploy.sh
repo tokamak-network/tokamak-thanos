@@ -394,12 +394,36 @@ generateL2Genesis() {
     rm -rf $outdir/*
   fi
 
+  # Generate L2 genesis allocs using forge script
+  echo "Generating L2 genesis allocs via forge script..."
+  cd $projectRoot/packages/tokamak/contracts-bedrock
+  if ! CONTRACT_ADDRESSES_PATH=$deployResultFile \
+    forge script scripts/L2Genesis.s.sol:L2Genesis \
+    --rpc-url $L1_RPC_URL; then
+    echo "❌ Error: Failed to generate L2 genesis allocs"
+    cd $currentPWD
+    return 1
+  fi
+
+  # Determine state dump path: uses l2ChainID from deploy config
+  l2ChainID=$(jq -r '.l2ChainID' $DEPLOY_CONFIG_PATH)
+  allocsFile=$projectRoot/packages/tokamak/contracts-bedrock/state-dump-${l2ChainID}.json
+
+  if [ ! -f "$allocsFile" ]; then
+    echo "❌ Error: State dump file not found: $allocsFile"
+    cd $currentPWD
+    return 1
+  fi
+
+  echo "L2 allocs file: $allocsFile"
+
   cd $projectRoot
   echo "Generating L2 genesis and rollup configuration..."
 
   if ! $projectRoot/op-node/bin/op-node genesis l2 \
     --deploy-config $DEPLOY_CONFIG_PATH \
     --l1-deployments $deployResultFile \
+    --l2-allocs $allocsFile \
     --outfile.l2 $outdir/genesis.json \
     --outfile.rollup $outdir/rollup.json \
     --l1-rpc $L1_RPC_URL; then
