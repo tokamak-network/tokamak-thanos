@@ -53,7 +53,7 @@ jobs:
         run: pnpm build
 
       - name: Persist to workspace
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-artifacts
           path: |
@@ -64,7 +64,7 @@ jobs:
         run: make devnet-allocs
 
       - name: Persist build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: |
