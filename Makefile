@@ -107,11 +107,11 @@ op-bindings:
 .PHONY: op-bindings
 
 op-node:
-	make -C ./op-node op-node
+	cd ./op-node && just op-node
 .PHONY: op-node
 
 generate-mocks-op-node:
-	make -C ./op-node generate-mocks
+	cd ./op-node && just generate-mocks
 .PHONY: generate-mocks-op-node
 
 generate-mocks-op-service:
@@ -127,11 +127,11 @@ op-proposer:
 .PHONY: op-proposer
 
 op-challenger:
-	make -C ./op-challenger op-challenger
+	cd ./op-challenger && just op-challenger
 .PHONY: op-challenger
 
 op-dispute-mon:
-	make -C ./op-dispute-mon op-dispute-mon
+	cd ./op-dispute-mon && just op-dispute-mon
 .PHONY: op-dispute-mon
 
 op-program:
