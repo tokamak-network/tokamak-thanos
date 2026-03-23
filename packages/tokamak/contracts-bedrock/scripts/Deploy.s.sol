@@ -1075,8 +1075,19 @@ contract Deploy is Deployer {
             console.log("DelayedWETH address from JSON: %s", savedAddress);
 
             if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
-                delayedWETH = savedAddress;
-                console.log("Using existing implementation from JSON");
+                // Validate config compatibility: on-chain delay must match current config
+                uint256 onChainDelay = DelayedWETH(payable(savedAddress)).delay();
+                if (onChainDelay == cfg.faultGameWithdrawalDelay()) {
+                    delayedWETH = savedAddress;
+                    console.log("Using existing implementation from JSON");
+                } else {
+                    console.log("Config mismatch: on-chain delay=%s, expected=%s. Deploying new one",
+                        vm.toString(onChainDelay), vm.toString(cfg.faultGameWithdrawalDelay()));
+                    delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
+                    require(delayedWETH != address(0), "DelayedWETH deployment failed");
+                    save("DelayedWETH", delayedWETH);
+                    console.log("DelayedWETH deployed at %s", delayedWETH);
+                }
             } else {
                 console.log("Implementation from JSON not found on-chain, deploying new one");
                 delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
@@ -1116,23 +1127,26 @@ contract Deploy is Deployer {
             address savedAddress = jsonDeployment.readAddress(".DelayedWETH");
             console.log("DelayedWETH address from JSON: %s", savedAddress);
 
-            // Re-use on-chain deployment
             if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
-                delayedWETH = savedAddress;
-                console.log("Using existing implementation from JSON");
+                // Validate config compatibility: on-chain delay must match current config
+                uint256 onChainDelay = DelayedWETH(payable(savedAddress)).delay();
+                if (onChainDelay == cfg.faultGameWithdrawalDelay()) {
+                    delayedWETH = savedAddress;
+                    console.log("Using existing implementation from JSON");
+                } else {
+                    console.log("Config mismatch: on-chain delay=%s, expected=%s. Deploying new one",
+                        vm.toString(onChainDelay), vm.toString(cfg.faultGameWithdrawalDelay()));
+                    delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
+                    require(delayedWETH != address(0), "DelayedWETH deployment failed");
+                    save("DelayedWETH", delayedWETH);
+                    console.log("DelayedWETH deployed at %s", delayedWETH);
+                }
             } else {
-                // If we didn't deploy the DelayedWETH contract in initializeDelayedWETH(), deploy it here.
-                // if (load("DelayedWETH") == address(0)) {
                 console.log("Implementation from JSON not found on-chain, deploying new one");
                 delayedWETH = address(new DelayedWETH{ salt: _implSalt() }(cfg.faultGameWithdrawalDelay()));
                 require(delayedWETH != address(0), "DelayedWETH deployment failed");
                 save("DelayedWETH", delayedWETH);
                 console.log("DelayedWETH deployed at %s", delayedWETH);
-                // Import from deployment
-                // }
-                // else {
-                //     delayedWETH = mustGetAddress("DelayedWETH");
-                // }
             }
         } else {
             delayedWETH = mustGetAddress("DelayedWETH");
