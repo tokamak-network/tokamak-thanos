@@ -1671,8 +1671,24 @@ contract Deploy is Deployer {
             console.log("OptimismPortal2 address from JSON: %s", savedAddress);
 
             if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
-                optimismPortal2 = savedAddress;
-                console.log("Using existing implementation from JSON");
+                // Validate config compatibility: immutable constructor args must match
+                OptimismPortal2 existing = OptimismPortal2(payable(savedAddress));
+                if (existing.proofMaturityDelaySeconds() == cfg.proofMaturityDelaySeconds()
+                    && existing.disputeGameFinalityDelaySeconds() == cfg.disputeGameFinalityDelaySeconds()) {
+                    optimismPortal2 = savedAddress;
+                    console.log("Using existing implementation from JSON");
+                } else {
+                    console.log("Config mismatch on OptimismPortal2, deploying new one");
+                    optimismPortal2 = address(
+                        new OptimismPortal2{ salt: _implSalt() }({
+                            _proofMaturityDelaySeconds: cfg.proofMaturityDelaySeconds(),
+                            _disputeGameFinalityDelaySeconds: cfg.disputeGameFinalityDelaySeconds()
+                        })
+                    );
+                    require(optimismPortal2 != address(0), "OptimismPortal2 deployment failed");
+                    save("OptimismPortal2", optimismPortal2);
+                    console.log("OptimismPortal2 deployed at %s", optimismPortal2);
+                }
             } else {
                 console.log("Implementation from JSON not found on-chain, deploying new one");
                 optimismPortal2 = address(
