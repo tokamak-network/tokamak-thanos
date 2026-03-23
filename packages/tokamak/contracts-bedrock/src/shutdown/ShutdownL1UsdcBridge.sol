@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from "src/tokamak-contracts/USDC/L1/libraries/IERC20.sol";
-import {SafeERC20} from "src/tokamak-contracts/USDC/L1/libraries/SafeERC20.sol";
-import {L1UsdcBridge} from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol";
+import {IERC20} from "src/USDC/L1/libraries/IERC20.sol";
+import {SafeERC20} from "src/USDC/L1/libraries/SafeERC20.sol";
+import {L1UsdcBridge} from "src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol";
 
 interface IShutdownProxyAdminOwnerUsdc {
     function owner() external view returns (address);

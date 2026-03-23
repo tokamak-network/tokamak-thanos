@@ -3,10 +3,10 @@ pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../../../src/tokamak/AA/MultiTokenPaymaster.sol";
-import "../../../src/tokamak/AA/SimplePriceOracle.sol";
-import "../../../src/tokamak/AA/EntryPoint.sol";
-import "../../../src/tokamak/AA/interfaces/IPaymaster.sol";
+import "../../src/AA/MultiTokenPaymaster.sol";
+import "../../src/AA/SimplePriceOracle.sol";
+import "../../src/AA/EntryPoint.sol";
+import "../../src/AA/interfaces/IPaymaster.sol";
 
 // Mock ERC-20 with 18 decimals (L2 ETH)
 contract MockETH is ERC20 {

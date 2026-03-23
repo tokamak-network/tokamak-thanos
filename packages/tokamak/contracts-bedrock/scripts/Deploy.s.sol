@@ -58,8 +58,8 @@ import { ForgeArtifacts } from "scripts/ForgeArtifacts.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
 import { L2NativeToken } from "src/L1/L2NativeToken.sol";
-import { L1UsdcBridge } from "src/tokamak-contracts/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
-import { L1UsdcBridgeProxy } from "src/tokamak-contracts/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
+import { L1UsdcBridge } from "src/USDC/L1//tokamak-UsdcBridge/L1UsdcBridge.sol";
+import { L1UsdcBridgeProxy } from "src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol";
 
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.

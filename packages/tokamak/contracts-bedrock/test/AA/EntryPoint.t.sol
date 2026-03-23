@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import "forge-std/Test.sol";
-import "../../../src/tokamak/AA/EntryPoint.sol";
+import "../../src/AA/EntryPoint.sol";
 
 contract EntryPointTest is Test {
     EntryPoint entryPoint;

@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import "forge-std/Test.sol";
-import "src/tokamak-contracts/verification/L1ContractVerification.sol";
+import "src/verification/L1ContractVerification.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { L1ChugSplashProxy } from "src/legacy/L1ChugSplashProxy.sol";
@@ -13,7 +13,7 @@ import "./mock-contracts/MockProxyAdmin.sol";
 import "./mock-contracts/MockSystemConfig.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import { IProxyAdmin } from "src/tokamak-contracts/verification/interface/IProxyAdmin.sol";
+import { IProxyAdmin } from "src/verification/interface/IProxyAdmin.sol";
 
 /**
  * @title L1ContractVerificationTest

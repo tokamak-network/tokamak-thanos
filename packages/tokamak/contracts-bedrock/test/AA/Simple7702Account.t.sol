@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
-import "../../../src/tokamak/AA/Simple7702Account.sol";
+import "../../src/AA/Simple7702Account.sol";
 
 contract Simple7702AccountTest is Test {
     Simple7702Account impl;

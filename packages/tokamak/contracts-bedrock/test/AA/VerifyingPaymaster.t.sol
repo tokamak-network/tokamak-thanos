@@ -2,8 +2,8 @@
 pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
-import "../../../src/tokamak/AA/VerifyingPaymaster.sol";
-import "../../../src/tokamak/AA/EntryPoint.sol";
+import "../../src/AA/VerifyingPaymaster.sol";
+import "../../src/AA/EntryPoint.sol";
 
 contract VerifyingPaymasterTest is Test {
     EntryPoint entryPoint;

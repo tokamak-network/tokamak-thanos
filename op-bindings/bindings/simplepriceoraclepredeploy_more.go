@@ -9,7 +9,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
-const SimplePriceOraclePredeployStorageLayoutJSON = "{\"storage\": [{\"astId\": 46741, \"contract\": \"src/tokamak/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"lastUpdated\", \"offset\": 0, \"slot\": \"0\", \"type\": \"t_uint256\"}, {\"astId\": 46743, \"contract\": \"src/tokamak/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"_price\", \"offset\": 0, \"slot\": \"1\", \"type\": \"t_uint256\"}, {\"astId\": 46745, \"contract\": \"src/tokamak/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"owner\", \"offset\": 0, \"slot\": \"2\", \"type\": \"t_address\"}], \"types\": {\"t_address\": {\"encoding\": \"inplace\", \"label\": \"address\", \"numberOfBytes\": \"20\"}, \"t_uint256\": {\"encoding\": \"inplace\", \"label\": \"uint256\", \"numberOfBytes\": \"32\"}}}"
+const SimplePriceOraclePredeployStorageLayoutJSON = "{\"storage\": [{\"astId\": 46741, \"contract\": \"src/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"lastUpdated\", \"offset\": 0, \"slot\": \"0\", \"type\": \"t_uint256\"}, {\"astId\": 46743, \"contract\": \"src/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"_price\", \"offset\": 0, \"slot\": \"1\", \"type\": \"t_uint256\"}, {\"astId\": 46745, \"contract\": \"src/AA/SimplePriceOracle.sol:SimplePriceOracle\", \"label\": \"owner\", \"offset\": 0, \"slot\": \"2\", \"type\": \"t_address\"}], \"types\": {\"t_address\": {\"encoding\": \"inplace\", \"label\": \"address\", \"numberOfBytes\": \"20\"}, \"t_uint256\": {\"encoding\": \"inplace\", \"label\": \"uint256\", \"numberOfBytes\": \"32\"}}}"
 
 var SimplePriceOraclePredeployStorageLayout = new(solc.StorageLayout)
 

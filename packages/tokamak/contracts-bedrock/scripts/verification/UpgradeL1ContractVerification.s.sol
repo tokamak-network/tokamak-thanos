@@ -3,10 +3,10 @@ pragma solidity 0.8.15;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
-import "src/tokamak-contracts/verification/L1ContractVerification.sol";
+import "src/verification/L1ContractVerification.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { IMultiSigWallet } from "../../src/tokamak-contracts/verification/interface/IMultiSigWallet.sol";
+import { IMultiSigWallet } from "../../src/verification/interface/IMultiSigWallet.sol";
 
 /**
  * @title UpgradeL1ContractVerification

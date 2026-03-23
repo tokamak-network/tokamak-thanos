@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import "forge-std/Test.sol";
-import "../../../src/tokamak/AA/SimplePriceOracle.sol";
+import "../../src/AA/SimplePriceOracle.sol";
 
 contract SimplePriceOracleTest is Test {
     SimplePriceOracle oracle;

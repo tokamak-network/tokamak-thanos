@@ -2,8 +2,8 @@
 pragma solidity 0.8.15;
 
 import { Script, console } from "forge-std/Script.sol";
-import { L1ContractVerification } from "../../src/tokamak-contracts/verification/L1ContractVerification.sol";
-import { IMultiSigWallet } from "../../src/tokamak-contracts/verification/interface/IMultiSigWallet.sol";
+import { L1ContractVerification } from "../../src/verification/L1ContractVerification.sol";
+import { IMultiSigWallet } from "../../src/verification/interface/IMultiSigWallet.sol";
 
 interface IGnosisSafe {
     function masterCopy() external view returns (address);

@@ -2,9 +2,9 @@
 pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
-import { VRFCoordinator } from "../../../src/tokamak/DRB/VRFCoordinator.sol";
-import { VRFPredeploy } from "../../../src/tokamak/DRB/VRFPredeploy.sol";
-import { VRFConsumerBase } from "../../../src/tokamak/DRB/VRFConsumerBase.sol";
+import { VRFCoordinator } from "../../src/DRB/VRFCoordinator.sol";
+import { VRFPredeploy } from "../../src/DRB/VRFPredeploy.sol";
+import { VRFConsumerBase } from "../../src/DRB/VRFConsumerBase.sol";
 
 contract MockConsumer is VRFConsumerBase {
     uint256 public lastRequestId;

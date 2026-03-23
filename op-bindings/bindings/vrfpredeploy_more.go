@@ -9,7 +9,7 @@ import (
 	"github.com/tokamak-network/tokamak-thanos/op-bindings/solc"
 )
 
-const VRFPredeployStorageLayoutJSON = "{\"storage\":[{\"astId\":49918,\"contract\":\"src/tokamak/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"_initialized\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_uint8\"},{\"astId\":49921,\"contract\":\"src/tokamak/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"_initializing\",\"offset\":1,\"slot\":\"0\",\"type\":\"t_bool\"},{\"astId\":100613,\"contract\":\"src/tokamak/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"coordinator\",\"offset\":2,\"slot\":\"0\",\"type\":\"t_address\"}],\"types\":{\"t_address\":{\"encoding\":\"inplace\",\"label\":\"address\",\"numberOfBytes\":\"20\"},\"t_bool\":{\"encoding\":\"inplace\",\"label\":\"bool\",\"numberOfBytes\":\"1\"},\"t_uint8\":{\"encoding\":\"inplace\",\"label\":\"uint8\",\"numberOfBytes\":\"1\"}}}"
+const VRFPredeployStorageLayoutJSON = "{\"storage\":[{\"astId\":49918,\"contract\":\"src/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"_initialized\",\"offset\":0,\"slot\":\"0\",\"type\":\"t_uint8\"},{\"astId\":49921,\"contract\":\"src/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"_initializing\",\"offset\":1,\"slot\":\"0\",\"type\":\"t_bool\"},{\"astId\":100613,\"contract\":\"src/DRB/VRFPredeploy.sol:VRFPredeploy\",\"label\":\"coordinator\",\"offset\":2,\"slot\":\"0\",\"type\":\"t_address\"}],\"types\":{\"t_address\":{\"encoding\":\"inplace\",\"label\":\"address\",\"numberOfBytes\":\"20\"},\"t_bool\":{\"encoding\":\"inplace\",\"label\":\"bool\",\"numberOfBytes\":\"1\"},\"t_uint8\":{\"encoding\":\"inplace\",\"label\":\"uint8\",\"numberOfBytes\":\"1\"}}}"
 
 var VRFPredeployStorageLayout = new(solc.StorageLayout)
 
