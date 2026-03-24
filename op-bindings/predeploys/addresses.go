@@ -41,9 +41,7 @@ const (
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
 	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
 
-	VRFPredeploy    = "0x4200000000000000000000000000000000000060"
-	VRFCoordinator  = "0x4200000000000000000000000000000000000061"
-	VRFConsumerBase = "0x4200000000000000000000000000000000000062"
+	Commit2RevealDRB = "0x4200000000000000000000000000000000000060"
 
 	// AA predeploy address strings (Gaming/Full preset, ERC-4337 v0.8+)
 	// Note: existing EntryPoint const refers to ERC-4337 v0.7 canonical (0x5FF...).
@@ -103,9 +101,7 @@ var (
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
 	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
 
-	VRFPredeployAddr    = common.HexToAddress(VRFPredeploy)
-	VRFCoordinatorAddr  = common.HexToAddress(VRFCoordinator)
-	VRFConsumerBaseAddr = common.HexToAddress(VRFConsumerBase)
+	Commit2RevealDRBAddr = common.HexToAddress(Commit2RevealDRB)
 
 	AAEntryPointAddr                 = common.HexToAddress(AAEntryPoint)
 	VerifyingPaymasterPredeployAddr  = common.HexToAddress(VerifyingPaymasterPredeploy)
@@ -185,37 +181,34 @@ func init() {
 	Predeploys["MasterMinter"] = &Predeploy{Address: MasterMinterAddr, ProxyDisabled: true, Enabled: usdcEnabled}
 	Predeploys["FiatTokenV2_2"] = &Predeploy{Address: FiatTokenV2_2Addr, Enabled: usdcEnabled}
 
-	// vrfEnabled returns true for Gaming and Full presets only
-	vrfEnabled := func(config DeployConfig) bool {
+	// gamingFullEnabled returns true for Gaming and Full presets only
+	gamingFullEnabled := func(config DeployConfig) bool {
 		id := config.PresetID()
 		return id == PresetGaming || id == PresetFull
 	}
-	Predeploys["VRFPredeploy"] = &Predeploy{Address: VRFPredeployAddr, Enabled: vrfEnabled}
-	Predeploys["VRFCoordinator"] = &Predeploy{Address: VRFCoordinatorAddr, Enabled: vrfEnabled}
-	// VRFConsumerBase is an abstract contract (no deployable bytecode); not registered as a predeploy.
+	Predeploys["Commit2RevealDRB"] = &Predeploy{Address: Commit2RevealDRBAddr, Enabled: gamingFullEnabled}
 
 	// AA predeploys (0x63-0x65) — Gaming/Full preset, ERC-4337 v0.8+
-	// aaEnabled reuses vrfEnabled (same condition: Gaming || Full)
 	Predeploys["AAEntryPoint"] = &Predeploy{
 		Address: AAEntryPointAddr,
-		Enabled: vrfEnabled, // same as aaEnabled (Gaming || Full)
+		Enabled: gamingFullEnabled,
 	}
 	Predeploys["VerifyingPaymasterPredeploy"] = &Predeploy{
 		Address: VerifyingPaymasterPredeployAddr,
-		Enabled: vrfEnabled,
+		Enabled: gamingFullEnabled,
 	}
 	Predeploys["Simple7702Account"] = &Predeploy{
 		Address:       Simple7702AccountAddr,
-		Enabled:       vrfEnabled,
+		Enabled:       gamingFullEnabled,
 		ProxyDisabled: true, // stateless delegation target — no proxy needed
 	}
 	Predeploys["SimplePriceOraclePredeploy"] = &Predeploy{
 		Address: SimplePriceOraclePredeployAddr,
-		Enabled: vrfEnabled, // Gaming || Full
+		Enabled: gamingFullEnabled, // Gaming || Full
 	}
 	Predeploys["MultiTokenPaymasterPredeploy"] = &Predeploy{
 		Address: MultiTokenPaymasterPredeployAddr,
-		Enabled: vrfEnabled, // Gaming || Full
+		Enabled: gamingFullEnabled, // Gaming || Full
 	}
 
 	Predeploys["Create2Deployer"] = &Predeploy{

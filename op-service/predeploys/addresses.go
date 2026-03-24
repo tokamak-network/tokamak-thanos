@@ -41,8 +41,7 @@ const (
 	MasterMinter                       = "0x4200000000000000000000000000000000000777"
 	FiatTokenV2_2                      = "0x4200000000000000000000000000000000000778"
 
-	VRFPredeploy   = "0x4200000000000000000000000000000000000060"
-	VRFCoordinator = "0x4200000000000000000000000000000000000061"
+	Commit2RevealDRB = "0x4200000000000000000000000000000000000060"
 
 	// AA predeploy address strings (Gaming/Full preset, ERC-4337 v0.8+)
 	// Note: existing EntryPoint const refers to ERC-4337 v0.7 canonical (0x5FF...).
@@ -100,8 +99,7 @@ var (
 	MasterMinterAddr                       = common.HexToAddress(MasterMinter)
 	FiatTokenV2_2Addr                      = common.HexToAddress(FiatTokenV2_2)
 
-	VRFPredeployAddr   = common.HexToAddress(VRFPredeploy)
-	VRFCoordinatorAddr = common.HexToAddress(VRFCoordinator)
+	Commit2RevealDRBAddr = common.HexToAddress(Commit2RevealDRB)
 
 	AAEntryPointAddr                = common.HexToAddress(AAEntryPoint)
 	VerifyingPaymasterPredeployAddr = common.HexToAddress(VerifyingPaymasterPredeploy)
