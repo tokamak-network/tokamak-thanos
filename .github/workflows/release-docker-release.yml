@@ -72,7 +72,6 @@ jobs:
           [
             cannon,
             op-program,
-            op-heartbeat,
             op-wheel,
             op-node,
             op-batcher,
@@ -138,45 +137,3 @@ jobs:
             tokamaknetwork/thanos-op-challenger:${{ needs.version.outputs.release-docker-tag }}
             tokamaknetwork/thanos-op-challenger:latest
 
-  etc:
-    name: Publish ${{ matrix.target }}
-    needs: [version]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [op-exporter, proxyd]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN_SECRET }}
-
-      - name: Set build args
-        id: build_args
-        run: |
-          echo "GITDATE=$(date +%d-%m-%Y)" >> "$GITHUB_OUTPUT"
-          echo "GITVERSION=$(jq -r .version ./${{ matrix.target }}/package.json)" >> "$GITHUB_OUTPUT"
-          echo "GITCOMMIT=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64,linux/arm64
-          context: .
-          file: ./${{ matrix.target }}/Dockerfile
-          push: true
-          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.release-docker-tag }}
-          build-args: |
-            GITDATE=${{ steps.build_args.outputs.GITDATE }}
-            GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
-            GITVERSION=${{ steps.build_args.outputs.GITVERSION }}

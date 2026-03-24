@@ -12,7 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - module: op-heartbeat
           - module: op-batcher
           - module: op-bindings
           - module: op-node

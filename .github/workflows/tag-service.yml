@@ -20,8 +20,6 @@ on:
         options:
           - ci-builder
           - ci-builder-rust
-          - indexer
-          - op-heartbeat
           - chain-mon
           - op-node
           - op-batcher
@@ -29,9 +27,7 @@ on:
           - op-challenger
           - op-program
           - op-dispute-mon
-          - op-ufm
           - da-server
-          - proxyd
           - op-contracts
           - op-conductor
       prerelease:

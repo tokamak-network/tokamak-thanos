@@ -1,7 +1,6 @@
 packages:
   - 'packages/*'
   - 'packages/tokamak/*'
-  - 'indexer/api-ts'
 
 # Alias @eth-optimism/contracts-bedrock to tokamak fork
 overrides:

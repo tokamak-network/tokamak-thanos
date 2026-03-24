@@ -65,11 +65,6 @@ ARG OP_PROGRAM_VERSION=v0.0.0
 RUN --mount=type=cache,target=/root/.cache/go-build cd op-program && make op-program-host  \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_PROGRAM_VERSION"
 
-FROM --platform=$BUILDPLATFORM builder AS op-heartbeat-builder
-ARG OP_HEARTBEAT_VERSION=v0.0.0
-RUN --mount=type=cache,target=/root/.cache/go-build cd op-heartbeat && make op-heartbeat  \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_HEARTBEAT_VERSION"
-
 FROM --platform=$BUILDPLATFORM builder AS op-wheel-builder
 ARG OP_WHEEL_VERSION=v0.0.0
 RUN --mount=type=cache,target=/root/.cache/go-build cd op-wheel && make op-wheel  \
@@ -117,10 +112,6 @@ CMD ["cannon"]
 FROM $TARGET_BASE_IMAGE AS op-program-target
 COPY --from=op-program-builder /app/op-program/bin/op-program /usr/local/bin/
 CMD ["op-program"]
-
-FROM $TARGET_BASE_IMAGE AS op-heartbeat-target
-COPY --from=op-heartbeat-builder /app/op-heartbeat/bin/op-heartbeat /usr/local/bin/
-CMD ["op-heartbeat"]
 
 FROM $TARGET_BASE_IMAGE AS op-wheel-target
 COPY --from=op-wheel-builder /app/op-wheel/bin/op-wheel /usr/local/bin/

@@ -6,14 +6,12 @@
 !/op-alt-da
 !/op-batcher
 !/op-bindings
-!/op-bootnode
 !/op-chain-ops
 !/op-challenger
 !/op-core
 !/packages/contracts-bedrock/snapshots
 !/op-dispute-mon
 !/op-conductor
-!/op-heartbeat
 !/op-node
 !/op-preimage
 !/op-program

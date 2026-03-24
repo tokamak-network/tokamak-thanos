@@ -12,8 +12,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: 'op-heartbeat-tests'
-            module: 'op-heartbeat'
           - name: 'op-batcher-tests'
             module: 'op-batcher'
           - name: 'op-bindings-tests'

@@ -53,9 +53,6 @@ variable "OP_DISPUTE_MON_VERSION" {
   default = "${GIT_VERSION}"
 }
 
-variable "OP_HEARTBEAT_VERSION" {
-  default = "${GIT_VERSION}"
-}
 
 variable "OP_PROGRAM_VERSION" {
   default = "${GIT_VERSION}"
@@ -148,18 +145,6 @@ target "op-conductor" {
   tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/op-conductor:${tag}"]
 }
 
-target "op-heartbeat" {
-  dockerfile = "ops/docker/op-stack-go/Dockerfile"
-  context = "."
-  args = {
-    GIT_COMMIT = "${GIT_COMMIT}"
-    GIT_DATE = "${GIT_DATE}"
-    OP_HEARTBEAT_VERSION = "${OP_HEARTBEAT_VERSION}"
-  }
-  target = "op-heartbeat-target"
-  platforms = split(",", PLATFORMS)
-  tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/op-heartbeat:${tag}"]
-}
 
 target "da-server" {
   dockerfile = "ops/docker/op-stack-go/Dockerfile"
@@ -199,31 +184,6 @@ target "cannon" {
   tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/cannon:${tag}"]
 }
 
-target "proxyd" {
-  dockerfile = "./proxyd/Dockerfile"
-  context = "./"
-  args = {
-    // proxyd dockerfile has no _ in the args
-    GITCOMMIT = "${GIT_COMMIT}"
-    GITDATE = "${GIT_DATE}"
-    GITVERSION = "${GIT_VERSION}"
-  }
-  platforms = split(",", PLATFORMS)
-  tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/proxyd:${tag}"]
-}
-
-target "indexer" {
-  dockerfile = "./indexer/Dockerfile"
-  context = "./"
-  args = {
-    // proxyd dockerfile has no _ in the args
-    GITCOMMIT = "${GIT_COMMIT}"
-    GITDATE = "${GIT_DATE}"
-    GITVERSION = "${GIT_VERSION}"
-  }
-  platforms = split(",", PLATFORMS)
-  tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/indexer:${tag}"]
-}
 
 target "chain-mon" {
   dockerfile = "./ops/docker/Dockerfile.packages"

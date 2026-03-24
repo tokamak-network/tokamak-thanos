@@ -58,3 +58,5 @@ crytic-export
 
 main
 cmd
+bin/
+genesis.test
