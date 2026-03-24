@@ -1,9 +1,19 @@
 name: Publish the Thanos Packages
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'release-*'
+    branches: [main]
+    paths:
+      - 'packages/tokamak/contracts-bedrock/src/**'
+      - 'packages/tokamak/contracts-bedrock/foundry.toml'
+      - 'packages/tokamak/contracts-bedrock/package.json'
+      - 'packages/tokamak/sdk/src/**'
+      - 'packages/tokamak/sdk/package.json'
+      - 'packages/tokamak/core-utils/src/**'
+      - 'packages/tokamak/core-utils/package.json'
 
 jobs:
   release-thanos-packages:
@@ -46,6 +56,37 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_AUTH_TOKEN }}" > .npmrc
 
+      - name: Determine release type
+        id: release-type
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/release-* ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "npm_tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "npm_tag=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set dev versions
+        if: steps.release-type.outputs.is_release == 'false'
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          PACKAGES=(
+            "packages/tokamak/contracts-bedrock"
+            "packages/tokamak/sdk"
+            "packages/tokamak/core-utils"
+          )
+          for PKG_DIR in "${PACKAGES[@]}"; do
+            if [ -f "$PKG_DIR/package.json" ]; then
+              BASE_VERSION=$(node -p "require('./$PKG_DIR/package.json').version")
+              DEV_VERSION="${BASE_VERSION}-dev.${SHORT_SHA}"
+              echo "Setting $PKG_DIR to version $DEV_VERSION"
+              cd "$PKG_DIR"
+              npm version "$DEV_VERSION" --no-git-tag-version
+              cd "$GITHUB_WORKSPACE"
+            fi
+          done
+
       - name: Filter packages to publish
         id: filter-packages
         run: |
@@ -59,9 +100,10 @@ jobs:
 
       - name: Publish Packages
         run: |
+          NPM_TAG="${{ steps.release-type.outputs.npm_tag }}"
           for PACKAGE in ${{ steps.filter-packages.outputs.packages-to-publish }}; do
-            echo "Publishing $PACKAGE"
-            if pnpm publish --filter=$PACKAGE --access public --no-git-checks; then
+            echo "Publishing $PACKAGE with tag: $NPM_TAG"
+            if pnpm publish --filter=$PACKAGE --access public --tag "$NPM_TAG" --no-git-checks; then
               echo "Package $PACKAGE published successfully!"
             else
               echo "Skipping package $PACKAGE publishing as it encountered an error."
