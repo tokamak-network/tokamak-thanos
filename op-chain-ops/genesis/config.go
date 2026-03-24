@@ -382,8 +382,8 @@ type DeployConfig struct {
 	// UniversalRouterRewardsDistributor is the address handling rewards distribution in the UniversalRouter.
 	UniversalRouterRewardsDistributor common.Address `json:"universalRouterRewardsDistributor"`
 
-	// VRFAdmin is the admin address for VRFCoordinator (required for Gaming/Full presets)
-	VRFAdmin common.Address `json:"vrfAdmin"`
+	// DRBAdmin is the admin/governance address for Commit2RevealDRB (Gaming/Full presets)
+	DRBAdmin common.Address `json:"drbAdmin"`
 
 	// AAPaymasterSigner is the address of the VerifyingPaymaster signer (Gaming/Full preset).
 	AAPaymasterSigner common.Address `json:"aaPaymasterSigner"`
@@ -1266,18 +1266,21 @@ func NewL2StorageConfig(config *DeployConfig, block *types.Block) (state.Storage
 		"_name":   "Ether",
 		"_symbol": "ETH",
 	}
-	// Gaming and Full presets include VRF predeploy storage.
+	// Gaming and Full presets include Commit2RevealDRB predeploy storage.
+	// TODO: Solady Ownable stores owner at a special slot (keccak256-derived, not in storage layout).
+	// The owner (config.DRBAdmin) must be set via a post-genesis transaction calling
+	// transferOwnership() or _initializeOwner(), since state.StorageValues only resolves
+	// names present in the storage layout JSON.
 	if id := config.PresetID(); id == PresetGaming || id == PresetFull {
-		storage["VRFCoordinator"] = state.StorageValues{
-			"_initialized":  1,
-			"_initializing": false,
-			"admin":         config.VRFAdmin,
-			"vrfPredeploy":  predeploys.VRFPredeployAddr,
-		}
-		storage["VRFPredeploy"] = state.StorageValues{
-			"_initialized":  1,
-			"_initializing": false,
-			"coordinator":   predeploys.VRFCoordinatorAddr,
+		storage["CommitReveal2L2"] = state.StorageValues{
+			"s_isInProcess":                          2,                                                    // COMPLETED state — ready for requests
+			"s_activationThreshold":                   new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17)),   // 0.1 ETH default
+			"s_flatFee":                               new(big.Int).Mul(big.NewInt(1), big.NewInt(1e16)),   // 0.01 ETH default
+			"s_offChainSubmissionPeriod":               40,
+			"s_requestOrSubmitOrFailDecisionPeriod":    30,
+			"s_onChainSubmissionPeriod":                60,
+			"s_offChainSubmissionPeriodPerOperator":    20,
+			"s_onChainSubmissionPeriodPerOperator":     30,
 		}
 	}
 	// AA predeploys (Gaming/Full preset)
