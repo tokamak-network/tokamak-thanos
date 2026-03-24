@@ -14,7 +14,7 @@ jobs:
   publish-artifacts:
     name: Build & Publish Artifacts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: tokamaknetwork/thanos-ci-builder:latest
     defaults:
@@ -42,7 +42,7 @@ jobs:
 
       - name: Build contracts
         working-directory: packages/tokamak/contracts-bedrock
-        run: forge build
+        run: forge build --jobs 1
 
       - name: Set dev version
         working-directory: packages/tokamak/contracts-bedrock
