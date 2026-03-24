@@ -1,0 +1,61 @@
+name: Publish Contract Artifacts (dev)
+
+on:
+  push:
+    branches: [main]
+    tags-ignore:
+      - 'release-*'
+    paths:
+      - 'packages/tokamak/contracts-bedrock/src/**'
+      - 'packages/tokamak/contracts-bedrock/foundry.toml'
+      - 'packages/tokamak/contracts-bedrock/package.json'
+
+jobs:
+  publish-artifacts:
+    name: Build & Publish Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: tokamaknetwork/thanos-ci-builder:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Restore PNPM Package Cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: pnpm-packages-v2-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: |
+          pnpm fetch --frozen-lockfile --prefer-offline
+          pnpm install --frozen-lockfile --offline
+
+      - name: Build contracts
+        working-directory: packages/tokamak/contracts-bedrock
+        run: forge build
+
+      - name: Set dev version
+        working-directory: packages/tokamak/contracts-bedrock
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          DEV_VERSION="${BASE_VERSION}-dev.${SHORT_SHA}"
+          npm version "$DEV_VERSION" --no-git-tag-version
+          echo "Publishing version: $DEV_VERSION"
+
+      - name: Publish to npm (dev tag)
+        working-directory: packages/tokamak/contracts-bedrock
+        run: pnpm publish --access public --tag dev --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

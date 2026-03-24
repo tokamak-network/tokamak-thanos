@@ -6,6 +6,7 @@
   "files": [
     "forge-artifacts/**/*.json",
     "!forge-artifacts/**/*.t.sol/*.json",
+    "cache/solidity-files-cache.json",
     "deployments/**/*.json",
     "src/**/*.sol"
   ],
