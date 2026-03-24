@@ -60,11 +60,12 @@ jobs:
       - name: Build contracts
         working-directory: packages/tokamak/contracts-bedrock
         run: |
-          # Reduce optimizer_runs to lower memory usage (999999 causes solc SIGSEGV with via_ir)
+          # Reduce optimizer_runs to lower memory usage with via_ir
           sed -i 's/optimizer_runs = 999999/optimizer_runs = 200/' foundry.toml
           # Remove broken test files with constructor mismatch
           rm -f test/AA/MultiTokenPaymaster.t.sol test/AA/SimplePriceOracle.t.sol
-          forge build
+          # Build with --jobs 1 to serialize solc versions and reduce peak memory
+          forge build --jobs 1
 
       - name: Set dev version
         working-directory: packages/tokamak/contracts-bedrock
