@@ -1,6 +1,7 @@
 name: Publish Contract Artifacts (dev)
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     tags-ignore:
