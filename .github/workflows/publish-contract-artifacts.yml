@@ -60,8 +60,8 @@ jobs:
       - name: Build contracts
         working-directory: packages/tokamak/contracts-bedrock
         run: |
-          # Disable via_ir for CI - Solc 0.8.15 crashes with SIGSEGV on 7GB RAM runners
-          sed -i 's/via_ir = true/via_ir = false/' foundry.toml
+          # Reduce optimizer_runs to lower memory usage (999999 causes solc SIGSEGV with via_ir)
+          sed -i 's/optimizer_runs = 999999/optimizer_runs = 200/' foundry.toml
           # Remove broken test files with constructor mismatch
           rm -f test/AA/MultiTokenPaymaster.t.sol test/AA/SimplePriceOracle.t.sol
           forge build
