@@ -59,7 +59,10 @@ jobs:
 
       - name: Build contracts
         working-directory: packages/tokamak/contracts-bedrock
-        run: forge build
+        run: |
+          # Disable via_ir for CI - Solc 0.8.15 crashes with SIGSEGV on 7GB RAM runners
+          sed -i 's/via_ir = true/via_ir = false/' foundry.toml
+          forge build
 
       - name: Set dev version
         working-directory: packages/tokamak/contracts-bedrock
