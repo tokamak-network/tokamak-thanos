@@ -186,7 +186,7 @@ func init() {
 		id := config.PresetID()
 		return id == PresetGaming || id == PresetFull
 	}
-	Predeploys["Commit2RevealDRB"] = &Predeploy{Address: Commit2RevealDRBAddr, Enabled: gamingFullEnabled}
+	Predeploys["CommitReveal2L2"] = &Predeploy{Address: Commit2RevealDRBAddr, Enabled: gamingFullEnabled}
 
 	// AA predeploys (0x63-0x65) — Gaming/Full preset, ERC-4337 v0.8+
 	Predeploys["AAEntryPoint"] = &Predeploy{

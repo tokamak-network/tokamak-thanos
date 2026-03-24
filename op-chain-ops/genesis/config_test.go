@@ -190,11 +190,8 @@ func TestNewL2StorageConfigGeneralPreset(t *testing.T) {
 	_, hasUniswap := storage["UniswapV3Factory"]
 	require.False(t, hasUniswap, "General preset must not have UniswapV3Factory storage")
 
-	_, hasVRFCoordinator := storage["VRFCoordinator"]
-	require.False(t, hasVRFCoordinator, "General preset must not have VRFCoordinator storage")
-
-	_, hasVRFPredeploy := storage["VRFPredeploy"]
-	require.False(t, hasVRFPredeploy, "General preset must not have VRFPredeploy storage")
+	_, hasCommitReveal2L2 := storage["CommitReveal2L2"]
+	require.False(t, hasCommitReveal2L2, "General preset must not have CommitReveal2L2 storage")
 }
 
 func TestNewL2StorageConfigDefiPreset(t *testing.T) {
@@ -225,11 +222,8 @@ func TestNewL2StorageConfigDefiPreset(t *testing.T) {
 	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
 	require.False(t, hasPaymaster, "DeFi preset must not have VerifyingPaymasterPredeploy storage")
 
-	_, hasVRFCoordinator := storage["VRFCoordinator"]
-	require.False(t, hasVRFCoordinator, "DeFi preset must not have VRFCoordinator storage")
-
-	_, hasVRFPredeploy := storage["VRFPredeploy"]
-	require.False(t, hasVRFPredeploy, "DeFi preset must not have VRFPredeploy storage")
+	_, hasCommitReveal2L2 := storage["CommitReveal2L2"]
+	require.False(t, hasCommitReveal2L2, "DeFi preset must not have CommitReveal2L2 storage")
 }
 
 func TestAAPredeployAddressConstants(t *testing.T) {
@@ -250,7 +244,7 @@ func TestNewL2StorageConfigGamingPreset_HasAAStorage(t *testing.T) {
 	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.NoError(t, err)
 	config.Preset = PresetGaming
-	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.DRBAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
 	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 
 	block := types.NewBlockWithHeader(&types.Header{
@@ -286,7 +280,7 @@ func TestNewL2StorageConfigFullPreset(t *testing.T) {
 	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.NoError(t, err)
 	config.Preset = PresetFull
-	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.DRBAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
 	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 
 	block := types.NewBlockWithHeader(&types.Header{
@@ -312,18 +306,15 @@ func TestNewL2StorageConfigFullPreset(t *testing.T) {
 	_, hasPaymaster := storage["VerifyingPaymasterPredeploy"]
 	require.True(t, hasPaymaster, "Full preset must have VerifyingPaymasterPredeploy storage")
 
-	_, hasVRFCoordinator := storage["VRFCoordinator"]
-	require.True(t, hasVRFCoordinator, "Full preset must have VRFCoordinator storage")
-
-	_, hasVRFPredeploy := storage["VRFPredeploy"]
-	require.True(t, hasVRFPredeploy, "Full preset must have VRFPredeploy storage")
+	_, hasCommitReveal2L2 := storage["CommitReveal2L2"]
+	require.True(t, hasCommitReveal2L2, "Full preset must have CommitReveal2L2 storage")
 }
 
-func TestNewL2StorageConfigGamingPreset_HasVRFStorage(t *testing.T) {
+func TestNewL2StorageConfigGamingPreset_HasDRBStorage(t *testing.T) {
 	config, err := NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.NoError(t, err)
 	config.Preset = PresetGaming
-	config.VRFAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
+	config.DRBAdmin = common.HexToAddress("0x0000000000000000000000000000000000000001")
 	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 
 	block := types.NewBlockWithHeader(&types.Header{
@@ -334,11 +325,8 @@ func TestNewL2StorageConfigGamingPreset_HasVRFStorage(t *testing.T) {
 	storage, err := NewL2StorageConfig(config, block)
 	require.NoError(t, err)
 
-	_, hasVRFCoordinator := storage["VRFCoordinator"]
-	require.True(t, hasVRFCoordinator, "Gaming preset must have VRFCoordinator storage")
-
-	_, hasVRFPredeploy := storage["VRFPredeploy"]
-	require.True(t, hasVRFPredeploy, "Gaming preset must have VRFPredeploy storage")
+	_, hasCommitReveal2L2 := storage["CommitReveal2L2"]
+	require.True(t, hasCommitReveal2L2, "Gaming preset must have CommitReveal2L2 storage")
 }
 
 func TestRollupConfig_SetsChainOpConfig(t *testing.T) {

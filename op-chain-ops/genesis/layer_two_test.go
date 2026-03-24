@@ -44,10 +44,9 @@ var uniswapAddrs = []common.Address{
 	predeploys.UnsupportedProtocolAddr,
 }
 
-// vrfAddrs contains the 2 VRF predeploy addresses.
-var vrfAddrs = []common.Address{
-	predeploys.VRFPredeployAddr,
-	predeploys.VRFCoordinatorAddr,
+// drbAddrs contains the Commit2RevealDRB predeploy address.
+var drbAddrs = []common.Address{
+	predeploys.Commit2RevealDRBAddr,
 }
 
 // aaAddrs contains the 5 AA predeploy addresses (ERC-4337 + oracle/paymaster).
@@ -204,10 +203,10 @@ func TestBuildL2GenesisGeneralPreset(t *testing.T) {
 		require.False(t, ok, "Uniswap address should not be in General preset: %s", addr.Hex())
 	}
 
-	// General preset: VRF predeploys must NOT be in genesis
-	for _, addr := range vrfAddrs {
+	// General preset: DRB predeploys must NOT be in genesis
+	for _, addr := range drbAddrs {
 		_, ok := gen.Alloc[addr]
-		require.False(t, ok, "VRF address should not be in General preset: %s", addr.Hex())
+		require.False(t, ok, "DRB address should not be in General preset: %s", addr.Hex())
 	}
 
 	// General preset: AA predeploys must NOT be in genesis
@@ -221,16 +220,16 @@ func TestBuildL2GenesisGamingPreset(t *testing.T) {
 	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
 	config.Preset = genesis.PresetGaming
-	config.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+	config.DRBAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
 	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
 	gen := testBuildL2Genesis(t, config)
 
-	// Gaming preset: VRF predeploys must be present
-	for _, addr := range vrfAddrs {
-		require.Contains(t, gen.Alloc, addr, "Gaming preset must have VRF predeploy: %s", addr.Hex())
+	// Gaming preset: DRB predeploys must be present
+	for _, addr := range drbAddrs {
+		require.Contains(t, gen.Alloc, addr, "Gaming preset must have DRB predeploy: %s", addr.Hex())
 	}
 
 	// Gaming preset: AA predeploys must be present
@@ -270,10 +269,10 @@ func TestBuildL2GenesisDefiPreset(t *testing.T) {
 		require.Contains(t, gen.Alloc, addr, "DeFi preset must have Uniswap predeploy: %s", addr.Hex())
 	}
 
-	// DeFi preset: VRF predeploys must NOT be in genesis
-	for _, addr := range vrfAddrs {
+	// DeFi preset: DRB predeploys must NOT be in genesis
+	for _, addr := range drbAddrs {
 		_, ok := gen.Alloc[addr]
-		require.False(t, ok, "VRF address should not be in DeFi preset: %s", addr.Hex())
+		require.False(t, ok, "DRB address should not be in DeFi preset: %s", addr.Hex())
 	}
 
 	// DeFi preset: AA predeploys must NOT be in genesis
@@ -287,16 +286,16 @@ func TestBuildL2GenesisFullPreset(t *testing.T) {
 	config, err := genesis.NewDeployConfig("./testdata/test-deploy-config-devnet-l1.json")
 	require.Nil(t, err)
 	config.Preset = genesis.PresetFull
-	config.VRFAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
+	config.DRBAdmin = common.HexToAddress("0x1234567890123456789012345678901234567890")
 	config.AAPaymasterSigner = common.HexToAddress("0x0000000000000000000000000000000000000002")
 	config.EnableGovernance = false
 	config.FundDevAccounts = false
 
 	gen := testBuildL2Genesis(t, config)
 
-	// Full preset: VRF predeploys must be present
-	for _, addr := range vrfAddrs {
-		require.Contains(t, gen.Alloc, addr, "Full preset must have VRF predeploy: %s", addr.Hex())
+	// Full preset: DRB predeploys must be present
+	for _, addr := range drbAddrs {
+		require.Contains(t, gen.Alloc, addr, "Full preset must have DRB predeploy: %s", addr.Hex())
 	}
 
 	// Full preset: AA predeploys must be present
