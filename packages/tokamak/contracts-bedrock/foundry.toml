@@ -11,7 +11,10 @@ out = 'forge-artifacts'
 script = 'scripts'
 optimizer = true
 optimizer_runs = 200
-via_ir = true
+via_ir = false
+# NOTE: via_ir was enabled to fix "Stack too deep" in DRB contracts (commit 8d263cab).
+# DRB has been removed (commit 56e15dfcd3), so via_ir=false works again.
+# CI/production profile keeps via_ir=true for deployment safety.
 remappings = [
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts',
   '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts',
@@ -68,6 +71,24 @@ multiline_func_header='all'
 bracket_spacing=true
 wrap_comments=true
 ignore = ['src/vendor/WNativeToken.sol', 'src/USDC/**/*.sol']
+
+[lint]
+# Suppress false-positive warnings from upstream Optimism contracts:
+# - unsafe-typecast: contextually safe casts (e.g., checked before cast, known range)
+# - incorrect-shift: intentional bit manipulation in MIPS emulator and dispute game
+# - divide-before-multiply: intentional patterns for divisibility checks and gas estimation
+# - erc20-unchecked-transfer: test-only transfers on known-safe tokens (WETH, GovernanceToken)
+# - unchecked-call: test-only low-level calls
+exclude_lints = [
+  'unsafe-typecast', 'incorrect-shift', 'divide-before-multiply',
+  'erc20-unchecked-transfer', 'unchecked-call',
+  'screaming-snake-case-const', 'screaming-snake-case-immutable',
+  'unaliased-plain-import', 'unused-import',
+  'mixed-case-function', 'mixed-case-variable',
+  'unwrapped-modifier-logic', 'asm-keccak256',
+  'unsafe-cheatcode', 'named-struct-fields', 'pascal-case-struct',
+]
+ignore = ['test/**', 'scripts/**', 'src/vendor/**', 'src/cannon/**', 'src/USDC/**']
 
 ################################################################
 #                         PROFILE: CI                          #

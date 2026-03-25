@@ -71,7 +71,7 @@ contract AssetReceiver is Transactor {
     /// @param _amount Amount of ERC20 to withdraw.
     function withdrawERC20(ERC20 _asset, address _to, uint256 _amount) public onlyOwner {
         // slither-disable-next-line unchecked-transfer
-        _asset.transfer(_to, _amount);
+        require(_asset.transfer(_to, _amount), "AssetReceiver: transfer failed");
         // slither-disable-next-line reentrancy-events
         emit WithdrewERC20(msg.sender, _to, address(_asset), _amount);
     }
