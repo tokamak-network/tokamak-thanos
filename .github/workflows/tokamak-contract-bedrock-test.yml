@@ -44,3 +44,5 @@ jobs:
       - name: Run pnpm test
         run: pnpm test
         working-directory: packages/tokamak/contracts-bedrock
+        env:
+          FOUNDRY_PROFILE: ci

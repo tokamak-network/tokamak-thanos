@@ -10,7 +10,7 @@ src = 'src'
 out = 'forge-artifacts'
 script = 'scripts'
 optimizer = true
-optimizer_runs = 999999
+optimizer_runs = 200
 via_ir = true
 remappings = [
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts',
@@ -104,3 +104,22 @@ src = 'test/kontrol/proofs'
 out = 'kout-proofs'
 test = 'test/kontrol/proofs'
 script = 'test/kontrol/proofs'
+
+################################################################
+#                      PROFILE: PRODUCTION                     #
+################################################################
+# Full optimization for deployment. Use: FOUNDRY_PROFILE=production forge build
+
+[profile.production]
+optimizer = true
+optimizer_runs = 999999
+via_ir = true
+
+################################################################
+#                        PROFILE: BUILD                        #
+################################################################
+# Fast artifact generation without tests. Use: FOUNDRY_PROFILE=build forge build
+
+[profile.build]
+test = 'test/kontrol'
+optimizer = false

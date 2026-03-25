@@ -37,11 +37,14 @@ contract MultiTokenPaymasterTest is Test {
         usdc   = new MockUSDC();
 
         // ETH oracle: price = 0.0005e18 means 1 TON = 0.0005 ETH
-        ethOracle  = new SimplePriceOracle(0.0005e18);
+        ethOracle  = new SimplePriceOracle();
+        ethOracle.initialize(0.0005e18, address(this));
         // USDC oracle: price = 0.65e18 means 1 TON = 0.65 USDC (after 18→6 dec scaling)
-        usdcOracle = new SimplePriceOracle(0.65e18);
+        usdcOracle = new SimplePriceOracle();
+        usdcOracle.initialize(0.65e18, address(this));
 
-        paymaster = new MultiTokenPaymaster(IEntryPoint(address(entryPoint)));
+        paymaster = new MultiTokenPaymaster();
+        paymaster.initialize(IEntryPoint(address(entryPoint)), address(this));
 
         // Register ETH (18 decimals, markup 5%)
         paymaster.addToken(address(l2Eth), ITokenPriceOracle(address(ethOracle)), 5, 18);

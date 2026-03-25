@@ -9,7 +9,8 @@ contract SimplePriceOracleTest is Test {
     address owner = address(this);
 
     function setUp() public {
-        oracle = new SimplePriceOracle(0.0005e18); // 1 TON = 0.0005 ETH
+        oracle = new SimplePriceOracle();
+        oracle.initialize(0.0005e18, address(this)); // 1 TON = 0.0005 ETH
     }
 
     function test_GetPrice_ReturnsInitialPrice() public view {
@@ -55,9 +56,10 @@ contract SimplePriceOracleTest is Test {
         oracle.getPrice();
     }
 
-    function test_Constructor_ZeroPriceReverts() public {
+    function test_Initialize_ZeroPriceReverts() public {
+        SimplePriceOracle o = new SimplePriceOracle();
         vm.expectRevert("SimplePriceOracle: zero price");
-        new SimplePriceOracle(0);
+        o.initialize(0, address(this));
     }
 
     function test_TransferOwnership_ByOwner() public {
