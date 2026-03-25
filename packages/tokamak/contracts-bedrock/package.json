@@ -24,7 +24,7 @@
   },
   "scripts": {
     "prebuild": "./scripts/checks/check-foundry-install.sh",
-    "build": "forge build",
+    "build": "forge build && bash -c 'shopt -s nullglob; for dir in forge-artifacts/*/; do for f in \"$dir\"*.json; do base=$(basename \"$f\"); name=${base%%.*}; ext=${base##*.}; target=\"${dir}${name}.${ext}\"; [ ! -f \"$target\" ] && cp \"$f\" \"$target\"; done; done'",
     "build:go-ffi": "(cd scripts/go-ffi && go build)",
     "autogen:invariant-docs": "npx tsx scripts/autogen/generate-invariant-docs.ts",
     "test": "pnpm build:go-ffi && forge test",
