@@ -80,5 +80,10 @@
   },
   "dependencies": {
     "@changesets/cli": "^2.27.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "@eth-optimism/contracts-bedrock": "@tokamak-network/thanos-contracts"
+    }
   }
 }

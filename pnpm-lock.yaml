@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@eth-optimism/contracts-bedrock': '@tokamak-network/thanos-contracts'
+
 pnpmfileChecksum: vipskp6rjsbh4jjdio2kmcz6ye
 
 importers:
