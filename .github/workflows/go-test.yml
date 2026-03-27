@@ -75,7 +75,7 @@ jobs:
 
       - name: Check if changes affect relevant paths
         id: changes-check
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             cannon:
