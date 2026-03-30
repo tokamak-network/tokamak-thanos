@@ -140,10 +140,11 @@ contract MultiTokenPaymaster is BasePaymaster, Initializable {
         bytes32, /*userOpHash*/
         uint256 maxCost
     ) internal override returns (bytes memory context, uint256 validationData) {
-        // paymasterAndData Phase 1 format: [paymaster(20)][token(20)] = 40 bytes total (no signature)
+        // paymasterAndData v0.8 standard format: [paymaster(20)][verGasLimit(16)][postOpGasLimit(16)][token(20)] = 72 bytes
+        // PAYMASTER_DATA_OFFSET = 52 (UserOperationLib constant): token address starts at offset 52
         // Phase 2+: will include validUntil/validAfter/sig (see docs/TRH_MultiToken_Fee_Design.md Appendix A)
         // validationData = 0: no signature verification in Phase 1
-        address token = address(bytes20(userOp.paymasterAndData[20:40]));
+        address token = address(bytes20(userOp.paymasterAndData[52:72]));
 
         TokenConfig memory cfg = supportedTokens[token];
         require(cfg.enabled, "PM: token not supported");
