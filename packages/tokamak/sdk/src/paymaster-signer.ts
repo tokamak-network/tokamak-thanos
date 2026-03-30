@@ -62,11 +62,19 @@ const packUint128x2 = (high: bigint, low: bigint): string => {
   )
 }
 
-// 12 bytes zero padding → total 52 bytes (EntryPoint PAYMASTER_DATA_OFFSET minimum)
-const PAYMASTER_PADDING = '0x000000000000000000000000'
+// ERC-4337 v0.8 standard paymasterAndData: 72 bytes
+// Layout: [paymaster(20)][verificationGasLimit(16)][postOpGasLimit(16)][token(20)]
+// MultiTokenPaymaster reads token at paymasterAndData[52:72]
+const PAYMASTER_VERIFICATION_GAS_LIMIT = BigInt(150000)
+const PAYMASTER_POST_OP_GAS_LIMIT = BigInt(50000)
 
 const buildPaymasterAndData = (tokenAddr: string): string =>
-  ethers.utils.hexConcat([MULTI_TOKEN_PAYMASTER, tokenAddr, PAYMASTER_PADDING])
+  ethers.utils.hexConcat([
+    MULTI_TOKEN_PAYMASTER,
+    ethers.utils.hexZeroPad(ethers.BigNumber.from(PAYMASTER_VERIFICATION_GAS_LIMIT).toHexString(), 16),
+    ethers.utils.hexZeroPad(ethers.BigNumber.from(PAYMASTER_POST_OP_GAS_LIMIT).toHexString(), 16),
+    tokenAddr,
+  ])
 
 const buildUserOpHash = (
   userOp: PackedUserOperation,
@@ -373,7 +381,7 @@ const sendAsUserOp = async (
     BigInt(maxFeePerGas.toString())
   )
 
-  // 8. paymasterAndData (52 bytes: paymaster(20) + token(20) + padding(12))
+  // 8. paymasterAndData (72 bytes v0.8: paymaster(20) + verGasLimit(16) + postOpGasLimit(16) + token(20))
   const paymasterAndData = buildPaymasterAndData(tokenAddr)
 
   // 9. Build UserOp without signature, compute hash
