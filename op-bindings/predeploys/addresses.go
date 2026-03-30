@@ -43,7 +43,7 @@ const (
 
 	Commit2RevealDRB = "0x4200000000000000000000000000000000000060"
 
-	// AA predeploy address strings (Gaming/Full preset, ERC-4337 v0.8+)
+	// AA predeploy address strings (all presets, ERC-4337 v0.8+)
 	// Note: existing EntryPoint const refers to ERC-4337 v0.7 canonical (0x5FF...).
 	//       Use AAEntryPoint for v0.8 Thanos predeploy.
 	AAEntryPoint                = "0x4200000000000000000000000000000000000063"
@@ -188,27 +188,22 @@ func init() {
 	}
 	Predeploys["CommitReveal2L2"] = &Predeploy{Address: Commit2RevealDRBAddr, Enabled: gamingFullEnabled}
 
-	// AA predeploys (0x63-0x65) — Gaming/Full preset, ERC-4337 v0.8+
+	// AA predeploys (0x63-0x67) — all presets, ERC-4337 v0.8+
 	Predeploys["AAEntryPoint"] = &Predeploy{
 		Address: AAEntryPointAddr,
-		Enabled: gamingFullEnabled,
 	}
 	Predeploys["VerifyingPaymasterPredeploy"] = &Predeploy{
 		Address: VerifyingPaymasterPredeployAddr,
-		Enabled: gamingFullEnabled,
 	}
 	Predeploys["Simple7702Account"] = &Predeploy{
 		Address:       Simple7702AccountAddr,
-		Enabled:       gamingFullEnabled,
 		ProxyDisabled: true, // stateless delegation target — no proxy needed
 	}
 	Predeploys["SimplePriceOraclePredeploy"] = &Predeploy{
 		Address: SimplePriceOraclePredeployAddr,
-		Enabled: gamingFullEnabled, // Gaming || Full
 	}
 	Predeploys["MultiTokenPaymasterPredeploy"] = &Predeploy{
 		Address: MultiTokenPaymasterPredeployAddr,
-		Enabled: gamingFullEnabled, // Gaming || Full
 	}
 
 	Predeploys["Create2Deployer"] = &Predeploy{
