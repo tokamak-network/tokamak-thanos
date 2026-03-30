@@ -62,8 +62,11 @@ const packUint128x2 = (high: bigint, low: bigint): string => {
   )
 }
 
+// 12 bytes zero padding → total 52 bytes (EntryPoint PAYMASTER_DATA_OFFSET minimum)
+const PAYMASTER_PADDING = '0x000000000000000000000000'
+
 const buildPaymasterAndData = (tokenAddr: string): string =>
-  ethers.utils.hexConcat([MULTI_TOKEN_PAYMASTER, tokenAddr])
+  ethers.utils.hexConcat([MULTI_TOKEN_PAYMASTER, tokenAddr, PAYMASTER_PADDING])
 
 const buildUserOpHash = (
   userOp: PackedUserOperation,
@@ -100,6 +103,39 @@ const buildUserOpHash = (
   )
 
   return ethers.utils.keccak256(outerEncoded)
+}
+
+/**
+ * Signs userOpHash with raw ECDSA (no EIP-191 prefix).
+ * Simple7702Account expects: ECDSA.recover(hash, signature) == address(this)
+ *
+ * ethers.Wallet: uses _signingKey().signDigest() for guaranteed raw ECDSA.
+ * JsonRpcSigner (wagmi Web3Provider): uses eth_sign RPC.
+ * MetaMask eth_sign returns raw ECDSA without prefix (unlike personal_sign).
+ */
+const signUserOpHash = async (
+  signer: ethers.Signer,
+  userOpHash: string
+): Promise<string> => {
+  const sender = await signer.getAddress()
+
+  // ethers.Wallet path: raw ECDSA directly via _signingKey
+  if (
+    '_signingKey' in signer &&
+    typeof (signer as any)._signingKey === 'function'
+  ) {
+    const wallet = signer as ethers.Wallet
+    const sig = wallet
+      ._signingKey()
+      .signDigest(ethers.utils.arrayify(userOpHash))
+    return ethers.utils.joinSignature(sig)
+  }
+
+  // JsonRpcSigner path: eth_sign (raw ECDSA in MetaMask, no prefix)
+  return (signer.provider as ethers.providers.JsonRpcProvider).send(
+    'eth_sign',
+    [sender, userOpHash]
+  )
 }
 
 const sendRawUserOp = async (
@@ -296,9 +332,7 @@ const sendAsUserOp = async (
     }
 
     const approveUserOpHash = buildUserOpHash(approveUserOpForHash, chainId)
-    const approveSignature = await signer.signMessage(
-      ethers.utils.arrayify(approveUserOpHash)
-    )
+    const approveSignature = await signUserOpHash(signer, approveUserOpHash)
 
     const approveUserOp: PackedUserOperation = {
       ...approveUserOpForHash,
@@ -339,7 +373,7 @@ const sendAsUserOp = async (
     BigInt(maxFeePerGas.toString())
   )
 
-  // 8. paymasterAndData (Phase 1: 40 bytes)
+  // 8. paymasterAndData (52 bytes: paymaster(20) + token(20) + padding(12))
   const paymasterAndData = buildPaymasterAndData(tokenAddr)
 
   // 9. Build UserOp without signature, compute hash
@@ -358,7 +392,7 @@ const sendAsUserOp = async (
   const userOpHash = buildUserOpHash(userOpForHash, chainId)
 
   // 10. Sign UserOp hash
-  const signature = await signer.signMessage(ethers.utils.arrayify(userOpHash))
+  const signature = await signUserOpHash(signer, userOpHash)
 
   const userOp: PackedUserOperation = {
     ...userOpForHash,
