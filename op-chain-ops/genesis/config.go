@@ -174,6 +174,12 @@ type DeployConfig struct {
 	// L2GenesisFjordTimeOffset is the number of seconds after genesis block that Fjord hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Fjord.
 	L2GenesisFjordTimeOffset *hexutil.Uint64 `json:"l2GenesisFjordTimeOffset,omitempty"`
+	// L2GenesisGraniteTimeOffset is the number of seconds after genesis block that Granite hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Granite.
+	L2GenesisGraniteTimeOffset *hexutil.Uint64 `json:"l2GenesisGraniteTimeOffset,omitempty"`
+	// L2GenesisHoloceneTimeOffset is the number of seconds after genesis block that Holocene hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable Holocene.
+	L2GenesisHoloceneTimeOffset *hexutil.Uint64 `json:"l2GenesisHoloceneTimeOffset,omitempty"`
 	// L2GenesisInteropTimeOffset is the number of seconds after genesis block that the Interop hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Interop.
 	L2GenesisInteropTimeOffset *hexutil.Uint64 `json:"l2GenesisInteropTimeOffset,omitempty"`
@@ -619,6 +625,15 @@ func (d *DeployConfig) Check() error {
 	if err := checkFork(d.L2GenesisEcotoneTimeOffset, d.L2GenesisFjordTimeOffset, "ecotone", "fjord"); err != nil {
 		return err
 	}
+	if err := checkFork(d.L2GenesisFjordTimeOffset, d.L2GenesisGraniteTimeOffset, "fjord", "granite"); err != nil {
+		return err
+	}
+	if err := checkFork(d.L2GenesisGraniteTimeOffset, d.L2GenesisHoloceneTimeOffset, "granite", "holocene"); err != nil {
+		return err
+	}
+	if err := checkFork(d.L2GenesisHoloceneTimeOffset, d.L2GenesisIsthmusTimeOffset, "holocene", "isthmus"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -735,6 +750,30 @@ func (d *DeployConfig) FjordTime(genesisTime uint64) *uint64 {
 	return &v
 }
 
+func (d *DeployConfig) GraniteTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisGraniteTimeOffset == nil {
+		return nil
+	}
+	offset := *d.L2GenesisGraniteTimeOffset
+	if offset == 0 {
+		return &genesisTime
+	}
+	v := genesisTime + uint64(offset)
+	return &v
+}
+
+func (d *DeployConfig) HoloceneTime(genesisTime uint64) *uint64 {
+	if d.L2GenesisHoloceneTimeOffset == nil {
+		return nil
+	}
+	offset := *d.L2GenesisHoloceneTimeOffset
+	if offset == 0 {
+		return &genesisTime
+	}
+	v := genesisTime + uint64(offset)
+	return &v
+}
+
 func (d *DeployConfig) InteropTime(genesisTime uint64) *uint64 {
 	if d.L2GenesisInteropTimeOffset == nil {
 		return nil
@@ -822,6 +861,8 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Block, l2GenesisBlockHas
 		DeltaTime:              d.DeltaTime(l1StartBlock.Time()),
 		EcotoneTime:            d.EcotoneTime(l1StartBlock.Time()),
 		FjordTime:              d.FjordTime(l1StartBlock.Time()),
+		GraniteTime:            d.GraniteTime(l1StartBlock.Time()),
+		HoloceneTime:           d.HoloceneTime(l1StartBlock.Time()),
 		InteropTime:            d.InteropTime(l1StartBlock.Time()),
 		IsthmusTime:            d.IsthmusTime(l1StartBlock.Time()),
 		ChainOpConfig:          d.OpChainConfig(),
