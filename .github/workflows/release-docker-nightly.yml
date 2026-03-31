@@ -62,7 +62,9 @@ jobs:
           context: .
           file: ./Dockerfile.go-services
           push: true
-          tags: tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: |
+            tokamaknetwork/thanos-op-stack-go:${{ needs.version.outputs.nightly-docker-tag }}
+            tokamaknetwork/thanos-op-stack-go:nightly
           build-args: |
             GITDATE=${{ steps.build_args.outputs.GITDATE }}
             GITCOMMIT=${{ steps.build_args.outputs.GITCOMMIT }}
@@ -110,7 +112,9 @@ jobs:
           file: ./Dockerfile.go-services
           target: ${{ matrix.target }}-target
           push: true
-          tags: tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+          tags: |
+            tokamaknetwork/thanos-${{ matrix.target }}:${{ needs.version.outputs.nightly-docker-tag }}
+            tokamaknetwork/thanos-${{ matrix.target }}:nightly
 
   op-challenger:
     name: Publish op-challenger
