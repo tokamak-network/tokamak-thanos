@@ -1214,7 +1214,13 @@ contract Deploy is Deployer {
         address anchorStateRegistry;
 
         if (cfg.reuseDeployment()) {
-            address savedAddress = jsonDeployment.readAddress(".AnchorStateRegistry");
+            // Guard: the key may have been cleared (set to zero or removed) by the
+            // SDK when fault proof is enabled, forcing a fresh deployment of the
+            // patched implementation that includes setInitialAnchorState.
+            address savedAddress;
+            if (vm.keyExistsJson(jsonDeployment, ".AnchorStateRegistry")) {
+                savedAddress = jsonDeployment.readAddress(".AnchorStateRegistry");
+            }
             console.log("AnchorStateRegistry address from JSON: %s", savedAddress);
 
             if (savedAddress != address(0) && verifyImplementationExists(savedAddress)) {
