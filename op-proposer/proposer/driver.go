@@ -479,6 +479,17 @@ func (l *L2OutputSubmitter) loopDGF(ctx context.Context) {
 				break
 			}
 
+			// Skip proposal when the L2 chain has not advanced beyond genesis.
+			// DisputeGameFactory.create() → FaultDisputeGame.initialize() reverts
+			// with UnexpectedRootClaim when the proposed block number is at or
+			// below the anchor state's starting block (typically genesis block 0).
+			// This happens when the batcher has not yet submitted any batches to
+			// L1, so safe/finalized L2 remains at block 0.
+			if blockNumber.Sign() == 0 {
+				l.Log.Info("Skipping proposal: L2 safe/finalized head is at genesis (block 0), waiting for batcher to submit batches")
+				break
+			}
+
 			output, shouldPropose, err := l.FetchOutput(ctx, blockNumber)
 			if err != nil || !shouldPropose {
 				break

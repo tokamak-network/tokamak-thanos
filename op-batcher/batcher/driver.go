@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tokamak-network/tokamak-thanos/op-batcher/metrics"
@@ -515,13 +514,15 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 		candidate = l.calldataTxCandidate(data)
 	}
 
-	intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
-	if err != nil {
-		// we log instead of return an error here because txmgr can do its own gas estimation
-		l.Log.Error("Failed to calculate intrinsic gas", "err", err)
-	} else {
-		candidate.GasLimit = intrinsicGas
-	}
+	// GasLimit intentionally left as 0 so that txmgr calls eth_estimateGas on
+	// the L1 backend. The previous core.IntrinsicGas() call computed gas using
+	// pre-Pectra costs (EIP-2028: zero=4, nonzero=16 gas per byte). After the
+	// Pectra hard fork, EIP-7623 introduces a floor data gas cost
+	// (zero=10, nonzero=40 per byte) that is enforced by L1 nodes. Because the
+	// tokamak-thanos-geth dependency does not yet implement FloorDataGas, the
+	// locally-computed intrinsic gas was lower than the L1-enforced floor,
+	// causing "intrinsic gas too low" rejections. Delegating to eth_estimateGas
+	// lets the L1 node itself return a correct gas estimate under any fork rules.
 
 	queue.Send(txdata.ID(), *candidate, receiptsCh)
 	return nil
