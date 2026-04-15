@@ -198,7 +198,7 @@ jobs:
           cat kustomization.yaml
 
       - name: Commit and push changes
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           default_author: github_actions
           github_token: ${{ secrets.ACCESS_TOKEN }}
