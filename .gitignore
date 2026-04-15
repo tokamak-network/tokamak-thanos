@@ -58,6 +58,8 @@ crytic-export
 
 main
 cmd
+!cmd/
+cmd/tokamak-deployer/tokamak-deployer
 bin/
 genesis.test
 .worktrees/
