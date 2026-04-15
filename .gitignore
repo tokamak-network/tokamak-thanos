@@ -60,3 +60,4 @@ main
 cmd
 bin/
 genesis.test
+.worktrees/
