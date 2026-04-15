@@ -37,6 +37,8 @@ const (
 	TxNotInMempoolTimeoutFlagName     = "txmgr.not-in-mempool-timeout"
 	ReceiptQueryIntervalFlagName      = "txmgr.receipt-query-interval"
 	CellProofTimeFlagName             = "txmgr.cell-proof-time"
+	MaxBlobBaseFeeFlagName            = "txmgr.max-l1-blob-base-fee"
+	BlobFeeCapMultiplierFlagName      = "txmgr.blob-fee-cap-multiplier"
 )
 
 var (
@@ -67,6 +69,8 @@ type DefaultFlagValues struct {
 	TxNotInMempoolTimeout     time.Duration
 	ReceiptQueryInterval      time.Duration
 	CellProofTime             uint64
+	MaxBlobBaseFeeGwei        float64 // 0 = disabled
+	BlobFeeCapMultiplier      uint64  // multiplier for blob fee cap; 0 means use default (4)
 }
 
 var (
@@ -83,6 +87,8 @@ var (
 		TxNotInMempoolTimeout:     2 * time.Minute,
 		ReceiptQueryInterval:      12 * time.Second,
 		CellProofTime:             0, // If set, enable cell proofs on/after this L1 timestamp
+		MaxBlobBaseFeeGwei:        0, // disabled by default; set to limit blob submissions during fee spikes
+		BlobFeeCapMultiplier:      4, // 4x current blob base fee (was hardcoded 2x)
 	}
 	DefaultChallengerFlagValues = DefaultFlagValues{
 		NumConfirmations:          uint64(3),
@@ -96,6 +102,7 @@ var (
 		TxSendTimeout:             2 * time.Minute,
 		TxNotInMempoolTimeout:     1 * time.Minute,
 		ReceiptQueryInterval:      12 * time.Second,
+		BlobFeeCapMultiplier:      4, // 4x current blob base fee (was hardcoded 2x)
 	}
 )
 
@@ -195,6 +202,18 @@ func CLIFlagsWithDefaults(envPrefix string, defaults DefaultFlagValues) []cli.Fl
 			Value:   defaults.CellProofTime,
 			EnvVars: prefixEnvVars("TXMGR_CELL_PROOF_TIME"),
 		},
+		&cli.Float64Flag{
+			Name:    MaxBlobBaseFeeFlagName,
+			Usage:   "Maximum blob base fee (in GWei) at which blob transactions will be submitted. 0 to disable the limit. When exceeded, the batcher pauses blob submission until the fee drops.",
+			Value:   defaults.MaxBlobBaseFeeGwei,
+			EnvVars: prefixEnvVars("TXMGR_MAX_L1_BLOB_BASE_FEE"),
+		},
+		&cli.Uint64Flag{
+			Name:    BlobFeeCapMultiplierFlagName,
+			Usage:   "Multiplier applied to the current blob base fee to compute the blob fee cap. Must be >= 2.",
+			Value:   defaults.BlobFeeCapMultiplier,
+			EnvVars: prefixEnvVars("TXMGR_BLOB_FEE_CAP_MULTIPLIER"),
+		},
 	}, opsigner.CLIFlags(envPrefix)...)
 }
 
@@ -218,6 +237,8 @@ type CLIConfig struct {
 	TxSendTimeout             time.Duration
 	TxNotInMempoolTimeout     time.Duration
 	CellProofTime             uint64
+	MaxBlobBaseFeeGwei        float64 // 0 = disabled
+	BlobFeeCapMultiplier      uint64  // multiplier for blob fee cap; 0 means use default (4)
 }
 
 func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
@@ -235,6 +256,8 @@ func NewCLIConfig(l1RPCURL string, defaults DefaultFlagValues) CLIConfig {
 		TxNotInMempoolTimeout:     defaults.TxNotInMempoolTimeout,
 		ReceiptQueryInterval:      defaults.ReceiptQueryInterval,
 		CellProofTime:             defaults.CellProofTime,
+		MaxBlobBaseFeeGwei:        defaults.MaxBlobBaseFeeGwei,
+		BlobFeeCapMultiplier:      defaults.BlobFeeCapMultiplier,
 		SignerCLIConfig:           opsigner.NewCLIConfig(),
 	}
 }
@@ -295,6 +318,8 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		TxSendTimeout:             ctx.Duration(TxSendTimeoutFlagName),
 		TxNotInMempoolTimeout:     ctx.Duration(TxNotInMempoolTimeoutFlagName),
 		CellProofTime:             ctx.Uint64(CellProofTimeFlagName),
+		MaxBlobBaseFeeGwei:        ctx.Float64(MaxBlobBaseFeeFlagName),
+		BlobFeeCapMultiplier:      ctx.Uint64(BlobFeeCapMultiplierFlagName),
 	}
 }
 
@@ -345,6 +370,19 @@ func NewConfig(cfg CLIConfig, l log.Logger) (Config, error) {
 		return Config{}, fmt.Errorf("invalid min tip cap: %w", err)
 	}
 
+	blobFeeCapMultiplier := cfg.BlobFeeCapMultiplier
+	if blobFeeCapMultiplier < 2 {
+		blobFeeCapMultiplier = 4 // default: 4x blob base fee
+	}
+
+	var maxBlobBaseFee *big.Int
+	if cfg.MaxBlobBaseFeeGwei > 0 {
+		maxBlobBaseFee, err = eth.GweiToWei(cfg.MaxBlobBaseFeeGwei)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid max blob base fee: %w", err)
+		}
+	}
+
 	return Config{
 		Backend:                   l1,
 		ResubmissionTimeout:       cfg.ResubmissionTimeout,
@@ -362,6 +400,8 @@ func NewConfig(cfg CLIConfig, l log.Logger) (Config, error) {
 		Signer:                    signerFactory(chainID),
 		From:                      from,
 		CellProofTime:             cfg.CellProofTime,
+		MaxBlobBaseFee:            maxBlobBaseFee,
+		BlobFeeCapMultiplier:      blobFeeCapMultiplier,
 	}, nil
 }
 
@@ -424,6 +464,18 @@ type Config struct {
 	// CellProofTime is the L1 unix timestamp when cell proofs should be used for blob txs.
 	// If 0, legacy blob proofs are used unless inferred otherwise by the network.
 	CellProofTime uint64
+
+	// MaxBlobBaseFee is the maximum blob base fee (in Wei) at which blob transactions will be
+	// submitted. When the current blob base fee exceeds this value, craftTx returns
+	// ErrBlobBaseFeeTooHigh and the batcher pauses blob submission until the fee drops.
+	// nil (or 0 gwei in CLIConfig) means no maximum is enforced.
+	MaxBlobBaseFee *big.Int
+
+	// BlobFeeCapMultiplier is the multiplier applied to the current blob base fee to compute
+	// the blob fee cap used in blob transactions. Must be >= 2. Default is 4.
+	// Previously this was hardcoded to 2, which caused "max fee per blob gas less than block
+	// blob gas fee" errors during fee spikes because the cap was too close to the base fee.
+	BlobFeeCapMultiplier uint64
 }
 
 func (m Config) Check() error {

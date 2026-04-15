@@ -2,9 +2,24 @@ package retry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
+
+// ErrUnrecoverable wraps an error to signal that Do should stop retrying immediately.
+// Use Unrecoverable(err) to wrap an error before returning it from the operation.
+type ErrUnrecoverable struct {
+	Err error
+}
+
+func (e *ErrUnrecoverable) Error() string { return e.Err.Error() }
+func (e *ErrUnrecoverable) Unwrap() error { return e.Err }
+
+// Unrecoverable wraps err so that Do stops retrying and returns immediately.
+func Unrecoverable(err error) error {
+	return &ErrUnrecoverable{Err: err}
+}
 
 // ErrFailedPermanently is an error raised by Do when the
 // underlying Operation has been retried maxAttempts times.
@@ -52,6 +67,11 @@ func Do[T any](ctx context.Context, maxAttempts int, strategy Strategy, op func(
 		ret, err = op()
 		if err == nil {
 			return ret, nil
+		}
+		// Stop immediately for unrecoverable errors (no retries, no sleep)
+		var unrecoverable *ErrUnrecoverable
+		if errors.As(err, &unrecoverable) {
+			return empty, unrecoverable.Err
 		}
 		// Don't sleep when we are about to exit the loop & return ErrFailedPermanently
 		if i != maxAttempts-1 {

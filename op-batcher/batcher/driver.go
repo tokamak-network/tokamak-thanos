@@ -555,6 +555,9 @@ func (l *BatchSubmitter) calldataTxCandidate(data []byte) *txmgr.TxCandidate {
 func (l *BatchSubmitter) handleReceipt(r txmgr.TxReceipt[txID]) {
 	// Record TX Status
 	if r.Err != nil {
+		if errors.Is(r.Err, txmgr.ErrBlobBaseFeeTooHigh) {
+			l.Log.Warn("Blob base fee above threshold, pausing submission cycle; will retry next tick", "err", r.Err)
+		}
 		l.recordFailedTx(r.ID, r.Err)
 	} else {
 		l.recordConfirmedTx(r.ID, r.Receipt)

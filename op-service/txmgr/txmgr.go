@@ -43,8 +43,9 @@ var (
 	ninetyNine = big.NewInt(99)
 	two        = big.NewInt(2)
 
-	ErrBlobFeeLimit = errors.New("blob fee limit reached")
-	ErrClosed       = errors.New("transaction manager is closed")
+	ErrBlobFeeLimit      = errors.New("blob fee limit reached")
+	ErrClosed            = errors.New("transaction manager is closed")
+	ErrBlobBaseFeeTooHigh = errors.New("blob base fee too high")
 )
 
 // TxManager is an interface that allows callers to reliably publish txs,
@@ -233,6 +234,9 @@ func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*typ
 		}
 		tx, err := m.craftTx(ctx, candidate)
 		if err != nil {
+			if errors.Is(err, ErrBlobBaseFeeTooHigh) {
+				return nil, retry.Unrecoverable(err)
+			}
 			m.l.Warn("Failed to create a transaction, will retry", "err", err)
 		}
 		return tx, err
@@ -256,6 +260,16 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		return nil, fmt.Errorf("failed to get gas price info: %w", err)
 	}
 	gasFeeCap := calcGasFeeCap(baseFee, gasTipCap)
+
+	// Check blob base fee threshold before proceeding (fail fast, no retries)
+	if len(candidate.Blobs) > 0 && blobBaseFee != nil && m.cfg.MaxBlobBaseFee != nil {
+		if blobBaseFee.Cmp(m.cfg.MaxBlobBaseFee) > 0 {
+			m.l.Warn("Blob base fee above threshold, pausing submission",
+				"blob_base_fee", blobBaseFee,
+				"max_blob_base_fee", m.cfg.MaxBlobBaseFee)
+			return nil, ErrBlobBaseFeeTooHigh
+		}
+	}
 
 	var sidecar *types.BlobTxSidecar
 	var blobHashes []common.Hash
@@ -328,7 +342,17 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		if blobBaseFee == nil {
 			return nil, fmt.Errorf("expected non-nil blobBaseFee")
 		}
-		blobFeeCap := calcBlobFeeCap(blobBaseFee)
+		// Refresh blob base fee to get the latest value (the initial fetch may be stale
+		// after EstimateGas completes). Use max(old, new) to avoid violating bump rules.
+		if _, _, freshBlobBaseFee, refreshErr := m.suggestGasPriceCaps(ctx); refreshErr == nil && freshBlobBaseFee != nil {
+			m.l.Debug("Refreshed blob base fee before finishBlobTx",
+				"old_blob_base_fee", blobBaseFee,
+				"new_blob_base_fee", freshBlobBaseFee)
+			if freshBlobBaseFee.Cmp(blobBaseFee) > 0 {
+				blobBaseFee = freshBlobBaseFee
+			}
+		}
+		blobFeeCap := m.calcBlobFeeCap(blobBaseFee)
 		message := &types.BlobTx{
 			To:         *candidate.To,
 			Data:       candidate.TxData,
@@ -884,7 +908,7 @@ func (m *SimpleTxManager) checkBlobFeeLimits(blobBaseFee, bumpedBlobFee *big.Int
 	if thr := m.cfg.FeeLimitThreshold; thr != nil && thr.Cmp(bumpedBlobFee) == 1 {
 		return nil
 	}
-	maxBlobFee := new(big.Int).Mul(calcBlobFeeCap(blobBaseFee), big.NewInt(int64(m.cfg.FeeLimitMultiplier)))
+	maxBlobFee := new(big.Int).Mul(m.calcBlobFeeCap(blobBaseFee), big.NewInt(int64(m.cfg.FeeLimitMultiplier)))
 	if bumpedBlobFee.Cmp(maxBlobFee) > 0 {
 		return fmt.Errorf(
 			"bumped blob fee %v is over %dx multiple of the suggested value: %w",
@@ -959,6 +983,20 @@ func calcGasFeeCap(baseFee, gasTipCap *big.Int) *big.Int {
 // value, with a minimum value of minBlobTxFee.
 func calcBlobFeeCap(blobBaseFee *big.Int) *big.Int {
 	cap := new(big.Int).Mul(blobBaseFee, two)
+	if cap.Cmp(minBlobTxFee) < 0 {
+		cap.Set(minBlobTxFee)
+	}
+	return cap
+}
+
+// calcBlobFeeCap computes the blob fee cap using the configured multiplier (default 4×).
+// It replaces the package-level calcBlobFeeCap in hot paths so the multiplier is configurable.
+func (m *SimpleTxManager) calcBlobFeeCap(blobBaseFee *big.Int) *big.Int {
+	multiplier := m.cfg.BlobFeeCapMultiplier
+	if multiplier < 2 {
+		multiplier = 4
+	}
+	cap := new(big.Int).Mul(blobBaseFee, new(big.Int).SetUint64(multiplier))
 	if cap.Cmp(minBlobTxFee) < 0 {
 		cap.Set(minBlobTxFee)
 	}
