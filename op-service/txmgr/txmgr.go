@@ -868,10 +868,7 @@ func (m *SimpleTxManager) suggestGasPriceCaps(ctx context.Context) (*big.Int, *b
 
 	var blobFee *big.Int
 	if head.ExcessBlobGas != nil {
-		// Treat excessBlobGas as 0 to use minimum blob base fee.
-		// Sepolia testnet accumulates abnormally high excessBlobGas which causes
-		// astronomically inflated fee estimates, making blob txs unsubmittable.
-		blobFee = eth.CalcBlobFeeCancun(0)
+		blobFee = eth.CalcBlobFeeCancun(*head.ExcessBlobGas)
 		m.metr.RecordBlobBaseFee(blobFee)
 	}
 	return tip, baseFee, blobFee, nil
