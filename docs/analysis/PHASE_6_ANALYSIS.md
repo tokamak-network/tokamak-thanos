@@ -434,7 +434,7 @@ func (r *StackRepository) UpdateMetadata(
 
 **관련 파일**:
 - `tokamak-thanos/op-chain-ops/` (genesis, rollup 생성 로직)
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (DeploymentPath 설정)
+- `trh-backend/pkg/services/thanos/deployment.go` (DeploymentPath 설정)
 
 ---
 
