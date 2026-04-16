@@ -40,6 +40,12 @@ jobs:
           pnpm install --no-frozen-lockfile
           forge build
 
+      - name: Clean up build artifacts before release
+        run: |
+          git checkout pnpm-lock.yaml
+          rm -f packages/tokamak/contracts-bedrock/foundry.lock
+          git status
+
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
