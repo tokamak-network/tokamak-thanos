@@ -41,7 +41,7 @@ func deployRawContract(ctx context.Context, client *ethclient.Client, auth *bind
 	if err != nil {
 		return common.Address{}, err
 	}
-	log.Printf("[deployer] Suggested gas price: %v Gwei", gasPrice.Div(gasPrice, big.NewInt(1e9)))
+	log.Printf("[deployer] Suggested gas price: %v Gwei", new(big.Int).Div(gasPrice, big.NewInt(1e9)))
 
 	tx := types.NewContractCreation(*nonce, common.Big0, 5_000_000, gasPrice, bytecodeWithArgs)
 	*nonce++
