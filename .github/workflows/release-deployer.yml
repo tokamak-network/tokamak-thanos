@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+      - 'tokamak-deployer-v*'
 
 jobs:
   release:
