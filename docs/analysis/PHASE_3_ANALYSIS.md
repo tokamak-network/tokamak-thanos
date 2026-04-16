@@ -12,6 +12,21 @@
 
 ---
 
+## 용어 정의
+
+본 문서에서 사용되는 주요 용어:
+
+- **Handler**: HTTP 요청을 수신하고 응답하는 진입점. 예: `PresetDeploy()` 핸들러
+- **Stack**: 배포된 Rollup의 논리적 단위. 단일 스택은 L1/L2 컨트랙트, AWS 인프라, 통합 모듈을 포함
+- **Deployment**: 스택 내의 단일 배포 단계. 예: "deploy_l1_contracts", "deploy_aws_infrastructure"
+- **TaskManager**: 메모리 기반 작업 큐 시스템. 워커 풀을 관리하고 비동기 작업 실행
+- **Queue**: 실행 대기 중인 작업들을 보관하는 채널 기반 버퍼
+- **Worker**: TaskManager가 관리하는 고루틴. 큐에서 작업을 획득하고 순차 실행
+- **DeploymentStatus**: 배포 단계의 상태 (Pending, InProgress, Success, Failed, Cancelled)
+- **IntegrationEntity**: Bridge, BlockExplorer 등 선택적 모듈. 기본 배포 완료 후 자동 설치
+
+---
+
 ## 개요
 
 Phase 3는 클라이언트의 배포 요청이 백엔드에서 어떻게 수신, 검증, 데이터베이스에 저장되고, 비동기 작업 큐를 통해 오케스트레이션되는지를 다룬다. 핵심 특징은:
@@ -84,11 +99,22 @@ func (h *PresetHandler) PresetDeploy(c *gin.Context) {
 **응답 구조** (`entities.Response`):
 ```go
 type Response struct {
-	Success    bool        `json:"success"`
-	Message    string      `json:"message"`
-	Data       interface{} `json:"data"`
-	StackID    string      `json:"stack_id"`
-	DeploymentID string    `json:"deployment_id"`
+	Status  int         `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+```
+
+**응답 데이터 형식** (Data 필드에 포함):
+```go
+// 성공 응답 예시
+{
+  "status": 200,
+  "message": "Stack deployment queued",
+  "data": {
+    "stackId": "550e8400-e29b-41d4-a716-446655440000",
+    "deploymentId": "660f9511-f3ac-52e5-b827-557766551111"
+  }
 }
 ```
 
@@ -400,8 +426,28 @@ func (s *ThanosStackDeploymentService) executeDeployments(
 		go func() {
 			switch deployment.Step {
 			case "deploy_l1_contracts":
+				// executeL1Deployment 함수 호출
+				// 시그니처: func (s *ThanosStackDeploymentService) executeL1Deployment(
+				//   ctx context.Context,
+				//   stackID uuid.UUID,
+				//   deployment *entities.DeploymentEntity,
+				//   logPath string,
+				//   statusChan chan DeploymentStatus,
+				// )
+				// 입력: 컨텍스트, 스택 ID, 배포 엔티티, 로그 경로, 상태 채널
+				// 출력: statusChan을 통해 진행 상황 및 에러 보고
 				s.executeL1Deployment(ctx, stackID, deployment, logFile.Name(), statusChan)
 			case "deploy_aws_infrastructure":
+				// executeAWSDeployment 함수 호출
+				// 시그니처: func (s *ThanosStackDeploymentService) executeAWSDeployment(
+				//   ctx context.Context,
+				//   stackID uuid.UUID,
+				//   deployment *entities.DeploymentEntity,
+				//   logPath string,
+				//   statusChan chan DeploymentStatus,
+				// )
+				// 입력: 컨텍스트, 스택 ID, 배포 엔티티, 로그 경로, 상태 채널
+				// 출력: statusChan을 통해 진행 상황 및 에러 보고
 				s.executeAWSDeployment(ctx, stackID, deployment, logFile.Name(), statusChan)
 			default:
 				statusChan <- DeploymentStatus{Error: fmt.Errorf("unknown step: %s", deployment.Step)}
@@ -461,19 +507,78 @@ type DeploymentStatus struct {
 ```
 
 **L1 배포 단계** (`executeL1Deployment`):
+
+**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+
+**함수 시그니처**:
+```go
+func (s *ThanosStackDeploymentService) executeL1Deployment(
+	ctx context.Context,
+	stackID uuid.UUID,
+	deployment *entities.DeploymentEntity,
+	logPath string,
+	statusChan chan DeploymentStatus,
+)
+```
+
+**입력 파라미터**:
+- `ctx`: 컨텍스트 (취소 신호 지원)
+- `stackID`: 배포할 스택의 ID
+- `deployment`: DeploymentEntity (L1 단계 메타데이터)
+- `logPath`: 로그 파일 경로
+- `statusChan`: 진행 상황 보고 채널 (비동기 콜백)
+
+**statusChan 메커니즘**:
+- DeploymentStatus 구조체를 statusChan 채널로 전송
+- `{Message: string, Progress: float64, Error: error}`
+- 호출자는 이 채널을 `range statusChan`으로 모니터링
+- 함수 반환 전 statusChan을 close()
+
+**주요 동작**:
 - 계정 자금 조달 확인
 - Admin 계정에 ETH 전송
 - OP 컨트랙트 배포 (AddressManager, L1StandardBridge 등)
 - L1 배포 config 저장
 - Rollup config 생성
+- statusChan을 통해 진행률 보고 (0% → 50% → 100%)
+
+---
 
 **AWS 배포 단계** (`executeAWSDeployment`):
-- Kubernetes 클러스터 생성
+
+**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+
+**함수 시그니처**:
+```go
+func (s *ThanosStackDeploymentService) executeAWSDeployment(
+	ctx context.Context,
+	stackID uuid.UUID,
+	deployment *entities.DeploymentEntity,
+	logPath string,
+	statusChan chan DeploymentStatus,
+)
+```
+
+**입력 파라미터**:
+- `ctx`: 컨텍스트 (취소 신호 지원)
+- `stackID`: 배포할 스택의 ID
+- `deployment`: DeploymentEntity (AWS 단계 메타데이터)
+- `logPath`: 로그 파일 경로
+- `statusChan`: 진행 상황 보고 채널 (비동기 콜백)
+
+**statusChan 메커니즘**:
+- DeploymentStatus 구조체를 statusChan 채널로 전송
+- 호출자는 statusChan을 통해 실시간 진행률 수신
+- EKS 클러스터 생성 (10-60%), Pod 배포 (60-90%), 헬스 체크 (90-100%)
+
+**주요 동작**:
+- Kubernetes 클러스터 생성 (EKS)
 - Persistent Volume 생성
 - ConfigMap에서 L1 메타데이터 로드
 - Docker 이미지 풀
 - Pod 스펙 생성 (op-node, op-geth, op-batcher, op-proposer)
 - Pod 실행 및 헬스 체크
+- statusChan을 통해 진행률 보고
 
 ---
 
@@ -667,11 +772,21 @@ func (tm *TaskManager) GetProgress(id string) *TaskProgress {
 ```
 
 **특징**:
-- 메모리 효율적 (프로세스 종료 시 큐 손실 가능 → persistent storage 불필요)
-- 단일 머신 배포에 최적화 (다중 서버 배포 시 대안 필요)
+- **메모리 기반 저장소**: 진행 중인 작업 및 진행률만 메모리에 유지
+- **현재 상태**: 프로세스 종료 시 미완료 작업 손실 (persistence 미지원)
+- **단일 머신 배포에 최적화**: 다중 서버 배포 시 Redis/RabbitMQ 필요
 - 워커 수 설정 가능 (기본: 4개)
 - 작업당 컨텍스트 기반 취소 지원
 - Panic 복구로 워커 크래시 방지
+
+**Persistence 설계 고려사항** (향후 개선):
+- 현재: 작업 큐는 메모리 채널만 사용
+- 문제: 서버 재시작 시 진행 중인 배포 작업 손실
+- 해결 옵션 (미구현):
+  1. **Redis 기반 큐**: RabbitMQ 또는 Redis Streams 사용 (외부 의존성 추가)
+  2. **데이터베이스 큐**: PostgreSQL 기반 job queue (현재 DB 활용)
+  3. **파일 기반 체크포인트**: 진행 상태를 주기적으로 파일에 저장
+- 현재 단계에서는 메모리 큐만 지원하며, production에서 high availability 필요 시 별도 설계 필요
 
 ---
 
@@ -744,7 +859,7 @@ type DeploymentEntity struct {
 	Step                string              // 배포 단계명
 	                                         // "deploy_l1_contracts"
 	                                         // "deploy_aws_infrastructure"
-	Status              DeploymentRunStatus // 실행 상태 (아래 참조)
+	Status              DeploymentStatus    // 실행 상태 (아래 참조)
 	LogPath             string              // 로그 파일 경로 (/tmp/deploy_*.log)
 	Config              datatypes.JSON      // 단계별 설정
 	                                         // L1: {
@@ -773,7 +888,7 @@ type DeploymentEntity struct {
 }
 ```
 
-**DeploymentRunStatus enum**:
+**DeploymentStatus enum** (DeploymentEntity용):
 
 | 상태 | 의미 |
 |------|------|
@@ -781,7 +896,6 @@ type DeploymentEntity struct {
 | `InProgress` | 실행 중 |
 | `Success` | 성공 |
 | `Failed` | 실패 |
-| `Stopped` | 중단됨 |
 | `Cancelled` | 취소됨 |
 
 ### IntegrationEntity
@@ -795,7 +909,7 @@ type IntegrationEntity struct {
 	Type      string            // 통합 타입
 	                              // "Bridge", "BlockExplorer", "Monitoring",
 	                              // "CrossChainBridge", "UptimeService", "DRB"
-	Status    DeploymentStatus  // 설치 상태
+	Status    DeploymentStatus  // 설치 상태 (DeploymentStatus enum 참조)
 	Config    datatypes.JSON    // 타입별 설정
 	           // Bridge: {
 	           //   "enabled": true,
@@ -819,19 +933,7 @@ type IntegrationEntity struct {
 }
 ```
 
-**DeploymentStatus enum**:
-
-| 상태 | 의미 |
-|------|------|
-| `Pending` | 대기 중 |
-| `InProgress` | 설치/실행 중 |
-| `Completed` | 완료 |
-| `Failed` | 실패 |
-| `Stopped` | 중단됨 |
-| `Terminating` | 제거 중 |
-| `Terminated` | 제거됨 |
-| `Cancelled` | 취소됨 |
-| `AwaitingConfig` | 설정 대기 중 |
+**참고**: IntegrationEntity의 상태는 DeploymentStatus enum과 동일하며, "InProgress" → "Success" (또는 "Completed") 로 표현되는 설치 상태를 나타냅니다.
 
 ### 데이터베이스 관계도
 
@@ -1379,28 +1481,40 @@ func (s *ThanosStackDeploymentService) autoInstallIntegrations(
 │    │ Step 1: deploy_l1_contracts                               │
 │    │ ├─ DeploymentEntity[0].Status → InProgress              │
 │    │ ├─ 로그 파일 생성                                         │
-│    │ ├─ executeL1Deployment() (비동기)                       │
+│    │ ├─ executeL1Deployment() (고루틴으로 비동기 시작)       │
+│    │ │  동시성 설명: executeL1Deployment 고루틴은 동시에    │
+│    │ │  시작되지만, 메인 고루틴은 statusChan에서 블로킹     │
+│    │ │  대기하여 동기적으로 진행 상황 모니터링.             │
 │    │ │  ├─ 계정 자금 확인                                      │
 │    │ │  ├─ Admin 계정에 ETH 전송                             │
 │    │ │  ├─ 컨트랙트 배포 (AddressManager, Bridge)           │
 │    │ │  ├─ L1 config 저장                                    │
 │    │ │  └─ Rollup config 생성                               │
-│    │ ├─ statusChan 모니터링 (진행률 수신)                   │
+│    │ │  └─ statusChan으로 진행률 보고 (0%→50%→100%)        │
+│    │ ├─ statusChan 모니터링 (진행 상황 동기적 대기)        │
+│    │ │  for status := range statusChan {                      │
+│    │ │    logger.Info() // 각 상태 변화 로깅                  │
+│    │ │  }                                                      │
 │    │ ├─ ctx.Done() 확인 (취소 신호)                         │
 │    │ └─ DeploymentEntity[0].Status → Success                │
 │    │
 │    │ Step 2: deploy_aws_infrastructure                        │
 │    │ ├─ DeploymentEntity[1].Status → InProgress             │
 │    │ ├─ 로그 파일 생성                                        │
-│    │ ├─ executeAWSDeployment() (비동기)                     │
-│    │ │  ├─ K8s 클러스터 생성                                 │
+│    │ ├─ executeAWSDeployment() (고루틴으로 비동기 시작)     │
+│    │ │  동시성 설명: Step 1과 동일. AWS 배포 고루틴은       │
+│    │ │  동시에 시작되지만, 메인 고루틴은 statusChan에서     │
+│    │ │  블로킹 대기하여 K8s 생성 진행률(10-60%),            │
+│    │ │  Pod 배포(60-90%), 헬스 체크(90-100%)를 모니터링.   │
+│    │ │  ├─ K8s 클러스터 생성 (20분 소요)                     │
 │    │ │  ├─ Persistent Volume 생성                           │
 │    │ │  ├─ ConfigMap에서 L1 메타데이터 로드                 │
 │    │ │  ├─ Pod 스펙 생성 (op-node, op-geth, ...)           │
 │    │ │  ├─ Pod 실행                                         │
 │    │ │  └─ 헬스 체크                                        │
-│    │ ├─ statusChan 모니터링                                 │
-│    │ ├─ ctx.Done() 확인                                      │
+│    │ │  └─ statusChan으로 진행률 보고 (10%→60%→100%)       │
+│    │ ├─ statusChan 모니터링 (진행 상황 동기적 대기)        │
+│    │ ├─ ctx.Done() 확인 (취소 신호)                         │
 │    │ └─ DeploymentEntity[1].Status → Success               │
 │    │
 │    └─────────────────────┘
@@ -1427,6 +1541,23 @@ func (s *ThanosStackDeploymentService) autoInstallIntegrations(
 │                                                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+### 동시성 설명
+
+**클라이언트 관점**:
+- Step 4.8: 배포 작업 큐잉 후 즉시 HTTP 응답 (비동기 실행 시작)
+- 클라이언트는 작업 ID를 받고 즉시 반환 (동기적 응답)
+
+**서버 백그라운드 (TaskManager 워커)**:
+- Step 5-7: 워커 고루틴이 배포 작업 실행
+- 각 배포 단계 내에서:
+  - `executeL1Deployment()` 고루틴 시작 (비동기)
+  - 메인 고루틴은 `statusChan`에서 블로킹 대기 (동기적)
+  - 진행 상황이 업데이트될 때마다 statusChan에서 수신
+  - 고루틴이 완료될 때까지 다음 단계로 진행하지 않음
+  - 따라서 L1 완료 후 AWS 단계 순차 실행
+
+**결론**: 동시성은 클라이언트와 서버 간의 비동기 통신을 의미하며, 배포 단계는 순차적으로 실행되고, 각 단계 내에서 statusChan 채널을 통해 진행 상황을 동기적으로 모니터링합니다.
 
 ### 시간 추정
 
