@@ -1,8 +1,5 @@
 version: 1
 
-env:
-  - GORELEASER_CURRENT_TAG='{{ trimPrefix .Tag "tokamak-deployer-" }}'
-
 before:
   hooks:
     - bash cmd/tokamak-deployer/scripts/extract-artifacts.sh \
