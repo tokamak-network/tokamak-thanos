@@ -163,7 +163,7 @@ Phase 6는 Phase 5에서 생성된 L1/L2 배포 결과(genesis.json, rollup.json
 
 ### 6.1 메인 배포 진입점: deploy() 함수
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+**파일**: `trh-backend/pkg/services/thanos/deployment.go`
 
 **함수 범위**: `deploy()` (라인 31-437)
 
@@ -213,15 +213,15 @@ func (s *ThanosStackDeploymentService) deploy(ctx context.Context, stackId uuid.
    ```
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/service.go` (ThanosStackDeploymentService 정의)
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (UpdateStatus, UpdateMetadata)
-- `/Users/theo/workspace_tokamak/trh-sdk/pkg/stacks/thanos/client.go` (ShowChainInformation)
+- `trh-backend/pkg/services/thanos/service.go` (ThanosStackDeploymentService 정의)
+- `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (UpdateStatus, UpdateMetadata)
+- `trh-sdk/pkg/stacks/thanos/client.go` (ShowChainInformation)
 
 ---
 
 ### 6.2 배포 실행 함수: executeDeployments()
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+**파일**: `trh-backend/pkg/services/thanos/deployment.go`
 
 **함수 범위**: `executeDeployments()` (라인 439-653)
 
@@ -277,14 +277,14 @@ func (s *ThanosStackDeploymentService) executeDeployments(ctx context.Context, s
    ```
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-sdk/pkg/stacks/thanos/deploy.go` (DeployL1Contracts, DeployAWSInfrastructure)
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/deployment.go` (UpdateDeploymentStatus)
+- `trh-sdk/pkg/stacks/thanos/deploy.go` (DeployL1Contracts, DeployAWSInfrastructure)
+- `trh-backend/pkg/infrastructure/postgres/repositories/deployment.go` (UpdateDeploymentStatus)
 
 ---
 
 ### 6.3 스택 상태 업데이트: UpdateStatus()
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go`
+**파일**: `trh-backend/pkg/infrastructure/postgres/repositories/stack.go`
 
 **함수 범위**: `UpdateStatus()` (라인 82-92)
 
@@ -328,13 +328,13 @@ func (r *StackRepository) UpdateStatus(
 - 동시성: 여러 작업이 동시에 업데이트 시 race condition 가능 (SELECT-UPDATE 사이의 간격)
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/schemas/stack.go` (Stack 스키마)
+- `trh-backend/pkg/infrastructure/postgres/schemas/stack.go` (Stack 스키마)
 
 ---
 
 ### 6.4 메타데이터 저장: UpdateMetadata()
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go`
+**파일**: `trh-backend/pkg/infrastructure/postgres/repositories/stack.go`
 
 **함수 범위**: `UpdateMetadata()` (라인 94-106)
 
@@ -387,14 +387,14 @@ func (r *StackRepository) UpdateMetadata(
 ```
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/domain/entities/stack.go` (StackMetadata 정의)
+- `trh-backend/pkg/domain/entities/stack.go` (StackMetadata 정의)
 
 ---
 
 ### 6.5 Genesis/Rollup 파일 저장: 암묵적 저장
 
 **파일**: 
-- `/Users/theo/workspace_tokamak/tokamak-thanos/op-chain-ops/cmd/registry-data/main.go` (genesis 생성)
+- `tokamak-thanos/op-chain-ops/cmd/registry-data/main.go` (genesis 생성)
 - SDK 클라이언트 내부 로직 (파일 시스템 기록)
 
 **목적**: Phase 5에서 생성한 genesis.json, rollup.json을 DeploymentPath에 저장.
@@ -433,14 +433,14 @@ func (r *StackRepository) UpdateMetadata(
 - 권한 문제: DeploymentPath의 쓰기 권한 필요 (컨테이너 내 `/var/deployments`)
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/tokamak-thanos/op-chain-ops/` (genesis, rollup 생성 로직)
+- `tokamak-thanos/op-chain-ops/` (genesis, rollup 생성 로직)
 - `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (DeploymentPath 설정)
 
 ---
 
 ### 6.6 통합 설정: SetupBridge()
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+**파일**: `trh-backend/pkg/services/thanos/deployment.go`
 
 **함수 범위**: `deploy()` 내 라인 145-177 (SetupBridge 호출 부분)
 
@@ -481,14 +481,14 @@ func (r *StackRepository) UpdateMetadata(
    ```
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/integration.go` (UpdateMetadataAfterInstalled)
-- `/Users/theo/workspace_tokamak/trh-sdk/pkg/utils/` (ReadDeployementConfigFromJSONFile)
+- `trh-backend/pkg/infrastructure/postgres/repositories/integration.go` (UpdateMetadataAfterInstalled)
+- `trh-sdk/pkg/utils/` (ReadDeployementConfigFromJSONFile)
 
 ---
 
 ### 6.7 CrossTrade 자동 설치: autoInstallCrossTradeLocal()
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go`
+**파일**: `trh-backend/pkg/services/thanos/deployment.go`
 
 **함수 범위**: `autoInstallCrossTradeLocal()` (라인 672-732)
 
@@ -553,14 +553,14 @@ func (s *ThanosStackDeploymentService) autoInstallCrossTradeLocal(
 - L2 디플로이어 nonce 예약 문제: AA Operator 시작 전에 실행 필요
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/integrations/cross_trade.go` (CrossTrade 등록)
-- `/Users/theo/workspace_tokamak/trh-sdk/pkg/stacks/thanos/deploy_cross_trade.go` (SDK 구현)
+- `trh-backend/pkg/services/thanos/integrations/cross_trade.go` (CrossTrade 등록)
+- `trh-sdk/pkg/stacks/thanos/deploy_cross_trade.go` (SDK 구현)
 
 ---
 
 ### 6.8 클라이언트 알림 메커니즘: 폴링 기반
 
-**파일**: `/Users/theo/workspace_tokamak/trh-backend/pkg/api/handlers/thanos/`
+**파일**: `trh-backend/pkg/api/handlers/thanos/`
 
 **목적**: 클라이언트가 배포 상태를 주기적으로 조회하고, 스택 상태 변화를 감지.
 
@@ -613,7 +613,7 @@ func (s *ThanosStackDeploymentService) autoInstallCrossTradeLocal(
 - 미지원 기능: 실시간 알림 (WebSocket), 배포 진행률
 
 **관련 파일**:
-- `/Users/theo/workspace_tokamak/trh-backend/pkg/api/handlers/thanos/queries.go` (GetStack 핸들러)
+- `trh-backend/pkg/api/handlers/thanos/queries.go` (GetStack 핸들러)
 
 ---
 
@@ -703,7 +703,7 @@ sequenceDiagram
 
 ### 6.1 StackMetadata 구조체
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/domain/entities/stack.go`
+**위치**: `trh-backend/pkg/domain/entities/stack.go`
 
 ```json
 {
@@ -886,7 +886,7 @@ sequenceDiagram
 | **원인** | 디스크 용량 부족 (<100MB), DeploymentPath 권한 부족, 파일시스템 오류 |
 | **감지 방법** | SDK 내부 `DeployL1Contracts()` 또는 `BuildL2Genesis()` 반환 에러 |
 | **처리 방법** | 상태 → FailedToDeploy, reason 에러 메시지 저장, 클라이언트에 알림 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 583-599) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 583-599) |
 | **복구 방법** | 디스크 용량 확보 후 배포 재시도 |
 
 #### 2. 데이터베이스 트랜잭션 실패
@@ -897,7 +897,7 @@ sequenceDiagram
 | **원인** | DB 연결 끊김, 데드락(deadlock), 권한 부족, 스키마 오류 |
 | **감지 방법** | `UpdateStatus()` 반환 에러 체크 (라인 71-76) |
 | **처리 방법** | 에러 로깅, 스택 상태는 `Deployed`로 설정되었으나 메타데이터 누락 가능 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 71-76) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 71-76) |
 | **복구 방법** | 일관성 수정: 다시 `UpdateMetadata()` 호출하거나 클라이언트 재요청 |
 
 **주의사항**: UpdateStatus와 UpdateMetadata가 동시에 실패하면 상태 불일치 발생 가능.
@@ -913,7 +913,7 @@ sequenceDiagram
 | **원인** | L1 RPC URL이 다운되었거나 느림, 네트워크 지연 |
 | **감지 방법** | `ShowChainInformation()` 타임아웃 또는 JSON-RPC 에러 |
 | **처리 방법** | 에러 반환 → StackStatus = FailedToDeploy |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 113-117) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 113-117) |
 | **복구 방법** | L1 RPC URL 복구 후 배포 재시도 (혹은 ReadDeploymentConfig 수동 호출) |
 
 #### 4. 부분 영속성 (파일 저장됨, DB 실패)
@@ -924,7 +924,7 @@ sequenceDiagram
 | **원인** | DB 트랜잭션 타임아웃, 동시성 문제 |
 | **감지 방법** | UpdateMetadata 에러 반환 (라인 138-141) |
 | **처리 방법** | 파일은 존재하나 DB 메타데이터 누락, 스택 상태 = Deployed하지만 메타데이터 조회 불가 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 138-141) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 138-141) |
 | **복구 방법** | UpdateMetadata 재호출, 또는 ShowChainInformation 결과로 메타데이터 재생성 |
 
 **예방 방법**: 
@@ -939,7 +939,7 @@ sequenceDiagram
 | **원인** | 배포 중 클라이언트 취소 신호, L1 배포 시간 초과 |
 | **감지 방법** | `errors.Is(err, context.Canceled)` (라인 34, 584) |
 | **처리 방법** | 에러 반환, 상태 그대로 유지 (Deploying) 또는 Failed로 설정 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 34-37) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 34-37) |
 | **복구 방법** | 수동 취소 또는 재배포 (resume 기능으로 L1 스킵 가능) |
 
 #### 6. 경쟁 조건 (Race Condition)
@@ -950,7 +950,7 @@ sequenceDiagram
 | **원인** | 여러 고루틴이 동시에 UpdateStatus 호출, SELECT-UPDATE 간 gap |
 | **감지 방법** | 스택 상태가 예상과 다름 (Deploying → Deploying으로 유지) |
 | **처리 방법** | 낙관적 잠금 없음, 마지막 쓰기 승리 (Last-Write-Wins) |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 82-92) |
+| **코드 위치** | `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 82-92) |
 | **복구 방법** | 호출 순서 강제화 (한 배포만 시작 허용) |
 
 **현재 상태**: `checkNoActiveLocalStack()` (라인 40-87)는 로컬 배포 동시 실행 방지.
@@ -963,7 +963,7 @@ sequenceDiagram
 | **원인** | 클라이언트 버그, 수동 DB 조작 |
 | **감지 방법** | UpdateStatus 호출 전 상태 검증 부재 |
 | **처리 방법** | 현재: 검증 없음, 모든 전이 허용 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 71, 442) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 71, 442) |
 | **복구 방법** | 올바른 상태로 수동 설정 또는 로직 수정 |
 
 **권장 사항**: 상태 머신 검증 추가 (Pending → Deploying → {Deployed|FailedToDeploy} 경로만 허용).
@@ -976,7 +976,7 @@ sequenceDiagram
 | **원인** | 네트워크 오류, 클라이언트 앱 종료, 브라우저 탭 닫음 |
 | **감지 방법** | 클라이언트 폴링 중단 (하지만 백엔드는 계속 배포 진행) |
 | **처리 방법** | 배포는 계속 진행됨 (goroutine에서 독립적으로 실행) |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 31-437) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 31-437) |
 | **복구 방법** | 클라이언트 재연결 후 GetStackByID로 상태 조회 |
 
 **현재 상태**: 배포는 백엔드에서 계속 진행, 클라이언트는 언제든 재연결 가능.
@@ -989,7 +989,7 @@ sequenceDiagram
 | **원인** | 클라이언트 오프라인, 폴링 간격 길음 |
 | **감지 방법** | 알림 메커니즘 없음 (long-polling만 지원) |
 | **처리 방법** | 현재: 클라이언트가 폴링할 때까지 대기 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/api/handlers/thanos/` |
+| **코드 위치** | `trh-backend/pkg/api/handlers/thanos/` |
 | **복구 방법** | 클라이언트가 폴링 재개하면 자동 감지 |
 
 **향후 개선**: WebSocket 기반 실시간 알림 구현.
@@ -1002,7 +1002,7 @@ sequenceDiagram
 | **원인** | 부분 실패 (파일 저장 O, DB 저장 X), 수동 파일 삭제, 네트워크 오류 |
 | **감지 방법** | 클라이언트가 rollupConfigUrl을 요청했으나 파일 없음 |
 | **처리 방법** | 현재: 감지 메커니즘 없음 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` |
+| **코드 위치** | `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` |
 | **복구 방법** | 수동: 파일 확인 후 메타데이터 수정 또는 재배포 |
 
 **권장 사항**: 배포 완료 전 파일 존재 여부 검증.
@@ -1015,7 +1015,7 @@ sequenceDiagram
 | **원인** | DB 롤백 시 데드락, 파일 삭제 권한 부족 |
 | **감지 방법** | 롤백 에러 로깅 (현재 미구현) |
 | **처리 방법** | 부분 상태 유지 가능 (inconsistent) |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 74) |
+| **코드 위치** | `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 74) |
 | **복구 방법** | 수동 정리 또는 재배포 |
 
 **현재 상태**: 롤백 메커니즘 미구현, 부분 실패 시 상태 불일치 가능.
@@ -1028,7 +1028,7 @@ sequenceDiagram
 | **원인** | Phase 5 op-chain-ops 오류, 파일 쓰기 실패 |
 | **감지 방법** | ShowChainInformation이 L1ChainID = 0 반환 (라인 678) |
 | **처리 방법** | `autoInstallCrossTradeLocal()` 조기 종료, 에러 반환 |
-| **코드 위치** | `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 678-679) |
+| **코드 위치** | `trh-backend/pkg/services/thanos/deployment.go` (라인 678-679) |
 | **복구 방법** | Phase 5 재실행 또는 배포 파일 수동 확인 |
 
 ---
@@ -1043,7 +1043,7 @@ sequenceDiagram
 
 **함정**: 이는 Docker Desktop(macOS/Windows)에서만 작동. Linux에서는 이 DNS명이 해석되지 않음.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 716)
+**위치**: `trh-backend/pkg/services/thanos/deployment.go` (라인 716)
 
 **해결 방법**: 
 ```go
@@ -1078,7 +1078,7 @@ if runtime.GOOS == "linux" {
 
 **함정**: UpdateMetadata에서 에러 반환되지만 호출자가 무시할 수 있음.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 101-104)
+**위치**: `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 101-104)
 
 **해결 방법**:
 ```go
@@ -1099,7 +1099,7 @@ func (r *StackRepository) UpdateMetadata(...) error {
 
 **함정**: 클라이언트는 영원히 "배포 중" 상태 보임.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 71)
+**위치**: `trh-backend/pkg/services/thanos/deployment.go` (라인 71)
 
 **해결 방법**:
 - 연결 풀 재시도 로직 추가 (현재 GORM에서 자동)
@@ -1111,7 +1111,7 @@ func (r *StackRepository) UpdateMetadata(...) error {
 
 **함정**: 특정 조건에서 CrossTrade가 자동 설치되지 않거나 반복 설치될 수 있음.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 346-351)
+**위치**: `trh-backend/pkg/services/thanos/deployment.go` (라인 346-351)
 
 **코드 예시**:
 ```go
@@ -1128,7 +1128,7 @@ if def.Modules["crossTrade"] { // def = preset definition
 
 **함점**: 폴링 간격이 길면 중간 상태 누락 (e.g., InProgress 상태를 건너뜀).
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/api/handlers/thanos/queries.go` (GetStack)
+**위치**: `trh-backend/pkg/api/handlers/thanos/queries.go` (GetStack)
 
 **해결 방법**:
 - 상태 변화 이벤트 로그 추가 (Event Sourcing)
@@ -1140,7 +1140,7 @@ if def.Modules["crossTrade"] { // def = preset definition
 
 **함점**: 메타데이터 일부 필드가 누락되면 기존 데이터가 삭제됨.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 105)
+**위치**: `trh-backend/pkg/infrastructure/postgres/repositories/stack.go` (라인 105)
 
 **해결 방법**:
 ```go
@@ -1157,7 +1157,7 @@ UPDATE stack SET metadata = jsonb_set(metadata, '{bridgeUrl}', '"..."') WHERE id
 
 **함점**: CrossTrade 설치는 성공했으나 AA Operator가 없으면 Account Abstraction 기능 불가.
 
-**위치**: `/Users/theo/workspace_tokamak/trh-backend/pkg/services/thanos/deployment.go` (라인 420-431)
+**위치**: `trh-backend/pkg/services/thanos/deployment.go` (라인 420-431)
 
 **현재 해결**: CrossTrade 설치 후 AA Operator 시작 (주석 라인 619-622 참조).
 
