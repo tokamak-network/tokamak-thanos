@@ -148,7 +148,7 @@ type DeployContractsInput struct {
 }
 ```
 
-**핵심 로직** (라인별 상세):
+**핵심 로직**:
 
 1. **검증 및 초기화** (라인 41-80):
    - DeployConfigPath 존재 확인
@@ -254,7 +254,7 @@ func BuildL2Genesis(config *DeployConfig, l1StartBlock *types.Block) (*core.Gene
 - `config` (*DeployConfig): Phase 4에서 변환된 배포 설정
 - `l1StartBlock` (*types.Block): L1 시작 블록 정보
 
-**핵심 로직** (라인별):
+**핵심 로직**:
 
 1. **Genesis 틀 생성** (라인 46-60):
    ```go
@@ -364,7 +364,8 @@ func NewL2Genesis(config *DeployConfig, block *types.Block) (*core.Genesis, erro
 **핵심 로직**:
 
 ```go
-// 라인 33-40: ChainConfig 생성
+// 라인 33-40에서:
+// ChainConfig 생성
 chainConfig := &params.ChainConfig{
     ChainID:             big.NewInt(int64(config.L2ChainId)),
     HomesteadBlock:      big.NewInt(0),
@@ -383,7 +384,8 @@ chainConfig := &params.ChainConfig{
     GrayGlacierBlock:    big.NewInt(0),
 }
 
-// 라인 42-55: OP Stack 특정 fork 시간
+// 라인 42-55에서:
+// OP Stack 특정 fork 시간
 if config.EcotoneTime != nil {
     chainConfig.Ecotone = config.EcotoneTime
 }
@@ -394,7 +396,8 @@ if config.GraniteTime != nil {
     chainConfig.Granite = config.GraniteTime
 }
 
-// 라인 58-80: Genesis 객체 생성
+// 라인 58-80에서:
+// Genesis 객체 생성
 genesis := &core.Genesis{
     Config:      chainConfig,
     Nonce:       0,
@@ -407,7 +410,8 @@ genesis := &core.Genesis{
     Alloc:       make(core.GenesisAlloc),
 }
 
-// 라인 82-95: 선택 사항: Deposit Contract 정보
+// 라인 82-95에서:
+// 선택 사항: Deposit Contract 정보
 if config.L1Contracts.OptimismPortalProxy != (common.Address{}) {
     genesis.Alloc[config.L1Contracts.OptimismPortalProxy] = 
         types.Account{
@@ -507,7 +511,7 @@ type PredeploysImmutableConfig struct {
 }
 ```
 
-**라인 1080-1150: 핵심 로직**:
+**핵심 로직** (라인 1080-1150):
 
 ```go
 // L1 컨트랙트 주소 검증
@@ -547,7 +551,7 @@ immutableConfig.Create2Deployer =
 // ... (모든 Predeploy 반복)
 ```
 
-**라인 1230-1260: 검증 및 반환**:
+**검증 및 반환** (라인 1230-1260):
 
 ```go
 // 모든 필수 필드 검증
@@ -584,7 +588,7 @@ type StorageConfig struct {
 }
 ```
 
-**라인 1280-1320: L2ToL1MessagePasser**:
+**L2ToL1MessagePasser** (라인 1280-1320):
 
 ```go
 // 초기 상태: msgNonce = 0
@@ -593,7 +597,7 @@ storageConfig[L2ToL1MessagePasserAddress] = map[string]interface{}{
 }
 ```
 
-**라인 1330-1360: L2CrossDomainMessenger**:
+**L2CrossDomainMessenger** (라인 1330-1360):
 
 ```go
 storageConfig[L2CrossDomainMessengerAddress] = map[string]interface{}{
@@ -604,7 +608,7 @@ storageConfig[L2CrossDomainMessengerAddress] = map[string]interface{}{
 }
 ```
 
-**라인 1370-1390: L2StandardBridge**:
+**L2StandardBridge** (라인 1370-1390):
 
 ```go
 storageConfig[L2StandardBridgeAddress] = map[string]interface{}{
@@ -615,7 +619,7 @@ storageConfig[L2StandardBridgeAddress] = map[string]interface{}{
 }
 ```
 
-**라인 1400-1430: L1Block (Oracle)**:
+**L1Block (Oracle)** (라인 1400-1430):
 
 ```go
 // L1Block은 특수 로직: sequencer 업데이트를 통해 매 블록마다 업데이트
@@ -631,7 +635,7 @@ storageConfig[L1BlockAddress] = map[string]interface{}{
 }
 ```
 
-**라인 1440-1450: LegacyERC20NativeToken (조건부)**:
+**LegacyERC20NativeToken** (라인 1440-1450, 조건부):
 
 ```go
 if config.IsNativeTokenERC20 {
@@ -661,16 +665,18 @@ func setProxies(db vm.StateDB, proxyAdminAddr common.Address,
 - 각 Proxy의 admin 슬롯 설정
 - Proxy 바이트코드 배포
 
-**핵심 로직** (라인별):
+**핵심 로직**:
 
 ```go
-// 라인 47-60: Proxy 바이트코드 로드
+// 라인 47-60에서:
+// Proxy 바이트코드 로드
 proxyBytecode, err := bindings.GetProxyBytecode()
 if err != nil {
     return fmt.Errorf("failed to load proxy bytecode: %w", err)
 }
 
-// 라인 65-85: 256개 Proxy 생성
+// 라인 65-85에서:
+// 256개 Proxy 생성
 for i := uint64(0); i < count; i++ {
     // 주소 계산: 0x4200000000000000000000000000000000000000 + i
     addr := common.Address{}
@@ -690,7 +696,8 @@ for i := uint64(0); i < count; i++ {
     db.SetState(addr, adminSlot, proxyAdminAddr.Hash())
 }
 
-// 라인 88-92: 특수 처리 (선택사항)
+// 라인 88-92에서:
+// 특수 처리 (선택사항)
 // 일부 Proxy는 특수 논리 필요 (예: L2UsdcBridge는 USDC 토큰 접근)
 if i == USDC_BRIDGE_INDEX {
     // 특수 바이트코드 로드
@@ -728,16 +735,18 @@ func setupPredeploy(db vm.StateDB, deployResults immutables.DeploymentResults,
 - Proxy의 저장소에 implementation 주소 저장
 - 초기 저장소 값 설정
 
-**핵심 로직** (라인별):
+**핵심 로직**:
 
 ```go
-// 라인 120-125: Proxy 저장소에 implementation 주소 저장
+// 라인 120-125에서:
+// Proxy 저장소에 implementation 주소 저장
 // ERC-1967 Proxy 표준: 0x...05 슬롯 = implementation 주소
 implSlot := common.Hash{}
 implSlot[31] = 0x05
 db.SetState(proxyAddr, implSlot, implAddr.Hash())
 
-// 라인 126-130: Implementation 바이트코드 배포
+// 라인 126-130에서:
+// Implementation 바이트코드 배포
 if bytes, ok := deployResults[name]; ok {
     // immutables.Deploy에서 반환된 바이트코드
     db.SetCode(implAddr, bytes)
@@ -750,7 +759,8 @@ if bytes, ok := deployResults[name]; ok {
     db.SetCode(implAddr, implBytecode)
 }
 
-// 라인 131-135: 초기 저장소 값 설정
+// 라인 131-135에서:
+// 초기 저장소 값 설정
 if storageVals, ok := storage[proxyAddr]; ok {
     // StorageConfig에서 제공된 값들 적용
     for slot, value := range storageVals {
@@ -786,14 +796,16 @@ func Deploy(db vm.StateDB, config *PredeploysImmutableConfig)
 **핵심 로직**:
 
 ```go
-// 라인 40-50: 구현체 주소 계산
+// 라인 40-50에서:
+// 구현체 주소 계산
 // 각 Predeploy는 순차 번호로 배포
 // 예: 
 //   L2ToL1MessagePasser impl: 0x4200000000000000000000000000000000010001
 //   L2CrossDomainMessenger impl: 0x4200000000000000000000000000000000020001
 //   L2StandardBridge impl: 0x4200000000000000000000000000000000030001
 
-// 라인 60-100: 각 Predeploy 배포
+// 라인 60-100에서:
+// 각 Predeploy 배포
 for _, predeploy := range Predeploys {
     // Solc 바이트코드 로드
     bytecode, err := bindings.GetBytecode(predeploy.Name)
@@ -851,10 +863,11 @@ func PerformUpgradeTxs(db vm.StateDB, l1StartBlock *types.Block,
 - EIP-4844 blob 관련 상태 초기화 (Ecotone)
 - 추가 업그레이드 트랜잭션 실행
 
-**핵심 로직** (라인별):
+**핵심 로직**:
 
 ```go
-// 라인 40-60: Ecotone Hard Fork (EIP-4844 활성화)
+// 라인 40-60에서:
+// Ecotone Hard Fork (EIP-4844 활성화)
 if config.EcotoneTime != nil && config.EcotoneTime <= block.Time() {
     // 1. Blob 기본 요금 초기화 (데이터 가스 가격)
     db.SetState(
@@ -871,7 +884,8 @@ if config.EcotoneTime != nil && config.EcotoneTime <= block.Time() {
     )
 }
 
-// 라인 70-100: Fjord Hard Fork
+// 라인 70-100에서:
+// Fjord Hard Fork
 if config.FjordTime != nil && config.FjordTime <= block.Time() {
     // 1. L1Block에 fjordTime 저장
     db.SetState(
@@ -1297,7 +1311,7 @@ sequenceDiagram
     SDK->>SDK: inject-usdc (if needed)
     SDK->>SDK: inject-paymaster (if needed)
     
-    SDK-->>BE: DeployL1ContractsOutput{
+    SDK-->>BE: DeployL1ContractsOutput {GenesisPath, RollupPath, Success}
     
     BE->>FS: Copy genesis.json → stack dir
     BE->>FS: Copy rollup.json → stack dir
@@ -1449,35 +1463,39 @@ type BlockID struct {
 
 ### 6.4 Predeploy 목록 (40+ 계약)
 
+**주소 표기**: 아래 테이블은 전체 42바이트 predeploy 주소를 사용합니다. (`0x420000000000000000000000000000000000XX` 형식)
+
 | # | 주소 | 이름 | Proxy | Implementation | Immutables | Storage |
 |---|------|------|-------|-----------------|-----------|---------|
-| 1 | 0x42...00 | - | - | - | - | - |
-| 2 | 0x42...01 | L2ToL1MessagePasser | ✓ | ✓ | ✗ | ✓ |
-| 3 | 0x42...02 | ExecutionAssertionStatusReporter | ✓ | ✓ | ✗ | ✗ |
-| 4 | 0x42...03 | GovernanceToken | ✓ | ✓ | ✗ | ✓ |
-| 5 | 0x42...04 | L1ERC721Bridge | ✓ | ✓ | ✓ | ✗ |
-| 6 | 0x42...05 | L1ERC20Bridge | ✓ | ✓ | ✓ | ✗ |
-| 7 | 0x42...07 | L2CrossDomainMessenger | ✓ | ✓ | ✓ | ✓ |
-| 8 | 0x42...08 | GasPriceOracle | ✓ | ✓ | ✗ | ✓ |
-| 9 | 0x42...09 | - | - | - | - | - |
-| 10 | 0x42...0A | OptimismMintableERC20Factory | ✓ | ✓ | ✓ | ✗ |
-| 11 | 0x42...0B | ProxyAdmin | ✓ | - | ✗ | ✗ |
-| 12 | 0x42...0C | BaseFeeVault | ✓ | ✓ | ✓ | ✗ |
-| 13 | 0x42...0D | L1FeeVault | ✓ | ✓ | ✓ | ✗ |
-| 14 | 0x42...0E | SequencerFeeVault | ✓ | ✓ | ✓ | ✗ |
-| 15 | 0x42...0F | OptimismMintableERC721Factory | ✓ | ✓ | ✓ | ✗ |
-| 16 | 0x42...10 | L2StandardBridge | ✓ | ✓ | ✓ | ✓ |
-| 17 | 0x42...11 | OptimismERC20 | ✓ | ✓ | ✓ | ✗ |
-| 18 | 0x42...12 | L2ERC721Bridge | ✓ | ✓ | ✓ | ✗ |
-| 19 | 0x42...13 | OptimismMintableERC721 | ✓ | ✓ | ✓ | ✗ |
-| 20 | 0x42...14 | OptimismUsdc | ✓ | ✓ | ✓ | ✗ |
-| 21 | 0x42...15 | L1Block | ✓ | ✓ | ✗ | ✓ |
-| 22 | 0x42...16 | L2ToL1MessagePasser | ✓ | ✓ | ✗ | ✓ |
-| 23 | 0x42...17 | Create2Deployer | ✓ | ✓ | ✗ | ✗ |
-| 24 | 0x42...18 | ProxyAdmin | ✓ | - | ✗ | ✗ |
-| 25 | 0x42...19 | LegacyERC20NativeToken | ✓ | ✓ | ✓ | ✓ |
+| 1 | 0x4200000000000000000000000000000000000000 | - | - | - | - | - |
+| 2 | 0x4200000000000000000000000000000000000001 | L1MessageSender (Legacy) | ✓ | ✓ | ✗ | ✗ |
+| 3 | 0x4200000000000000000000000000000000000002 | ExecutionAssertionStatusReporter | ✓ | ✓ | ✗ | ✗ |
+| 4 | 0x4200000000000000000000000000000000000003 | GovernanceToken | ✓ | ✓ | ✗ | ✓ |
+| 5 | 0x4200000000000000000000000000000000000004 | L1ERC721Bridge | ✓ | ✓ | ✓ | ✗ |
+| 6 | 0x4200000000000000000000000000000000000005 | L1ERC20Bridge | ✓ | ✓ | ✓ | ✗ |
+| 7 | 0x4200000000000000000000000000000000000007 | L2CrossDomainMessenger | ✓ | ✓ | ✓ | ✓ |
+| 8 | 0x4200000000000000000000000000000000000008 | GasPriceOracle | ✓ | ✓ | ✗ | ✓ |
+| 9 | 0x4200000000000000000000000000000000000009 | - | - | - | - | - |
+| 10 | 0x420000000000000000000000000000000000000A | OptimismMintableERC20Factory | ✓ | ✓ | ✓ | ✗ |
+| 11 | 0x420000000000000000000000000000000000000B | ProxyAdmin | ✓ | - | ✗ | ✗ |
+| 12 | 0x420000000000000000000000000000000000000C | BaseFeeVault | ✓ | ✓ | ✓ | ✗ |
+| 13 | 0x420000000000000000000000000000000000000D | L1FeeVault | ✓ | ✓ | ✓ | ✗ |
+| 14 | 0x420000000000000000000000000000000000000E | SequencerFeeVault | ✓ | ✓ | ✓ | ✗ |
+| 15 | 0x420000000000000000000000000000000000000F | OptimismMintableERC721Factory | ✓ | ✓ | ✓ | ✗ |
+| 16 | 0x4200000000000000000000000000000000000010 | L2StandardBridge | ✓ | ✓ | ✓ | ✓ |
+| 17 | 0x4200000000000000000000000000000000000011 | OptimismERC20 | ✓ | ✓ | ✓ | ✗ |
+| 18 | 0x4200000000000000000000000000000000000012 | L2ERC721Bridge | ✓ | ✓ | ✓ | ✗ |
+| 19 | 0x4200000000000000000000000000000000000013 | OptimismMintableERC721 | ✓ | ✓ | ✓ | ✗ |
+| 20 | 0x4200000000000000000000000000000000000014 | OptimismUsdc | ✓ | ✓ | ✓ | ✗ |
+| 21 | 0x4200000000000000000000000000000000000015 | L1Block | ✓ | ✓ | ✗ | ✓ |
+| 22 | 0x4200000000000000000000000000000000000016 | L2ToL1MessagePasser | ✓ | ✓ | ✗ | ✓ |
+| 23 | 0x4200000000000000000000000000000000000017 | Create2Deployer | ✓ | ✓ | ✗ | ✗ |
+| 24 | 0x4200000000000000000000000000000000000018 | ProxyAdmin | ✓ | - | ✗ | ✗ |
+| 25 | 0x4200000000000000000000000000000000000019 | LegacyERC20NativeToken | ✓ | ✓ | ✓ | ✓ |
 | ... | ... | ... | ... | ... | ... | ... |
-| 40+ | 0x42...xx | AccountAbstraction, Gaming, Predeployed Tokens | ✓ | ✓ | ✓ | ✓ |
+| 40+ | 0x420000000000000000000000000000000000XX | AccountAbstraction, Gaming, Predeployed Tokens | ✓ | ✓ | ✓ | ✓ |
+
+**주의**: 위 테이블은 주요 predeploy 계약 25개를 보여줍니다. OP Stack 사양에 따르면 총 40개 이상의 predeploy 계약이 정의되어 있으며, 체인 설정(preset)에 따라 선택적으로 활성화됩니다. 예: GameToken, AccountAbstraction 관련 predeploy 등.
 
 ### 6.5 Storage 값 예시 (JSON)
 
@@ -1511,10 +1529,12 @@ Error: open /path/to/deploy-config.json: no such file or directory
 원인: Phase 4에서 deploy-config.json 생성 실패 또는 경로 오류
 처리: Phase 4 로그 확인, 배포 설정 재검증
 
-코드:
-  if _, err := os.Stat(deployContractsConfig.DeployConfigPath); err != nil {
-      return fmt.Errorf("deploy config not found: %w", err)
-  }
+**코드 위치**: `trh-sdk/pkg/stacks/thanos/deploy_contracts.go` 라인 41-50
+```go
+if _, err := os.Stat(deployContractsConfig.DeployConfigPath); err != nil {
+    return fmt.Errorf("deploy config not found: %w", err)
+}
+```
 ```
 
 **시나리오 1.2**: DeployOutputPath 없음
@@ -1524,10 +1544,12 @@ Error: stat /tmp/deploy-output: no such file or directory
 원인: Phase 4 바이너리 실행 실패
 처리: Phase 4 deploy-contracts 로그 확인
 
-코드:
-  if _, err := os.Stat(deployContractsConfig.DeployOutputPath); err != nil {
-      return fmt.Errorf("deploy output not found: %w", err)
-  }
+**코드 위치**: `trh-sdk/pkg/stacks/thanos/deploy_contracts.go` 라인 55-65
+```go
+if _, err := os.Stat(deployContractsConfig.DeployOutputPath); err != nil {
+    return fmt.Errorf("deploy output not found: %w", err)
+}
+```
 ```
 
 **시나리오 1.3**: OptimismPortalProxy 미설정
@@ -1537,10 +1559,12 @@ Error: OptimismPortalProxy not set in config
 원인: DeployConfig 생성 시 L1 배포 주소 로드 실패
 처리: deploy-output.json 확인, Phase 4 배포 주소 검증
 
-코드 (라인 850):
-  if dc.L1Contracts.OptimismPortalProxy == (common.Address{}) {
-      return nil, fmt.Errorf("OptimismPortalProxy not set")
-  }
+**코드 위치**: `op-chain-ops/genesis/config.go` 라인 850-855
+```go
+if dc.L1Contracts.OptimismPortalProxy == (common.Address{}) {
+    return nil, fmt.Errorf("OptimismPortalProxy not set")
+}
+```
 ```
 
 #### 2. 바이너리 실행 에러
