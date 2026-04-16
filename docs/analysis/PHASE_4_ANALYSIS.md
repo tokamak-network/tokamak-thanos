@@ -345,35 +345,118 @@ func ensureTokamakDeployer(cacheDir string) (string, error) {
 }
 ```
 
-#### 4.4.2 Deploy Contracts 실행 (라인 93-101)
+#### 4.4.2 Foundry 스크립트 실행
 
-**함수**: `runDeployContracts()`
+**tokamak-thanos 내 배포 스크립트**:
+- 진입점: `tokamak-thanos/packages/tokamak/contracts-bedrock/scripts/start-deploy.sh`
+- 파일: `tokamak-thanos/packages/tokamak/contracts-bedrock/scripts/Deploy.s.sol`
+- 스크립트 위치: `packages/tokamak/contracts-bedrock/scripts/Deploy.s.sol` (Foundry 배포 로직)
 
-```go
-func runDeployContracts(ctx context.Context, binaryPath string, opts deployContractsOpts) error {
-    return runBinaryCommand(ctx, binaryPath, []string{
-        "deploy-contracts",
-        "--l1-rpc", opts.L1RPCURL,
-        "--private-key", opts.PrivateKey,
-        "--chain-id", fmt.Sprintf("%d", opts.L2ChainID),
-        "--out", opts.OutPath,
-    })
+**실행 흐름** (start-deploy.sh에서):
+
+```bash
+# 1. 배포 설정 파일 및 환경 변수 로드
+handleScriptInput "$@"  # -c configPath -e envFilePath
+
+# 2. 소스 코드 빌드 (필요시)
+buildSource  # pnpm install, make submodules, forge build 등
+
+# 3. 스마트 컨트랙트 배포
+deployContracts() {
+    export IMPL_SALT=$(openssl rand -hex 32)
+    cd packages/tokamak/contracts-bedrock
+    
+    if [[ -n "$GAS_PRICE" && "$GAS_PRICE" -gt 0 ]]; then
+        forge script scripts/Deploy.s.sol:Deploy \
+          --private-key $GS_ADMIN_PRIVATE_KEY \
+          --broadcast \
+          --rpc-url $L1_RPC_URL \
+          --slow --legacy --non-interactive \
+          --with-gas-price $GAS_PRICE
+    else
+        forge script scripts/Deploy.s.sol:Deploy \
+          --private-key $GS_ADMIN_PRIVATE_KEY \
+          --broadcast \
+          --rpc-url $L1_RPC_URL \
+          --slow --legacy --non-interactive
+    fi
+}
+
+# 4. L2 제네시스 및 롤업 설정 생성
+generateL2Genesis() {
+    forge script scripts/L2Genesis.s.sol:L2Genesis --rpc-url $L1_RPC_URL
+    op-node genesis l2 ...
 }
 ```
 
-**실행 명령어 예**:
+**script 호출 방식**:
 ```bash
-/Users/theo/.trh/bin/tokamak-deployer-v1.0.0 \
-  deploy-contracts \
-  --l1-rpc "https://sepolia.infura.io/..." \
-  --private-key "0x..." \
-  --chain-id "12345" \
-  --out "/path/to/deployment/deploy-output.json"
+# start-deploy.sh 실행
+./start-deploy.sh deploy \
+  -c ./deploy-config.json \
+  -e ./deploy.env
+
+# 또는 재배포
+./start-deploy.sh redeploy \
+  -c ./deploy-config.json \
+  -e ./deploy.env
+
+# 또는 전체 프로세스 (설치 + 빌드 + 배포 + 제네시스)
+./start-deploy.sh all \
+  -c ./deploy-config.json \
+  -e ./deploy.env
 ```
 
-**출력 위치**: 
-- `deploy-output.json`: 배포된 컨트랙트 주소 및 트랜잭션 해시
-- `settings.json`: 배포 설정 (기존에서 상태 업데이트)
+**.env 파일 설정** (tokamak-thanos 루트에서 필요):
+
+환경 변수가 필요합니다:
+
+| 변수명 | 타입 | 필수여부 | 설명 | 예시 |
+|-------|------|---------|------|------|
+| `L1_RPC_URL` | URL | 필수 | L1 노드 RPC 엔드포인트 | https://sepolia.infura.io/v3/... |
+| `GS_ADMIN_PRIVATE_KEY` | Hex | 필수 | 배포 계정의 Private Key (0x 포함) | 0x1234567890abcdef... |
+| `L1_CHAIN_ID` | Number | 필수 | L1 체인 ID (deploy-config.json에서 읽음) | 11155111 (Sepolia) |
+| `DEPLOY_CONFIG_PATH` | Path | 필수 | 배포 설정 JSON 파일 경로 | /tmp/deploy-config.json |
+| `GAS_PRICE` | Number | 선택 | Gas 가격 (wei) | 20000000000 |
+
+**deploy-config.json 예시** (deploy/deploy-config.json에서):
+```json
+{
+  "l1ChainID": 11155111,
+  "l2ChainID": 1729,
+  "l1BlockTime": 12,
+  "l2BlockTime": 12,
+  "maxSequencerDrift": 600,
+  "sequencerWindowSize": 3600,
+  "channelTimeout": 300,
+  "p2pSequencerAddress": "0x...",
+  "batchInboxAddress": "0x",
+  "batchSenderAddress": "0x...",
+  "l2OutputOracleSubmissionInterval": 900,
+  "l2OutputOracleStartingTimestamp": 1234567890,
+  "l2OutputOracleProposer": "0x...",
+  "l2OutputOracleChallenger": "0x...",
+  "finalSystemOwner": "0x...",
+  "superchainConfigGuardian": "0x...",
+  "proxyAdminOwner": "0x...",
+  "baseFeeVaultRecipient": "0x...",
+  "l1FeeVaultRecipient": "0x...",
+  "sequencerFeeVaultRecipient": "0x...",
+  "governanceTokenOwner": "0x...",
+  "governanceTokenSymbol": "THANOS",
+  "governanceTokenName": "Thanos Token"
+}
+```
+
+**검증**:
+- .env 파일이 .gitignore에 포함되어야 함 (Private Key 보안)
+- deploy-config.json은 배포 전에 유효성 검사됨
+- Foundry 스크립트는 `Deploy.s.sol:Deploy` 컨트랙트의 `run()` 함수 실행
+
+**출력 파일**:
+- `deployments/{l1ChainID}-deploy.json`: 배포된 컨트랙트 주소 및 트랜잭션 해시
+- `build/genesis.json`: L2 제네시스 파일
+- `build/rollup.json`: Rollup 설정 메타데이터
 
 #### 4.4.3 Genesis/Rollup 파일 생성 (라인 104-118)
 
@@ -546,6 +629,113 @@ type RegisterCandidateInput struct {
     UseTon    bool      // 항상 true
 }
 ```
+
+---
+
+### 4.9 배포 컨트랙트 순서 및 목록
+
+**배포 순서 및 의존성 분석**:
+
+Foundry 스크립트는 다음 계층적 순서로 컨트랙트를 배포합니다. 배포 순서는 `Deploy.s.sol`의 `_run()` 함수에 의해 정의됩니다:
+
+#### Phase 1: Superchain 설정 (setupSuperchain)
+
+| # | 컨트랙트명 | 종류 | 파일:라인 | 설명 |
+|---|-----------|------|----------|------|
+| 1 | AddressManager | 구현체 | src/legacy/AddressManager.sol:547 | 주소 관리 레지스트리 (레거시) |
+| 2 | ProxyAdmin | 구현체 | src/universal/ProxyAdmin.sol:558 | 프록시 업그레이드 관리자 |
+| 3 | SuperchainConfigProxy | 프록시 | src/universal/Proxy.sol:360 | SuperchainConfig 프록시 (ERC1967) |
+| 4 | SuperchainConfig | 구현체 | src/L1/SuperchainConfig.sol:662 | Superchain 전역 설정 |
+| 5 | ProtocolVersionsProxy | 프록시 | src/universal/Proxy.sol:360 | ProtocolVersions 프록시 (ERC1967) |
+| 6 | ProtocolVersions | 구현체 | src/L1/ProtocolVersions.sol:816 | 프로토콜 버전 관리 |
+
+#### Phase 2: OP Chain 프록시 배포 (deployProxies)
+
+| # | 컨트랙트명 | 종류 | 파일:라인 | 설명 |
+|---|-----------|------|----------|------|
+| 7 | OptimismPortalProxy | 프록시 | src/universal/Proxy.sol:617 | OptimismPortal 프록시 |
+| 8 | SystemConfigProxy | 프록시 | src/universal/Proxy.sol:617 | SystemConfig 프록시 |
+| 9 | L1StandardBridgeProxy | 프록시 | src/legacy/L1ChugSplashProxy.sol:590 | L1StandardBridge 프록시 (ChugSplash) |
+| 10 | L1CrossDomainMessengerProxy | 프록시 | src/legacy/ResolvedDelegateProxy.sol:603 | L1CrossDomainMessenger 프록시 (ResolvedDelegate) |
+| 11 | OptimismMintableERC20FactoryProxy | 프록시 | src/universal/Proxy.sol:617 | OptimismMintableERC20Factory 프록시 |
+| 12 | L1ERC721BridgeProxy | 프록시 | src/universal/Proxy.sol:617 | L1ERC721Bridge 프록시 |
+| 13 | DisputeGameFactoryProxy | 프록시 | src/universal/Proxy.sol:617 | DisputeGameFactory 프록시 |
+| 14 | L2OutputOracleProxy | 프록시 | src/universal/Proxy.sol:617 | L2OutputOracle 프록시 (레거시) |
+| 15 | DelayedWETHProxy | 프록시 | src/universal/Proxy.sol:617 | DelayedWETH 프록시 |
+| 16 | PermissionedDelayedWETHProxy | 프록시 | src/universal/Proxy.sol:617 | PermissionedDelayedWETH 프록시 |
+| 17 | AnchorStateRegistryProxy | 프록시 | src/universal/Proxy.sol:617 | AnchorStateRegistry 프록시 |
+
+#### Phase 3: OP Chain 구현체 배포 (deployImplementations)
+
+| # | 컨트랙트명 | 종류 | 파일:라인 | 설명 | 조건 |
+|---|-----------|------|----------|------|------|
+| 18 | SystemConfig | 구현체 | src/L1/SystemConfig.sol:932 | 시스템 설정 저장소 | reuseDeployment=false |
+| 19 | L1StandardBridge | 구현체 | src/L1/L1StandardBridge.sol:951 | L1-L2 자산 브릿지 | reuseDeployment=false |
+| 20 | L1ERC721Bridge | 구현체 | src/L1/L1ERC721Bridge.sol:970 | L1-L2 ERC721 브릿지 | reuseDeployment=false |
+| 21 | OptimismMintableERC20Factory | 구현체 | src/universal/OptimismMintableERC20Factory.sol:761 | 토큰 팩토리 | reuseDeployment=false |
+| 22 | L1CrossDomainMessenger | 구현체 | src/L1/L1CrossDomainMessenger.sol:674 | 크로스 도메인 메시징 | reuseDeployment=false |
+| 23 | L2OutputOracle | 구현체 | src/L1/L2OutputOracle.sol:738 | L2 상태 출력 오라클 (레거시) | reuseDeployment=false |
+| 24 | OptimismPortal | 구현체 | src/L1/OptimismPortal.sol:692 | 메시지/출금 포털 | reuseDeployment=false |
+| 25 | OptimismPortal2 | 구현체 | src/L1/OptimismPortal2.sol:711 | 메시지/출금 포털 v2 (Fault Proof 활성화) | reuseDeployment=false |
+| 26 | DisputeGameFactory | 구현체 | src/dispute/DisputeGameFactory.sol:779 | 분쟁 게임 생성 팩토리 | reuseDeployment=false |
+| 27 | DelayedWETH | 구현체 | src/dispute/weth/DelayedWETH.sol:794 | Wrapped ETH (지연 출금) | reuseDeployment=false |
+| 28 | AnchorStateRegistry | 구현체 | src/dispute/AnchorStateRegistry.sol:921 | Fault Proof 앵커 상태 레지스트리 | reuseDeployment=false |
+| 29 | PreimageOracle | 구현체 | src/cannon/PreimageOracle.sol:898 | Cannon Preimage 오라클 | 항상 배포 |
+| 30 | MIPS | 구현체 | src/cannon/MIPS.sol:911 | Cannon MIPS VM 구현 | 항상 배포 |
+| 31 | L1UsdcBridge | 구현체 | src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridge.sol:852 | USDC 브릿지 | 항상 배포 |
+
+#### Phase 4: 추가 배포 및 초기화
+
+| # | 컨트랙트명 | 종류 | 파일:라인 | 설명 |
+|---|-----------|------|----------|------|
+| 32 | L1UsdcBridgeProxy | 프록시 | src/USDC/L1/tokamak-UsdcBridge/L1UsdcBridgeProxy.sol:867 | USDC 브릿지 프록시 |
+| 33 | L2NativeToken | 구현체 | src/L1/L2NativeToken.sol:842 | L2 네이티브 토큰 (devnet만) |
+| 34 | DataAvailabilityChallengeProxy | 프록시 | src/universal/Proxy.sol:644 | DAC 프록시 (Plasma 활성화 시) |
+| 35 | DataAvailabilityChallenge | 구현체 | src/L1/DataAvailabilityChallenge.sol:1003 | Data Availability Challenge (Plasma 활성화 시) |
+
+**주요 배포 패턴**:
+
+1. **프록시 우선 배포**: 모든 프록시는 구현체 배포 전에 먼저 배포됨
+2. **구현체 생성**: 각 구현체는 `create2` salt를 사용하여 결정적 배포 주소 생성
+3. **의존성 관리**:
+   - `OptimismPortal` → `OptimismPortalProxy` 업그레이드 (또는 `OptimismPortal2`가 Fault Proof 활성화 시)
+   - `SystemConfig` → `SystemConfigProxy` 업그레이드
+   - `L1StandardBridge` → `L1StandardBridgeProxy` 업그레이드
+   - 기타 브릿지/팩토리 → 해당 프록시 업그레이드
+4. **조건부 배포**:
+   - `reuseDeployment=true`: 구현체 배포 스킵, 기존 주소 재사용
+   - `useFaultProofs()=true`: `OptimismPortal2` 배포 및 초기화
+   - `usePlasma()=true`: DataAvailabilityChallenge 배포 및 초기화
+   - `devnet()=true`: `L2NativeToken` 배포
+
+**초기화 순서** (initializeImplementations):
+
+프록시 업그레이드 및 초기화는 SafeProxy를 통해 수행됩니다:
+
+1. OptimismPortal 또는 OptimismPortal2 (Fault Proof에 따라)
+2. SystemConfig
+3. L1StandardBridge
+4. L1ERC721Bridge
+5. OptimismMintableERC20Factory
+6. L1CrossDomainMessenger
+7. L2OutputOracle (레거시)
+8. DisputeGameFactory
+9. DelayedWETH
+10. PermissionedDelayedWETH
+11. AnchorStateRegistry
+
+**생성 파일**:
+- `deployments/{chainId}-deploy.json`: 모든 배포된 컨트랙트의 주소 및 배포 트랜잭션 정보
+  ```json
+  {
+    "AddressManager": "0x...",
+    "ProxyAdmin": "0x...",
+    "SuperchainConfigProxy": "0x...",
+    "SuperchainConfig": "0x...",
+    ...
+    "AnchorStateRegistry": "0x..."
+  }
+  ```
 
 ---
 
