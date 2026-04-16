@@ -50,9 +50,8 @@ Phase 6는 Phase 5에서 생성된 L1/L2 배포 결과(genesis.json, rollup.json
 - **StackMetadata**: 배포 완료 후 체인 정보를 저장하는 구조
   - `Layer1`: L1 체인명 (e.g., "Ethereum", "Ethereum Sepolia")
   - `Layer2`: L2 체인명 (항상 "Thanos Stack")
-  - `L1ChainId`: L1 체인 ID (uint64, e.g., 1 for Mainnet, 11155111 for Sepolia)
-  - `L2ChainId`: L2 체인 ID (배포 설정에서 지정)
-  - `L1RpcUrl`: L1 노드 RPC URL (배포 입력에서 제공)
+  - `L1ChainId`: L1 체인 ID (int, e.g., 1 for Mainnet, 11155111 for Sepolia)
+  - `L2ChainId`: L2 체인 ID (int, 배포 설정에서 지정)
   - `L2RpcUrl`: L2 op-geth 노드 RPC URL (로컬: http://localhost:8545, AWS: DNS명)
   - `BridgeUrl`: 크로스 체인 브리지 인터페이스 URL
   - `ExplorerUrl`: L2 블록 익스플로러 URL
@@ -71,7 +70,7 @@ Phase 6는 Phase 5에서 생성된 L1/L2 배포 결과(genesis.json, rollup.json
 - **genesis.json**: L2 체인의 초기 상태 파일
   - 위치: `{DeploymentPath}/genesis.json`
   - 내용: 초기 계정 잔액, predeploy 컨트랙트 코드, 저장소 상태
-  - 크기: 대부분 ~20MB-100MB (predeploy 크기에 따라 다름)
+  - 크기: 대부분 ~20-100MB (predeploy 크기에 따라 다름)
 
 - **rollup.json**: L2 Rollup 프로토콜 설정 파일
   - 위치: `{DeploymentPath}/rollup.json`
@@ -198,7 +197,7 @@ func (s *ThanosStackDeploymentService) deploy(ctx context.Context, stackId uuid.
    - Config를 DeployThanosRequest로 언마샬
    - SDK 클라이언트 생성
    - ShowChainInformation() 또는 BuildLocalChainInformation() 호출:
-     * L1ChainID, L2ChainID, L2RpcUrl, BridgeUrl, BlockExplorerUrl 추출
+     * Layer1, Layer2, L1ChainId, L2ChainId, L2RpcUrl, BridgeUrl, ExplorerUrl, RollupConfigUrl, MonitoringUrl 추출
    - UpdateMetadata(): 수집된 정보를 Stack.Metadata에 저장
    ```
 
@@ -223,7 +222,7 @@ func (s *ThanosStackDeploymentService) deploy(ctx context.Context, stackId uuid.
 
 **파일**: `trh-backend/pkg/services/thanos/deployment.go`
 
-**함수 범위**: `executeDeployments()` (라인 439-653)
+**함수 범위**: `executeDeployments()` (라인 439-652)
 
 **함수 시그니처**:
 ```go
@@ -401,7 +400,7 @@ func (r *StackRepository) UpdateMetadata(
 
 **입력**: 
 - DeploymentPath: `/deployments/{name}/{network}/{stackId}/`
-- Genesis 상태: ~20-100MB JSONL 형식
+- Genesis 상태: ~20-100MB JSON 형식
 - Rollup 설정: ~5-50KB JSON
 
 **출력**:
@@ -709,9 +708,8 @@ sequenceDiagram
 {
   "layer1": "string",           // "Ethereum", "Ethereum Sepolia"
   "layer2": "string",           // "Thanos Stack" (고정)
-  "l1ChainId": "uint64",        // 1 (mainnet), 11155111 (sepolia)
-  "l2ChainId": "uint64",        // 배포 설정에서 지정 (e.g., 777)
-  "l1RpcUrl": "string",         // "https://sepolia.infura.io/v3/..."
+  "l1ChainId": "int",           // 1 (mainnet), 11155111 (sepolia)
+  "l2ChainId": "int",           // 배포 설정에서 지정 (e.g., 777)
   "l2RpcUrl": "string",         // "http://localhost:8545" or AWS DNS
   "bridgeUrl": "string",        // "http://localhost:3000/bridge"
   "explorerUrl": "string",      // "http://localhost:4000" or external
@@ -742,7 +740,10 @@ sequenceDiagram
     "bridgeUrl": "http://localhost:3000/bridge",
     "explorerUrl": "http://localhost:4000",
     "rollupConfigUrl": "/var/deployments/thanos/sepolia/550e8400.../rollup.json",
-    "monitoringUrl": "http://localhost:3001"
+    "monitoringUrl": "http://localhost:3001",
+    "grafanaUrl": "http://localhost:3001",
+    "crossTradeUrl": "http://localhost:3001/cross-trade",
+    "uptimeServiceUrl": "http://localhost:3001/uptime"
   },
   "createdAt": "2024-01-15T10:30:00Z",
   "updatedAt": "2024-01-15T11:45:00Z",
