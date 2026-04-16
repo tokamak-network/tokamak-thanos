@@ -46,9 +46,18 @@ jobs:
           rm -f packages/tokamak/contracts-bedrock/foundry.lock
           git status
 
+      - name: Extract version from tag
+        run: |
+          TAG=${{ github.ref_name }}
+          # Extract version from tokamak-deployer-vX.Y.Z -> vX.Y.Z
+          VERSION=${TAG#tokamak-deployer-}
+          echo "GORELEASER_CURRENT_TAG=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION from tag: $TAG"
+
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ env.GORELEASER_CURRENT_TAG }}
