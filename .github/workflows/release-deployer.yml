@@ -3,7 +3,6 @@ name: Release tokamak-deployer
 on:
   push:
     tags:
-      - 'v*'
       - 'tokamak-deployer-v*'
 
 jobs:
