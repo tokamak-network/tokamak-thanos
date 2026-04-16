@@ -34,7 +34,7 @@ jobs:
       - name: Build contracts (for artifact extraction)
         working-directory: packages/tokamak/contracts-bedrock
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           forge build
 
       - uses: goreleaser/goreleaser-action@v5
