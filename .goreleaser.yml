@@ -24,7 +24,6 @@ builds:
 archives:
   - id: tokamak-deployer
     name_template: "tokamak-deployer-{{ .Os }}-{{ .Arch }}"
-    formats: [binary]
 
 checksum:
   name_template: "checksums.txt"
