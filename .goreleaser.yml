@@ -1,4 +1,4 @@
-version: 1
+version: 2
 
 before:
   hooks:
@@ -28,8 +28,5 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-release:
-  name_template: "tokamak-deployer/{{ .Version }}"
-
 changelog:
-  skip: true
+  disable: true

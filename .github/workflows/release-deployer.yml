@@ -5,6 +5,9 @@ on:
     tags:
       - 'tokamak-deployer/v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -25,8 +28,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -47,15 +48,29 @@ jobs:
       - name: Extract version from tag
         run: |
           TAG=${{ github.ref_name }}
-          # Extract version from tokamak-deployer/vX.Y.Z -> vX.Y.Z
           VERSION=${TAG#tokamak-deployer/}
           echo "GORELEASER_CURRENT_TAG=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
           echo "Extracted version: $VERSION from tag: $TAG"
 
-      - uses: goreleaser/goreleaser-action@v5
+      - name: Build binaries (no publish)
+        uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean --skip-validate
+          args: release --clean --skip=publish,validate
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ env.GORELEASER_CURRENT_TAG }}
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
+            --prerelease \
+            --notes "Release $TAG_NAME" \
+            dist/tokamak-deployer-darwin-amd64.tar.gz \
+            dist/tokamak-deployer-darwin-arm64.tar.gz \
+            dist/tokamak-deployer-linux-amd64.tar.gz \
+            dist/tokamak-deployer-linux-arm64.tar.gz \
+            dist/checksums.txt
