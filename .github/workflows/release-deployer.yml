@@ -3,7 +3,7 @@ name: Release tokamak-deployer
 on:
   push:
     tags:
-      - 'tokamak-deployer-v*'
+      - 'tokamak-deployer/v*'
 
 jobs:
   release:
@@ -47,8 +47,8 @@ jobs:
       - name: Extract version from tag
         run: |
           TAG=${{ github.ref_name }}
-          # Extract version from tokamak-deployer-vX.Y.Z -> vX.Y.Z
-          VERSION=${TAG#tokamak-deployer-}
+          # Extract version from tokamak-deployer/vX.Y.Z -> vX.Y.Z
+          VERSION=${TAG#tokamak-deployer/}
           echo "GORELEASER_CURRENT_TAG=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION from tag: $TAG"
 

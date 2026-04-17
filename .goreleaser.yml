@@ -28,5 +28,8 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
+release:
+  name_template: "tokamak-deployer/{{ .Version }}"
+
 changelog:
   skip: true
