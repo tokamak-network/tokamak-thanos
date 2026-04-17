@@ -241,6 +241,27 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	output := &DeployOutput{L2ChainID: cfg.L2ChainID, L1ChainID: chainID.Uint64()}
 
+	// Step numbering is computed dynamically so that adding/removing a step only
+	// requires keeping the baseStepCount / fault-proof count accurate, not hand-
+	// editing every "Step X/Y" label in the file.
+	//
+	// Counts must match the number of logStep() calls below:
+	//   baseStepCount  — mandatory path (AddressManager … L2OutputOracle upgrade)
+	//   faultProofSteps — additional steps gated on cfg.EnableFaultProof
+	const (
+		baseStepCount   = 26
+		faultProofSteps = 6
+	)
+	totalSteps := baseStepCount
+	if cfg.EnableFaultProof {
+		totalSteps += faultProofSteps
+	}
+	stepIdx := 0
+	logStep := func(format string, args ...interface{}) {
+		stepIdx++
+		log.Printf("[deployer] Step %d/%d: %s", stepIdx, totalSteps, fmt.Sprintf(format, args...))
+	}
+
 	// Load artifacts
 	proxyArtifact, err := loadArtifact(artifactsFS, "Proxy")
 	if err != nil {
@@ -248,7 +269,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	}
 
 	// 1. Deploy AddressManager
-	log.Printf("[deployer] Step 1/14: Deploying AddressManager")
+	logStep("Deploying AddressManager")
 	addressManagerArtifact, err := loadArtifact(artifactsFS, "AddressManager")
 	if err != nil {
 		return nil, err
@@ -261,7 +282,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ AddressManager deployed: %s", addressManagerAddr.Hex())
 
 	// 2. Deploy ProxyAdmin
-	log.Printf("[deployer] Step 2/14: Deploying ProxyAdmin")
+	logStep("Deploying ProxyAdmin")
 	proxyAdminArtifact, err := loadArtifact(artifactsFS, "ProxyAdmin")
 	if err != nil {
 		return nil, err
@@ -274,7 +295,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ ProxyAdmin deployed: %s", proxyAdminAddr.Hex())
 
 	// 3. Deploy SuperchainConfigProxy
-	log.Printf("[deployer] Step 3/14: Deploying SuperchainConfigProxy")
+	logStep("Deploying SuperchainConfigProxy")
 	superchainConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SuperchainConfigProxy: %w", err)
@@ -283,7 +304,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ SuperchainConfigProxy deployed: %s", superchainConfigProxyAddr.Hex())
 
 	// 4. Deploy SuperchainConfig implementation
-	log.Printf("[deployer] Step 4/14: Deploying SuperchainConfig implementation")
+	logStep("Deploying SuperchainConfig implementation")
 	superchainConfigArtifact, err := loadArtifact(artifactsFS, "SuperchainConfig")
 	if err != nil {
 		return nil, err
@@ -295,14 +316,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ SuperchainConfig impl deployed: %s", superchainConfigImplAddr.Hex())
 
 	// 5. Upgrade SuperchainConfigProxy to implementation
-	log.Printf("[deployer] Step 5/14: Upgrading SuperchainConfigProxy")
+	logStep("Upgrading SuperchainConfigProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, superchainConfigProxyAddr, superchainConfigImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade SuperchainConfigProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ SuperchainConfigProxy upgraded")
 
 	// 6. Deploy OptimismPortalProxy
-	log.Printf("[deployer] Step 6/32: Deploying OptimismPortalProxy")
+	logStep("Deploying OptimismPortalProxy")
 	optimismPortalProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismPortalProxy: %w", err)
@@ -311,7 +332,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ OptimismPortalProxy deployed: %s", optimismPortalProxyAddr.Hex())
 
 	// 7. Deploy OptimismPortal implementation
-	log.Printf("[deployer] Step 7/32: Deploying OptimismPortal implementation")
+	logStep("Deploying OptimismPortal implementation")
 	optimismPortalArtifact, err := loadArtifact(artifactsFS, "OptimismPortal")
 	if err != nil {
 		return nil, err
@@ -323,14 +344,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ OptimismPortal impl deployed: %s", optimismPortalImplAddr.Hex())
 
 	// 8. Upgrade OptimismPortalProxy to implementation
-	log.Printf("[deployer] Step 8/32: Upgrading OptimismPortalProxy")
+	logStep("Upgrading OptimismPortalProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, optimismPortalProxyAddr, optimismPortalImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade OptimismPortalProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ OptimismPortalProxy upgraded")
 
 	// 9. Deploy SystemConfigProxy
-	log.Printf("[deployer] Step 9/32: Deploying SystemConfigProxy")
+	logStep("Deploying SystemConfigProxy")
 	systemConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SystemConfigProxy: %w", err)
@@ -339,7 +360,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ SystemConfigProxy deployed: %s", systemConfigProxyAddr.Hex())
 
 	// 10. Deploy SystemConfig implementation
-	log.Printf("[deployer] Step 10/32: Deploying SystemConfig implementation")
+	logStep("Deploying SystemConfig implementation")
 	systemConfigArtifact, err := loadArtifact(artifactsFS, "SystemConfig")
 	if err != nil {
 		return nil, err
@@ -351,14 +372,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ SystemConfig impl deployed: %s", systemConfigImplAddr.Hex())
 
 	// 11. Upgrade SystemConfigProxy to implementation
-	log.Printf("[deployer] Step 11/32: Upgrading SystemConfigProxy")
+	logStep("Upgrading SystemConfigProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, systemConfigProxyAddr, systemConfigImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade SystemConfigProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ SystemConfigProxy upgraded")
 
 	// 12. Deploy L1StandardBridgeProxy
-	log.Printf("[deployer] Step 12/32: Deploying L1StandardBridgeProxy")
+	logStep("Deploying L1StandardBridgeProxy")
 	l1StandardBridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1StandardBridgeProxy: %w", err)
@@ -367,7 +388,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1StandardBridgeProxy deployed: %s", l1StandardBridgeProxyAddr.Hex())
 
 	// 13. Deploy L1StandardBridge implementation
-	log.Printf("[deployer] Step 13/32: Deploying L1StandardBridge implementation")
+	logStep("Deploying L1StandardBridge implementation")
 	l1StandardBridgeArtifact, err := loadArtifact(artifactsFS, "L1StandardBridge")
 	if err != nil {
 		return nil, err
@@ -379,14 +400,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1StandardBridge impl deployed: %s", l1StandardBridgeImplAddr.Hex())
 
 	// 14. Upgrade L1StandardBridgeProxy to implementation
-	log.Printf("[deployer] Step 14/32: Upgrading L1StandardBridgeProxy")
+	logStep("Upgrading L1StandardBridgeProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1StandardBridgeProxyAddr, l1StandardBridgeImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1StandardBridgeProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1StandardBridgeProxy upgraded")
 
 	// 15. Deploy L1CrossDomainMessengerProxy
-	log.Printf("[deployer] Step 15/32: Deploying L1CrossDomainMessengerProxy")
+	logStep("Deploying L1CrossDomainMessengerProxy")
 	l1CDMProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1CrossDomainMessengerProxy: %w", err)
@@ -395,7 +416,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1CrossDomainMessengerProxy deployed: %s", l1CDMProxyAddr.Hex())
 
 	// 16. Deploy L1CrossDomainMessenger implementation
-	log.Printf("[deployer] Step 16/32: Deploying L1CrossDomainMessenger implementation")
+	logStep("Deploying L1CrossDomainMessenger implementation")
 	l1CDMArtifact, err := loadArtifact(artifactsFS, "L1CrossDomainMessenger")
 	if err != nil {
 		return nil, err
@@ -407,14 +428,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1CrossDomainMessenger impl deployed: %s", l1CDMImplAddr.Hex())
 
 	// 17. Upgrade L1CrossDomainMessengerProxy to implementation
-	log.Printf("[deployer] Step 17/32: Upgrading L1CrossDomainMessengerProxy")
+	logStep("Upgrading L1CrossDomainMessengerProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1CDMProxyAddr, l1CDMImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1CrossDomainMessengerProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1CrossDomainMessengerProxy upgraded")
 
 	// 18. Deploy OptimismMintableERC20FactoryProxy
-	log.Printf("[deployer] Step 18/32: Deploying OptimismMintableERC20FactoryProxy")
+	logStep("Deploying OptimismMintableERC20FactoryProxy")
 	optimismMintableERC20FactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismMintableERC20FactoryProxy: %w", err)
@@ -423,7 +444,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ OptimismMintableERC20FactoryProxy deployed: %s", optimismMintableERC20FactoryProxyAddr.Hex())
 
 	// 19. Deploy OptimismMintableERC20Factory implementation
-	log.Printf("[deployer] Step 19/32: Deploying OptimismMintableERC20Factory implementation")
+	logStep("Deploying OptimismMintableERC20Factory implementation")
 	optimismMintableERC20FactoryArtifact, err := loadArtifact(artifactsFS, "OptimismMintableERC20Factory")
 	if err != nil {
 		return nil, err
@@ -435,14 +456,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ OptimismMintableERC20Factory impl deployed: %s", optimismMintableERC20FactoryImplAddr.Hex())
 
 	// 20. Upgrade OptimismMintableERC20FactoryProxy to implementation
-	log.Printf("[deployer] Step 20/32: Upgrading OptimismMintableERC20FactoryProxy")
+	logStep("Upgrading OptimismMintableERC20FactoryProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, optimismMintableERC20FactoryProxyAddr, optimismMintableERC20FactoryImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade OptimismMintableERC20FactoryProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ OptimismMintableERC20FactoryProxy upgraded")
 
 	// 21. Deploy L1ERC721BridgeProxy
-	log.Printf("[deployer] Step 21/32: Deploying L1ERC721BridgeProxy")
+	logStep("Deploying L1ERC721BridgeProxy")
 	l1ERC721BridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1ERC721BridgeProxy: %w", err)
@@ -451,7 +472,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1ERC721BridgeProxy deployed: %s", l1ERC721BridgeProxyAddr.Hex())
 
 	// 22. Deploy L1ERC721Bridge implementation
-	log.Printf("[deployer] Step 22/32: Deploying L1ERC721Bridge implementation")
+	logStep("Deploying L1ERC721Bridge implementation")
 	l1ERC721BridgeArtifact, err := loadArtifact(artifactsFS, "L1ERC721Bridge")
 	if err != nil {
 		return nil, err
@@ -463,14 +484,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L1ERC721Bridge impl deployed: %s", l1ERC721BridgeImplAddr.Hex())
 
 	// 23. Upgrade L1ERC721BridgeProxy to implementation
-	log.Printf("[deployer] Step 23/32: Upgrading L1ERC721BridgeProxy")
+	logStep("Upgrading L1ERC721BridgeProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1ERC721BridgeProxyAddr, l1ERC721BridgeImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1ERC721BridgeProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1ERC721BridgeProxy upgraded")
 
 	// 24. Deploy L2OutputOracleProxy
-	log.Printf("[deployer] Step 24/32: Deploying L2OutputOracleProxy")
+	logStep("Deploying L2OutputOracleProxy")
 	l2OutputOracleProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L2OutputOracleProxy: %w", err)
@@ -479,7 +500,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L2OutputOracleProxy deployed: %s", l2OutputOracleProxyAddr.Hex())
 
 	// 25. Deploy L2OutputOracle implementation
-	log.Printf("[deployer] Step 25/32: Deploying L2OutputOracle implementation")
+	logStep("Deploying L2OutputOracle implementation")
 	l2OutputOracleArtifact, err := loadArtifact(artifactsFS, "L2OutputOracle")
 	if err != nil {
 		return nil, err
@@ -491,7 +512,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	log.Printf("[deployer] ✓ L2OutputOracle impl deployed: %s", l2OutputOracleImplAddr.Hex())
 
 	// 26. Upgrade L2OutputOracleProxy to implementation
-	log.Printf("[deployer] Step 26/32: Upgrading L2OutputOracleProxy")
+	logStep("Upgrading L2OutputOracleProxy")
 	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l2OutputOracleProxyAddr, l2OutputOracleImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L2OutputOracleProxy: %w", err)
 	}
@@ -502,7 +523,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		log.Printf("[deployer] Fault proof enabled, deploying fault proof contracts...")
 
 		// 27. Deploy DisputeGameFactoryProxy
-		log.Printf("[deployer] Step 27/32: Deploying DisputeGameFactoryProxy")
+		logStep("Deploying DisputeGameFactoryProxy")
 		disputeGameFactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy DisputeGameFactoryProxy: %w", err)
@@ -511,7 +532,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		log.Printf("[deployer] ✓ DisputeGameFactoryProxy deployed: %s", disputeGameFactoryProxyAddr.Hex())
 
 		// 28. Deploy DisputeGameFactory implementation
-		log.Printf("[deployer] Step 28/32: Deploying DisputeGameFactory implementation")
+		logStep("Deploying DisputeGameFactory implementation")
 		disputeGameFactoryArtifact, err := loadArtifact(artifactsFS, "DisputeGameFactory")
 		if err != nil {
 			return nil, err
@@ -523,14 +544,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		log.Printf("[deployer] ✓ DisputeGameFactory impl deployed: %s", disputeGameFactoryImplAddr.Hex())
 
 		// 29. Upgrade DisputeGameFactoryProxy to implementation
-		log.Printf("[deployer] Step 29/32: Upgrading DisputeGameFactoryProxy")
+		logStep("Upgrading DisputeGameFactoryProxy")
 		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, disputeGameFactoryProxyAddr, disputeGameFactoryImplAddr, proxyAdminArtifact); err != nil {
 			return nil, fmt.Errorf("upgrade DisputeGameFactoryProxy: %w", err)
 		}
 		log.Printf("[deployer] ✓ DisputeGameFactoryProxy upgraded")
 
 		// 30. Deploy AnchorStateRegistryProxy
-		log.Printf("[deployer] Step 30/32: Deploying AnchorStateRegistryProxy")
+		logStep("Deploying AnchorStateRegistryProxy")
 		anchorStateRegistryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy AnchorStateRegistryProxy: %w", err)
@@ -539,7 +560,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		log.Printf("[deployer] ✓ AnchorStateRegistryProxy deployed: %s", anchorStateRegistryProxyAddr.Hex())
 
 		// 31. Deploy AnchorStateRegistry implementation (constructor takes DisputeGameFactory address)
-		log.Printf("[deployer] Step 31/32: Deploying AnchorStateRegistry implementation")
+		logStep("Deploying AnchorStateRegistry implementation")
 		anchorStateRegistryArtifact, err := loadArtifact(artifactsFS, "AnchorStateRegistry")
 		if err != nil {
 			return nil, err
@@ -551,7 +572,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		log.Printf("[deployer] ✓ AnchorStateRegistry impl deployed: %s", anchorStateRegistryImplAddr.Hex())
 
 		// 32. Upgrade AnchorStateRegistryProxy to implementation
-		log.Printf("[deployer] Step 32/32: Upgrading AnchorStateRegistryProxy")
+		logStep("Upgrading AnchorStateRegistryProxy")
 		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, anchorStateRegistryProxyAddr, anchorStateRegistryImplAddr, proxyAdminArtifact); err != nil {
 			return nil, fmt.Errorf("upgrade AnchorStateRegistryProxy: %w", err)
 		}
