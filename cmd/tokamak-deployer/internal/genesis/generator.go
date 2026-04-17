@@ -14,6 +14,18 @@ type Config struct {
 	// Preset controls optional injections. Values: "general", "gaming", "full", "defi"
 	// "gaming" and "full" enable DRB injection.
 	Preset string
+
+	// L1RPCURL is passed to `op-node genesis l2 --l1-rpc` when BaseGenesisPath is empty.
+	// Required by op-node even when l1StartingBlockTag is present in the deploy config.
+	L1RPCURL string
+
+	// L2AllocsPath is passed to `op-node genesis l2 --l2-allocs`. Contains the L2
+	// genesis state dump produced by forge's L2Genesis.s.sol script. Required by
+	// op-node when BaseGenesisPath is empty.
+	L2AllocsPath string
+
+	// OpNodeBinary overrides the op-node binary lookup. Defaults to "op-node" in $PATH.
+	OpNodeBinary string
 }
 
 // Generate creates genesis.json from deploy-output and rollup config, then applies
@@ -27,7 +39,7 @@ type Config struct {
 //   - outPath: path to write the final genesis.json
 //   - rollupOutPath: path to rollup.json (for hash update); if empty, inferred as same dir as outPath
 //   - artifactsFS: embedded deploy-artifacts FS (for L1Block, MultiTokenPaymaster, USDC bytecodes)
-//   - cfg: optional post-processing config
+//   - cfg: optional post-processing config (including L1RPCURL / L2AllocsPath for op-node)
 func Generate(
 	deployOutputPath, configPath, baseGenesisPath, outPath, rollupOutPath string,
 	artifactsFS fs.FS,
@@ -44,19 +56,32 @@ func Generate(
 			return fmt.Errorf("copy base genesis to output: %w", err)
 		}
 	} else {
-		// Run op-node genesis l2
-		cmd := exec.Command("op-node", "genesis", "l2",
-			"--deploy-config", configPath,
-			"--l1-deployments", deployOutputPath,
-			"--outfile.l2", outPath,
-		)
+		if cfg.L1RPCURL == "" {
+			return fmt.Errorf("op-node genesis l2 requires --l1-rpc (pass via Config.L1RPCURL or use --base-genesis)")
+		}
+		if cfg.L2AllocsPath == "" {
+			return fmt.Errorf("op-node genesis l2 requires --l2-allocs (pass via Config.L2AllocsPath — produced by forge L2Genesis.s.sol — or use --base-genesis)")
+		}
+
+		opNodeBin := cfg.OpNodeBinary
+		if opNodeBin == "" {
+			opNodeBin = "op-node"
+		}
 
 		// Infer rollup out path if not specified
 		inferredRollupPath := rollupOutPath
 		if inferredRollupPath == "" {
 			inferredRollupPath = filepath.Join(filepath.Dir(outPath), "rollup.json")
 		}
-		cmd.Args = append(cmd.Args, "--outfile.rollup", inferredRollupPath)
+
+		cmd := exec.Command(opNodeBin, "genesis", "l2",
+			"--deploy-config", configPath,
+			"--l1-deployments", deployOutputPath,
+			"--l2-allocs", cfg.L2AllocsPath,
+			"--outfile.l2", outPath,
+			"--outfile.rollup", inferredRollupPath,
+			"--l1-rpc", cfg.L1RPCURL,
+		)
 
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("op-node genesis l2 failed: %w\n%s", err, out)
