@@ -1,5 +1,7 @@
 package deployer
 
+import "math/big"
+
 // DeployOutput is the result of deploy-contracts — serialized to deploy-output.json
 type DeployOutput struct {
 	L1ChainID uint64 `json:"l1ChainId"`
@@ -28,4 +30,22 @@ type DeployConfig struct {
 	EnableFaultProof bool
 	FinalSystemOwner string
 	L2OutputOracleSubmissionInterval uint64
+
+	// Gas price control for L1 deployment transactions.
+	//
+	// Previous versions called SuggestGasPrice per transaction, which added
+	// an RPC round-trip per TX (26-32 extra calls) and let each TX race the
+	// mempool at slightly different prices. The deploy now resolves a single
+	// gas price at startup and reuses it for every TX so the in-built
+	// bump-on-timeout retry path rarely fires.
+	//
+	//   - FixedGasPrice: if set (>0), use it directly. Mirrors forge's
+	//     --with-gas-price flag. Still clamped to [Floor, Ceil].
+	//   - GasPriceMultiplier: percent applied to SuggestGasPrice when
+	//     FixedGasPrice is nil. 0 or unset → 200 (i.e., 2× suggested).
+	//   - GasPriceFloor / GasPriceCeil: safety clamps. Default 1 Gwei / 100 Gwei.
+	FixedGasPrice      *big.Int
+	GasPriceMultiplier int
+	GasPriceFloor      *big.Int
+	GasPriceCeil       *big.Int
 }

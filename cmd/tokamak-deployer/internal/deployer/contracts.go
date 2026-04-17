@@ -20,12 +20,18 @@ import (
 )
 
 // Tunable knobs for stuck-tx recovery. Kept as vars so tests can override.
+//
+// Since v0.0.5 the initial gas price is pre-computed conservatively (2×
+// SuggestGasPrice by default) and reused across all TXs, so the bump-retry
+// path should rarely fire. Attempts and the per-attempt timeout are kept
+// generous enough to absorb Sepolia block-time variance without needing to
+// replace the tx.
 var (
-	sendMaxAttempts    = 5
-	sendAttemptTimeout = 90 * time.Second
+	sendMaxAttempts    = 3
+	sendAttemptTimeout = 180 * time.Second
 	// gasBumpNumerator/gasBumpDenominator: each retry multiplies gasPrice by 125/100 = 1.25x.
 	// go-ethereum requires ≥ 10% bump to accept a replacement tx; 25% gives margin against
-	// ongoing price rises while keeping the exponential envelope reasonable (5 attempts → ~2.44x).
+	// ongoing price rises while keeping the exponential envelope reasonable.
 	gasBumpNumerator   = int64(125)
 	gasBumpDenominator = int64(100)
 )
@@ -123,13 +129,7 @@ func loadArtifact(artifactsFS fs.FS, name string) (*artifact, error) {
 	return &a, nil
 }
 
-func deployRawContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, bytecodeWithArgs []byte) (common.Address, error) {
-	gasPrice, err := client.SuggestGasPrice(ctx)
-	if err != nil {
-		return common.Address{}, err
-	}
-	log.Printf("[deployer] Suggested gas price: %v Gwei", new(big.Int).Div(gasPrice, big.NewInt(1e9)))
-
+func deployRawContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, gasPrice *big.Int, bytecodeWithArgs []byte) (common.Address, error) {
 	txNonce := *nonce
 	*nonce++
 
@@ -150,7 +150,7 @@ func deployRawContract(ctx context.Context, client *ethclient.Client, auth *bind
 	return receipt.ContractAddress, nil
 }
 
-func deployContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, a *artifact, constructorArgs ...interface{}) (common.Address, error) {
+func deployContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, gasPrice *big.Int, a *artifact, constructorArgs ...interface{}) (common.Address, error) {
 	parsedABI, err := abi.JSON(strings.NewReader(string(a.ABI)))
 	if err != nil {
 		return common.Address{}, fmt.Errorf("parse ABI: %w", err)
@@ -163,10 +163,10 @@ func deployContract(ctx context.Context, client *ethclient.Client, auth *bind.Tr
 		}
 		bytecode = append(bytecode, packed...)
 	}
-	return deployRawContract(ctx, client, auth, nonce, bytecode)
+	return deployRawContract(ctx, client, auth, nonce, gasPrice, bytecode)
 }
 
-func callContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, to common.Address, a *artifact, method string, args ...interface{}) error {
+func callContract(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, gasPrice *big.Int, to common.Address, a *artifact, method string, args ...interface{}) error {
 	parsedABI, err := abi.JSON(strings.NewReader(string(a.ABI)))
 	if err != nil {
 		return fmt.Errorf("parse ABI for %s: %w", method, err)
@@ -174,10 +174,6 @@ func callContract(ctx context.Context, client *ethclient.Client, auth *bind.Tran
 	data, err := parsedABI.Pack(method, args...)
 	if err != nil {
 		return fmt.Errorf("pack %s: %w", method, err)
-	}
-	gasPrice, err := client.SuggestGasPrice(ctx)
-	if err != nil {
-		return fmt.Errorf("get gas price in callContract: %w", err)
 	}
 
 	txNonce := *nonce
@@ -197,14 +193,14 @@ func callContract(ctx context.Context, client *ethclient.Client, auth *bind.Tran
 	return nil
 }
 
-func setProxyType(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, proxyAdminAddr common.Address, proxyAddr common.Address, proxyAdminArtifact *artifact) error {
+func setProxyType(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, gasPrice *big.Int, proxyAdminAddr common.Address, proxyAddr common.Address, proxyAdminArtifact *artifact) error {
 	// ProxyType.ERC1967 = 0
-	return callContract(ctx, client, auth, nonce, proxyAdminAddr, proxyAdminArtifact, "setProxyType", proxyAddr, uint8(0))
+	return callContract(ctx, client, auth, nonce, gasPrice, proxyAdminAddr, proxyAdminArtifact, "setProxyType", proxyAddr, uint8(0))
 }
 
-func upgradeProxyViaAdmin(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, proxyAdminAddr common.Address, proxyAddr common.Address, implAddr common.Address, proxyAdminArtifact *artifact) error {
+func upgradeProxyViaAdmin(ctx context.Context, client *ethclient.Client, auth *bind.TransactOpts, nonce *uint64, gasPrice *big.Int, proxyAdminAddr common.Address, proxyAddr common.Address, implAddr common.Address, proxyAdminArtifact *artifact) error {
 	// Try upgrade() first (simpler, no initialization)
-	return callContract(ctx, client, auth, nonce, proxyAdminAddr, proxyAdminArtifact, "upgrade", proxyAddr, implAddr)
+	return callContract(ctx, client, auth, nonce, gasPrice, proxyAdminAddr, proxyAdminArtifact, "upgrade", proxyAddr, implAddr)
 }
 
 func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOutput, error) {
@@ -238,6 +234,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		return nil, fmt.Errorf("get nonce: %w", err)
 	}
 	log.Printf("[deployer] Starting nonce: %d, deployer address: %s", nonce, auth.From.Hex())
+
+	// Resolve the gas price once and reuse across every tx. Replaces the
+	// previous per-tx SuggestGasPrice round-trips (26-32 extra RPC calls) and
+	// pre-empts the bump-on-timeout loop by starting conservatively high.
+	gasPrice, err := resolveGasPrice(ctx, client, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("resolve gas price: %w", err)
+	}
 
 	output := &DeployOutput{L2ChainID: cfg.L2ChainID, L1ChainID: chainID.Uint64()}
 
@@ -274,7 +278,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	addressManagerAddr, err := deployContract(ctx, client, auth, &nonce, addressManagerArtifact)
+	addressManagerAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, addressManagerArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy AddressManager: %w", err)
 	}
@@ -287,7 +291,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	proxyAdminAddr, err := deployContract(ctx, client, auth, &nonce, proxyAdminArtifact, auth.From)
+	proxyAdminAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyAdminArtifact, auth.From)
 	if err != nil {
 		return nil, fmt.Errorf("deploy ProxyAdmin: %w", err)
 	}
@@ -296,7 +300,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 3. Deploy SuperchainConfigProxy
 	logStep("Deploying SuperchainConfigProxy")
-	superchainConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	superchainConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SuperchainConfigProxy: %w", err)
 	}
@@ -309,7 +313,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	superchainConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, superchainConfigArtifact)
+	superchainConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, superchainConfigArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SuperchainConfig impl: %w", err)
 	}
@@ -317,14 +321,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 5. Upgrade SuperchainConfigProxy to implementation
 	logStep("Upgrading SuperchainConfigProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, superchainConfigProxyAddr, superchainConfigImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, superchainConfigProxyAddr, superchainConfigImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade SuperchainConfigProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ SuperchainConfigProxy upgraded")
 
 	// 6. Deploy OptimismPortalProxy
 	logStep("Deploying OptimismPortalProxy")
-	optimismPortalProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	optimismPortalProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismPortalProxy: %w", err)
 	}
@@ -337,7 +341,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	optimismPortalImplAddr, err := deployContract(ctx, client, auth, &nonce, optimismPortalArtifact)
+	optimismPortalImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, optimismPortalArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismPortal impl: %w", err)
 	}
@@ -345,14 +349,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 8. Upgrade OptimismPortalProxy to implementation
 	logStep("Upgrading OptimismPortalProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, optimismPortalProxyAddr, optimismPortalImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, optimismPortalProxyAddr, optimismPortalImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade OptimismPortalProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ OptimismPortalProxy upgraded")
 
 	// 9. Deploy SystemConfigProxy
 	logStep("Deploying SystemConfigProxy")
-	systemConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	systemConfigProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SystemConfigProxy: %w", err)
 	}
@@ -365,7 +369,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	systemConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, systemConfigArtifact)
+	systemConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, systemConfigArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy SystemConfig impl: %w", err)
 	}
@@ -373,14 +377,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 11. Upgrade SystemConfigProxy to implementation
 	logStep("Upgrading SystemConfigProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, systemConfigProxyAddr, systemConfigImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, systemConfigProxyAddr, systemConfigImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade SystemConfigProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ SystemConfigProxy upgraded")
 
 	// 12. Deploy L1StandardBridgeProxy
 	logStep("Deploying L1StandardBridgeProxy")
-	l1StandardBridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	l1StandardBridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1StandardBridgeProxy: %w", err)
 	}
@@ -393,7 +397,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	l1StandardBridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, l1StandardBridgeArtifact)
+	l1StandardBridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1StandardBridgeArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1StandardBridge impl: %w", err)
 	}
@@ -401,14 +405,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 14. Upgrade L1StandardBridgeProxy to implementation
 	logStep("Upgrading L1StandardBridgeProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1StandardBridgeProxyAddr, l1StandardBridgeImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, l1StandardBridgeProxyAddr, l1StandardBridgeImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1StandardBridgeProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1StandardBridgeProxy upgraded")
 
 	// 15. Deploy L1CrossDomainMessengerProxy
 	logStep("Deploying L1CrossDomainMessengerProxy")
-	l1CDMProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	l1CDMProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1CrossDomainMessengerProxy: %w", err)
 	}
@@ -421,7 +425,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	l1CDMImplAddr, err := deployContract(ctx, client, auth, &nonce, l1CDMArtifact)
+	l1CDMImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1CDMArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1CrossDomainMessenger impl: %w", err)
 	}
@@ -429,14 +433,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 17. Upgrade L1CrossDomainMessengerProxy to implementation
 	logStep("Upgrading L1CrossDomainMessengerProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1CDMProxyAddr, l1CDMImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, l1CDMProxyAddr, l1CDMImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1CrossDomainMessengerProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1CrossDomainMessengerProxy upgraded")
 
 	// 18. Deploy OptimismMintableERC20FactoryProxy
 	logStep("Deploying OptimismMintableERC20FactoryProxy")
-	optimismMintableERC20FactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	optimismMintableERC20FactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismMintableERC20FactoryProxy: %w", err)
 	}
@@ -449,7 +453,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	optimismMintableERC20FactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, optimismMintableERC20FactoryArtifact)
+	optimismMintableERC20FactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, optimismMintableERC20FactoryArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy OptimismMintableERC20Factory impl: %w", err)
 	}
@@ -457,14 +461,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 20. Upgrade OptimismMintableERC20FactoryProxy to implementation
 	logStep("Upgrading OptimismMintableERC20FactoryProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, optimismMintableERC20FactoryProxyAddr, optimismMintableERC20FactoryImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, optimismMintableERC20FactoryProxyAddr, optimismMintableERC20FactoryImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade OptimismMintableERC20FactoryProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ OptimismMintableERC20FactoryProxy upgraded")
 
 	// 21. Deploy L1ERC721BridgeProxy
 	logStep("Deploying L1ERC721BridgeProxy")
-	l1ERC721BridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	l1ERC721BridgeProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1ERC721BridgeProxy: %w", err)
 	}
@@ -477,7 +481,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	l1ERC721BridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, l1ERC721BridgeArtifact)
+	l1ERC721BridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1ERC721BridgeArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L1ERC721Bridge impl: %w", err)
 	}
@@ -485,14 +489,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 23. Upgrade L1ERC721BridgeProxy to implementation
 	logStep("Upgrading L1ERC721BridgeProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l1ERC721BridgeProxyAddr, l1ERC721BridgeImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, l1ERC721BridgeProxyAddr, l1ERC721BridgeImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L1ERC721BridgeProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L1ERC721BridgeProxy upgraded")
 
 	// 24. Deploy L2OutputOracleProxy
 	logStep("Deploying L2OutputOracleProxy")
-	l2OutputOracleProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+	l2OutputOracleProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L2OutputOracleProxy: %w", err)
 	}
@@ -505,7 +509,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	if err != nil {
 		return nil, err
 	}
-	l2OutputOracleImplAddr, err := deployContract(ctx, client, auth, &nonce, l2OutputOracleArtifact)
+	l2OutputOracleImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l2OutputOracleArtifact)
 	if err != nil {
 		return nil, fmt.Errorf("deploy L2OutputOracle impl: %w", err)
 	}
@@ -513,7 +517,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 	// 26. Upgrade L2OutputOracleProxy to implementation
 	logStep("Upgrading L2OutputOracleProxy")
-	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, l2OutputOracleProxyAddr, l2OutputOracleImplAddr, proxyAdminArtifact); err != nil {
+	if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, l2OutputOracleProxyAddr, l2OutputOracleImplAddr, proxyAdminArtifact); err != nil {
 		return nil, fmt.Errorf("upgrade L2OutputOracleProxy: %w", err)
 	}
 	log.Printf("[deployer] ✓ L2OutputOracleProxy upgraded")
@@ -524,7 +528,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 		// 27. Deploy DisputeGameFactoryProxy
 		logStep("Deploying DisputeGameFactoryProxy")
-		disputeGameFactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+		disputeGameFactoryProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy DisputeGameFactoryProxy: %w", err)
 		}
@@ -537,7 +541,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		if err != nil {
 			return nil, err
 		}
-		disputeGameFactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, disputeGameFactoryArtifact)
+		disputeGameFactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, disputeGameFactoryArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("deploy DisputeGameFactory impl: %w", err)
 		}
@@ -545,14 +549,14 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 		// 29. Upgrade DisputeGameFactoryProxy to implementation
 		logStep("Upgrading DisputeGameFactoryProxy")
-		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, disputeGameFactoryProxyAddr, disputeGameFactoryImplAddr, proxyAdminArtifact); err != nil {
+		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, disputeGameFactoryProxyAddr, disputeGameFactoryImplAddr, proxyAdminArtifact); err != nil {
 			return nil, fmt.Errorf("upgrade DisputeGameFactoryProxy: %w", err)
 		}
 		log.Printf("[deployer] ✓ DisputeGameFactoryProxy upgraded")
 
 		// 30. Deploy AnchorStateRegistryProxy
 		logStep("Deploying AnchorStateRegistryProxy")
-		anchorStateRegistryProxyAddr, err := deployContract(ctx, client, auth, &nonce, proxyArtifact, proxyAdminAddr)
+		anchorStateRegistryProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy AnchorStateRegistryProxy: %w", err)
 		}
@@ -565,7 +569,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		if err != nil {
 			return nil, err
 		}
-		anchorStateRegistryImplAddr, err := deployContract(ctx, client, auth, &nonce, anchorStateRegistryArtifact, disputeGameFactoryImplAddr)
+		anchorStateRegistryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, anchorStateRegistryArtifact, disputeGameFactoryImplAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy AnchorStateRegistry impl: %w", err)
 		}
@@ -573,7 +577,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 
 		// 32. Upgrade AnchorStateRegistryProxy to implementation
 		logStep("Upgrading AnchorStateRegistryProxy")
-		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, proxyAdminAddr, anchorStateRegistryProxyAddr, anchorStateRegistryImplAddr, proxyAdminArtifact); err != nil {
+		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, anchorStateRegistryProxyAddr, anchorStateRegistryImplAddr, proxyAdminArtifact); err != nil {
 			return nil, fmt.Errorf("upgrade AnchorStateRegistryProxy: %w", err)
 		}
 		log.Printf("[deployer] ✓ AnchorStateRegistryProxy upgraded")
