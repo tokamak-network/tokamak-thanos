@@ -3,11 +3,13 @@ package deployer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -16,6 +18,91 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+// Tunable knobs for stuck-tx recovery. Kept as vars so tests can override.
+var (
+	sendMaxAttempts    = 5
+	sendAttemptTimeout = 90 * time.Second
+	// gasBumpNumerator/gasBumpDenominator: each retry multiplies gasPrice by 125/100 = 1.25x.
+	// go-ethereum requires ≥ 10% bump to accept a replacement tx; 25% gives margin against
+	// ongoing price rises while keeping the exponential envelope reasonable (5 attempts → ~2.44x).
+	gasBumpNumerator   = int64(125)
+	gasBumpDenominator = int64(100)
+)
+
+// sendAndWaitMined broadcasts a signed transaction and waits for it to be mined with
+// a per-attempt timeout. If the attempt times out, it rebuilds the same tx (same nonce)
+// with a bumped gas price (max of previous×1.25 and current SuggestGasPrice) and rebroadcasts
+// as a replacement. This prevents infinite hangs when the initial gas price gets priced out
+// of the mempool.
+//
+// buildTx must produce a tx with the reserved nonce; the caller is responsible for reserving
+// that nonce exactly once (i.e., incrementing the nonce counter before calling this helper).
+func sendAndWaitMined(
+	ctx context.Context,
+	client *ethclient.Client,
+	signer bind.SignerFn,
+	from common.Address,
+	buildTx func(gasPrice *big.Int) *types.Transaction,
+	initialGasPrice *big.Int,
+	label string,
+) (*types.Receipt, error) {
+	gasPrice := new(big.Int).Set(initialGasPrice)
+
+	var lastHash common.Hash
+	for attempt := 1; attempt <= sendMaxAttempts; attempt++ {
+		if attempt > 1 {
+			bumped := new(big.Int).Mul(gasPrice, big.NewInt(gasBumpNumerator))
+			bumped.Div(bumped, big.NewInt(gasBumpDenominator))
+			suggested, err := client.SuggestGasPrice(ctx)
+			if err == nil && suggested.Cmp(bumped) > 0 {
+				gasPrice = suggested
+			} else {
+				gasPrice = bumped
+			}
+			log.Printf("[deployer] %s: attempt %d bumping gas price to %v wei", label, attempt, gasPrice)
+		}
+
+		tx := buildTx(gasPrice)
+		signedTx, err := signer(from, tx)
+		if err != nil {
+			return nil, fmt.Errorf("sign tx: %w", err)
+		}
+		lastHash = signedTx.Hash()
+
+		log.Printf("[deployer] %s: broadcasting (attempt %d/%d, hash: %s)",
+			label, attempt, sendMaxAttempts, lastHash.Hex())
+		if err := client.SendTransaction(ctx, signedTx); err != nil {
+			// On retry, the node may reject the replacement as underpriced if our bump
+			// didn't beat a concurrent broadcast. Treat that as a retry signal rather
+			// than a fatal error.
+			if attempt > 1 && (strings.Contains(err.Error(), "underpriced") ||
+				strings.Contains(err.Error(), "already known")) {
+				log.Printf("[deployer] %s: send rejected (%v), will retry with higher gas", label, err)
+				continue
+			}
+			return nil, fmt.Errorf("send tx: %w", err)
+		}
+
+		attemptCtx, cancel := context.WithTimeout(ctx, sendAttemptTimeout)
+		receipt, err := bind.WaitMined(attemptCtx, client, signedTx)
+		cancel()
+
+		if err == nil {
+			return receipt, nil
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if !errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("wait mined: %w", err)
+		}
+		log.Printf("[deployer] %s: tx %s not mined within %v, will retry with bumped gas",
+			label, lastHash.Hex(), sendAttemptTimeout)
+	}
+	return nil, fmt.Errorf("%s: transaction not mined after %d attempts (last hash: %s)",
+		label, sendMaxAttempts, lastHash.Hex())
+}
 
 type artifact struct {
 	ABI      json.RawMessage `json:"abi"`
@@ -43,23 +130,16 @@ func deployRawContract(ctx context.Context, client *ethclient.Client, auth *bind
 	}
 	log.Printf("[deployer] Suggested gas price: %v Gwei", new(big.Int).Div(gasPrice, big.NewInt(1e9)))
 
-	tx := types.NewContractCreation(*nonce, common.Big0, 5_000_000, gasPrice, bytecodeWithArgs)
+	txNonce := *nonce
 	*nonce++
-	signedTx, err := auth.Signer(auth.From, tx)
-	if err != nil {
-		return common.Address{}, fmt.Errorf("sign tx: %w", err)
-	}
 
-	log.Printf("[deployer] Broadcasting transaction: %s (nonce: %d, gas: %d bytes)", signedTx.Hash().Hex(), signedTx.Nonce(), len(bytecodeWithArgs))
-	if err := client.SendTransaction(ctx, signedTx); err != nil {
-		return common.Address{}, fmt.Errorf("send tx: %w", err)
+	label := fmt.Sprintf("deploy(nonce=%d, %d bytes)", txNonce, len(bytecodeWithArgs))
+	buildTx := func(gp *big.Int) *types.Transaction {
+		return types.NewContractCreation(txNonce, common.Big0, 5_000_000, gp, bytecodeWithArgs)
 	}
-	log.Printf("[deployer] Transaction sent: %s", signedTx.Hash().Hex())
-
-	log.Printf("[deployer] Waiting for transaction to be mined...")
-	receipt, err := bind.WaitMined(ctx, client, signedTx)
+	receipt, err := sendAndWaitMined(ctx, client, auth.Signer, auth.From, buildTx, gasPrice, label)
 	if err != nil {
-		return common.Address{}, fmt.Errorf("wait mined: %w", err)
+		return common.Address{}, err
 	}
 	log.Printf("[deployer] Transaction mined in block %d (status: %d)", receipt.BlockNumber, receipt.Status)
 
@@ -99,18 +179,17 @@ func callContract(ctx context.Context, client *ethclient.Client, auth *bind.Tran
 	if err != nil {
 		return fmt.Errorf("get gas price in callContract: %w", err)
 	}
-	tx := types.NewTransaction(*nonce, to, common.Big0, 3_000_000, gasPrice, data)
+
+	txNonce := *nonce
 	*nonce++
-	signedTx, err := auth.Signer(auth.From, tx)
-	if err != nil {
-		return fmt.Errorf("sign tx: %w", err)
+
+	label := fmt.Sprintf("call %s(nonce=%d)", method, txNonce)
+	buildTx := func(gp *big.Int) *types.Transaction {
+		return types.NewTransaction(txNonce, to, common.Big0, 3_000_000, gp, data)
 	}
-	if err := client.SendTransaction(ctx, signedTx); err != nil {
-		return fmt.Errorf("send %s tx: %w", method, err)
-	}
-	receipt, err := bind.WaitMined(ctx, client, signedTx)
+	receipt, err := sendAndWaitMined(ctx, client, auth.Signer, auth.From, buildTx, gasPrice, label)
 	if err != nil {
-		return fmt.Errorf("wait mined in callContract: %w", err)
+		return err
 	}
 	if receipt.Status == 0 {
 		return fmt.Errorf("%s call reverted", method)
