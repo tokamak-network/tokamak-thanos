@@ -76,6 +76,60 @@ func TestDeployContracts_Anvil(t *testing.T) {
 	}
 }
 
+// TestDeployContracts_FaultProof_Anvil verifies the full producer-side Bug #8
+// fix: running deploy-contracts with --fault-proof must execute steps 27-32
+// and write non-zero AnchorStateRegistryProxy and DisputeGameFactoryProxy
+// addresses to deploy-output.json. Prior to the v0.0.6 release the CLI flag
+// did not exist, so cfg.EnableFaultProof stayed false and these addresses
+// were always absent.
+func TestDeployContracts_FaultProof_Anvil(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	rpcURL, stop := startAnvil(t)
+	defer stop()
+
+	outFile := t.TempDir() + "/deploy-output.json"
+	cmd := exec.Command("go", "run", ".", "deploy-contracts",
+		"--l1-rpc", rpcURL,
+		"--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+		"--chain-id", "901",
+		"--out", outFile,
+		"--fault-proof",
+	)
+	cmd.Dir = ".."
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("deploy-contracts --fault-proof failed: %v\n%s", err, out)
+	}
+
+	data, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatalf("output file not created: %v", err)
+	}
+	var output map[string]interface{}
+	if err := json.Unmarshal(data, &output); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	// Core addresses still populated
+	for _, key := range []string{"ProxyAdmin", "SystemConfigProxy"} {
+		addr, ok := output[key].(string)
+		if !ok || addr == "" || addr == "0x0000000000000000000000000000000000000000" {
+			t.Errorf("expected non-zero %s, got: %v", key, output[key])
+		}
+	}
+
+	// Fault-proof addresses must now also be present
+	for _, key := range []string{"AnchorStateRegistryProxy", "DisputeGameFactoryProxy"} {
+		addr, ok := output[key].(string)
+		if !ok || addr == "" || addr == "0x0000000000000000000000000000000000000000" {
+			t.Errorf("fault-proof address %s missing or zero — steps 27-32 did not run: got %v",
+				key, output[key])
+		}
+	}
+}
+
 func TestDeployContracts_BadRPC(t *testing.T) {
 	outFile := t.TempDir() + "/deploy-output.json"
 	cmd := exec.Command("go", "run", ".", "deploy-contracts",
