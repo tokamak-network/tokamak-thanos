@@ -15,6 +15,7 @@ var (
 	flagPrivateKey         string
 	flagChainID            uint64
 	flagOut                string
+	flagFaultProof         bool
 	flagGasPrice           string
 	flagGasPriceMultiplier int
 	flagGasPriceFloor      string
@@ -44,6 +45,7 @@ var deployContractsCmd = &cobra.Command{
 			L1RPCURL:           flagL1RPC,
 			PrivateKey:         flagPrivateKey,
 			L2ChainID:          flagChainID,
+			EnableFaultProof:   flagFaultProof,
 			FixedGasPrice:      fixedGasPrice,
 			GasPriceMultiplier: flagGasPriceMultiplier,
 			GasPriceFloor:      floor,
@@ -88,6 +90,8 @@ func init() {
 	deployContractsCmd.Flags().StringVar(&flagPrivateKey, "private-key", "", "Deployer private key (required)")
 	deployContractsCmd.Flags().Uint64Var(&flagChainID, "chain-id", 0, "L2 chain ID (required)")
 	deployContractsCmd.Flags().StringVar(&flagOut, "out", "./deploy-output.json", "Output file path")
+	deployContractsCmd.Flags().BoolVar(&flagFaultProof, "fault-proof", false,
+		"Enable fault-proof contract deployment (DisputeGameFactory + AnchorStateRegistry, steps 27-32)")
 	deployContractsCmd.Flags().StringVar(&flagGasPrice, "gas-price", "",
 		"Fixed gas price in wei reused for every TX (empty = auto; overridable via TOKAMAK_DEPLOY_GAS_PRICE)")
 	deployContractsCmd.Flags().IntVar(&flagGasPriceMultiplier, "gas-price-multiplier", 0,
