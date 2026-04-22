@@ -54,7 +54,7 @@ jobs:
           echo "Extracted version: $VERSION from tag: $TAG"
 
       - name: Build binaries (no publish)
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
           args: release --clean --skip=publish,validate
