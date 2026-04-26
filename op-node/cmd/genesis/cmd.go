@@ -3,11 +3,11 @@ package genesis
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/tokamak-network/tokamak-thanos/op-service/ioutil"
 	"github.com/tokamak-network/tokamak-thanos/op-service/retry"
-	"github.com/tokamak-network/tokamak-thanos/op-service/sources/batching"
 	"github.com/urfave/cli/v2"
 
 	"github.com/tokamak-network/tokamak-thanos/op-chain-ops/foundry"
@@ -168,26 +168,33 @@ var Subcommands = cli.Commands{
 			}
 			_ = l2Allocs
 
-			// Retrieve SystemConfig.startBlock()
+			// Connect to L1
 			client, err := ethclient.Dial(l1RPC)
 			if err != nil {
 				return fmt.Errorf("cannot dial %s: %w", l1RPC, err)
 			}
 
-			caller := batching.NewMultiCaller(client.Client(), batching.DefaultBatchSize)
-			sysCfg := NewSystemConfigContract(caller, config.SystemConfigProxy)
-			startBlock, err := sysCfg.StartBlock(ctx.Context)
-			if err != nil {
-				return fmt.Errorf("failed to fetch startBlock from SystemConfig: %w", err)
-			}
-
-			logger.Info("Using L1 Start Block", "number", startBlock)
+			// Resolve L1StartingBlockTag from deploy config instead of on-chain SystemConfig.startBlock().
+			// SystemConfig is never initialized by the Go deployer (upgradeProxyViaAdmin skips initialize()),
+			// so startBlock() always returns 0, producing genesis.l1 = Sepolia genesis block.
+			tag := config.L1StartingBlockTag
+			var l1StartBlock *types.Block
 			// retry because local devnet can experience a race condition where L1 geth isn't ready yet
-			l1StartBlock, err := retry.Do(ctx.Context, 24, retry.Fixed(1*time.Second), func() (*types.Block, error) { return client.BlockByNumber(ctx.Context, startBlock) })
-			if err != nil {
-				return fmt.Errorf("fetching start block by number: %w", err)
+			if h, ok := tag.Hash(); ok {
+				l1StartBlock, err = retry.Do(ctx.Context, 24, retry.Fixed(1*time.Second), func() (*types.Block, error) {
+					return client.BlockByHash(ctx.Context, h)
+				})
+			} else if n, ok := tag.Number(); ok {
+				l1StartBlock, err = retry.Do(ctx.Context, 24, retry.Fixed(1*time.Second), func() (*types.Block, error) {
+					return client.BlockByNumber(ctx.Context, big.NewInt(int64(n)))
+				})
+			} else {
+				return fmt.Errorf("cannot resolve l1StartingBlockTag: no hash or number in deploy config")
 			}
-			logger.Info("Fetched L1 Start Block", "hash", l1StartBlock.Hash().Hex())
+			if err != nil {
+				return fmt.Errorf("fetching L1 starting block: %w", err)
+			}
+			logger.Info("Using L1 Start Block", "number", l1StartBlock.Number(), "hash", l1StartBlock.Hash().Hex())
 
 			// Sanity check the config. Do this after filling in the L1StartingBlockTag
 			// if it is not defined.
