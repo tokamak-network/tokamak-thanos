@@ -497,12 +497,15 @@ func L1InfoDeposit(rollupCfg *rollup.Config, l1ChainConfig *params.ChainConfig, 
 
 	// 1. Set all fields according to active forks
 	if isEcotoneActivated {
-		if ebg := block.ExcessBlobGas(); ebg != nil {
-			l1BlockInfo.BlobBaseFee = eth.CalcBlobFeeCancun(*ebg)
-		}
+		// Use Prague-aware calculation: CalcBlobFeeDefault reads RequestsHash from the
+		// actual L1 header, selecting UpdateFraction=5007716 for post-Pectra blocks.
+		// CalcBlobFeeCancun always uses UpdateFraction=3338477, giving astronomically
+		// wrong results for Sepolia's elevated excessBlobGas after the Pectra upgrade.
+		l1BlockInfo.BlobBaseFee = block.BlobBaseFee()
 
-		// Apply Cancun blob base fee calculation if this chain needs the L1 Pectra
-		// blob schedule fix (mostly Holesky and Sepolia OP-Stack chains).
+		// For chains that activated Pectra on L1 before configuring pectra_blob_schedule_time
+		// in rollup.json (e.g., historical OP Sepolia/Holesky deployments): force Cancun
+		// formula for L1 blocks produced before the schedule activation timestamp.
 		if t := rollupCfg.PectraBlobScheduleTime; t != nil && block.Time() < *t {
 			if ebg := block.ExcessBlobGas(); ebg != nil {
 				l1BlockInfo.BlobBaseFee = eth.CalcBlobFeeCancun(*ebg)
