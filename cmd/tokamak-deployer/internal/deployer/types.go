@@ -20,6 +20,7 @@ type DeployOutput struct {
 	// Fault proof only
 	DisputeGameFactoryProxy  string `json:"DisputeGameFactoryProxy,omitempty"`
 	AnchorStateRegistryProxy string `json:"AnchorStateRegistryProxy,omitempty"`
+	DelayedWETHProxy         string `json:"DelayedWETHProxy,omitempty"`
 }
 
 // DeployConfig is the input configuration for deploy-contracts
@@ -28,6 +29,9 @@ type DeployConfig struct {
 	PrivateKey       string
 	L2ChainID        uint64
 	EnableFaultProof bool
+	// DelayedWETHDelay is the withdrawal delay in seconds for the DelayedWETH bond escrow.
+	// 0 is valid for local testnets (no enforced delay).
+	DelayedWETHDelay uint64
 	FinalSystemOwner string
 	L2OutputOracleSubmissionInterval uint64
 

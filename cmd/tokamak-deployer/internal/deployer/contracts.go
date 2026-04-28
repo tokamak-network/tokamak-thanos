@@ -254,7 +254,7 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	//   faultProofSteps — additional steps gated on cfg.EnableFaultProof
 	const (
 		baseStepCount   = 26
-		faultProofSteps = 6
+		faultProofSteps = 9
 	)
 	totalSteps := baseStepCount
 	if cfg.EnableFaultProof {
@@ -581,6 +581,34 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 			return nil, fmt.Errorf("upgrade AnchorStateRegistryProxy: %w", err)
 		}
 		log.Printf("[deployer] ✓ AnchorStateRegistryProxy upgraded")
+
+		// 33. Deploy DelayedWETHProxy
+		logStep("Deploying DelayedWETHProxy")
+		delayedWETHProxyAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, proxyArtifact, proxyAdminAddr)
+		if err != nil {
+			return nil, fmt.Errorf("deploy DelayedWETHProxy: %w", err)
+		}
+		output.DelayedWETHProxy = delayedWETHProxyAddr.Hex()
+		log.Printf("[deployer] ✓ DelayedWETHProxy deployed: %s", delayedWETHProxyAddr.Hex())
+
+		// 34. Deploy DelayedWETH implementation (constructor takes _delay uint256)
+		logStep("Deploying DelayedWETH implementation")
+		delayedWETHArtifact, err := loadArtifact(artifactsFS, "DelayedWETH")
+		if err != nil {
+			return nil, err
+		}
+		delayedWETHImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, delayedWETHArtifact, new(big.Int).SetUint64(cfg.DelayedWETHDelay))
+		if err != nil {
+			return nil, fmt.Errorf("deploy DelayedWETH impl: %w", err)
+		}
+		log.Printf("[deployer] ✓ DelayedWETH impl deployed: %s", delayedWETHImplAddr.Hex())
+
+		// 35. Upgrade DelayedWETHProxy to implementation
+		logStep("Upgrading DelayedWETHProxy")
+		if err := upgradeProxyViaAdmin(ctx, client, auth, &nonce, gasPrice, proxyAdminAddr, delayedWETHProxyAddr, delayedWETHImplAddr, proxyAdminArtifact); err != nil {
+			return nil, fmt.Errorf("upgrade DelayedWETHProxy: %w", err)
+		}
+		log.Printf("[deployer] ✓ DelayedWETHProxy upgraded")
 	}
 
 	log.Printf("[deployer] ✅ All contracts deployed successfully!")
