@@ -74,7 +74,7 @@ func (h headerInfo) BlobBaseFee() *big.Int {
 	if h.Header.ExcessBlobGas == nil {
 		return nil
 	}
-	return eth.CalcBlobFeeCancun(*h.Header.ExcessBlobGas)
+	return eth.CalcBlobFeeDefault(h.Header)
 }
 
 func (h headerInfo) ExcessBlobGas() *uint64 {
