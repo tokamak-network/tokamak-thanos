@@ -63,3 +63,6 @@ cmd/tokamak-deployer/tokamak-deployer
 bin/
 genesis.test
 .worktrees/
+
+docs/superpowers/
+docs/codex-review/
