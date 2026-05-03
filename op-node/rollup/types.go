@@ -381,8 +381,14 @@ func (cfg *Config) ProbablyMissingPectraBlobSchedule() bool {
 
 	var pragueTime uint64
 	if cfg.L1ChainID.Cmp(params.HoleskyChainConfig.ChainID) == 0 {
+		if params.HoleskyChainConfig.PragueTime == nil {
+			return false
+		}
 		pragueTime = *params.HoleskyChainConfig.PragueTime
 	} else if cfg.L1ChainID.Cmp(params.SepoliaChainConfig.ChainID) == 0 {
+		if params.SepoliaChainConfig.PragueTime == nil {
+			return false
+		}
 		pragueTime = *params.SepoliaChainConfig.PragueTime
 	} else {
 		// Only Holesky and Sepolia chains may have run into the
