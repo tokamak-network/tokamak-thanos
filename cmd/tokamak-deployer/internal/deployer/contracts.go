@@ -563,13 +563,13 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		output.AnchorStateRegistryProxy = anchorStateRegistryProxyAddr.Hex()
 		log.Printf("[deployer] ✓ AnchorStateRegistryProxy deployed: %s", anchorStateRegistryProxyAddr.Hex())
 
-		// 31. Deploy AnchorStateRegistry implementation (constructor takes DisputeGameFactory address)
+		// 31. Deploy AnchorStateRegistry implementation (constructor takes DisputeGameFactory proxy address)
 		logStep("Deploying AnchorStateRegistry implementation")
 		anchorStateRegistryArtifact, err := loadArtifact(artifactsFS, "AnchorStateRegistry")
 		if err != nil {
 			return nil, err
 		}
-		anchorStateRegistryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, anchorStateRegistryArtifact, disputeGameFactoryImplAddr)
+		anchorStateRegistryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, anchorStateRegistryArtifact, disputeGameFactoryProxyAddr)
 		if err != nil {
 			return nil, fmt.Errorf("deploy AnchorStateRegistry impl: %w", err)
 		}
