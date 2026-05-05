@@ -256,8 +256,9 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-// Production: Use remote tokamak-thanos-geth
-replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251106090936-0a428baeb619
+// Use tokamak-thanos-geth with IsthmusTime in params.ChainConfig (added 2026-04-02).
+// Pseudo-version for commit 25d0c60d53c4 (HEAD of main, 2026-05-02).
+replace github.com/ethereum/go-ethereum => github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20260502144003-25d0c60d53c4
 
 // contracts-bedrock is a local Solidity contracts package (not a Go module in go.work)
 // This replace directive is used by op-node's import of contracts-bedrock/snapshots

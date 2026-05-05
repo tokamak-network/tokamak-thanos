@@ -931,6 +931,8 @@ github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251117074503-f8c04dcb14e
 github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251117074503-f8c04dcb14e8/go.mod h1:z49DPUFU74l4Wy7b12omtCrJyibcR+E+jCb/VG+1LiA=
 github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251124065258-ce597853200f h1:xY0YO2LNkc75y6DtDsH/ScXn9FTRZGwjz3EZcuOSP1I=
 github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20251124065258-ce597853200f/go.mod h1:z49DPUFU74l4Wy7b12omtCrJyibcR+E+jCb/VG+1LiA=
+github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20260502144003-25d0c60d53c4 h1:7bXEfJmmbvFn9ZPRcp5NDXkl57ASdFA2Mcshg3ejaUk=
+github.com/tokamak-network/tokamak-thanos-geth v0.0.0-20260502144003-25d0c60d53c4/go.mod h1:z49DPUFU74l4Wy7b12omtCrJyibcR+E+jCb/VG+1LiA=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/tyler-smith/go-bip39 v1.1.0 h1:5eUemwrMargf3BSLRRCalXT93Ns6pQJIjYQN2nyfOP8=
 github.com/tyler-smith/go-bip39 v1.1.0/go.mod h1:gUYDtqQw1JS3ZJ8UWVcGTGqqr6YIN3CWg+kkNaLt55U=
