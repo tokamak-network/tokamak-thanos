@@ -115,6 +115,9 @@ type artifact struct {
 	Bytecode struct {
 		Object string `json:"object"`
 	} `json:"bytecode"`
+	DeployedBytecode struct {
+		Object string `json:"object"`
+	} `json:"deployedBytecode"`
 }
 
 func loadArtifact(artifactsFS fs.FS, name string) (*artifact, error) {
@@ -203,7 +206,7 @@ func upgradeProxyViaAdmin(ctx context.Context, client *ethclient.Client, auth *b
 	return callContract(ctx, client, auth, nonce, gasPrice, proxyAdminAddr, proxyAdminArtifact, "upgrade", proxyAddr, implAddr)
 }
 
-func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOutput, error) {
+func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS, registryFS fs.FS) (*DeployOutput, error) {
 	log.Printf("[deployer] Starting contract deployment for L2 chain %d", cfg.L2ChainID)
 
 	client, err := ethclient.DialContext(ctx, cfg.L1RPCURL)
@@ -243,7 +246,24 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		return nil, fmt.Errorf("resolve gas price: %w", err)
 	}
 
-	output := &DeployOutput{L2ChainID: cfg.L2ChainID, L1ChainID: chainID.Uint64()}
+	output := &DeployOutput{
+		L2ChainID:       cfg.L2ChainID,
+		L1ChainID:       chainID.Uint64(),
+		Implementations: make(map[string]string),
+	}
+
+	// Reuse preflight: zero-cost no-op when ReuseDeployment is false.
+	var reuse *reuseTable
+	{
+		registry, regErr := loadRegistry(cfg, chainID.Uint64(), registryFS)
+		if regErr != nil {
+			return nil, fmt.Errorf("load reuse registry: %w", regErr)
+		}
+		reuse, regErr = registry.verify(ctx, client, artifactsFS, cfg.ReuseStrict)
+		if regErr != nil {
+			return nil, fmt.Errorf("preflight reuse registry: %w", regErr)
+		}
+	}
 
 	// Step numbering is computed dynamically so that adding/removing a step only
 	// requires keeping the baseStepCount / fault-proof count accurate, not hand-
@@ -307,17 +327,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.SuperchainConfigProxy = superchainConfigProxyAddr.Hex()
 	log.Printf("[deployer] ✓ SuperchainConfigProxy deployed: %s", superchainConfigProxyAddr.Hex())
 
-	// 4. Deploy SuperchainConfig implementation
-	logStep("Deploying SuperchainConfig implementation")
+	// 4. Resolve SuperchainConfig implementation (reuse or deploy)
+	logStep("Resolving SuperchainConfig implementation")
 	superchainConfigArtifact, err := loadArtifact(artifactsFS, "SuperchainConfig")
 	if err != nil {
 		return nil, err
 	}
-	superchainConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, superchainConfigArtifact)
+	superchainConfigImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"SuperchainConfig", superchainConfigArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy SuperchainConfig impl: %w", err)
+		return nil, fmt.Errorf("resolve SuperchainConfig impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ SuperchainConfig impl deployed: %s", superchainConfigImplAddr.Hex())
+	output.Implementations["SuperchainConfig"] = superchainConfigImplAddr.Hex()
 
 	// 5. Upgrade SuperchainConfigProxy to implementation
 	logStep("Upgrading SuperchainConfigProxy")
@@ -335,17 +356,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.OptimismPortalProxy = optimismPortalProxyAddr.Hex()
 	log.Printf("[deployer] ✓ OptimismPortalProxy deployed: %s", optimismPortalProxyAddr.Hex())
 
-	// 7. Deploy OptimismPortal implementation
-	logStep("Deploying OptimismPortal implementation")
+	// 7. Resolve OptimismPortal implementation (reuse or deploy)
+	logStep("Resolving OptimismPortal implementation")
 	optimismPortalArtifact, err := loadArtifact(artifactsFS, "OptimismPortal")
 	if err != nil {
 		return nil, err
 	}
-	optimismPortalImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, optimismPortalArtifact)
+	optimismPortalImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"OptimismPortal", optimismPortalArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy OptimismPortal impl: %w", err)
+		return nil, fmt.Errorf("resolve OptimismPortal impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ OptimismPortal impl deployed: %s", optimismPortalImplAddr.Hex())
+	output.Implementations["OptimismPortal"] = optimismPortalImplAddr.Hex()
 
 	// 8. Upgrade OptimismPortalProxy to implementation
 	logStep("Upgrading OptimismPortalProxy")
@@ -363,17 +385,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.SystemConfigProxy = systemConfigProxyAddr.Hex()
 	log.Printf("[deployer] ✓ SystemConfigProxy deployed: %s", systemConfigProxyAddr.Hex())
 
-	// 10. Deploy SystemConfig implementation
-	logStep("Deploying SystemConfig implementation")
+	// 10. Resolve SystemConfig implementation (reuse or deploy)
+	logStep("Resolving SystemConfig implementation")
 	systemConfigArtifact, err := loadArtifact(artifactsFS, "SystemConfig")
 	if err != nil {
 		return nil, err
 	}
-	systemConfigImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, systemConfigArtifact)
+	systemConfigImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"SystemConfig", systemConfigArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy SystemConfig impl: %w", err)
+		return nil, fmt.Errorf("resolve SystemConfig impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ SystemConfig impl deployed: %s", systemConfigImplAddr.Hex())
+	output.Implementations["SystemConfig"] = systemConfigImplAddr.Hex()
 
 	// 11. Upgrade SystemConfigProxy to implementation
 	logStep("Upgrading SystemConfigProxy")
@@ -391,17 +414,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.L1StandardBridgeProxy = l1StandardBridgeProxyAddr.Hex()
 	log.Printf("[deployer] ✓ L1StandardBridgeProxy deployed: %s", l1StandardBridgeProxyAddr.Hex())
 
-	// 13. Deploy L1StandardBridge implementation
-	logStep("Deploying L1StandardBridge implementation")
+	// 13. Resolve L1StandardBridge implementation (reuse or deploy)
+	logStep("Resolving L1StandardBridge implementation")
 	l1StandardBridgeArtifact, err := loadArtifact(artifactsFS, "L1StandardBridge")
 	if err != nil {
 		return nil, err
 	}
-	l1StandardBridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1StandardBridgeArtifact)
+	l1StandardBridgeImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"L1StandardBridge", l1StandardBridgeArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy L1StandardBridge impl: %w", err)
+		return nil, fmt.Errorf("resolve L1StandardBridge impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ L1StandardBridge impl deployed: %s", l1StandardBridgeImplAddr.Hex())
+	output.Implementations["L1StandardBridge"] = l1StandardBridgeImplAddr.Hex()
 
 	// 14. Upgrade L1StandardBridgeProxy to implementation
 	logStep("Upgrading L1StandardBridgeProxy")
@@ -419,17 +443,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.L1CrossDomainMessengerProxy = l1CDMProxyAddr.Hex()
 	log.Printf("[deployer] ✓ L1CrossDomainMessengerProxy deployed: %s", l1CDMProxyAddr.Hex())
 
-	// 16. Deploy L1CrossDomainMessenger implementation
-	logStep("Deploying L1CrossDomainMessenger implementation")
+	// 16. Resolve L1CrossDomainMessenger implementation (reuse or deploy)
+	logStep("Resolving L1CrossDomainMessenger implementation")
 	l1CDMArtifact, err := loadArtifact(artifactsFS, "L1CrossDomainMessenger")
 	if err != nil {
 		return nil, err
 	}
-	l1CDMImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1CDMArtifact)
+	l1CDMImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"L1CrossDomainMessenger", l1CDMArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy L1CrossDomainMessenger impl: %w", err)
+		return nil, fmt.Errorf("resolve L1CrossDomainMessenger impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ L1CrossDomainMessenger impl deployed: %s", l1CDMImplAddr.Hex())
+	output.Implementations["L1CrossDomainMessenger"] = l1CDMImplAddr.Hex()
 
 	// 17. Upgrade L1CrossDomainMessengerProxy to implementation
 	logStep("Upgrading L1CrossDomainMessengerProxy")
@@ -447,17 +472,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.OptimismMintableERC20FactoryProxy = optimismMintableERC20FactoryProxyAddr.Hex()
 	log.Printf("[deployer] ✓ OptimismMintableERC20FactoryProxy deployed: %s", optimismMintableERC20FactoryProxyAddr.Hex())
 
-	// 19. Deploy OptimismMintableERC20Factory implementation
-	logStep("Deploying OptimismMintableERC20Factory implementation")
+	// 19. Resolve OptimismMintableERC20Factory implementation (reuse or deploy)
+	logStep("Resolving OptimismMintableERC20Factory implementation")
 	optimismMintableERC20FactoryArtifact, err := loadArtifact(artifactsFS, "OptimismMintableERC20Factory")
 	if err != nil {
 		return nil, err
 	}
-	optimismMintableERC20FactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, optimismMintableERC20FactoryArtifact)
+	optimismMintableERC20FactoryImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"OptimismMintableERC20Factory", optimismMintableERC20FactoryArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy OptimismMintableERC20Factory impl: %w", err)
+		return nil, fmt.Errorf("resolve OptimismMintableERC20Factory impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ OptimismMintableERC20Factory impl deployed: %s", optimismMintableERC20FactoryImplAddr.Hex())
+	output.Implementations["OptimismMintableERC20Factory"] = optimismMintableERC20FactoryImplAddr.Hex()
 
 	// 20. Upgrade OptimismMintableERC20FactoryProxy to implementation
 	logStep("Upgrading OptimismMintableERC20FactoryProxy")
@@ -475,17 +501,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.L1ERC721BridgeProxy = l1ERC721BridgeProxyAddr.Hex()
 	log.Printf("[deployer] ✓ L1ERC721BridgeProxy deployed: %s", l1ERC721BridgeProxyAddr.Hex())
 
-	// 22. Deploy L1ERC721Bridge implementation
-	logStep("Deploying L1ERC721Bridge implementation")
+	// 22. Resolve L1ERC721Bridge implementation (reuse or deploy)
+	logStep("Resolving L1ERC721Bridge implementation")
 	l1ERC721BridgeArtifact, err := loadArtifact(artifactsFS, "L1ERC721Bridge")
 	if err != nil {
 		return nil, err
 	}
-	l1ERC721BridgeImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l1ERC721BridgeArtifact)
+	l1ERC721BridgeImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"L1ERC721Bridge", l1ERC721BridgeArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy L1ERC721Bridge impl: %w", err)
+		return nil, fmt.Errorf("resolve L1ERC721Bridge impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ L1ERC721Bridge impl deployed: %s", l1ERC721BridgeImplAddr.Hex())
+	output.Implementations["L1ERC721Bridge"] = l1ERC721BridgeImplAddr.Hex()
 
 	// 23. Upgrade L1ERC721BridgeProxy to implementation
 	logStep("Upgrading L1ERC721BridgeProxy")
@@ -503,17 +530,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 	output.L2OutputOracleProxy = l2OutputOracleProxyAddr.Hex()
 	log.Printf("[deployer] ✓ L2OutputOracleProxy deployed: %s", l2OutputOracleProxyAddr.Hex())
 
-	// 25. Deploy L2OutputOracle implementation
-	logStep("Deploying L2OutputOracle implementation")
+	// 25. Resolve L2OutputOracle implementation (reuse or deploy)
+	logStep("Resolving L2OutputOracle implementation")
 	l2OutputOracleArtifact, err := loadArtifact(artifactsFS, "L2OutputOracle")
 	if err != nil {
 		return nil, err
 	}
-	l2OutputOracleImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, l2OutputOracleArtifact)
+	l2OutputOracleImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+		"L2OutputOracle", l2OutputOracleArtifact, reuse)
 	if err != nil {
-		return nil, fmt.Errorf("deploy L2OutputOracle impl: %w", err)
+		return nil, fmt.Errorf("resolve L2OutputOracle impl: %w", err)
 	}
-	log.Printf("[deployer] ✓ L2OutputOracle impl deployed: %s", l2OutputOracleImplAddr.Hex())
+	output.Implementations["L2OutputOracle"] = l2OutputOracleImplAddr.Hex()
 
 	// 26. Upgrade L2OutputOracleProxy to implementation
 	logStep("Upgrading L2OutputOracleProxy")
@@ -535,17 +563,18 @@ func Deploy(ctx context.Context, cfg DeployConfig, artifactsFS fs.FS) (*DeployOu
 		output.DisputeGameFactoryProxy = disputeGameFactoryProxyAddr.Hex()
 		log.Printf("[deployer] ✓ DisputeGameFactoryProxy deployed: %s", disputeGameFactoryProxyAddr.Hex())
 
-		// 28. Deploy DisputeGameFactory implementation
-		logStep("Deploying DisputeGameFactory implementation")
+		// 28. Resolve DisputeGameFactory implementation (reuse or deploy)
+		logStep("Resolving DisputeGameFactory implementation")
 		disputeGameFactoryArtifact, err := loadArtifact(artifactsFS, "DisputeGameFactory")
 		if err != nil {
 			return nil, err
 		}
-		disputeGameFactoryImplAddr, err := deployContract(ctx, client, auth, &nonce, gasPrice, disputeGameFactoryArtifact)
+		disputeGameFactoryImplAddr, err := deployOrReuse(ctx, client, auth, &nonce, gasPrice,
+			"DisputeGameFactory", disputeGameFactoryArtifact, reuse)
 		if err != nil {
-			return nil, fmt.Errorf("deploy DisputeGameFactory impl: %w", err)
+			return nil, fmt.Errorf("resolve DisputeGameFactory impl: %w", err)
 		}
-		log.Printf("[deployer] ✓ DisputeGameFactory impl deployed: %s", disputeGameFactoryImplAddr.Hex())
+		output.Implementations["DisputeGameFactory"] = disputeGameFactoryImplAddr.Hex()
 
 		// 29. Upgrade DisputeGameFactoryProxy to implementation
 		logStep("Upgrading DisputeGameFactoryProxy")

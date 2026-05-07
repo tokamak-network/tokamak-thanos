@@ -20,3 +20,13 @@ func TestDeployContractsCmd_FaultProofFlag(t *testing.T) {
 		t.Errorf("expected --fault-proof default=false, got %q", flag.DefValue)
 	}
 }
+
+func TestDefaultRegistryFS_HasSepolia(t *testing.T) {
+	data, err := DefaultRegistryFS.ReadFile("registry/11155111.json")
+	if err != nil {
+		t.Fatalf("expected embedded Sepolia registry: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("Sepolia registry is empty")
+	}
+}

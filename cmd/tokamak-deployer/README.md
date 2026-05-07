@@ -121,6 +121,26 @@ If all retries fail you get `transaction not mined after 5 attempts (last hash: 
 the nonce is still held by the last broadcast, so wait for that tx to clear the
 mempool (or drop) before retrying the whole command.
 
+### Implementation Reuse (opt-in)
+
+`deploy-contracts` can skip re-deploying the 9 implementation contracts behind a Proxy when they already exist on the target L1. This shortens a Sepolia deploy by ~1.5–4.5 minutes.
+
+```bash
+./tokamak-deployer deploy-contracts --reuse-deployment \
+    --l1-rpc $RPC --private-key $KEY --chain-id $CID --out deploy-output.json
+```
+
+Flags:
+- `--reuse-deployment` — master toggle (default off; off = current behavior)
+- `--reuse-impls <path>` — override the embedded registry with a custom JSON
+- `--reuse-strict` — abort if any registry entry fails on-chain bytecode verification (default off → silent fallback to fresh deploy)
+
+The embedded registry under `cmd/registry/{l1ChainId}.json` lists pre-deployed addresses for known L1s. Each address is verified at preflight via `eth_getCode` + keccak256 against the binary's embedded `deployedBytecode`.
+
+Reuse-eligible implementations (9 total): SuperchainConfig, OptimismPortal, SystemConfig, L1StandardBridge, L1CrossDomainMessenger, OptimismMintableERC20Factory, L1ERC721Bridge, L2OutputOracle, DisputeGameFactory (fault-proof only). Proxies, AddressManager, ProxyAdmin, AnchorStateRegistry, and DelayedWETH are always freshly deployed.
+
+To curate or update the embedded registry, see `cmd/registry/README.md`.
+
 ## 3. Generate L2 genesis
 
 > ⚠️ **`generate-genesis` is not standalone.** It runs tokamak-specific

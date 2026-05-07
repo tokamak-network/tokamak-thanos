@@ -21,6 +21,10 @@ var (
 	flagGasPriceMultiplier int
 	flagGasPriceFloor      string
 	flagGasPriceCeil       string
+	// Reuse flags (Task 10)
+	flagReuseDeployment bool
+	flagReuseImpls      string
+	flagReuseStrict     bool
 )
 
 const envGasPrice = "TOKAMAK_DEPLOY_GAS_PRICE"
@@ -52,8 +56,17 @@ var deployContractsCmd = &cobra.Command{
 			GasPriceMultiplier: flagGasPriceMultiplier,
 			GasPriceFloor:      floor,
 			GasPriceCeil:       ceil,
+			// Reuse (Task 10)
+			ReuseDeployment: flagReuseDeployment,
+			RegistryPath:    flagReuseImpls,
+			ReuseStrict:     flagReuseStrict,
 		}
-		output, err := deployer.Deploy(cmd.Context(), cfg, DeployArtifactsFS)
+
+		if !flagReuseDeployment && (flagReuseImpls != "" || flagReuseStrict) {
+			fmt.Fprintln(os.Stderr, "[deployer] WARN: --reuse-impls/--reuse-strict ignored without --reuse-deployment")
+		}
+
+		output, err := deployer.Deploy(cmd.Context(), cfg, DeployArtifactsFS, DefaultRegistryFS)
 		if err != nil {
 			return fmt.Errorf("deployment failed: %w", err)
 		}
@@ -104,6 +117,12 @@ func init() {
 		"Minimum gas price in wei applied to the resolved price (default 1 Gwei)")
 	deployContractsCmd.Flags().StringVar(&flagGasPriceCeil, "gas-price-ceil", "",
 		"Maximum gas price in wei applied to the resolved price (default 100 Gwei)")
+	deployContractsCmd.Flags().BoolVar(&flagReuseDeployment, "reuse-deployment", false,
+		"Enable reuse of pre-deployed implementations (default: deploy fresh)")
+	deployContractsCmd.Flags().StringVar(&flagReuseImpls, "reuse-impls", "",
+		"Path to a registry JSON overriding the embedded registry (optional)")
+	deployContractsCmd.Flags().BoolVar(&flagReuseStrict, "reuse-strict", false,
+		"Abort if any reuse candidate fails verification (default: silent fallback)")
 	_ = deployContractsCmd.MarkFlagRequired("l1-rpc")
 	_ = deployContractsCmd.MarkFlagRequired("private-key")
 	_ = deployContractsCmd.MarkFlagRequired("chain-id")

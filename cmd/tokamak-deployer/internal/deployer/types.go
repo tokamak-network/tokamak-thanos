@@ -21,6 +21,11 @@ type DeployOutput struct {
 	DisputeGameFactoryProxy  string `json:"DisputeGameFactoryProxy,omitempty"`
 	AnchorStateRegistryProxy string `json:"AnchorStateRegistryProxy,omitempty"`
 	DelayedWETHProxy         string `json:"DelayedWETHProxy,omitempty"`
+
+	// Implementations records the runtime impl address for each reuse-target contract.
+	// When reuse hits, this is the on-chain address from the registry; otherwise it is the
+	// freshly-deployed address. Useful for curating a future registry update.
+	Implementations map[string]string `json:"implementations,omitempty"`
 }
 
 // DeployConfig is the input configuration for deploy-contracts
@@ -52,4 +57,19 @@ type DeployConfig struct {
 	GasPriceMultiplier int
 	GasPriceFloor      *big.Int
 	GasPriceCeil       *big.Int
+
+	// Reuse-deployment knobs.
+	//
+	// ReuseDeployment: master toggle. When false (default), behavior is identical to
+	// pre-reuse releases — every impl is freshly deployed.
+	//
+	// RegistryPath: optional override. When non-empty, the file at this path is loaded
+	// instead of the embedded registry/{l1ChainID}.json.
+	//
+	// ReuseStrict: if true, any registry verification failure (missing on-chain code,
+	// bytecode hash mismatch, invalid hex) aborts the deploy instead of falling back to
+	// a fresh deploy for that entry.
+	ReuseDeployment bool
+	RegistryPath    string
+	ReuseStrict     bool
 }
