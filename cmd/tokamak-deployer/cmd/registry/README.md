@@ -41,3 +41,35 @@ that can be reused (skipping fresh deployment) when the user passes
   binary's embedded artifact `deployedBytecode.object`. Mismatched entries fall
   back to fresh deploy in default mode, or abort with `--reuse-strict`.
 - Adding wrong addresses cannot silently corrupt a deployment — only delay it.
+
+## Why pre-existing addresses are not always reusable
+
+Addresses from prior deployments (e.g. the Foundry-era files under
+`packages/tokamak/contracts-bedrock/deployments/<network>/address.json`) often
+**cannot** be used as registry entries directly. The reuse mechanism compares
+on-chain runtime bytecode keccak256-equal against the binary's embedded
+`deployedBytecode.object`, which is regenerated each time the contracts are
+recompiled. Any of the following invalidates a previously-deployed impl:
+
+- Source revision change (added/removed functions, changed selectors)
+- Compiler version change (solc 0.8.15 → 0.8.20)
+- Optimizer setting change (runs=200 → runs=10000)
+- Different metadata bytes (compile flags, source paths)
+
+When this happens, every entry fails preflight and the deploy silently falls
+back to fresh deploys — the registry becomes useless noise (9 WARN lines per
+deploy) without any reuse benefit. Verify before populating:
+
+```bash
+# Per-entry check: on-chain code keccak256 vs artifact deployedBytecode keccak256
+ONCHAIN=$(cast code <addr> --rpc-url <rpc>)
+ARTIFACT=$(jq -r '.deployedBytecode.object' \
+  cmd/tokamak-deployer/cmd/deploy-artifacts/<Name>.json)
+[ "$(cast keccak "$ONCHAIN")" = "$(cast keccak "$ARTIFACT")" ] \
+  && echo MATCH || echo MISMATCH
+```
+
+The reliable way to populate a registry is to run a fresh deploy with this
+exact binary version (no `--reuse-deployment`), then copy the
+`deploy-output.json:implementations` map verbatim. That guarantees byte-for-byte
+equality on the next reuse-enabled deploy.

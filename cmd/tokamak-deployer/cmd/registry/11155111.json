@@ -1,6 +1,6 @@
 {
-  "tokamakDeployerVersion": "dev",
+  "tokamakDeployerVersion": "v0.0.9",
   "l1ChainId": 11155111,
-  "comment": "Sepolia — implementations to be populated after first deploy with this binary",
+  "comment": "Sepolia — empty until a v0.0.9 deploy populates it. Pre-v0.0.9 impl addresses (e.g. from packages/tokamak/contracts-bedrock/deployments/thanos-stack-sepolia/address.json) are NOT bytecode-compatible: they were compiled from an earlier source revision than v0.0.9's embedded artifacts and fail keccak256 preflight. To populate: run `tokamak-deployer deploy-contracts` once on Sepolia (no --reuse-deployment) with this binary, then copy the resulting deploy-output.json:implementations into this file.",
   "implementations": {}
 }
