@@ -1,6 +1,16 @@
 {
   "tokamakDeployerVersion": "v0.0.9",
   "l1ChainId": 11155111,
-  "comment": "Sepolia — empty until a v0.0.9 deploy populates it. Pre-v0.0.9 impl addresses (e.g. from packages/tokamak/contracts-bedrock/deployments/thanos-stack-sepolia/address.json) are NOT bytecode-compatible: they were compiled from an earlier source revision than v0.0.9's embedded artifacts and fail keccak256 preflight. To populate: run `tokamak-deployer deploy-contracts` once on Sepolia (no --reuse-deployment) with this binary, then copy the resulting deploy-output.json:implementations into this file.",
-  "implementations": {}
+  "comment": "Sepolia — populated 2026-05-07 from a fresh v0.0.9 deploy (chainId=111551149999, fault-proof on, deployer 0x7220c734653ae8Ca014d4D82A84041EE4169499c, 35 steps in ~7m at ~0.024 ETH). All 9 entries verified via cast code + keccak256 vs embedded deployedBytecode.object.",
+  "implementations": {
+    "SuperchainConfig":             "0xE144C4b11DCFcAb788EBF97f6b7D74e3e3A7A3FF",
+    "OptimismPortal":               "0x968aaf1A6010dc9d97A3dBA5d176dE7671F4abEA",
+    "SystemConfig":                 "0x531aC70DCa1934E8Ed870FBa52326f300C876480",
+    "L1StandardBridge":             "0xDf4EA990EFb3ad65eE4751AE87A43BC62a5FbF8f",
+    "L1CrossDomainMessenger":       "0x8265df0C2989a77e4C9250a4247030afFD6d6A5C",
+    "OptimismMintableERC20Factory": "0x8bbD92a394d21E11AEbd2aeB9b4B210242cdBaC7",
+    "L1ERC721Bridge":               "0xb67BC25e95df5A1a83C28641b6D3089174c45048",
+    "L2OutputOracle":               "0x9524b236b2F9B89eb288F32C4f3Ce7f4eCCfdA2b",
+    "DisputeGameFactory":           "0xB68252C2d3530BC2d2141F1f0EEf8077b8d124a3"
+  }
 }
