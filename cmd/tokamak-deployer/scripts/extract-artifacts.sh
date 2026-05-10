@@ -26,6 +26,8 @@ CONTRACTS=(
   "MIPS"
   "PreimageOracle"
   "Proxy"
+  "MultiTokenPaymaster"
+  "FiatTokenV2_2"
 )
 
 for contract in "${CONTRACTS[@]}"; do
@@ -37,5 +39,14 @@ for contract in "${CONTRACTS[@]}"; do
     echo "⚠️  $contract.json not found at $src"
   fi
 done
+
+# FiatTokenProxy is stored under a different name in deploy-artifacts
+FIAT_PROXY_SRC="$FORGE_ARTIFACTS_DIR/FiatTokenProxy.sol/FiatTokenProxy.json"
+if [ -f "$FIAT_PROXY_SRC" ]; then
+  cp "$FIAT_PROXY_SRC" "$OUTPUT_DIR/FiatTokenV2_2Proxy.json"
+  echo "✅ FiatTokenProxy → FiatTokenV2_2Proxy"
+else
+  echo "⚠️  FiatTokenProxy.json not found at $FIAT_PROXY_SRC"
+fi
 
 echo "Extracted $(ls "$OUTPUT_DIR"/*.json 2>/dev/null | wc -l) artifacts to $OUTPUT_DIR"

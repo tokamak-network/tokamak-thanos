@@ -93,16 +93,12 @@ func injectUSDCIntoGenesis(genesisPath string, artifactsFS fs.FS) error {
 	// Load bytecodes from embedded artifacts
 	implBytecode, err := loadBytecodeFromFS(artifactsFS, "deploy-artifacts/FiatTokenV2_2.json")
 	if err != nil {
-		// If not found, skip with warning
-		fmt.Println("Warning: FiatTokenV2_2.json not found in embedded artifacts, skipping USDC injection")
-		return nil
+		return fmt.Errorf("FiatTokenV2_2.json missing from embedded artifacts (binary may be outdated): %w", err)
 	}
 
 	proxyBytecode, err := loadBytecodeFromFS(artifactsFS, "deploy-artifacts/FiatTokenV2_2Proxy.json")
 	if err != nil {
-		// If not found, skip with warning
-		fmt.Println("Warning: FiatTokenV2_2Proxy.json not found in embedded artifacts, skipping USDC injection")
-		return nil
+		return fmt.Errorf("FiatTokenV2_2Proxy.json missing from embedded artifacts (binary may be outdated): %w", err)
 	}
 
 	// Set implementation at code namespace address

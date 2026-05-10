@@ -55,9 +55,7 @@ func injectMultiTokenPaymasterBytecode(genesisPath string, artifactsFS fs.FS) er
 	// Load deployedBytecode from embedded forge artifact
 	implBytecode, err := loadForgeArtifactBytecodeFromFS(artifactsFS, "deploy-artifacts/MultiTokenPaymaster.json")
 	if err != nil {
-		// If not found, skip with warning
-		fmt.Println("Warning: MultiTokenPaymaster.json not found in embedded artifacts, skipping injection")
-		return nil
+		return fmt.Errorf("MultiTokenPaymaster.json missing from embedded artifacts (binary may be outdated): %w", err)
 	}
 
 	// Set implementation at code namespace address
