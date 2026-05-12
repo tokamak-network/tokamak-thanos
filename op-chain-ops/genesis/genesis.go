@@ -55,6 +55,7 @@ func NewL2Genesis(config *DeployConfig, block *types.Block) (*core.Genesis, erro
 		EcotoneTime:             config.EcotoneTime(block.Time()),
 		FjordTime:               config.FjordTime(block.Time()),
 		IsthmusTime:             config.IsthmusTime(block.Time()),
+		PragueTime:              config.IsthmusTime(block.Time()), // Isthmus → Prague: enables EIP-7702 (type 4 tx) in txpool
 		InteropTime:             config.InteropTime(block.Time()),
 		Optimism:                opChainCfg,
 	}
