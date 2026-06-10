@@ -4,7 +4,9 @@ pragma solidity ^0.8.15;
 import { Test } from "forge-std/Test.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { AppExitCoordinator } from "src/emergency-exit/AppExitCoordinator.sol";
+import { EmergencyExitProof } from "src/libraries/EmergencyExitProof.sol";
 import { TestERC20 } from "../mocks/TestERC20.sol";
+import { MptProofBuilder } from "./MptProofBuilder.sol";
 
 /// @title AppExitCoordinator_Unit_Test
 /// @notice Unit tests for AppExitCoordinator — registration, activation, exitViaProof.
@@ -19,6 +21,8 @@ contract AppExitCoordinator_Test is Test {
     address public user = makeAddr("user");
 
     uint256 public constant RESERVE_AMOUNT = 10000 ether;
+    uint256 public constant SNAPSHOT_BLOCK = 12345;
+    uint256 public constant SLOT = 0;
 
     function setUp() public {
         // Deploy L1 token and fund coordinator
@@ -166,7 +170,6 @@ contract AppExitCoordinator_Test is Test {
         AppExitCoordinator.ExitProofRequest memory req = AppExitCoordinator.ExitProofRequest({
             user: user,
             amount: 100,
-            blockNumber: 1,
             accountStateRlp: "",
             accountProof: new bytes[](0),
             storageProof: new bytes[](0)
@@ -227,5 +230,114 @@ contract AppExitCoordinator_Test is Test {
         vm.prank(user);
         vm.expectRevert(AppExitCoordinator.NotRegistrar.selector);
         coordinator.setGuardian(makeAddr("newGuardian"));
+    }
+
+    // ── HIGH-1: declareEmergency (guardian-set snapshot block) ────────────────
+
+    function test_declareEmergency_ByGuardian_Success() public {
+        _mockStateRoot(bytes32(uint256(0xBEEF)));
+        vm.prank(guardian);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+        assertEq(coordinator.emergencyBlockNumber(), SNAPSHOT_BLOCK, "snapshot block set");
+    }
+
+    function test_declareEmergency_NonGuardian_Revert() public {
+        _mockStateRoot(bytes32(uint256(0xBEEF)));
+        vm.prank(user);
+        vm.expectRevert(AppExitCoordinator.NotGuardian.selector);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+    }
+
+    function test_declareEmergency_UnknownRoot_Revert() public {
+        // No oracle mock: getStateRoot returns empty → UnknownBlock.
+        vm.prank(guardian);
+        vm.expectRevert(AppExitCoordinator.UnknownBlock.selector);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+    }
+
+    // ── HIGH-1: exitViaProof gated on emergency declaration ───────────────────
+
+    function test_exitViaProof_EmergencyNotDeclared_Revert() public {
+        _activate(l2Contract);
+        MptProofBuilder.Fixture memory f = MptProofBuilder.build(l2Contract, user, SLOT, 1000 ether);
+
+        vm.expectRevert(AppExitCoordinator.EmergencyNotDeclared.selector);
+        coordinator.exitViaProof(l2Contract, _req(f, user, 1000 ether));
+    }
+
+    // ── HIGH-1: end-to-end exit + replay prevention ───────────────────────────
+
+    function test_exitViaProof_Succeeds_AndPaysOut() public {
+        uint256 bal = 1000 ether;
+        MptProofBuilder.Fixture memory f = _arm(l2Contract, user, bal);
+
+        uint256 beforeBal = l1Token.balanceOf(user);
+        coordinator.exitViaProof(l2Contract, _req(f, user, bal));
+        assertEq(l1Token.balanceOf(user) - beforeBal, bal, "user should be paid the proven balance");
+    }
+
+    /// @notice The same balance cannot be claimed twice. Before the fix, a caller could pass a
+    ///         different blockNumber to mint a new claimKey and drain the reserve; the snapshot
+    ///         block is now fixed, so the (token, user) claim guard blocks the replay.
+    function test_exitViaProof_Replay_Revert() public {
+        uint256 bal = 1000 ether;
+        MptProofBuilder.Fixture memory f = _arm(l2Contract, user, bal);
+
+        coordinator.exitViaProof(l2Contract, _req(f, user, bal)); // first claim succeeds
+        vm.expectRevert(AppExitCoordinator.AlreadyClaimed.selector);
+        coordinator.exitViaProof(l2Contract, _req(f, user, bal)); // replay blocked
+    }
+
+    function test_exitViaProof_OverClaim_Revert() public {
+        uint256 bal = 1000 ether;
+        MptProofBuilder.Fixture memory f = _arm(l2Contract, user, bal);
+
+        vm.expectRevert(abi.encodeWithSelector(EmergencyExitProof.InsufficientBalance.selector, bal, bal + 1));
+        coordinator.exitViaProof(l2Contract, _req(f, user, bal + 1));
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// @notice Mock the L2StateOracle to return `root` for the snapshot block.
+    function _mockStateRoot(bytes32 root) internal {
+        vm.mockCall(
+            l2StateOracle,
+            abi.encodeWithSignature("getStateRoot(uint256)", SNAPSHOT_BLOCK),
+            abi.encode(root)
+        );
+    }
+
+    /// @notice Register and activate `token` against the L1 reserve token at SLOT.
+    function _activate(address token) internal {
+        vm.prank(registrar);
+        coordinator.registerToken(token, address(l1Token), SLOT);
+        vm.warp(block.timestamp + 48 hours + 1 seconds);
+        coordinator.activateToken(token);
+    }
+
+    /// @notice Full setup for an exit: build proof, activate token, mock oracle, declare emergency.
+    function _arm(address token, address account, uint256 balance)
+        internal
+        returns (MptProofBuilder.Fixture memory f)
+    {
+        f = MptProofBuilder.build(token, account, SLOT, balance);
+        _activate(token);
+        _mockStateRoot(f.stateRoot);
+        vm.prank(guardian);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+    }
+
+    function _req(MptProofBuilder.Fixture memory f, address account, uint256 amount)
+        internal
+        pure
+        returns (AppExitCoordinator.ExitProofRequest memory)
+    {
+        return AppExitCoordinator.ExitProofRequest({
+            user: account,
+            amount: amount,
+            accountStateRlp: f.accountStateRlp,
+            accountProof: f.accountProof,
+            storageProof: f.storageProof
+        });
     }
 }

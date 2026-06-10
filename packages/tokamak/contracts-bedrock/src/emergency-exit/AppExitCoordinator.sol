@@ -32,6 +32,7 @@ contract AppExitCoordinator is ReentrancyGuard {
     error NotGuardian();
     error TimelockNotElapsed();
     error UnknownBlock();
+    error EmergencyNotDeclared();
 
     // ── State ─────────────────────────────────────────────────────────────────
     struct TokenRecord {
@@ -50,6 +51,12 @@ contract AppExitCoordinator is ReentrancyGuard {
     address public guardian;
     uint256 public constant REGISTRATION_DELAY = 48 hours;
 
+    /// @notice The single finalized L2 block height that all proofs are checked against.
+    ///         Zero until the guardian declares the emergency snapshot. Pinning every exit to one
+    ///         protocol-set block (instead of a caller-supplied block) is what prevents the same
+    ///         L2 balance from being proven and claimed at many different blocks.
+    uint256 public emergencyBlockNumber;
+
     mapping(bytes32 => bool) public exitClaims;
 
     // ── Events ────────────────────────────────────────────────────────────────
@@ -65,6 +72,7 @@ contract AppExitCoordinator is ReentrancyGuard {
     event ReserveRecovered(address indexed token, address indexed to, uint256 amount);
     event RegistrarUpdated(address indexed newRegistrar);
     event GuardianUpdated(address indexed newGuardian);
+    event EmergencyDeclared(uint256 blockNumber);
 
     // ── Modifiers ─────────────────────────────────────────────────────────────
     modifier onlyRegistrar() {
@@ -127,11 +135,21 @@ contract AppExitCoordinator is ReentrancyGuard {
 
     // ── Emergency Exit ────────────────────────────────────────────────────────
 
+    /// @notice Declare the emergency snapshot block that all proofs are checked against.
+    ///         Guardian-only. Reverts unless the L2StateOracle already exposes a non-zero state
+    ///         root for `blockNumber`, so exits can only ever be enabled against a finalized block.
+    /// @param blockNumber The finalized L2 block height to freeze exits at.
+    function declareEmergency(uint256 blockNumber) external onlyGuardian {
+        _getStateRoot(blockNumber); // reverts UnknownBlock if the root is unknown / zero
+        emergencyBlockNumber = blockNumber;
+        emit EmergencyDeclared(blockNumber);
+    }
+
     /// @notice Bundle proof data to reduce exitViaProof stack depth.
+    /// @dev No block number: all proofs are checked against the protocol-set `emergencyBlockNumber`.
     struct ExitProofRequest {
         address user;
         uint256 amount;
-        uint256 blockNumber;
         bytes accountStateRlp;
         bytes[] accountProof;
         bytes[] storageProof;
@@ -142,7 +160,7 @@ contract AppExitCoordinator is ReentrancyGuard {
     ///         from the emergency reserve immediately (no 7-day DTD).
     ///
     ///         Off-chain flow:
-    ///         1. User calls eth_getProof(l2Token, [balanceSlot], blockNumber) on L2 RPC
+    ///         1. User calls eth_getProof(l2Token, [balanceSlot], emergencyBlockNumber) on L2 RPC
     ///         2. Response includes accountProof, storageProof, and account state
     ///         3. User submits exitViaProof() on L1 with the proof data
     ///
@@ -153,9 +171,10 @@ contract AppExitCoordinator is ReentrancyGuard {
     ) external nonReentrant {
         TokenRecord storage rec = registry[l2Token];
         if (!rec.active) revert NotActive();
+        if (emergencyBlockNumber == 0) revert EmergencyNotDeclared();
 
-        // 1. Get finalized state root
-        bytes32 stateRoot = _getStateRoot(req.blockNumber);
+        // 1. Get the finalized state root for the protocol-set emergency snapshot block.
+        bytes32 stateRoot = _getStateRoot(emergencyBlockNumber);
 
         // 2. Verify MPT proofs (account state + storage slot)
         bytes32 storageKey = keccak256(abi.encode(req.user, rec.storageSlot));
@@ -169,8 +188,9 @@ contract AppExitCoordinator is ReentrancyGuard {
             req.amount
         );
 
-        // 3. Prevent double claims
-        bytes32 claimKey = keccak256(abi.encode(l2Token, req.user, req.blockNumber));
+        // 3. Prevent double claims. The key is (token, user) only — the snapshot block is fixed,
+        //    so the same balance cannot be re-proven at a different block to bypass this guard.
+        bytes32 claimKey = keccak256(abi.encode(l2Token, req.user));
         if (exitClaims[claimKey]) revert AlreadyClaimed();
         exitClaims[claimKey] = true;
 
