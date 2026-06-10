@@ -25,6 +25,7 @@ contract AppExitCoordinator is ReentrancyGuard {
 
     // ── Errors ────────────────────────────────────────────────────────────────
     error NotActive();
+    error NotRegistered();
     error ProofInvalid();
     error AlreadyClaimed();
     error InvalidParameter();
@@ -125,6 +126,9 @@ contract AppExitCoordinator is ReentrancyGuard {
 
     function activateToken(address l2Token) external {
         TokenRecord storage rec = registry[l2Token];
+        // A never-registered token has a zero record; its activatesAt is 0, which would otherwise
+        // pass the timelock check below and flip `active` true for an unregistered (l1Token == 0) entry.
+        if (rec.l1Token == address(0)) revert NotRegistered();
         if (rec.active) revert NotActive();
         if (block.timestamp < rec.activatesAt) revert TimelockNotElapsed();
 

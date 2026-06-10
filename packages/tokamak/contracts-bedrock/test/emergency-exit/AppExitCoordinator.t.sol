@@ -232,6 +232,14 @@ contract AppExitCoordinator_Test is Test {
         coordinator.setGuardian(makeAddr("newGuardian"));
     }
 
+    // ── C-2: activateToken on an unregistered token ───────────────────────────
+
+    function test_activateToken_Unregistered_Revert() public {
+        vm.warp(block.timestamp + 48 hours + 1 seconds);
+        vm.expectRevert(AppExitCoordinator.NotRegistered.selector);
+        coordinator.activateToken(makeAddr("ghostToken"));
+    }
+
     // ── HIGH-1: declareEmergency (guardian-set snapshot block) ────────────────
 
     function test_declareEmergency_ByGuardian_Success() public {
