@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { MerkleTrie } from "./trie/MerkleTrie.sol";
+import { SecureMerkleTrie } from "./trie/SecureMerkleTrie.sol";
 import { RLPReader } from "./rlp/RLPReader.sol";
 
 /// @title EmergencyExitProof
@@ -54,12 +54,10 @@ library EmergencyExitProof {
         uint256 expectedValue
     ) external view returns (uint256 actualValue) {
         // ── Step 1: Verify account state against stateRoot ─────────────────────
-        // The account key in the state trie is keccak256(accountAddress).
-        bytes memory accountKey = abi.encodePacked(keccak256(abi.encodePacked(account)));
-
+        // SecureMerkleTrie hashes the key (keccak256(account)), matching the Ethereum state trie.
         if (
-            !MerkleTrie.verifyInclusionProof(
-                accountKey,
+            !SecureMerkleTrie.verifyInclusionProof(
+                abi.encodePacked(account),
                 accountStateRlp,
                 accountProof,
                 stateRoot
@@ -79,9 +77,8 @@ library EmergencyExitProof {
         bytes32 storageRoot = bytes32(storageRootBytes);
 
         // ── Step 3: Verify storage slot value against storageRoot ─────────────
-        // storageProof is an MPT proof for the specific storage slot key.
-        // MerkleTrie.get() returns the value as raw bytes (already RLP-decoded).
-        bytes memory valueBytes = MerkleTrie.get(
+        // SecureMerkleTrie hashes the slot key (keccak256(storageKey)), matching the storage trie.
+        bytes memory valueBytes = SecureMerkleTrie.get(
             abi.encodePacked(storageKey),
             storageProof,
             storageRoot
@@ -89,20 +86,22 @@ library EmergencyExitProof {
 
         if (valueBytes.length == 0) revert ProofInvalid();
 
-        // Convert bytes to uint256 (the trie stores values as raw bytes after RLP decode).
-        // Storage values are always 32 bytes when padded from the L2 node.
-        if (valueBytes.length > 32) revert ProofInvalid();
+        // The storage trie leaf stores RLP(slotValue), so decode one more level to recover the raw
+        // big-endian value. Parsing the RLP-encoded blob directly would inflate the result by the
+        // length-prefix byte for any value >= 0x80, allowing an over-claim.
+        bytes memory slotValue = valueBytes.readBytes();
+        if (slotValue.length > 32) revert ProofInvalid();
         assembly {
             let free := mload(0x40)
             // Zero out 32 bytes
             mstore(free, 0)
-            // Copy value bytes to the front
-            let len := mload(valueBytes)
+            // Copy the trimmed value bytes to the front, then right-align into a uint256.
+            let len := mload(slotValue)
             pop(
                 staticcall(
                     gas(),
-                    0x4, // copy precompile isn't needed; just use mload/mstore
-                    add(valueBytes, 0x20),
+                    0x4, // identity precompile: copy len bytes
+                    add(slotValue, 0x20),
                     len,
                     free,
                     len
