@@ -57,57 +57,42 @@ contract EmergencyExitableBase_Test is Test {
 
     // ── emergencyExit() ───────────────────────────────────────────────────────
 
-    /// @notice emergencyExit always applies alias undo (Force TX design).
-    ///         In this test we mint to the resolved caller address so the call succeeds.
-    function test_emergencyExit_ResolvedCaller() public {
-        // emergencyExit always calls AddressAliasHelper.undoL1ToL2Alias(msg.sender).
-        // So the resolved caller is undoL1ToL2Alias(user).
-        // We mint tokens to that resolved address and call from user,
-        // and the exit should work.
-        address resolvedCaller = AddressAliasHelper.undoL1ToL2Alias(user);
-
-        // Mint LP tokens to the resolved caller address
-        token.mint(resolvedCaller, USER_BALANCE);
-
-        vm.prank(resolvedCaller);
+    /// @notice emergencyExit credits msg.sender directly (no alias undo). A direct L2 caller —
+    ///         and an EOA Force TX, where OptimismPortal delivers the un-aliased EOA as msg.sender —
+    ///         unwinds its own position.
+    function test_emergencyExit_UsesMsgSenderDirectly() public {
+        // `user` already holds USER_BALANCE (minted in setUp).
+        vm.prank(user);
         token.approve(address(pool), USER_BALANCE);
 
-        // Call emergencyExit from user — it resolves back to resolvedCaller
         vm.prank(user);
         pool.emergencyExit();
 
-        // Verify the bridge withdraw was called with correct params (check at predeploy address)
         MockL2StandardBridge bridge = MockL2StandardBridge(Predeploys.L2_STANDARD_BRIDGE);
         assertEq(bridge.lastAmount(), USER_BALANCE, "bridge withdraw amount");
         assertEq(bridge.lastToken(), address(token), "bridge withdraw token");
-        assertEq(token.balanceOf(resolvedCaller), 0, "resolved caller should have no LP tokens");
+        assertEq(token.balanceOf(user), 0, "caller's LP tokens pulled");
     }
 
     // ── emergencyExit() via Force TX simulation ───────────────────────────────
 
-    function test_emergencyExit_ForceTXAlias() public {
-        // Simulate Force TX from L1 user.
-        // msg.sender = aliasedL1User (the aliased address on L2).
-        // emergencyExit resolves it: undoL1ToL2Alias(aliasedL1User) = l1User.
-        // We need to mint tokens to l1User (the resolved caller).
+    /// @notice An aliased L1-contract sender (Force TX from an L1 contract) is used as-is: the
+    ///         aliased address is its L2 identity, so no undo is applied. The owner of the position
+    ///         is whatever msg.sender the portal delivers.
+    function test_emergencyExit_AliasedSenderUsedAsIs() public {
+        token.mint(aliasedL1User, USER_BALANCE);
 
-        address resolvedCaller = AddressAliasHelper.undoL1ToL2Alias(aliasedL1User);
-        assertEq(resolvedCaller, l1User, "alias resolve should return l1User");
-
-        token.mint(resolvedCaller, USER_BALANCE);
-
-        vm.prank(resolvedCaller);
+        vm.prank(aliasedL1User);
         token.approve(address(pool), USER_BALANCE);
 
-        // Force TX simulation: msg.sender is the aliased address
-        // emergencyExit resolves it back to l1User = resolvedCaller
+        // Force TX simulation: msg.sender is the aliased address; caller == msg.sender (no undo).
         vm.prank(aliasedL1User);
         pool.emergencyExit();
 
-        // Verify the bridge withdraw was called with correct params
         MockL2StandardBridge bridge = MockL2StandardBridge(Predeploys.L2_STANDARD_BRIDGE);
         assertEq(bridge.lastAmount(), USER_BALANCE, "bridge withdraw amount");
         assertEq(bridge.lastToken(), address(token), "bridge withdraw token");
+        assertEq(token.balanceOf(aliasedL1User), 0, "aliased sender's LP tokens pulled");
     }
 
     // ── Zero balance ─────────────────────────────────────────────────────────

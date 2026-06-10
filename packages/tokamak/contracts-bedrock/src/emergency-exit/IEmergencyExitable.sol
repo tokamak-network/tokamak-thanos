@@ -11,8 +11,9 @@ interface IEmergencyExitable {
 
     /// @notice Execute emergency withdrawal for the caller to L1.
     /// @dev Must be callable without operator gates (no whenNotPaused, onlyActive, etc.).
-    ///      On L2, when called via Force TX from L1, msg.sender will be the aliased address.
-    ///      Implementations must resolve the alias via AddressAliasHelper.undoL1ToL2Alias.
+    ///      Implementations should treat msg.sender as the L2 owner identity. OptimismPortal
+    ///      aliases only L1 contract senders, so an EOA Force TX arrives un-aliased; undoing the
+    ///      alias unconditionally would corrupt the caller. Do not apply undoL1ToL2Alias.
     function emergencyExit() external;
 
     /// @notice Returns the L1/L2 token pair this contract manages for exits.

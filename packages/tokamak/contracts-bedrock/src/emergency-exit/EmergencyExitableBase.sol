@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { IEmergencyExitable } from "./IEmergencyExitable.sol";
-import { AddressAliasHelper } from "../vendor/AddressAliasHelper.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -42,15 +41,16 @@ abstract contract EmergencyExitableBase is IEmergencyExitable, ReentrancyGuard {
 
     /**
      * @notice Execute emergency withdrawal for the caller.
-     *         Resolves L1→L2 alias, unwinds position, and pushes tokens to L2StandardBridge.
+     *         Unwinds the caller's position and pushes tokens to L2StandardBridge.
      * @dev This function intentionally has NO operator controls (no whenNotPaused, onlyActive).
-     *      When called via Force TX (OptimismPortal2.depositTransaction), msg.sender
-     *      will be the aliased L1 address. We must undo the alias to get the real user.
+     *      The caller is msg.sender as-is. OptimismPortal aliases only L1 *contract* senders
+     *      (from = applyL1ToL2Alias(sender) iff sender != tx.origin), so an EOA Force TX arrives
+     *      un-aliased and a direct L2 call is already the owner; in both cases msg.sender is the
+     *      correct L2 identity. For an aliased L1 contract sender, the aliased address is its L2
+     *      identity. No alias undo is applied (undoing it unconditionally corrupts EOA callers).
      */
     function emergencyExit() external override nonReentrant {
-        // Force TX from L1 always causes msg.sender to be the aliased L1 address.
-        // We always undo the alias to get the real user.
-        address caller = AddressAliasHelper.undoL1ToL2Alias(msg.sender);
+        address caller = msg.sender;
 
         // Unwind position — this should:
         // 1. Transfer user's position tokens (LP tokens, staking tokens, etc.) into this contract
