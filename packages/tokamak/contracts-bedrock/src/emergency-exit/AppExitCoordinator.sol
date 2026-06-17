@@ -34,6 +34,7 @@ contract AppExitCoordinator is ReentrancyGuard {
     error TimelockNotElapsed();
     error UnknownBlock();
     error EmergencyNotDeclared();
+    error EmergencyAlreadyDeclared();
 
     // ── State ─────────────────────────────────────────────────────────────────
     struct TokenRecord {
@@ -144,6 +145,7 @@ contract AppExitCoordinator is ReentrancyGuard {
     ///         root for `blockNumber`, so exits can only ever be enabled against a finalized block.
     /// @param blockNumber The finalized L2 block height to freeze exits at.
     function declareEmergency(uint256 blockNumber) external onlyGuardian {
+        if (emergencyBlockNumber != 0) revert EmergencyAlreadyDeclared();
         _getStateRoot(blockNumber); // reverts UnknownBlock if the root is unknown / zero
         emergencyBlockNumber = blockNumber;
         emit EmergencyDeclared(blockNumber);

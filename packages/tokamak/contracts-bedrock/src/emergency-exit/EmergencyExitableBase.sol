@@ -62,7 +62,7 @@ abstract contract EmergencyExitableBase is IEmergencyExitable, ReentrancyGuard {
         // Approve L2StandardBridge to pull the tokens, then trigger L1 withdrawal.
         // The bridge will create a withdrawal message that can be proved + finalized on L1
         // after the standard Fault Proof challenge period (7 days on mainnet).
-        IERC20(token).approve(L2_STANDARD_BRIDGE, amount);
+        IERC20(token).safeApprove(L2_STANDARD_BRIDGE, amount);
         IL2StandardBridge(L2_STANDARD_BRIDGE).withdraw(
             token,
             amount,

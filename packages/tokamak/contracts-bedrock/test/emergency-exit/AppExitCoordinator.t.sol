@@ -256,6 +256,16 @@ contract AppExitCoordinator_Test is Test {
         coordinator.declareEmergency(SNAPSHOT_BLOCK);
     }
 
+    function test_declareEmergency_AlreadyDeclared_Revert() public {
+        _mockStateRoot(bytes32(uint256(0xBEEF)));
+        vm.prank(guardian);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+
+        vm.prank(guardian);
+        vm.expectRevert(AppExitCoordinator.EmergencyAlreadyDeclared.selector);
+        coordinator.declareEmergency(SNAPSHOT_BLOCK);
+    }
+
     function test_declareEmergency_UnknownRoot_Revert() public {
         // No oracle mock: getStateRoot returns empty → UnknownBlock.
         vm.prank(guardian);
